@@ -299,7 +299,32 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }</pre>
-    <div class="note">系統以 <code>X-Real-IP</code> 取得真實來源 IP（fail2ban 鎖定與稽核用），請務必讓反向代理帶上此 header。完整 Apache 站台設定範例與「更新 / 升級」說明請見 <a href="https://github.com/jasoncheng7115/jt-vc-portal#readme" target="_blank" rel="noopener">GitHub README</a>。</div>
+    <div class="note">系統以 <code>X-Real-IP</code> 取得真實來源 IP（fail2ban 鎖定與稽核用），請務必讓反向代理帶上此 header。完整 Apache 站台設定範例請見 <a href="https://github.com/jasoncheng7115/jt-vc-portal#readme" target="_blank" rel="noopener">GitHub README</a>。</div>
+
+    <h3 style="margin-top:28px">更新 / 升級</h3>
+    <p class="section-sub" style="margin-bottom:14px">所有設定與資料（帳號、會議室、稽核、用量等）都存在 <code>DATA_DIR</code> 或掛載卷，<strong>更新不會遺失</strong>，JSON 結構會自動相容升級。更新前仍建議先備份資料目錄與 <code>keys/</code>。</p>
+<pre><span class="c"># 共同：更新前備份（建議）</span>
+cp -a /opt/jt-vc-portal/data /opt/jt-vc-portal/data.bak-$(date +%Y%m%d)
+
+<span class="c"># 方法一：直接安裝</span>
+git pull
+cp dot.htaccess .htaccess          <span class="c"># 若 .htaccess 有更新</span>
+sudo systemctl reload apache2      <span class="c"># 清 opcache</span>
+
+<span class="c"># 方法二：Docker 自行 build</span>
+git pull
+docker build --pull -t jt-vc-portal .
+docker stop jt-vc-portal &amp;&amp; docker rm jt-vc-portal
+docker run -d --restart unless-stopped -p 58189:58189 \
+  -v /opt/jt-vc-portal/keys/:/var/www/html/keys \
+  -v /opt/jt-vc-portal/data/:/var/jaas-data \
+  --name jt-vc-portal jt-vc-portal
+
+<span class="c"># 方法三：下載 Release 預建映像（不自行 build）</span>
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/latest/download/jt-vc-portal-&lt;新版本&gt;-docker-amd64.tar.gz
+docker load &lt; jt-vc-portal-&lt;新版本&gt;-docker-amd64.tar.gz
+docker stop jt-vc-portal &amp;&amp; docker rm jt-vc-portal      <span class="c"># 再以方法二相同參數重新 docker run</span></pre>
+    <div class="note">資料與私鑰都在掛載卷 / <code>DATA_DIR</code>，換容器不受影響；登入後可從左上版本號確認已更新到新版。</div>
   </div>
 </section>
 
