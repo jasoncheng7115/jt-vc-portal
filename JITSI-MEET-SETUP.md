@@ -67,6 +67,83 @@ JVB_ADVERTISE_IPS=<公網IP>,<主機私有IP>
 
 > **最常見故障**：能進會議室但黑畫面 / 沒聲音 → 八成是 `UDP 10000` 未放行 / 未轉發，或 `JVB_ADVERTISE_IPS` 沒設成公網 IP。
 
+### 媒體傳輸的三層後援（UDP 10000 → TCP 4443 → TURN/TLS 443）
+
+來賓的影音媒體會由瀏覽器**自動**「從最快到最能穿牆」依序嘗試，挑第一個通的通道：
+
+| 順位 | 通道 | 適用情境 | 難度 |
+|---|---|---|---|
+| 1 | **UDP 10000** → JVB 直連 | 一般網路 | 預設即有 |
+| 2 | **TCP 4443** → JVB 直連 | 來賓端擋 UDP、但放行任意對外 TCP | 中（且已非預設） |
+| 3 | **TURN over TLS 443** → 經 coturn 轉送 | 來賓端**只**放行 443（看起來像 HTTPS） | 高（需另架 coturn） |
+
+> 大多數使用者光靠 **第 1 層 UDP 10000** 就能用；只有「來賓端網路很嚴格」時才需要第 2、3 層。第 3 層較複雜，請評估確有需求再做。
+
+#### 第 1 層：UDP 10000（預設、品質最佳）
+
+即前述：放行 `UDP 10000`、設好 `JVB_ADVERTISE_IPS` 即可。這是主要且品質最好的通道。
+
+#### 第 2 層：TCP 4443（JVB 直連後援）
+
+給「擋 UDP、但允許任意對外 TCP」的來賓。請注意：
+
+- 現代 Jitsi **預設停用** JVB 內建的 TCP harvester，官方建議改用第 3 層的 TURN 來統一處理後援；`stable-10888` 的 docker `.env` **沒有**對應開關。
+- 若仍要走 JVB 直連 4443：需以 custom config 疊加重新啟用 JVB 的 TCP harvester，並對外開放 `TCP 4443`（屬進階）。多數情境直接做第 3 層的 TURN 更省事、也更通用。
+
+#### 第 3 層：TURN over TLS 443（最能穿牆，較複雜）
+
+給「對外只允許 443」的最嚴格網路。原理：另架一台 **TURN 伺服器（coturn）**，用 **TLS 監聽 443**，瀏覽器把媒體包成「看起來像 HTTPS」的流量送進 coturn，coturn 再以 UDP 轉送給 JVB。`docker-jitsi-meet` **不內建 coturn**，需自行加裝。重點四步：
+
+**(1) 裝 coturn**（與 Jitsi 同機或另一台皆可）。因為要與前緣 nginx 用 SNI 分流，**TLS 由 coturn 自己終結**，`turnserver.conf` 重點：
+
+```ini
+listening-port=3478
+tls-listening-port=5349
+fingerprint
+use-auth-secret
+static-auth-secret=<一段長亂數，與 prosody 共用>
+realm=meet.example.com
+cert=/etc/coturn/certs/turn.crt          # turn 專用名或共用 meet 憑證皆可
+pkey=/etc/coturn/certs/turn.key
+min-port=49152
+max-port=65535
+external-ip=<本機公網IP>
+no-multicast-peers
+no-cli
+```
+
+**(2) 用 SNI 把 443 分流給 coturn 與 Jitsi web**（同機共用 443 的關鍵）。在最前緣 nginx 用 `stream` + `ssl_preread`，依「瀏覽器連的主機名」分流，且**不終結 TLS**（原樣轉走）：
+
+```nginx
+stream {
+  map $ssl_preread_server_name $upstream {
+    turn.meet.example.com  127.0.0.1:5349;   # TURN/TLS 流量 → coturn
+    default                127.0.0.1:8443;    # 其餘 → Jitsi web 容器
+  }
+  server {
+    listen 443;
+    listen [::]:443;
+    ssl_preread on;
+    proxy_pass $upstream;
+  }
+}
+```
+
+> nginx 占用了 443，故 Jitsi web 容器要改用別的埠（例如 `.env` 設 `HTTPS_PORT=8443`），由這層 nginx 反代；`turn.meet.example.com` 與 `meet.example.com` 都要指到這台。
+
+**(3) 讓 prosody 把 TURN 廣告給瀏覽器**（XEP-0215 `external_services`），瀏覽器才知道要走 `turns:443`。docker 版以 prosody 設定疊加（custom plugin / config），內容相當於：
+
+```lua
+external_services = {
+  { type = "turns", host = "turn.meet.example.com", port = 443,
+    transport = "tcp", secret = "<與 coturn 的 static-auth-secret 相同>" };
+};
+```
+
+**(4) 驗證**：開 `https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/`，填 `turns:turn.meet.example.com:443?transport=tcp`，應出現 `relay` 候選；再把測試端網路限制到只剩 443，確認會議仍可通（畫面 / 聲音正常）。
+
+> 這層牽涉憑證、SNI 分流、coturn 與 prosody 密鑰一致，環境差異大。若需要，我可以依你的實際拓撲（Jitsi 與 coturn 同機或分機、憑證來源）另寫一份逐步版。
+
 ---
 
 ## 一、取得官方 docker-jitsi-meet
@@ -215,6 +292,7 @@ docker compose ps
 | 進會議顯示 token / authentication 錯誤 | App ID、`JWT_APP_SECRET`、`iss`、`aud` 不一致；或多租戶環境需在「JWT sub」填租戶名（單網域留空即送 `*`） |
 | 大廳沒作用 | `.env` 要 `ENABLE_LOBBY=1`，且建立會議室時勾「大廳模式」 |
 | 黑畫面 / 媒體不通 | `10000/udp` 未開放，或 NAT；於 `.env` 設 `JVB_ADVERTISE_IPS=<主機公網IP>` |
+| 部分來賓（嚴格網路）連不上媒體 | 該來賓端擋 UDP / 只放行 443 → 見「媒體傳輸的三層後援」加開 TCP 4443 或架 TURN/443 |
 | 想統一網域體感 | jt-vc-portal 網址列恆為 `vc.example.com`；`meet.example.com` 只在 F12 / 連線中可見（正常） |
 
 ---
