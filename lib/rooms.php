@@ -45,16 +45,29 @@ class Rooms {
     @file_put_contents(AUTO_ALLOW_FILE, json_encode($rooms, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
   }
 
-  /** 清理過期（依 created_at + TTL）；同時清掉 ends_at 已過超過 1 小時的房間 */
+  /**
+   * 清理過期並回傳有效房間。保留規則（讓未來排程的會議室也留得住）：
+   *   - 主持人在線（進行中）→ 一律保留
+   *   - 有結束時間 → 保留到 ends_at + 1 小時
+   *   - 只有開始時間 → 保留到 starts_at + 24 小時
+   *   - 無排程 → 依建立時間 created_at + TTL(24h)
+   */
   public static function pruneAndGet(): array {
     $now = time();
     $rooms = self::load();
     $valid = [];
     foreach ($rooms as $name => $r) {
-      $tooOldByCreate = ($now - ($r['created_at'] ?? 0)) > ROOM_TTL_SECONDS;
-      $tooOldByEnd    = $r['ends_at'] !== null && ($now - $r['ends_at']) > 3600;
-      if ($tooOldByCreate || $tooOldByEnd) continue;
-      $valid[$name] = $r;
+      $keep = false;
+      if (self::isHostPresent($r, $now)) {
+        $keep = true;                                              // 進行中
+      } elseif (($r['ends_at'] ?? null) !== null) {
+        $keep = ($now - (int)$r['ends_at']) <= 3600;              // 結束後 1h 內
+      } elseif (($r['starts_at'] ?? null) !== null) {
+        $keep = ($now - (int)$r['starts_at']) <= 86400;          // 開始後 24h 內（無結束時間）
+      } else {
+        $keep = ($now - ($r['created_at'] ?? 0)) <= ROOM_TTL_SECONDS; // 無排程：建立後 24h
+      }
+      if ($keep) $valid[$name] = $r;
     }
     if (count($valid) !== count($rooms)) self::save($valid);
     return $valid;

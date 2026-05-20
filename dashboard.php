@@ -15,6 +15,21 @@ $all_rooms = Rooms::pruneAndGet();
 $rooms = $is_admin ? $all_rooms : array_filter($all_rooms, fn($r) => ($r['owner'] ?? null) === $me['id']);
 uasort($rooms, fn($a, $b) => ($b['created_at'] ?? 0) <=> ($a['created_at'] ?? 0));
 
+// 各會議室的進入 / 時長彙整（自最早建立時間起讀取已結束 session）
+$meet_agg = [];
+if (!empty($rooms)) {
+  $oldest = min(array_map(fn($r) => (int)($r['created_at'] ?? time()), $rooms));
+  foreach (Rooms::meetingSessions($oldest - 3600, time()) as $sess) {
+    $rn = (string)($sess['room'] ?? '');
+    if ($rn === '') continue;
+    if (!isset($meet_agg[$rn])) $meet_agg[$rn] = ['dur' => 0, 'first' => null, 'count' => 0];
+    $meet_agg[$rn]['dur']   += (int)($sess['dur'] ?? 0);
+    $meet_agg[$rn]['count'] += 1;
+    $st = (int)($sess['start'] ?? 0);
+    if ($meet_agg[$rn]['first'] === null || $st < $meet_agg[$rn]['first']) $meet_agg[$rn]['first'] = $st;
+  }
+}
+
 $error = $_SESSION['room_error'] ?? '';
 unset($_SESSION['room_error']);
 $form_values = $_SESSION['form_values'] ?? [];
@@ -47,6 +62,13 @@ function fmt_range(?int $s, ?int $e): string {
   $left  = date('m/d H:i', $s);
   $right = $e === null ? '不限' : ($sameday ? date('H:i', $e) : date('m/d H:i', $e));
   return $left . ' ～ ' . $right;
+}
+function fmt_dur_s(int $s): string {
+  if ($s < 60) return $s . ' 秒';
+  $m = intdiv($s, 60);
+  if ($m < 60) return $m . ' 分';
+  $h = intdiv($m, 60); $mm = $m % 60;
+  return $h . ' 時' . ($mm ? ' ' . $mm . ' 分' : '');
 }
 function mail_flash_text(string $m): string {
   if ($m === 'smtp_off') return '（SMTP 未啟用，邀請信未寄出，僅建立連結）';
@@ -162,7 +184,7 @@ render_topbar($me, $ip);
   </div>
 
   <div class="card">
-    <h1><?= icon('clock', 18) ?>近期會議室 <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400;font-size:13px;">· 24 小時內<?= $is_admin ? '（全部主持人）' : '' ?></span></h1>
+    <h1><?= icon('clock', 18) ?>近期會議室 <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400;font-size:13px;">· 近期 / 即將開始<?= $is_admin ? '（全部主持人）' : '' ?></span></h1>
     <?php if (empty($rooms)): ?>
       <div class="empty">尚無近期會議室。建立後將會出現在這裡。</div>
     <?php else: ?>
@@ -187,6 +209,18 @@ render_topbar($me, $ip);
                 <?= $badge ?>
                 <span>建立於 <?= fmt_when($r['created_at']) ?></span>
                 <?php if ($is_admin && !empty($r['owner_name'])): ?><span><?= icon('user',11) ?> <?= htmlspecialchars($r['owner_name']) ?></span><?php endif; ?>
+                <?php
+                  $agg = $meet_agg[$name] ?? null;
+                  $ongoing = $hj && !empty($r['host_joined_at']);
+                  $first_enter = $agg['first'] ?? ($ongoing ? (int)$r['host_joined_at'] : null);
+                  $open_secs = (int)($agg['dur'] ?? 0) + ($ongoing ? max(0, $now - (int)$r['host_joined_at']) : 0);
+                ?>
+                <?php if ($first_enter !== null): ?>
+                  <span><?= icon('play',11) ?> 進入 <?= date('m/d H:i', $first_enter) ?></span>
+                  <span><?= icon('clock',11) ?> 開了 <?= htmlspecialchars(fmt_dur_s($open_secs)) ?><?= $ongoing ? '（進行中）' : '' ?></span>
+                <?php else: ?>
+                  <span class="muted"><?= icon('info',11) ?> 尚未進入</span>
+                <?php endif; ?>
                 <?php if ($s !== null): ?><span><?= icon('calendar', 11) ?> <?= htmlspecialchars(fmt_range($s, $e)) ?></span><?php endif; ?>
                 <?php if (!empty($r['attendees'])): ?><span><?= icon('user',11) ?> <?= count($r['attendees']) ?> 位受邀</span><?php endif; ?>
                 <?php if (!empty($r['lobby'])): ?><span><?= icon('lock', 11) ?> 大廳模式</span><?php endif; ?>
