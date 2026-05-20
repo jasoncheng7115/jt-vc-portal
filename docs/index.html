@@ -74,7 +74,7 @@
       <div class="panel good">
         <h3>用 jt-vc-portal 後</h3>
         <ul>
-          <li>統一入口：主持人登入才能建室，行為全程稽核</li>
+          <li>統一入口：主持人登入才能建會議室，行為全程稽核</li>
           <li>預約時段、來賓需具名、主持人在線上才放行</li>
           <li>多帳號 / 角色 / 2FA；登入記錄可外拋 syslog/CEF/GELF</li>
           <li>雙模式：<a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> 或<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">自建 Jitsi Meet</a>，一鍵切換不動程式碼</li>
@@ -282,7 +282,7 @@ docker run -d --restart unless-stopped -p 58189:58189 \
   --name jt-vc-portal jt-vc-portal:latest</pre>
 
     <h3 style="margin-top:24px">前端反向代理 HTTPS（建議）</h3>
-    <p class="section-sub" style="margin-bottom:14px">系統對外為 <code>:58189</code>，正式環境建議前面再以 nginx 或 Apache 反向代理掛上 HTTPS。</p>
+    <p class="section-sub" style="margin-bottom:14px;max-width:none">系統對外為 <code>:58189</code>，正式環境建議前面再以 nginx 或 Apache 反向代理掛上 HTTPS。</p>
 <pre><span class="c"># nginx 範例</span>
 server {
     listen 443 ssl;
@@ -302,7 +302,7 @@ server {
     <div class="note">系統以 <code>X-Real-IP</code> 取得真實來源 IP（fail2ban 鎖定與稽核用），請務必讓反向代理帶上此 header。完整 Apache 站台設定範例請見 <a href="https://github.com/jasoncheng7115/jt-vc-portal#readme" target="_blank" rel="noopener">GitHub README</a>。</div>
 
     <h3 style="margin-top:28px">更新 / 升級</h3>
-    <p class="section-sub" style="margin-bottom:14px">所有設定與資料（帳號、會議室、稽核、用量等）都存在 <code>DATA_DIR</code> 或掛載卷，<strong>更新不會遺失</strong>，JSON 結構會自動相容升級。更新前仍建議先備份資料目錄與 <code>keys/</code>。</p>
+    <p class="section-sub" style="margin-bottom:14px;max-width:none">所有設定與資料（帳號、會議室、稽核、用量等）都存在 <code>DATA_DIR</code> 或掛載卷，<strong>更新不會遺失</strong>，JSON 結構會自動相容升級。更新前仍建議先備份資料目錄與 <code>keys/</code>。</p>
 <pre><span class="c"># 共同：更新前備份（建議）</span>
 cp -a /opt/jt-vc-portal/data /opt/jt-vc-portal/data.bak-$(date +%Y%m%d)
 
