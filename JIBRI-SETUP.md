@@ -37,9 +37,18 @@ printf 'options snd-aloop enable=1,1,1,1 index=0,1,2,3\n' | sudo tee /etc/modpro
 
 ```ini
 ENABLE_RECORDING=1
+
 # 以下帳密 gen-passwords.sh 已產生，確認存在：
 # JIBRI_RECORDER_USER / JIBRI_RECORDER_PASSWORD
 # JIBRI_XMPP_USER / JIBRI_XMPP_PASSWORD
+
+# 時區（影響錄影檔名 / 內嵌時間 / log 時間；全部容器共用此值）
+TZ=Asia/Taipei
+
+# 錄影輸出目錄（容器內路徑，對應 host volume）
+JIBRI_RECORDING_DIR=/config/recordings
+# 錄完後處理腳本（選用：上傳物件儲存 / 通知；不設則只留檔）
+# JIBRI_FINALIZE_RECORDING_SCRIPT_PATH=/config/finalize.sh
 ```
 
 Jibri 服務以額外的 `jibri.yml` 疊加啟動（docker-jitsi-meet 慣例）：
@@ -49,6 +58,13 @@ docker compose -f docker-compose.yml -f jibri.yml up -d
 ```
 
 Jibri 容器需存取主機 `/dev/snd`（jibri.yml 已設 `devices: /dev/snd`），並依賴上一步載入的 snd-aloop。
+
+### 錄影輸出位置（host 端）
+
+- jibri 的設定 / 錄影 volume 預設掛在主機 **`~/.jitsi-meet-cfg/jibri`** → 容器 `/config`；錄影檔即在主機 **`~/.jitsi-meet-cfg/jibri/recordings/`** 下。
+- 每場會議自成一個子資料夾（含 `.mp4` 與 metadata），檔名 / 時間依 `TZ` 設定。
+- 想改放別處：在 `jibri.yml` 把該 volume 對應的主機路徑改掉（例如指到大容量磁碟 / NFS 掛載點），`JIBRI_RECORDING_DIR` 維持容器內 `/config/recordings` 即可。
+- `CONFIG` 變數（docker-jitsi-meet `.env`，預設 `~/.jitsi-meet-cfg`）決定所有元件設定 / 資料的主機根目錄；要整批換位置改它。
 
 ---
 
