@@ -43,22 +43,65 @@ Jibri 需要在主機核心 **載入 `snd-aloop` 模組** 並存取 **`/dev/snd`
 
 ---
 
-## 二、主機前置：載入 snd-aloop（決定可並行的場數）
+## 二、主機（VM）前置：載入 snd-aloop（決定可並行的場數）
 
-在 **Jibri VM**（見第一節）裡，`snd-aloop` 必須在 **VM 的核心**載入；2 場並行就開 **2 個** loopback 裝置。
+Jibri 用 ALSA 的 **loopback 虛擬音效卡**（`snd-aloop`）把會議聲音導給 ffmpeg；**每個並行錄影各需一張 loopback 卡**，所以 2 場要 2 張。本步驟在 **Jibri VM 的作業系統層**做（不是容器內）。
+
+### 1) 確認核心有 snd-aloop 模組
 
 ```bash
-# 目標 2 場 → 開 2 個 loopback 裝置
-sudo modprobe snd-aloop enable=1,1 index=0,1
-cat /proc/asound/cards          # 應看到 2 張 Loopback 卡
-
-# 開機自動載入並固定裝置數
-echo 'snd-aloop' | sudo tee /etc/modules-load.d/snd-aloop.conf
-printf 'options snd-aloop enable=1,1 index=0,1\n' | sudo tee /etc/modprobe.d/snd-aloop.conf
+modinfo snd-aloop >/dev/null 2>&1 && echo "OK：有模組" || echo "缺模組，需補裝"
 ```
 
-> 要增減場數，`enable=` / `index=` 就列對應數量。例：3 場 → `enable=1,1,1 index=0,1,2`。
-> 若 `modprobe` 失敗（找不到模組 / 權限），多半是這台不是 VM 而是 LXC 容器——見第一節，必須改用 VM。
+精簡版的雲端 / 伺服器映像常缺這個模組，補裝後再繼續（Debian / Ubuntu）：
+
+```bash
+sudo apt-get update
+sudo apt-get install -y "linux-modules-extra-$(uname -r)" alsa-utils
+```
+
+### 2) 設定開機自動載入 + 固定卡數（持久化）
+
+```bash
+# (a) 開機自動載入 snd-aloop
+echo 'snd-aloop' | sudo tee /etc/modules-load.d/snd-aloop.conf
+
+# (b) 固定 2 張 loopback 卡（要幾場就列幾組「1」與 index）
+echo 'options snd-aloop enable=1,1 index=0,1' | sudo tee /etc/modprobe.d/snd-aloop.conf
+```
+
+- `enable=1,1`：啟用 2 張卡；`index=0,1`：分別給編號 0、1。
+- 3 場就 `enable=1,1,1 index=0,1,2`，依此類推。
+
+### 3) 重新開機（建議做法）
+
+> **改完上面兩個檔，請重開機一次。**
+> 原因：`snd-aloop` 很可能在你動手前就已被系統載入過（且沒帶 options / 卡數不對）。模組「已在記憶體」時，再下 `modprobe ... enable=...` 的 options 會被忽略。重開機能保證以 `/etc/modprobe.d` 的設定**乾淨**載入正確卡數。
+
+```bash
+sudo reboot
+```
+
+#### 不想重開、要當下生效（替代做法）
+
+先卸載再帶 options 重新載入即可（不必重開機）：
+
+```bash
+sudo modprobe -r snd-aloop 2>/dev/null   # 卸載；若顯示 in use 代表有程式占用 → 那就改用重開機
+sudo modprobe snd-aloop enable=1,1 index=0,1
+```
+
+### 4) 驗證（重開或重載後執行）
+
+```bash
+lsmod | grep snd_aloop        # 應看到 snd_aloop 已載入
+cat /proc/asound/cards        # 應看到 2 張 "Loopback" 卡（index 0、1）
+```
+
+看到 **2 張 Loopback 卡**就成功。
+
+> 增減場數：把這裡的 `enable=` / `index=` 與第四節的 `--scale jibri=` 一起調整，並重開機（或用上面替代做法重載）。
+> 若 `modprobe` 顯示找不到模組或權限不足且補裝後仍失敗，多半是這台是 **LXC 容器而非 VM**——見第一節，必須改用 VM。
 
 ---
 
