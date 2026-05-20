@@ -34,7 +34,7 @@
       <span class="eyebrow">雙模</span>
     </div>
     <h1>Jitsi Meet <span class="grad">認證閘道系統</span></h1>
-    <p class="lead">搭配 Jitsi Meet 基底的會議入口系統：主持人登入後建立會議室、產生邀請連結（QR / 行事曆邀請），來賓憑連結加入。<strong>同時支援 <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> 與自建 Jitsi Meet</strong>，內建多帳號 / 角色 / 2FA、完整稽核與排程。</p>
+    <p class="lead">搭配 Jitsi Meet 基底的會議入口系統：主持人登入後建立會議室、產生邀請連結（QR / 行事曆邀請），來賓憑連結加入。<strong>同時支援 <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> 與<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">自建 Jitsi Meet</a></strong>，內建多帳號 / 角色 / 2FA、完整稽核與排程。</p>
     <div class="cta">
       <a class="btn btn-primary" href="#install">開始安裝</a>
       <a class="btn btn-ghost" href="https://github.com/jasoncheng7115/jt-vc-portal" target="_blank" rel="noopener">在 GitHub 查看</a>
@@ -75,7 +75,7 @@
           <li>統一入口：主持人登入才能建室，行為全程稽核</li>
           <li>預約時段、來賓需具名、主持人在線才放行</li>
           <li>多帳號 / 角色 / 2FA；登入記錄可外拋 syslog/CEF/GELF</li>
-          <li>雙模式：<a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> 或自建 Jitsi Meet，一鍵切換不改碼</li>
+          <li>雙模式：<a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> 或<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">自建 Jitsi Meet</a>，一鍵切換不改碼</li>
         </ul>
       </div>
     </div>
@@ -89,7 +89,7 @@
     <h2>核心功能</h2>
     <p class="section-sub">企業會議入口需要的都內建了，零外部 PHP 套件。</p>
     <div class="grid">
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div><h3>雙連線模式</h3><p><a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>（RS256 + kid）或自建 Jitsi Meet（HS256 / 免 JWT），管理介面一鍵切換。</p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div><h3>雙連線模式</h3><p><a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>（RS256 + kid）或<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">自建 Jitsi Meet</a>（HS256 / 免 JWT），管理介面一鍵切換。</p></div>
       <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m23 7-7 5 7 5V7Z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div><h3>會議室管理</h3><p>建立 / 進入、亂數命名、近期清單、一鍵複製邀請、QR Code 彈窗。</p></div>
       <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div><h3>預約時段</h3><p>設定開放時段；未到顯示翻頁時鐘倒數，主持人提前進入即自動放行。</p></div>
       <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div><h3>Email 邀請</h3><p>填與會者 email，寄送含 <code>.ics</code> 行事曆的邀請信，可自訂主旨 / 內文範本。</p></div>
