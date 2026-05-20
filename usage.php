@@ -107,6 +107,7 @@ render_topbar($me, $ip);
     <div class="stat-card"><div class="stat-num"><?= (int)$cnt['invite_sent'] ?></div><div class="stat-label"><?= icon('calendar', 14) ?>寄送邀請</div></div>
     <div class="stat-card"><div class="stat-num"><?= (int)$meet_count ?></div><div class="stat-label"><?= icon('video', 14) ?>會議場次</div></div>
     <div class="stat-card"><div class="stat-num" style="font-size:22px;"><?= htmlspecialchars($meet_count ? fmt_dur($meet_avg) : '—') ?></div><div class="stat-label"><?= icon('clock', 14) ?>平均時長</div></div>
+    <div class="stat-card"><div class="stat-num" style="font-size:22px;"><?= htmlspecialchars($meet_count ? fmt_dur($meet_total) : '—') ?></div><div class="stat-label"><?= icon('clock', 14) ?>會議總時長</div></div>
     <div class="stat-card"><div class="stat-num"><?= (int)$active_rooms ?></div><div class="stat-label"><?= icon('home', 14) ?>活躍會議室</div></div>
   </div>
 

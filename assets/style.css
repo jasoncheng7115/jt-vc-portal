@@ -654,13 +654,15 @@ body.is-dark .usage-bar { background: rgba(255,255,255,0.08); }
 }
 body.is-dark .nav-row .btn.active { background: rgba(37,99,235,0.18); color: #fff; }
 
-/* 用量頁：統計數字卡 */
+/* 用量頁：統計數字卡（固定一行 4 張）*/
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 14px;
   margin-bottom: 18px;
 }
+@media (max-width: 760px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 420px) { .stat-grid { grid-template-columns: 1fr; } }
 .stat-card {
   background: var(--bg);
   border: 1px solid var(--border);
