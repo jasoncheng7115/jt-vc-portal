@@ -293,7 +293,7 @@ docker run -d --restart unless-stopped \
 
 - **存取控制**（OWASP A01）：未授權頁面回 404、會議室依擁有者隔離、CSRF token。
 - **認證**（A07）：bcrypt 密碼、TOTP 2FA、fail2ban 登入鎖定（依真實來源 IP）。
-- **加密**（A04）：JWT 簽章、webhook HMAC 驗簽、安全 session cookie。
+- **加密**（A04）：JWT 簽章、webhook HMAC 簽章驗證、安全 session cookie。
 - **記錄與告警**（A09）：完整稽核記錄 + 即時 SIEM 外拋。
 - **設定強化**（A02）：關閉錯誤顯示與版本洩漏、安全標頭、敏感路徑拒絕存取。
 - **供應鏈**（A03）：零外部 PHP 套件；Dockerfile 建置時套用最新 OS 安全更新。

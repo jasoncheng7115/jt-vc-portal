@@ -168,7 +168,7 @@
       <div class="row"><span class="tag">A05</span><div><b>注入</b><span>輸出跳脫、輸入清洗、Email header injection 防護。</span></div></div>
       <div class="row"><span class="tag">A06</span><div><b>不安全設計</b><span>閘道式架構、預設安全（來賓須具名、主持人在線才放行）、角色最小權限。</span></div></div>
       <div class="row"><span class="tag">A07</span><div><b>認證</b><span>TOTP 2FA、fail2ban 登入鎖定（依真實來源 IP）。</span></div></div>
-      <div class="row"><span class="tag">A08</span><div><b>資料完整性</b><span>webhook 驗簽、idempotency 去重。</span></div></div>
+      <div class="row"><span class="tag">A08</span><div><b>資料完整性</b><span>webhook 以 HMAC 簽章驗證來源，並用 idempotency key 去除重複事件。</span></div></div>
       <div class="row"><span class="tag">A09</span><div><b>記錄與告警</b><span>完整稽核記錄 + 即時 SIEM 外拋。</span></div></div>
       <div class="row"><span class="tag">A10</span><div><b>例外處理</b><span>失敗安全降級：讀取失敗回預設、寄信 / 外拋失敗不阻斷主流程、錯誤不外洩。</span></div></div>
     </div>
