@@ -351,6 +351,31 @@ docker stop jt-vc-portal &amp;&amp; docker rm jt-vc-portal      <span class="c">
   </div>
 </footer>
 
+<!-- 圖片放大檢視 -->
+<div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="放大檢視">
+  <button class="lightbox-close" type="button" aria-label="關閉">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+  </button>
+  <img src="" alt="">
+</div>
+
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
+<script>
+(function(){
+  var imgs = document.querySelectorAll('.shot img');
+  var lb = document.getElementById('lightbox');
+  if (!imgs.length || !lb) return;
+  var lbImg = lb.querySelector('img');
+  function open(src, alt){ lbImg.src = src; lbImg.alt = alt || ''; lb.classList.add('open'); document.body.style.overflow = 'hidden'; }
+  function close(){ lb.classList.remove('open'); document.body.style.overflow = ''; lbImg.src = ''; }
+  imgs.forEach(function(im){
+    im.style.cursor = 'zoom-in';
+    im.addEventListener('click', function(){ open(im.currentSrc || im.src, im.alt); });
+  });
+  lb.addEventListener('click', close);
+  lbImg.addEventListener('click', function(e){ e.stopPropagation(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+})();
+</script>
 </body>
 </html>

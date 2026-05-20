@@ -160,4 +160,18 @@ tr:last-child td{border-bottom:0}
 footer{border-top:1px solid var(--border);background:#fff;padding:40px 0;color:var(--muted);font-size:14px}
 footer .wrap{display:flex;flex-wrap:wrap;gap:18px;justify-content:space-between;align-items:center}
 footer a{color:var(--muted)}
+
+/* lightbox（畫面一覽放大檢視）*/
+.lightbox{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;
+  padding:32px;background:rgba(15,15,20,.85);backdrop-filter:blur(4px);cursor:zoom-out;
+  animation:lb-fade .15s ease}
+.lightbox.open{display:flex}
+.lightbox img{max-width:min(1180px,95vw);max-height:92vh;width:auto;height:auto;
+  border-radius:10px;box-shadow:0 24px 60px rgba(0,0,0,.55);cursor:default}
+.lightbox-close{position:fixed;top:18px;right:22px;width:44px;height:44px;border:0;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  background:rgba(255,255,255,.14);color:#fff;transition:background .15s}
+.lightbox-close:hover{background:rgba(255,255,255,.26)}
+.lightbox-close svg{width:22px;height:22px}
+@keyframes lb-fade{from{opacity:0}to{opacity:1}}
 footer .ftlinks{display:flex;gap:18px;flex-wrap:wrap}
