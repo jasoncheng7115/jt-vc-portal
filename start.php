@@ -62,8 +62,15 @@ if (!empty($bad_emails)) {
   $fail('以下 email 格式不正確：' . htmlspecialchars(implode(', ', array_slice($bad_emails, 0, 5))));
 }
 
-// 權限：若房間已存在且 owner 不是自己也不是 admin → 擋
 $existing = Rooms::get($room);
+
+// 透過建立表單(POST)輸入「已存在」的房名 → 一律擋下，要求改名
+// （從近期清單點「進入」是 GET 連結，不受此限，仍可進入既有會議室）
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $existing) {
+  $fail('此會議室名稱已存在，請改用其他名稱（可按「亂數」產生）。');
+}
+
+// 進入他人擁有的會議室 → 擋
 if ($existing && !empty($existing['owner'])
     && $existing['owner'] !== $me['id'] && ($me['role'] ?? '') !== 'admin') {
   $fail('此會議室名稱已被其他主持人使用，請換一個名稱。');
