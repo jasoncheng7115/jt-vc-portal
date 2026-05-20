@@ -20,8 +20,8 @@ if (empty($_FILES['settings_file']['tmp_name']) || !is_uploaded_file($_FILES['se
 if (($_FILES['settings_file']['error'] ?? 1) !== UPLOAD_ERR_OK) {
   $back('set_err', '設定檔上傳失敗。');
 }
-if ($_FILES['settings_file']['size'] > 1024 * 1024) {
-  $back('set_err', '設定檔請小於 1MB。');
+if ($_FILES['settings_file']['size'] > 8 * 1024 * 1024) {
+  $back('set_err', '設定檔請小於 8MB。');
 }
 
 $raw  = @file_get_contents($_FILES['settings_file']['tmp_name']);

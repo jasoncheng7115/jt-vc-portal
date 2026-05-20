@@ -202,17 +202,25 @@ class Settings {
     'meeting_retention_days', 'meeting_custom', 'meeting_lang',
     'smtp', 'logship', 'site', 'jaas',
   ];
+  /** 結構鍵：值必須是物件 / 陣列，否則略過（避免匯入錯型把設定弄壞）。 */
+  const EXPORT_ARRAY_KEYS = ['meeting_custom', 'smtp', 'logship', 'site', 'jaas'];
 
   /** 匯出用：回傳目前 settings.json 的原始內容。 */
   public static function exportData(): array {
     return self::load();
   }
 
-  /** 匯入：只併入白名單內的鍵（present 才覆寫），其餘保留原值。 */
+  /** 匯入：只併入白名單內的鍵（present 才覆寫），並驗證型別，其餘保留原值。 */
   public static function importData(array $incoming): void {
     $d = self::load();
     foreach (self::EXPORTABLE_KEYS as $k) {
-      if (array_key_exists($k, $incoming)) $d[$k] = $incoming[$k];
+      if (!array_key_exists($k, $incoming)) continue;
+      $v = $incoming[$k];
+      if (in_array($k, self::EXPORT_ARRAY_KEYS, true)) {
+        if (is_array($v)) $d[$k] = $v;        // 結構鍵須為陣列
+      } elseif (is_scalar($v)) {
+        $d[$k] = $v;                          // 純量鍵
+      }
     }
     self::save($d);
   }
