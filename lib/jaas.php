@@ -52,10 +52,12 @@ class Jaas {
     }
     $aud = $c['app_id'] !== '' ? $c['app_id'] : 'jitsi';
     $header = ['alg' => 'HS256', 'typ' => 'JWT'];
+    // sub 預設 '*'（單網域 docker-jitsi-meet 非租戶模式：sub 須為 '*' 或租戶名，
+    // 用公開網域當 sub 會被 prosody token 驗證拒絕）。需租戶時於設定填 sh_sub。
     $payload = [
       'aud' => $aud,
       'iss' => $aud,
-      'sub' => ($c['sh_sub'] !== '' ? $c['sh_sub'] : $c['domain']),
+      'sub' => ($c['sh_sub'] !== '' ? $c['sh_sub'] : '*'),
       'room' => $room !== '' ? $room : '*',
       'exp' => time() + 3600,
       'context' => ['user' => $user],

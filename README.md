@@ -287,6 +287,8 @@ docker run -d --restart unless-stopped \
 
 自建 Jitsi Meet 若採 JWT，需在 prosody 啟用 token 驗證，且 app_id / app_secret 與本系統一致。
 
+> 📘 **完整自建整合步驟**（從官方 Docker 版 Jitsi Meet 一路設定到與本系統搭配）見 **[JITSI-MEET-SETUP.md](JITSI-MEET-SETUP.md)**。
+
 ---
 
 ## 安全性
