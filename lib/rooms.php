@@ -201,6 +201,24 @@ class Rooms {
             'starts_at' => $starts, 'ends_at' => $ends, 'host_joined' => false];
   }
 
+  /** 清理 meetings.jsonl 中結束時間早於保留天數的記錄（保留最近 N 天）。 */
+  public static function pruneMeetings(int $days): void {
+    if (!file_exists(self::MEETINGS_FILE)) return;
+    $cutoff = time() - max(7, $days) * 86400;
+    $lines = @file(self::MEETINGS_FILE, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+    $kept = [];
+    $changed = false;
+    foreach ($lines as $ln) {
+      $e = json_decode($ln, true);
+      $end = is_array($e) ? (int)($e['end'] ?? $e['ts'] ?? 0) : 0;
+      if ($end >= $cutoff) $kept[] = $ln;
+      else $changed = true;
+    }
+    if ($changed) {
+      @file_put_contents(self::MEETINGS_FILE, $kept ? implode("\n", $kept) . "\n" : '', LOCK_EX);
+    }
+  }
+
   /** 讀取「結束時間」落在 [$fromTs,$toTs] 內的會議 session（舊→新）。 */
   public static function meetingSessions(int $fromTs, int $toTs): array {
     if (!file_exists(self::MEETINGS_FILE)) return [];

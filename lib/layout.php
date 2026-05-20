@@ -39,6 +39,7 @@ function render_head(string $title): void {
 function render_topbar($user = null, ?string $ip = null): void {
   $logged_in = $user === true || (is_array($user) && !empty($user));
   $name = is_array($user) ? ($user['username'] ?? $user['email'] ?? '') : '';
+  $display = is_array($user) ? trim((string)($user['display_name'] ?? '')) : '';
   $role = is_array($user) ? ($user['role'] ?? '') : '';
   $brand = site_brand();
 ?>
@@ -63,7 +64,8 @@ function render_topbar($user = null, ?string $ip = null): void {
           </button>
           <div class="topbar-dropdown" id="topbarDropdown" role="menu">
             <div class="dropdown-head">
-              <div class="dropdown-name"><?= htmlspecialchars($name) ?></div>
+              <div class="dropdown-name"><?= htmlspecialchars($display !== '' ? $display : $name) ?></div>
+              <?php if ($display !== '' && $display !== $name): ?><div class="dropdown-sub">@<?= htmlspecialchars($name) ?></div><?php endif; ?>
               <?php if ($ip): ?><div class="dropdown-sub"><?= htmlspecialchars($ip) ?></div><?php endif; ?>
             </div>
             <a class="dropdown-item" href="/profile" role="menuitem"><?= icon('user', 16) ?>個人設定 / 2FA</a>

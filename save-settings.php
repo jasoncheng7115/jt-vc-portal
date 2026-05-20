@@ -22,8 +22,9 @@ $action  = $_POST['action'] ?? 'save';
 
 if ($section === 'meeting') {
   Settings::setMeetingLang($_POST['meeting_lang'] ?? 'zhTW');
-  Audit::log('settings_update', '會議室預設語言：' . (Settings::MEETING_LANGS[Settings::getMeetingLang()] ?? ''));
-  $back('set_msg', '會議室語言已更新。');
+  Settings::setMeetingRetentionDays((int)($_POST['meeting_retention_days'] ?? 365));
+  Audit::log('settings_update', '會議室介面：語言 ' . (Settings::MEETING_LANGS[Settings::getMeetingLang()] ?? '') . '、記錄保留 ' . Settings::getMeetingRetentionDays() . ' 天');
+  $back('set_msg', '會議室設定已更新。');
 }
 
 if ($section === 'jaas') {

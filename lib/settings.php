@@ -75,6 +75,18 @@ class Settings {
     self::save($d);
   }
 
+  /** 會議記錄（meetings.jsonl）保留天數，預設 365；範圍 7–3650。 */
+  public static function getMeetingRetentionDays(): int {
+    $d = (int)(self::load()['meeting_retention_days'] ?? 365);
+    return max(7, min(3650, $d));
+  }
+
+  public static function setMeetingRetentionDays(int $days): void {
+    $d = self::load();
+    $d['meeting_retention_days'] = max(7, min(3650, $days));
+    self::save($d);
+  }
+
   /** 會議室預設 UI 語言（Jitsi 語言碼，現行用連字號式 zh-TW），預設繁體中文。 */
   const MEETING_LANGS = [
     'zh-TW' => '繁體中文',

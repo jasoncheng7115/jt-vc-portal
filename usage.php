@@ -16,6 +16,9 @@ if (Settings::getJaas()['mode'] !== 'jaas') {
   exit;
 }
 
+// 依保留天數清理過舊的會議記錄
+Rooms::pruneMeetings(Settings::getMeetingRetentionDays());
+
 function fmt_dur(int $s): string {
   if ($s < 60) return $s . ' 秒';
   $m = intdiv($s, 60);
@@ -76,6 +79,16 @@ $meet_total = array_sum(array_map(fn($s) => (int)($s['dur'] ?? 0), $sessions));
 $meet_avg   = $meet_count > 0 ? (int)round($meet_total / $meet_count) : 0;
 $span       = max(1, $periodEndTs - $periodStartTs);
 
+// 主持人排行（本期，依總時長排序）
+$host_rank = [];
+foreach ($sessions as $s) {
+  $h = trim((string)($s['owner_name'] ?? '')) ?: '（未具名）';
+  if (!isset($host_rank[$h])) $host_rank[$h] = ['count' => 0, 'dur' => 0];
+  $host_rank[$h]['count']++;
+  $host_rank[$h]['dur'] += (int)($s['dur'] ?? 0);
+}
+uasort($host_rank, fn($a, $b) => $b['dur'] <=> $a['dur']);
+
 render_head('用量統計');
 render_topbar($me, $ip);
 ?>
@@ -127,6 +140,30 @@ render_topbar($me, $ip);
     <div class="chart-wrap"><canvas id="dailyChart"></canvas></div>
   </div>
 
+  <!-- 主持人排行榜 -->
+  <div class="card">
+    <div class="card-title"><?= icon('user', 16) ?>主持人排行榜
+      <span class="muted" style="font-weight:400;font-size:12px;margin-left:8px;">本期 · 依會議總時長</span>
+    </div>
+    <?php if (!empty($host_rank)): ?>
+      <table class="table">
+        <thead><tr><th>排名</th><th>主持人</th><th>會議場次</th><th>總時長</th></tr></thead>
+        <tbody>
+        <?php $rk = 0; foreach ($host_rank as $hname => $hd): $rk++; ?>
+          <tr>
+            <td class="mono"><?= $rk ?></td>
+            <td><?= icon('user', 12) ?> <?= htmlspecialchars($hname) ?></td>
+            <td><?= (int)$hd['count'] ?></td>
+            <td><?= htmlspecialchars(fmt_dur($hd['dur'])) ?></td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table>
+    <?php else: ?>
+      <p class="muted" style="font-size:13px;margin:4px 0 0;">本期尚無會議記錄。</p>
+    <?php endif; ?>
+  </div>
+
   <!-- 本期會議時長時間軸 -->
   <div class="card">
     <div class="card-title"><?= icon('clock', 16) ?>本期會議時長時間軸
@@ -144,10 +181,14 @@ render_topbar($me, $ip);
           $left = max(0, min(99, ($st - $periodStartTs) / $span * 100));
           $w = max(1.2, min(100 - $left, $dur / $span * 100));
           $room = (string)($s['room'] ?? '');
-          $tip = $room . '　' . date('m/d H:i', $st) . ' ~ ' . date('H:i', (int)($s['end'] ?? $st)) . '　(' . fmt_dur($dur) . ')';
+          $host = (string)($s['owner_name'] ?? '');
+          $tip = $room . ($host ? '（' . $host . '）' : '') . '　' . date('m/d H:i', $st) . ' ~ ' . date('H:i', (int)($s['end'] ?? $st)) . '　(' . fmt_dur($dur) . ')';
         ?>
           <div class="gantt-row">
-            <div class="gantt-label" title="<?= htmlspecialchars($room) ?>"><?= htmlspecialchars($room) ?></div>
+            <div class="gantt-label" title="<?= htmlspecialchars($room . ($host ? ' · ' . $host : '')) ?>">
+              <span class="gantt-room"><?= htmlspecialchars($room) ?></span>
+              <?php if ($host !== ''): ?><span class="gantt-host"><?= icon('user', 10) ?><?= htmlspecialchars($host) ?></span><?php endif; ?>
+            </div>
             <div class="gantt-track">
               <div class="gantt-bar" style="left:<?= $left ?>%;width:<?= $w ?>%;" title="<?= htmlspecialchars($tip) ?>"></div>
             </div>
