@@ -158,23 +158,30 @@ function render_foot(): void { ?>
     if (!thead || !thead.rows.length) return;
     var ths = thead.rows[0].cells;
     Array.prototype.forEach.call(ths, function (th, idx) {
+      if (th.classList.contains('no-sort')) return;
       th.classList.add('sortable');
       th.addEventListener('click', function () {
         var tbody = table.tBodies[0];
         if (!tbody) return;
-        var rows = Array.prototype.slice.call(tbody.rows);
+        // 把每個主列與其後緊接的明細列（.row-detail）配對，排序後一起搬動，避免拆散。
+        var pairs = [];
+        Array.prototype.forEach.call(tbody.rows, function (r) {
+          if (r.classList.contains('row-detail')) return;
+          var det = r.nextElementSibling;
+          pairs.push({ main: r, detail: (det && det.classList.contains('row-detail')) ? det : null });
+        });
         var asc = th.getAttribute('data-sort') !== 'asc';
         Array.prototype.forEach.call(ths, function (o) { if (o !== th) o.removeAttribute('data-sort'); });
         th.setAttribute('data-sort', asc ? 'asc' : 'desc');
-        rows.sort(function (a, b) {
-          var x = (a.cells[idx] ? a.cells[idx].innerText : '').trim();
-          var y = (b.cells[idx] ? b.cells[idx].innerText : '').trim();
+        pairs.sort(function (a, b) {
+          var x = (a.main.cells[idx] ? a.main.cells[idx].innerText : '').trim();
+          var y = (b.main.cells[idx] ? b.main.cells[idx].innerText : '').trim();
           var nx = num(x), ny = num(y), r;
           if (nx !== null && ny !== null) r = nx - ny;
           else r = x.localeCompare(y, 'zh-Hant', { numeric: true });
           return asc ? r : -r;
         });
-        rows.forEach(function (r) { tbody.appendChild(r); });
+        pairs.forEach(function (p) { tbody.appendChild(p.main); if (p.detail) tbody.appendChild(p.detail); });
       });
     });
   });

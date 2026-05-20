@@ -69,21 +69,38 @@ render_topbar($me, $ip);
     <?php if (empty($rows)): ?>
       <div class="empty">沒有符合的記錄。</div>
     <?php else: ?>
-      <table class="table">
-        <thead><tr><th>時間</th><th>行為</th><th>帳號</th><th>顯示名稱</th><th>詳情</th><th>結果</th><th>來源 IP</th></tr></thead>
+      <p class="muted" style="font-size:12px;margin:0 0 8px;">點擊任一列可展開明細（含完整 User-Agent）。</p>
+      <table class="table audit-table">
+        <thead><tr><th class="caret-col no-sort"></th><th>時間</th><th>行為</th><th>帳號</th><th>顯示名稱</th><th>詳情</th><th>結果</th><th>來源 IP</th></tr></thead>
         <tbody>
         <?php foreach ($rows as $r):
           $act = $r['action'] ?? '';
           $actLabel = $labels[$act] ?? $act;
+          $ua = (string)($r['user_agent'] ?? '');
+          $roleLabel = ['admin'=>'管理者','host'=>'主持人','guest'=>'來賓'][$r['role'] ?? ''] ?? ($r['role'] ?? '');
+          $fullTime = date('Y-m-d H:i:s', $r['ts'] ?? strtotime($r['time'] ?? 'now'));
         ?>
-          <tr>
-            <td class="mono" style="white-space:nowrap;"><?= htmlspecialchars(date('Y-m-d H:i:s', $r['ts'] ?? strtotime($r['time'] ?? 'now'))) ?></td>
+          <tr class="row-main" title="點擊展開明細">
+            <td class="caret-col"><svg class="caret" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></td>
+            <td class="mono" style="white-space:nowrap;"><?= htmlspecialchars($fullTime) ?></td>
             <td><?= htmlspecialchars($actLabel) ?></td>
             <td class="mono"><?= htmlspecialchars($r['actor'] ?? '') ?><?= ($r['role'] ?? '')==='guest' ? ' <span class="badge badge-muted">來賓</span>' : '' ?></td>
             <td><?= htmlspecialchars($r['actor_name'] ?? '') ?></td>
             <td style="max-width:320px;"><?= htmlspecialchars($r['detail'] ?? '') ?></td>
             <td><?= audit_badge($r['result'] ?? 'ok') ?></td>
             <td class="mono"><?= htmlspecialchars($r['ip'] ?? '') ?></td>
+          </tr>
+          <tr class="row-detail" hidden>
+            <td colspan="8">
+              <dl class="audit-detail">
+                <dt>時間</dt><dd class="mono"><?= htmlspecialchars($fullTime) ?></dd>
+                <dt>行為</dt><dd><?= htmlspecialchars($actLabel) ?>（<?= htmlspecialchars($act) ?>）</dd>
+                <dt>帳號 / 角色</dt><dd><?= htmlspecialchars($r['actor'] ?? '') ?><?= $roleLabel !== '' ? '　·　' . htmlspecialchars($roleLabel) : '' ?></dd>
+                <dt>來源 IP</dt><dd class="mono"><?= htmlspecialchars($r['ip'] ?? '') ?: '—' ?></dd>
+                <dt>完整詳情</dt><dd><?= htmlspecialchars($r['detail'] ?? '') ?: '—' ?></dd>
+                <dt>User-Agent</dt><dd class="mono ua"><?= htmlspecialchars($ua) ?: '—' ?></dd>
+              </dl>
+            </td>
           </tr>
         <?php endforeach; ?>
         </tbody>
@@ -105,10 +122,30 @@ render_topbar($me, $ip);
     <?php endif; ?>
   </div>
 </main>
+<style>
+  .audit-table .caret-col{width:28px;text-align:center;padding-left:4px;padding-right:4px;}
+  .audit-table .row-main{cursor:pointer;}
+  .audit-table .row-main .caret{transition:transform .15s;opacity:.6;vertical-align:middle;}
+  .audit-table .row-main.open .caret{transform:rotate(90deg);opacity:1;}
+  .audit-table .row-main.open > td{background:var(--bg-muted,rgba(127,127,127,.08));}
+  .audit-table .row-detail > td{background:var(--bg-muted,rgba(127,127,127,.06));padding:14px 18px;}
+  .audit-detail{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;margin:0;font-size:13px;}
+  .audit-detail dt{color:var(--muted,#6b7280);font-weight:600;white-space:nowrap;}
+  .audit-detail dd{margin:0;word-break:break-all;}
+  .audit-detail dd.ua{line-height:1.5;}
+</style>
 <script>
   if (window.flatpickr) {
     flatpickr('#from', { dateFormat: 'Y-m-d', allowInput: true });
     flatpickr('#to',   { dateFormat: 'Y-m-d', allowInput: true });
   }
+  document.querySelectorAll('.audit-table .row-main').forEach(function (tr) {
+    tr.addEventListener('click', function () {
+      var det = tr.nextElementSibling;
+      if (!det || !det.classList.contains('row-detail')) return;
+      det.hidden = !det.hidden;
+      tr.classList.toggle('open', !det.hidden);
+    });
+  });
 </script>
 <?php render_foot(); ?>
