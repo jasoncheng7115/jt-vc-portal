@@ -117,6 +117,7 @@ if ($eval['allow']) {
   <div class="meeting-shell">
     <div id="jaas-container"></div>
   </div>
+<?php $mui = Settings::resolveMeetingUi(); ?>
 <script>
 window.addEventListener('load', () => {
   const options = {
@@ -128,13 +129,13 @@ window.addEventListener('load', () => {
 <?php endif; ?>
     configOverwrite: {
       defaultLanguage: <?= json_encode(Settings::getMeetingLang()) ?>,
-      defaultLogoUrl: <?= json_encode(SITE_URL . '/logo') ?>,
-      enableLobby: true,
+<?php if ($mui['logo_url'] !== ''): ?>      defaultLogoUrl: <?= json_encode($mui['logo_url']) ?>,
+<?php endif; ?>      enableLobby: true,
       prejoinPageEnabled: false,
       prejoinConfig: { enabled: false },
-      startWithAudioMuted: true,
-      startWithVideoMuted: true,
-      resolution: 1080,
+      startWithAudioMuted: <?= $mui['mute_audio'] ? 'true' : 'false' ?>,
+      startWithVideoMuted: <?= $mui['mute_video'] ? 'true' : 'false' ?>,
+      resolution: <?= (int)$mui['resolution'] ?>,
       fileRecordingsEnabled: true,
       fileRecordingsServiceEnabled: true,
       transcribingEnabled: false,
@@ -143,19 +144,16 @@ window.addEventListener('load', () => {
       liveStreaming: { enabled: false },
       desktopSharingFrameRate: { min: 15, max: 30 },
       constraints: { video: { height: { ideal: 1080, max: 1080, min: 720 } } },
-      toolbarButtons: [
-        'camera','chat','desktop','download','embedmeeting','etherpad',
-        'feedback','filmstrip','fullscreen','hangup','help','highlight','linktosalesforce',
-        'microphone','mute-everyone','mute-video-everyone',
-        'participants-pane','profile','raisehand','recording','security','select-background',
-        'settings','shareaudio','sharedvideo','shortcuts','stats','tileview','toggle-camera','videoquality'
-      ]
+      toolbarButtons: <?= json_encode($mui['toolbar']) ?>
     },
     interfaceConfigOverwrite: {
       LANG_DETECTION: false,
       INVITE_URL: <?= json_encode(SITE_URL . '/room/' . rawurlencode($room)) ?>,
-      DEFAULT_LOGO_URL: <?= json_encode(SITE_URL . '/logo') ?>,
-      DEFAULT_WELCOME_PAGE_LOGO_URL: <?= json_encode(SITE_URL . '/logo') ?>
+      SHOW_JITSI_WATERMARK: <?= $mui['logo_url'] !== '' ? 'true' : 'false' ?>,
+<?php if ($mui['logo_url'] !== ''): ?>      DEFAULT_LOGO_URL: <?= json_encode($mui['logo_url']) ?>,
+      DEFAULT_WELCOME_PAGE_LOGO_URL: <?= json_encode($mui['logo_url']) ?>,
+      JITSI_WATERMARK_LINK: <?= json_encode($mui['logo_link']) ?>,
+<?php endif; ?>
     }
   };
   const api = new JitsiMeetExternalAPI(<?= json_encode(Jaas::apiDomain()) ?>, options);

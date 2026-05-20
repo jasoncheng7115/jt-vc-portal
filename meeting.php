@@ -15,6 +15,7 @@ if (empty($_SESSION['jwt']) || empty($_SESSION['room'])) {
 $jwt = $_SESSION['jwt'];
 $room = $_SESSION['room'];
 $lobby_on = !empty(Rooms::get($room)['lobby']);   // 大廳模式：主持人進場後自動開啟
+$mui = Settings::resolveMeetingUi();               // 會議室自訂（logo / 進入預設 / 工具列）
 $invite_url = SITE_URL . '/room/' . rawurlencode($room);
 $theme = Settings::getTheme();
 $body_class = 'in-meeting theme-' . $theme . (Settings::isDark($theme) ? ' is-dark' : '');
@@ -71,11 +72,11 @@ window.addEventListener('load', () => {
 <?php endif; ?>
     configOverwrite: {
       defaultLanguage: <?= json_encode(Settings::getMeetingLang()) ?>,
-      defaultLogoUrl: <?= json_encode(SITE_URL . '/logo') ?>,
-      enableLobby: true,
-      startWithAudioMuted: true,
-      startWithVideoMuted: true,
-      resolution: 1080,
+<?php if ($mui['logo_url'] !== ''): ?>      defaultLogoUrl: <?= json_encode($mui['logo_url']) ?>,
+<?php endif; ?>      enableLobby: true,
+      startWithAudioMuted: <?= $mui['mute_audio'] ? 'true' : 'false' ?>,
+      startWithVideoMuted: <?= $mui['mute_video'] ? 'true' : 'false' ?>,
+      resolution: <?= (int)$mui['resolution'] ?>,
       fileRecordingsEnabled: true,
       fileRecordingsServiceEnabled: true,
       recordingService: { enabled: true, sharingEnabled: true },
@@ -86,15 +87,17 @@ window.addEventListener('load', () => {
       liveStreaming: { enabled: false },
       desktopSharingFrameRate: { min: 15, max: 30 },
       constraints: { video: { height: { ideal: 1080, max: 1080, min: 720 } } },
-      toolbarButtons: [
-        'camera','chat','desktop','download','embedmeeting','etherpad',
-        'feedback','filmstrip','fullscreen','hangup','help','highlight','linktosalesforce',
-        'microphone','mute-everyone','mute-video-everyone',
-        'participants-pane','profile','raisehand','recording','security','select-background',
-        'settings','shareaudio','sharedvideo','shortcuts','stats','tileview','toggle-camera','videoquality'
-      ]
+      toolbarButtons: <?= json_encode($mui['toolbar']) ?>
     },
-    interfaceConfigOverwrite: { LANG_DETECTION: false, INVITE_URL: inviteUrl, DEFAULT_LOGO_URL: <?= json_encode(SITE_URL . '/logo') ?>, DEFAULT_WELCOME_PAGE_LOGO_URL: <?= json_encode(SITE_URL . '/logo') ?> }
+    interfaceConfigOverwrite: {
+      LANG_DETECTION: false,
+      INVITE_URL: inviteUrl,
+      SHOW_JITSI_WATERMARK: <?= $mui['logo_url'] !== '' ? 'true' : 'false' ?>,
+<?php if ($mui['logo_url'] !== ''): ?>      DEFAULT_LOGO_URL: <?= json_encode($mui['logo_url']) ?>,
+      DEFAULT_WELCOME_PAGE_LOGO_URL: <?= json_encode($mui['logo_url']) ?>,
+      JITSI_WATERMARK_LINK: <?= json_encode($mui['logo_link']) ?>,
+<?php endif; ?>
+    }
   };
   const api = new JitsiMeetExternalAPI(<?= json_encode(Jaas::apiDomain()) ?>, options);
   api.addEventListener('readyToClose', () => { window.location.href = '/leave'; });

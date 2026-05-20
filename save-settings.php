@@ -27,6 +27,22 @@ if ($section === 'meeting') {
   $back('set_msg', '會議室設定已更新。');
 }
 
+if ($section === 'meeting_custom') {
+  if (Settings::getJaas()['mode'] !== 'selfhosted') $back('set_err', '會議室自訂僅適用於自建 Jitsi Meet 模式。');
+  $tb = is_array($_POST['tb'] ?? null) ? $_POST['tb'] : [];
+  Settings::setMeetingCustom([
+    'logo_mode'  => $_POST['logo_mode'] ?? 'site',
+    'logo_url'   => $_POST['logo_url'] ?? '',
+    'logo_link'  => $_POST['logo_link'] ?? '',
+    'mute_audio' => !empty($_POST['mute_audio']),
+    'mute_video' => !empty($_POST['mute_video']),
+    'resolution' => (int)($_POST['resolution'] ?? 1080),
+    'toolbar'    => $tb,
+  ]);
+  Audit::log('settings_update', '會議室自訂（自建 Jitsi Meet）');
+  $back('set_msg', '會議室自訂已更新。');
+}
+
 if ($section === 'jaas') {
   Settings::setSection('jaas', [
     'app_id'   => trim($_POST['app_id'] ?? ''),

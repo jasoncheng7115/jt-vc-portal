@@ -87,6 +87,83 @@ class Settings {
     self::save($d);
   }
 
+  // === 會議室自訂（僅自建 Jitsi Meet 模式套用）===
+  /** 一律保留、不開放關閉的工具列按鈕。 */
+  const MEETING_BASE_BUTTONS = ['camera','microphone','toggle-camera','hangup','fullscreen','videoquality','profile','settings','filmstrip','highlight','help','shortcuts','mute-everyone','mute-video-everyone'];
+  /** 可逐項開關的工具列功能（button key => 中文標籤）。 */
+  const MEETING_TOGGLE_BUTTONS = [
+    'chat' => '聊天', 'desktop' => '螢幕分享', 'raisehand' => '舉手', 'recording' => '錄影',
+    'select-background' => '虛擬背景', 'sharedvideo' => '分享影片', 'shareaudio' => '分享音訊',
+    'etherpad' => '共享文件', 'tileview' => '並排檢視', 'stats' => '連線統計',
+    'participants-pane' => '參與者面板', 'security' => '安全選項',
+  ];
+
+  /** 讀取會議室自訂設定（正規化＋預設；未設過時功能全開、進入靜音）。 */
+  public static function getMeetingCustom(): array {
+    $d = self::load()['meeting_custom'] ?? [];
+    $configured = isset($d['toolbar']) && is_array($d['toolbar']);
+    $toolbar = [];
+    foreach (array_keys(self::MEETING_TOGGLE_BUTTONS) as $k) {
+      $toolbar[$k] = $configured ? !empty($d['toolbar'][$k]) : true;
+    }
+    $mode = in_array($d['logo_mode'] ?? 'site', ['site','custom','none'], true) ? $d['logo_mode'] : 'site';
+    $res  = (int)($d['resolution'] ?? 1080);
+    return [
+      'logo_mode'  => $mode,
+      'logo_url'   => (string)($d['logo_url'] ?? ''),
+      'logo_link'  => (string)($d['logo_link'] ?? ''),
+      'mute_audio' => $d['mute_audio'] ?? true,
+      'mute_video' => $d['mute_video'] ?? true,
+      'resolution' => in_array($res, [720, 1080], true) ? $res : 1080,
+      'toolbar'    => $toolbar,
+    ];
+  }
+
+  public static function setMeetingCustom(array $v): void {
+    $d = self::load();
+    $toolbar = [];
+    foreach (array_keys(self::MEETING_TOGGLE_BUTTONS) as $k) $toolbar[$k] = !empty($v['toolbar'][$k]);
+    $mode = in_array($v['logo_mode'] ?? 'site', ['site','custom','none'], true) ? $v['logo_mode'] : 'site';
+    $res  = (int)($v['resolution'] ?? 1080);
+    $d['meeting_custom'] = [
+      'logo_mode'  => $mode,
+      'logo_url'   => trim((string)($v['logo_url'] ?? '')),
+      'logo_link'  => trim((string)($v['logo_link'] ?? '')),
+      'mute_audio' => !empty($v['mute_audio']),
+      'mute_video' => !empty($v['mute_video']),
+      'resolution' => in_array($res, [720, 1080], true) ? $res : 1080,
+      'toolbar'    => $toolbar,
+    ];
+    self::save($d);
+  }
+
+  /** 解析實際要套用到會議的 UI 設定（JaaS 用既有預設；自建用 meeting_custom）。 */
+  public static function resolveMeetingUi(): array {
+    $site = (defined('SITE_URL') && SITE_URL !== '') ? SITE_URL : '';
+    $allToggles = array_keys(self::MEETING_TOGGLE_BUTTONS);
+    if (self::getJaas()['mode'] !== 'selfhosted') {
+      return [
+        'logo_url'   => $site !== '' ? $site . '/logo' : '',
+        'logo_link'  => $site,
+        'mute_audio' => true, 'mute_video' => true, 'resolution' => 1080,
+        'toolbar'    => array_merge(self::MEETING_BASE_BUTTONS, $allToggles),
+      ];
+    }
+    $mc = self::getMeetingCustom();
+    $logo = $mc['logo_mode'] === 'site' ? ($site !== '' ? $site . '/logo' : '')
+          : ($mc['logo_mode'] === 'custom' ? $mc['logo_url'] : '');  // none → ''（隱藏）
+    $toolbar = self::MEETING_BASE_BUTTONS;
+    foreach ($allToggles as $k) if (!empty($mc['toolbar'][$k])) $toolbar[] = $k;
+    return [
+      'logo_url'   => $logo,
+      'logo_link'  => $mc['logo_link'] !== '' ? $mc['logo_link'] : $site,
+      'mute_audio' => (bool)$mc['mute_audio'],
+      'mute_video' => (bool)$mc['mute_video'],
+      'resolution' => (int)$mc['resolution'],
+      'toolbar'    => array_values($toolbar),
+    ];
+  }
+
   /** 會議室預設 UI 語言（Jitsi 語言碼，現行用連字號式 zh-TW），預設繁體中文。 */
   const MEETING_LANGS = [
     'zh-TW' => '繁體中文',
