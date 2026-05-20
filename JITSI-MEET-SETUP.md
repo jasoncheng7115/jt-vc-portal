@@ -23,7 +23,7 @@
 ## 前置需求
 
 - 一台對外可連、有 DNS 的主機，例 `meet.example.com`（需與 jt-vc-portal 不同網域或子網域）。
-- 對外開放：`443/tcp`（網頁 / 訊令）、`10000/udp`（JVB 媒體）。
+- 對外開放：`443/tcp`（網頁 / 信令）、`10000/udp`（JVB 媒體）。
 - 有效 HTTPS 憑證（可用 Jitsi 內建 Let's Encrypt）。
 - 已安裝 Docker 與 Docker Compose。
 
@@ -35,14 +35,14 @@
 
 | 埠 | 協定 | 用途 | 必要性 |
 |---|---|---|---|
-| 443 | TCP | HTTPS 網頁 + 會議訊令（BOSH / WebSocket） | 必須 |
+| 443 | TCP | HTTPS 網頁 + 會議信令（BOSH / WebSocket） | 必須 |
 | 80 | TCP | HTTP→HTTPS 轉址 + Let's Encrypt 簽發憑證 | 用內建 LE 時必須 |
 | 10000 | UDP | JVB 媒體（音視訊 RTP），**主要媒體通道** | 必須 |
 | 4443 | TCP | JVB 媒體 TCP 後援（使用者環境擋 UDP 時用） | 選用 |
 
 - 媒體幾乎都走 **UDP/10000**；少數網路擋 UDP 時才靠 **TCP/4443** 後援，建議兩個都開以求穩定。
 - 防火牆 / 雲端 Security Group 需放行上述 **inbound**。
-- 訊令（join、聊天）走 443/TCP；媒體（聲音畫面）走 10000/UDP——兩者缺一都會「進得去但黑畫面 / 沒聲音」。
+- 信令（join、聊天）走 443/TCP；媒體（聲音畫面）走 10000/UDP——兩者缺一都會「進得去但黑畫面 / 沒聲音」。
 
 > **注意（與舊版不同）**：現代 Jitsi（含 `stable-10888`）的 JVB 採「**單一 UDP 埠 10000**」多工，所有與會者媒體都共用這一個埠——**不需要**再開「10000–20000 一整段範圍」。那是多年前舊版（`org.ice4j.ice.harvest.MIN/MAX_PORT` 動態埠範圍）的做法，docker 版單埠模式已淘汰。只要放行 `UDP 10000`（+ 選用 `TCP 4443`）即可。
 
@@ -137,7 +137,7 @@ DISABLE_HTTPS=1
 HTTP_PORT=8000
 ```
 
-反代把 `https://meet.example.com` 轉到容器 `HTTP_PORT`，並務必轉發 **WebSocket**（會議訊令需要）與 `X-Forwarded-*` / `Host` 標頭。
+反代把 `https://meet.example.com` 轉到容器 `HTTP_PORT`，並務必轉發 **WebSocket**（會議信令需要）與 `X-Forwarded-*` / `Host` 標頭。
 
 ---
 
