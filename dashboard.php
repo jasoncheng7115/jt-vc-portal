@@ -82,10 +82,10 @@ render_head('儀表板');
 render_topbar($me, $ip);
 ?>
 <main class="container">
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/zh-tw.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" integrity="sha384-RkASv+6KfBMW9eknReJIJ6b3UnjKOKC5bOUaNgIY778NFbQ8MtWq9Lr/khUgqtTt" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js" integrity="sha384-5JqMv4L/Xa0hfvtF06qboNdhvuYXUku9ZrhZh3bSk8VXF0A/RuSLHpLsSV9Zqhl6" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/zh-tw.js" integrity="sha384-mjJeOdHLBw1XvGBUqn+UxU0xEtQSbR1nG/0o9getG2BM2o6lfJvCwTjPwyvzKrOY" crossorigin="anonymous"></script>
 
   <?php if ($is_admin): ?><?= admin_nav('dashboard') ?><?php endif; ?>
 
@@ -195,7 +195,7 @@ render_topbar($me, $ip);
           $hj = Rooms::isHostPresent($r, $now);
           $host_was = !empty($r['host_joined']) && !$hj;
           $s = $r['starts_at']; $e = $r['ends_at'];
-          if ($hj) $badge = '<span class="badge badge-success">'.icon('check',11).'主持人在線</span>';
+          if ($hj) $badge = '<span class="badge badge-success">'.icon('check',11).'主持人在線上</span>';
           elseif ($host_was) $badge = '<span class="badge badge-muted">主持人離線</span>';
           elseif ($s !== null && $now < $s) $badge = '<span class="badge badge-accent">'.icon('clock',11).'預約中</span>';
           elseif ($s !== null && $e !== null && $now > $e) $badge = '<span class="badge badge-muted">已結束</span>';

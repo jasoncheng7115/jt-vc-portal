@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>jt-vc-portal — 視訊會議入口閘道</title>
+<title>jt-vc-portal — 會議管理系統</title>
 <meta name="description" content="雙模式支援 8x8 JaaS 與自建 Jitsi Meet 的視訊會議認證入口。多帳號 / 角色 / 2FA、完整稽核、排程、Email 邀請，自主掌控、可自架。">
 <link rel="icon" type="image/png" href="images/logo-64.png">
 <link rel="stylesheet" href="style.css">
@@ -34,7 +34,7 @@
       <span class="eyebrow">自主</span>
       <span class="eyebrow">雙模</span>
     </div>
-    <h1>Jitsi Meet <span class="grad">認證閘道系統</span></h1>
+    <h1>Jitsi Meet <span class="grad">會議管理系統</span></h1>
     <p class="lead">搭配 Jitsi Meet 基底的會議入口系統：主持人登入後建立會議室、產生邀請連結（QR / 行事曆邀請），來賓經由邀請連結加入。<strong>同時支援 <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> 與<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">自建 Jitsi Meet</a></strong>，內建多帳號 / 角色 / 2FA、完整稽核與排程。</p>
     <p class="lead-note"><svg class="ln-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 8v.01"/></svg><span>8x8 自 2018 年起為 <strong>Jitsi / Jitsi Meet</strong> 的開發與維護公司；<strong>8x8 JaaS（Jitsi as a Service）</strong>即其官方雲端託管的 Jitsi 服務。</span></p>
     <div class="cta">
@@ -75,7 +75,7 @@
         <h3>用 jt-vc-portal 後</h3>
         <ul>
           <li>統一入口：主持人登入才能建室，行為全程稽核</li>
-          <li>預約時段、來賓需具名、主持人在線才放行</li>
+          <li>預約時段、來賓需具名、主持人在線上才放行</li>
           <li>多帳號 / 角色 / 2FA；登入記錄可外拋 syslog/CEF/GELF</li>
           <li>雙模式：<a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> 或<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">自建 Jitsi Meet</a>，一鍵切換不動程式碼</li>
         </ul>
@@ -163,10 +163,10 @@
     <div class="sec">
       <div class="row"><span class="tag">A01</span><div><b>存取控制</b><span>未授權頁回 404、會議室依擁有者隔離、CSRF token。</span></div></div>
       <div class="row"><span class="tag">A02</span><div><b>安全設定</b><span>關閉錯誤顯示與版本洩漏、安全標頭、敏感路徑拒絕存取。</span></div></div>
-      <div class="row"><span class="tag">A03</span><div><b>供應鏈</b><span>零外部 PHP 套件；映像建置時套用最新 OS 安全更新。</span></div></div>
+      <div class="row"><span class="tag">A03</span><div><b>供應鏈</b><span>零外部 PHP 套件；前端 CDN 資源加 SRI 完整性驗證；映像建置時套用最新 OS 安全更新。</span></div></div>
       <div class="row"><span class="tag">A04</span><div><b>加密</b><span>bcrypt 密碼、JWT 簽章、webhook HMAC、安全 session cookie。</span></div></div>
       <div class="row"><span class="tag">A05</span><div><b>注入</b><span>輸出跳脫、輸入清洗、Email header injection 防護。</span></div></div>
-      <div class="row"><span class="tag">A06</span><div><b>不安全設計</b><span>閘道式架構、預設安全（來賓須具名、主持人在線才放行）、角色最小權限。</span></div></div>
+      <div class="row"><span class="tag">A06</span><div><b>安全設計</b><span>閘道式架構、預設安全（來賓須具名、主持人在線上才放行）、角色最小權限。</span></div></div>
       <div class="row"><span class="tag">A07</span><div><b>認證</b><span>TOTP 2FA、fail2ban 登入鎖定（依真實來源 IP）。</span></div></div>
       <div class="row"><span class="tag">A08</span><div><b>資料完整性</b><span>webhook 以 HMAC 簽章驗證來源，並用 idempotency key 去除重複事件。</span></div></div>
       <div class="row"><span class="tag">A09</span><div><b>記錄與告警</b><span>完整稽核記錄 + 即時 SIEM 外拋。</span></div></div>
@@ -184,7 +184,7 @@
     <div class="showcase">
       <div class="sc-row">
         <figure class="shot sc-shot"><div class="frame"><img src="images/01-dashboard.png" alt="儀表板" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">01</span><h3>儀表板</h3><p>登入後的主控台：輸入房名即可一鍵建立或進入會議室，也能亂數產生房名。下方「近期會議室」清單會顯示每間是<strong>誰建立、何時進入、開了多久</strong>，以及預約 / 大廳 / 主持人在線等狀態，所有操作全程稽核。</p></div>
+        <div class="sc-text"><span class="num">01</span><h3>儀表板</h3><p>登入後的主控台：輸入房名即可一鍵建立或進入會議室，也能亂數產生房名。下方「近期會議室」清單會顯示每間是<strong>誰建立、何時進入、開了多久</strong>，以及預約 / 大廳 / 主持人在線上等狀態，所有操作全程稽核。</p></div>
       </div>
       <div class="sc-row">
         <figure class="shot sc-shot"><div class="frame"><img src="images/02-create.png" alt="建立會議室" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
@@ -266,9 +266,9 @@ docker run -d --restart unless-stopped -p 58189:58189 \
 
     <h3 style="margin-top:24px">方法三：從 Release 載入預建映像</h3>
 <pre><span class="c"># 不想自己 build，直接下載 Release 打包映像（linux/amd64）</span>
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.2.0/jt-vc-portal-1.2.0-docker-amd64.tar.gz
-sha256sum -c jt-vc-portal-1.2.0-docker-amd64.tar.gz.sha256   <span class="c"># 驗證完整性</span>
-docker load &lt; jt-vc-portal-1.2.0-docker-amd64.tar.gz        <span class="c"># 載入為 jt-vc-portal:latest</span>
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.3.0/jt-vc-portal-1.3.0-docker-amd64.tar.gz
+sha256sum -c jt-vc-portal-1.3.0-docker-amd64.tar.gz.sha256   <span class="c"># 驗證完整性</span>
+docker load &lt; jt-vc-portal-1.3.0-docker-amd64.tar.gz        <span class="c"># 載入為 jt-vc-portal:latest</span>
 
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
 chown 33:33 /opt/jt-vc-portal/data
