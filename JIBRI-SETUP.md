@@ -7,6 +7,25 @@
 
 ---
 
+## 部署拓撲（建議 Jibri 獨立一台 VM）
+
+| 規模 | 建議 |
+|---|---|
+| 測試 / 小規模、偶爾錄 1 場 | Jibri 與 Jitsi **同一台 VM**（同一套 docker-compose，最省事，即本文預設步驟） |
+| 正式 / 多實例（本文 2 場以上） | **Jibri 獨立一台（或多台）VM**，與 Jitsi 主機分開 |
+
+**為什麼正式環境要分開：**
+
+1. **資源隔離（最重要）**：Jibri = headless Chrome + ffmpeg，CPU/RAM 又重又突發。和 prosody / jicofo / JVB 擠同一台，錄影一忙會拖垮**所有**會議品質。分開後 Jibri 爆 CPU 也只影響錄影、不影響會議。
+2. **核心需求只落在 Jibri VM**：只有 Jibri 需要 `snd-aloop` 與「必須是 VM、不可 LXC」；Jitsi 核心服務沒這限制。分開後就只有 Jibri 那台要處理核心模組。
+3. **獨立擴充**：要更多並行錄影，加 Jibri VM 即可，不動 Jitsi 主機。
+
+**怎麼分開：** Jibri 透過 **XMPP 連到主 stack 的 prosody**（網路可達即可，不必同機）。獨立 Jibri VM 上仍用本文步驟（snd-aloop + jibri 容器），但 `.env` 的 `XMPP_SERVER` / `XMPP_*_DOMAIN` / `JIBRI_*` 要指向**主 Jitsi 主機**並與其一致（即 docker-jitsi-meet 的「standalone Jibri」做法）。
+
+> 本文後續步驟以「同一台」寫，最容易上手；若要「獨立 VM」拓撲，把 Jibri 相關步驟搬到獨立 VM、並把 XMPP 連線指向主機即可。需要我另寫一份「獨立 Jibri VM」版的詳細設定再告訴我。
+
+---
+
 ## 一、Jibri 是什麼、有什麼限制
 
 - Jibri（Jitsi Broadcasting Infrastructure）以一個 **headless Chrome** 加入會議，再用 **ffmpeg** 把畫面與聲音擷取成 `.mp4`（或推 RTMP 直播）。
