@@ -59,7 +59,6 @@ function render_topbar($user = null, ?string $ip = null): void {
             <span class="topbar-avatar"><?= icon('user', 16) ?></span>
             <span class="topbar-user-name"><?= htmlspecialchars($name) ?></span>
             <?php if ($role === 'admin'): ?><span class="badge badge-accent" style="margin-left:2px;">管理員</span><?php endif; ?>
-            <?php if ($ip): ?><span class="topbar-user-ip"><?= htmlspecialchars($ip) ?></span><?php endif; ?>
             <?= icon('arrow-right', 14) ?>
           </button>
           <div class="topbar-dropdown" id="topbarDropdown" role="menu">
