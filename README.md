@@ -1,4 +1,4 @@
-# jt-vc-portal — 視訊會議入口閘道
+# jt-vc-portal v1.1.1 — 視訊會議入口閘道
 
 > 搭配 Jitsi Meet 基底的會議入口系統，**雙模式**支援 [8x8 JaaS](https://jaas.8x8.vc/)（雲端託管）與**自建 Jitsi Meet**。
 > 主持人登入後即可建立會議室、產生邀請連結（含 QR / `.ics` 行事曆邀請），來賓憑連結加入。

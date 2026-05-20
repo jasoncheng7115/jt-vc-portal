@@ -227,7 +227,25 @@ docker run -d --restart unless-stopped -p 58189:58189 \
   -v /opt/jt-vc-portal/data/:/var/jaas-data \
   --name jt-vc-portal jt-vc-portal:latest</pre>
 
-    <div class="note">完整步驟、Apache 站台範例、反向代理 HTTPS 與「更新 / 升級」說明請見 <a href="https://github.com/jasoncheng7115/jt-vc-portal#readme" target="_blank" rel="noopener">GitHub README</a>。</div>
+    <h3 style="margin-top:24px">前端反向代理 HTTPS（建議）</h3>
+    <p class="section-sub" style="margin-bottom:14px">系統對外為 <code>:58189</code>，正式環境建議前面再以 nginx 或 Apache 反向代理掛上 HTTPS。</p>
+<pre><span class="c"># nginx 範例</span>
+server {
+    listen 443 ssl;
+    server_name your-domain.com;
+
+    <span class="c"># ssl_certificate     /etc/letsencrypt/live/your-domain.com/fullchain.pem;</span>
+    <span class="c"># ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;</span>
+
+    location / {
+        proxy_pass http://127.0.0.1:58189/;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}</pre>
+    <div class="note">系統以 <code>X-Real-IP</code> 取得真實來源 IP（fail2ban 鎖定與稽核用），請務必讓反向代理帶上此 header。完整 Apache 站台設定範例與「更新 / 升級」說明請見 <a href="https://github.com/jasoncheng7115/jt-vc-portal#readme" target="_blank" rel="noopener">GitHub README</a>。</div>
   </div>
 </section>
 
