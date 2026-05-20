@@ -36,7 +36,7 @@
     </div>
     <h1>Jitsi Meet <span class="grad">認證閘道系統</span></h1>
     <p class="lead">搭配 Jitsi Meet 基底的會議入口系統：主持人登入後建立會議室、產生邀請連結（QR / 行事曆邀請），來賓憑連結加入。<strong>同時支援 <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> 與<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">自建 Jitsi Meet</a></strong>，內建多帳號 / 角色 / 2FA、完整稽核與排程。</p>
-    <p class="lead-note">註：8x8 自 2018 年起為 Jitsi / Jitsi Meet 的開發與維護公司；<strong>8x8 JaaS（Jitsi as a Service）</strong>即其官方雲端託管的 Jitsi 服務。</p>
+    <p class="lead-note"><svg class="ln-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 8v.01"/></svg><span>8x8 自 2018 年起為 <strong>Jitsi / Jitsi Meet</strong> 的開發與維護公司；<strong>8x8 JaaS（Jitsi as a Service）</strong>即其官方雲端託管的 Jitsi 服務。</span></p>
     <div class="cta">
       <a class="btn btn-primary" href="#install">開始安裝</a>
       <a class="btn btn-ghost" href="https://github.com/jasoncheng7115/jt-vc-portal" target="_blank" rel="noopener">在 GitHub 查看</a>
@@ -77,7 +77,7 @@
           <li>統一入口：主持人登入才能建室，行為全程稽核</li>
           <li>預約時段、來賓需具名、主持人在線才放行</li>
           <li>多帳號 / 角色 / 2FA；登入記錄可外拋 syslog/CEF/GELF</li>
-          <li>雙模式：<a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> 或<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">自建 Jitsi Meet</a>，一鍵切換不改碼</li>
+          <li>雙模式：<a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> 或<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">自建 Jitsi Meet</a>，一鍵切換不動程式碼</li>
         </ul>
       </div>
     </div>
@@ -139,7 +139,7 @@
       </div>
     </div>
 
-    <table style="margin-top:26px">
+    <table class="compare-table" style="margin-top:26px">
       <thead><tr><th>項目</th><th>8x8 JaaS</th><th>自建 Jitsi Meet</th></tr></thead>
       <tbody>
         <tr><td>維運負擔</td><td>無（全代管）</td><td>需自行維運</td></tr>
@@ -166,9 +166,11 @@
       <div class="row"><span class="tag">A03</span><div><b>供應鏈</b><span>零外部 PHP 套件；映像建置時套用最新 OS 安全更新。</span></div></div>
       <div class="row"><span class="tag">A04</span><div><b>加密</b><span>bcrypt 密碼、JWT 簽章、webhook HMAC、安全 session cookie。</span></div></div>
       <div class="row"><span class="tag">A05</span><div><b>注入</b><span>輸出跳脫、輸入清洗、Email header injection 防護。</span></div></div>
+      <div class="row"><span class="tag">A06</span><div><b>不安全設計</b><span>閘道式架構、預設安全（來賓須具名、主持人在線才放行）、角色最小權限。</span></div></div>
       <div class="row"><span class="tag">A07</span><div><b>認證</b><span>TOTP 2FA、fail2ban 登入鎖定（依真實來源 IP）。</span></div></div>
       <div class="row"><span class="tag">A08</span><div><b>資料完整性</b><span>webhook 驗簽、idempotency 去重。</span></div></div>
       <div class="row"><span class="tag">A09</span><div><b>記錄與告警</b><span>完整稽核記錄 + 即時 SIEM 外拋。</span></div></div>
+      <div class="row"><span class="tag">A10</span><div><b>例外處理</b><span>失敗安全降級：讀取失敗回預設、寄信 / 外拋失敗不阻斷主流程、錯誤不外洩。</span></div></div>
     </div>
   </div>
 </section>
@@ -182,35 +184,35 @@
     <div class="showcase">
       <div class="sc-row">
         <figure class="shot sc-shot"><div class="frame"><img src="images/01-dashboard.png" alt="儀表板" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">01</span><h3>儀表板</h3><p>登入後的主控台：一鍵建立 / 進入會議室、近期清單顯示誰建立、何時進入、開了多久，所有操作全程稽核。</p></div>
+        <div class="sc-text"><span class="num">01</span><h3>儀表板</h3><p>登入後的主控台：輸入房名即可一鍵建立或進入會議室，也能亂數產生房名。下方「近期會議室」清單會顯示每間是<strong>誰建立、何時進入、開了多久</strong>，以及預約 / 大廳 / 主持人在線等狀態，所有操作全程稽核。</p></div>
       </div>
       <div class="sc-row">
         <figure class="shot sc-shot"><div class="frame"><img src="images/02-create.png" alt="建立會議室" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">02</span><h3>建立會議室</h3><p>勾選即設定預約開放時段、與會者 Email 邀請、大廳模式，支援亂數產生房名，建立後立即取得邀請連結。</p></div>
+        <div class="sc-text"><span class="num">02</span><h3>建立會議室</h3><p>勾選「限定開放時段」即可設定會議開放時間並寄送含 <code>.ics</code> 行事曆的 Email 邀請；也能勾選「大廳模式」讓主持人逐一允許來賓進入。建立後立即取得邀請連結與 QR Code，可直接開始主持或先複製連結稍後使用。</p></div>
       </div>
       <div class="sc-row">
         <figure class="shot sc-shot"><div class="frame"><img src="images/03-usage.png" alt="用量統計" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">03</span><h3>用量統計</h3><p>本期 MAU、歷史趨勢、近 30 天活動圖、會議時長時間軸與主持人排行榜一目了然（JaaS 模式）。</p></div>
+        <div class="sc-text"><span class="num">03</span><h3>用量統計</h3><p>JaaS 模式專屬的數據中心：本期 MAU 用量與方案上限、各計費週期的歷史趨勢、近 30 天活動折線圖，加上本期會議時長時間軸與主持人排行榜，使用狀況一目了然，並可手動校正用量基準。</p></div>
       </div>
       <div class="sc-row">
         <figure class="shot sc-shot"><div class="frame"><img src="images/04-audit.png" alt="稽核記錄" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">04</span><h3>稽核記錄</h3><p>登入、建室、邀請、設定變更等行為全數記錄，可依日期範圍篩選、欄位點擊排序，並即時外拋 SIEM。</p></div>
+        <div class="sc-text"><span class="num">04</span><h3>稽核記錄</h3><p>登入登出、建立 / 進入會議室、寄送邀請、帳號與設定變更等行為全數留存。可依行為類型、關鍵字與日期範圍篩選，欄位標題可點擊排序，並即時外拋 syslog / CEF / GELF 至 SIEM。</p></div>
       </div>
       <div class="sc-row">
         <figure class="shot sc-shot"><div class="frame"><img src="images/05-accounts.png" alt="帳號管理" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">05</span><h3>帳號管理</h3><p>多帳號與角色（admin / host）、TOTP 兩步驟驗證，顯示名稱與 Email 皆可編輯。</p></div>
+        <div class="sc-text"><span class="num">05</span><h3>帳號管理</h3><p>支援多個主持人帳號與角色：admin 可看全部會議室與管理頁，host 只看自己建立的。每個帳號可設定顯示名稱、Email、啟用 TOTP 兩步驟驗證，並可隨時編輯或停用。</p></div>
       </div>
       <div class="sc-row">
         <figure class="shot sc-shot"><div class="frame"><img src="images/06-settings.png" alt="系統設定" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">06</span><h3>系統設定</h3><p>集中管理連線模式（JaaS / 自建）、SMTP 寄信、Log 外拋、站台名稱與 Logo、22 種外觀主題。</p></div>
+        <div class="sc-text"><span class="num">06</span><h3>系統設定</h3><p>集中管理所有設定：連線模式（8x8 JaaS / 自建 Jitsi Meet）、SMTP 寄信、會議記錄保留天數、Log 外拋、站台名稱與 Logo，以及 22 種外觀主題，一頁搞定。</p></div>
       </div>
       <div class="sc-row">
         <figure class="shot sc-shot"><div class="frame"><img src="images/07-guest.png" alt="來賓進入" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">07</span><h3>來賓進入</h3><p>來賓憑邀請連結進入，須先輸入名稱才進場；整體套用站台主題，體驗一致。</p></div>
+        <div class="sc-text"><span class="num">07</span><h3>來賓進入</h3><p>來賓憑邀請連結進入，須先輸入顯示名稱才能進場，進入會議時自動帶入該名稱。整個來賓流程都套用站台主題與品牌，與主持端體驗一致。</p></div>
       </div>
       <div class="sc-row">
         <figure class="shot sc-shot"><div class="frame"><img src="images/08-wait.png" alt="等候 / 倒數頁" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">08</span><h3>等候 / 倒數頁</h3><p>非開放時段時，來賓看到翻頁時鐘倒數；主持人提前進入即自動放行，無需苦等。</p></div>
+        <div class="sc-text"><span class="num">08</span><h3>等候 / 倒數頁</h3><p>非開放時段時，來賓會看到優雅的翻頁時鐘倒數與會議起訖時間；一旦主持人提前進入，系統每隔數秒自動偵測並放行，來賓無需重整、不必苦等。</p></div>
       </div>
     </div>
   </div>
@@ -223,7 +225,7 @@
     <h2>系統需求與安裝</h2>
     <p class="section-sub">兩種安裝方式，資料與設定皆持久化、更新不遺失。</p>
 
-    <table style="margin-bottom:28px">
+    <table class="compare-table" style="margin-bottom:28px">
       <thead><tr><th>項目</th><th>最低</th><th>建議</th></tr></thead>
       <tbody>
         <tr><td>PHP</td><td>8.2</td><td>8.4</td></tr>
@@ -314,7 +316,7 @@ server {
 <!-- FOOTER -->
 <footer>
   <div class="wrap">
-    <div>© <span id="yr"></span> Jason Cheng · 以 Apache License 2.0 釋出</div>
+    <div>© <span id="yr"></span> Jason Tools · 以 Apache License 2.0 釋出</div>
     <div class="ftlinks">
       <a href="https://github.com/jasoncheng7115/jt-vc-portal" target="_blank" rel="noopener">原始碼</a>
       <a href="https://github.com/jasoncheng7115/jt-vc-portal/issues" target="_blank" rel="noopener">問題回報</a>
