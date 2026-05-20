@@ -80,7 +80,7 @@ function render_topbar($user = null, ?string $ip = null): void {
 
 /**
  * 管理頁共用頁籤列。$active = dashboard|accounts|audit|usage|settings。
- * 用量頁籤僅 JaaS 模式顯示。
+ * 統計頁兩種模式皆顯示：JaaS 稱「用量統計」（含 MAU），自建稱「會議統計」。
  */
 function admin_nav(string $active = ''): string {
   $jaas = Settings::getJaas()['mode'];
@@ -89,7 +89,7 @@ function admin_nav(string $active = ''): string {
     'accounts'  => ['/accounts',  'user',      '帳號管理'],
     'audit'     => ['/audit-log', 'clock',     '稽核記錄'],
   ];
-  if ($jaas === 'jaas') $tabs['usage'] = ['/usage', 'chart', '用量統計'];
+  $tabs['usage'] = ['/usage', 'chart', $jaas === 'jaas' ? '用量統計' : '會議統計'];
   $tabs['settings'] = ['/settings', 'dashboard', '系統設定'];
 
   $html = '<div class="nav-row">';

@@ -10,11 +10,8 @@ require_once __DIR__ . '/lib/audit.php';
 $me = Auth::requireAdmin();
 $ip = Auth::clientIp();
 
-// 用量為 JaaS 模式專屬；自建模式導回儀表板
-if (Settings::getJaas()['mode'] !== 'jaas') {
-  header('Location: /dashboard');
-  exit;
-}
+// 8x8 用量 / MAU 為 JaaS 模式專屬；其餘會議統計兩種模式皆適用
+$is_jaas = Settings::getJaas()['mode'] === 'jaas';
 
 // 依保留天數清理過舊的會議記錄
 Rooms::pruneMeetings(Settings::getMeetingRetentionDays());
@@ -89,7 +86,7 @@ foreach ($sessions as $s) {
 }
 uasort($host_rank, fn($a, $b) => $b['dur'] <=> $a['dur']);
 
-render_head('用量統計');
+render_head($is_jaas ? '用量統計' : '會議統計');
 render_topbar($me, $ip);
 ?>
 <main class="container">
@@ -97,7 +94,8 @@ render_topbar($me, $ip);
 
   <?= admin_nav('usage') ?>
 
-  <!-- 本期 MAU -->
+  <?php if ($is_jaas): ?>
+  <!-- 本期 MAU（JaaS 專屬） -->
   <div class="card card-usage">
     <div class="usage-head">
       <div>
@@ -111,6 +109,7 @@ render_topbar($me, $ip);
       <?= $usage_pct ?>% 已使用<?php if ($usage_count === 0): ?> · 需在 8x8 Console 設定 USAGE webhook 後才會開始計量<?php endif; ?>
     </p>
   </div>
+  <?php endif; ?>
 
   <!-- 本期統計數字 -->
   <div class="stat-grid">
@@ -124,7 +123,8 @@ render_topbar($me, $ip);
     <div class="stat-card"><div class="stat-num"><?= (int)$active_rooms ?></div><div class="stat-label"><?= icon('home', 14) ?>活躍會議室</div></div>
   </div>
 
-  <!-- 歷史 MAU 趨勢 -->
+  <?php if ($is_jaas): ?>
+  <!-- 歷史 MAU 趨勢（JaaS 專屬） -->
   <div class="card">
     <div class="card-title"><?= icon('chart', 16) ?>歷史 MAU 趨勢（依計費週期）</div>
     <?php if (count($histData) > 0): ?>
@@ -133,6 +133,7 @@ render_topbar($me, $ip);
       <p class="muted" style="font-size:13px;margin:4px 0 0;">尚無歷史資料，開始計量後此處會顯示各週期的 MAU 趨勢。</p>
     <?php endif; ?>
   </div>
+  <?php endif; ?>
 
   <!-- 近 30 天活動 -->
   <div class="card">
