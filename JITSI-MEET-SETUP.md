@@ -18,6 +18,8 @@
 - **Jitsi Meet**：負責會議本身。瀏覽器會直接連到 `meet.example.com` 載入 `external_api.js` 與媒體。
 - 驗證有兩種：**免 JWT（開放）** 或 **HS256 JWT（建議）**——只有 jt-vc-portal 簽發的 token 能進會議室。
 
+> **維運邊界（自建 vs JaaS）**：本文的連接埠、NAT、媒體穿牆 / TURN（含 `turns/443`）等**只在自建模式需要你自己處理**。改用 **8x8 JaaS** 時，媒體與穿牆全由 8x8 雲端負責，你不必開這些埠或架 coturn——jt-vc-portal 在 JaaS 模式只做認證（簽 JWT），媒體不經過你的主機。
+
 ---
 
 ## 前置需求
