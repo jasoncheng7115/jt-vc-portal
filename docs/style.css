@@ -60,7 +60,9 @@ h2{font-size:33px;letter-spacing:-.025em;margin:0 0 10px;line-height:1.2}
 .hero .eyebrow:nth-child(3){color:#db2777;border-color:#f8c2dc}
 .hero h1{font-size:52px;line-height:1.1;letter-spacing:-.035em;margin:0 0 18px;font-weight:800;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
 .hero h1 .grad{background:none;-webkit-text-fill-color:transparent;color:transparent}
-.hero p.lead{font-size:19px;color:var(--muted);max-width:660px;margin:0 auto 30px}
+.hero p.lead{font-size:19px;color:var(--muted);max-width:660px;margin:0 auto 14px}
+.hero .lead-note{font-size:13px;color:var(--soft);max-width:600px;margin:0 auto 28px;line-height:1.6}
+.hero .lead-note strong{color:var(--muted)}
 .hero .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 .badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:30px}
 .badges img{height:22px}
