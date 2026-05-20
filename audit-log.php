@@ -64,7 +64,6 @@ render_topbar($me, $ip);
         </select>
       </div>
       <button class="btn btn-secondary btn-sm"><?= icon('arrow-right',14) ?>篩選</button>
-      <a class="btn btn-ghost btn-sm" href="/audit-log"><?= icon('refresh',14) ?>清除</a>
     </form>
 
     <?php if (empty($rows)): ?>
