@@ -149,30 +149,30 @@ render_topbar($me, $ip);
         <div class="help">命名建議使用英文或數字，以利分享。空格會自動轉成 <span class="kbd">-</span></div>
       </div>
 
-      <details class="schedule-toggle"<?= $schedule_open ? ' open' : '' ?>>
-        <summary>
-          <?= icon('calendar', 14) ?>
-          <span>限定開放時段 / 寄送邀請（選填）</span>
-          <span class="muted" style="margin-left:auto;font-size:12px;">未設定 = 來賓需等主持人開啟</span>
-        </summary>
-        <div class="body">
-          <div class="field-row">
-            <div class="field" style="margin-bottom:0;">
-              <label for="starts_at">開始時間</label>
-              <input type="text" id="starts_at" name="starts_at" autocomplete="off" placeholder="點選選擇日期時間" value="<?= htmlspecialchars($form_starts_at) ?>">
-            </div>
-            <div class="field" style="margin-bottom:0;">
-              <label for="ends_at">結束時間</label>
-              <input type="text" id="ends_at" name="ends_at" autocomplete="off" placeholder="點選選擇日期時間" value="<?= htmlspecialchars($form_ends_at) ?>">
-            </div>
+      <label class="lobby-toggle" for="scheduleChk">
+        <input type="checkbox" id="scheduleChk"<?= $schedule_open ? ' checked' : '' ?>>
+        <span class="lobby-text">
+          <span class="lobby-title"><?= icon('calendar', 14) ?>限定開放時段 / 寄送邀請</span>
+          <span class="help" style="margin:0;">未勾選 = 來賓需等主持人開啟；勾選後可設定開放時段並寄送邀請信。</span>
+        </span>
+      </label>
+      <div id="scheduleBody" class="schedule-body"<?= $schedule_open ? '' : ' hidden' ?>>
+        <div class="field-row">
+          <div class="field" style="margin-bottom:0;">
+            <label for="starts_at">開始時間</label>
+            <input type="text" id="starts_at" name="starts_at" autocomplete="off" placeholder="點選選擇日期時間" value="<?= htmlspecialchars($form_starts_at) ?>">
           </div>
-          <div class="field" style="margin:14px 0 0;">
-            <label for="attendees">與會者 Email（選填，可多筆，換行或逗號分隔）</label>
-            <textarea id="attendees" name="attendees" placeholder="alice@example.com, bob@example.com"><?= htmlspecialchars($form_attendees) ?></textarea>
-            <div class="help">填寫後系統會寄出含行事曆（.ics）的邀請信，對方可一鍵加入行事曆（需先於系統設定啟用 SMTP）。</div>
+          <div class="field" style="margin-bottom:0;">
+            <label for="ends_at">結束時間</label>
+            <input type="text" id="ends_at" name="ends_at" autocomplete="off" placeholder="點選選擇日期時間" value="<?= htmlspecialchars($form_ends_at) ?>">
           </div>
         </div>
-      </details>
+        <div class="field" style="margin:14px 0 0;">
+          <label for="attendees">與會者 Email（選填，可多筆，換行或逗號分隔）</label>
+          <textarea id="attendees" name="attendees" placeholder="alice@example.com, bob@example.com"><?= htmlspecialchars($form_attendees) ?></textarea>
+          <div class="help">填寫後系統會寄出含行事曆（.ics）的邀請信，對方可一鍵加入行事曆（需先於系統設定啟用 SMTP）。</div>
+        </div>
+      </div>
 
       <label class="lobby-toggle">
         <input type="checkbox" name="lobby" value="1"<?= $form_lobby ? ' checked' : '' ?>>
@@ -335,6 +335,22 @@ document.addEventListener('click', async (e) => {
       }
     }
   }));
+})();
+
+// 限定開放時段：勾選才展開設定；取消勾選則收合並清空（避免殘值送出）
+(function(){
+  const chk = document.getElementById('scheduleChk');
+  const body = document.getElementById('scheduleBody');
+  if (!chk || !body) return;
+  chk.addEventListener('change', () => {
+    body.hidden = !chk.checked;
+    if (!chk.checked) {
+      body.querySelectorAll('input, textarea').forEach(el => {
+        el.value = '';
+        if (el._flatpickr) el._flatpickr.clear();
+      });
+    }
+  });
 })();
 </script>
 <?php render_foot(); ?>
