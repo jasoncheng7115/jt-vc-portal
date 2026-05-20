@@ -1,0 +1,32 @@
+# === 機密 / 金鑰：絕不打包進 image（執行階段由 volume 掛載）===
+keys/
+private.key
+*.key
+*.pem
+*.crt
+*.pk
+*.pub
+*.p12
+*.pfx
+
+# === 執行階段持久化資料（含密碼雜湊、webhook secret、IP）===
+*.json
+*.jsonl
+auto-allow.json
+settings.json
+users.json
+usage.json
+login-attempts.json
+logo.img
+INITIAL_ADMIN_PASSWORD.txt
+data/
+release/
+
+# === 版控 / 公開站台 / 文件 meta：不需放進容器 webroot ===
+.git
+.gitignore
+.dockerignore
+.DS_Store
+docs/
+README.md
+LICENSE

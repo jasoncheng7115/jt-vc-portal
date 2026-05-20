@@ -1,0 +1,30 @@
+# 機密 / 金鑰（切勿提交）
+keys/
+*.key
+*.pk
+*.pub
+*.pem
+
+# 執行階段持久化資料（含密碼雜湊、webhook secret、IP 等）
+/var/jaas-data/
+data/
+auto-allow.json
+settings.json
+users.json
+usage.json
+*.jsonl
+login-attempts.json
+logo.img
+INITIAL_ADMIN_PASSWORD.txt
+
+# 系統 / 編輯器
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/
+
+# 打包好的 Docker image（上傳為 GitHub Release 資產，切勿提交進 repo）
+release/
+*.tar
+*.tar.gz

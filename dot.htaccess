@@ -1,0 +1,27 @@
+RewriteEngine On
+
+# 讓 PHP 收得到 Authorization header（8x8 webhook 用，Apache 預設可能會吃掉）
+RewriteCond %{HTTP:Authorization} .+
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+CGIPassAuth On
+
+# 拒絕直接存取敏感目錄與檔案
+RewriteRule ^lib/ - [F,L]
+RewriteRule ^keys/ - [F,L]
+RewriteRule \.(key|pem|pk|pub|json)$ - [F,L]
+
+# 漂亮網址：/room/<名稱> → invite.php?room=<名稱>（舊 /invite?room= 仍相容）
+RewriteRule ^room/(.+)$ invite.php?room=$1 [L,B,QSA]
+
+# 將無副檔名請求對應到 .php
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{DOCUMENT_ROOT}/$1.php -f
+RewriteRule ^(.*)$ $1.php [L]
+
+# 安全 headers
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "no-referrer"
+</IfModule>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>jt-vc-portal — 視訊會議入口閘道</title>
+<meta name="description" content="雙模式支援 8x8 JaaS 與自建 Jitsi Meet 的視訊會議認證入口。多帳號 / 角色 / 2FA、完整稽核、排程、Email 邀請，自主掌控、可自架。">
+<link rel="icon" type="image/png" href="images/logo-64.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="images/logo-64.png" alt="jt-vc-portal"> jt-vc-portal</a>
+    <div class="links">
+      <a href="#why">關鍵</a>
+      <a href="#features">功能</a>
+      <a href="#security">安全</a>
+      <a href="#screenshots">畫面</a>
+      <a href="#install">安裝</a>
+      <a class="gh" href="https://github.com/jasoncheng7115/jt-vc-portal" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="eyebrows">
+      <span class="eyebrow">開源</span>
+      <span class="eyebrow">自主</span>
+      <span class="eyebrow">雙模</span>
+    </div>
+    <h1>Jitsi Meet <span class="grad">認證閘道系統</span></h1>
+    <p class="lead">搭配 Jitsi Meet 基底的會議入口系統：主持人登入後建立會議室、產生邀請連結（QR / 行事曆邀請），來賓憑連結加入。<strong>同時支援 <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> 與自建 Jitsi Meet</strong>，內建多帳號 / 角色 / 2FA、完整稽核與排程。</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="#install">開始安裝</a>
+      <a class="btn btn-ghost" href="https://github.com/jasoncheng7115/jt-vc-portal" target="_blank" rel="noopener">在 GitHub 查看</a>
+    </div>
+    <div class="badges">
+      <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License">
+      <img src="https://img.shields.io/badge/PHP-8.4-777BB4.svg" alt="PHP 8.4">
+      <img src="https://img.shields.io/badge/Docker-ready-2496ED.svg" alt="Docker">
+      <img src="https://img.shields.io/badge/OWASP-Top_10_2025-success.svg" alt="OWASP">
+      <img src="https://img.shields.io/badge/PHP_deps-zero-brightgreen.svg" alt="zero deps">
+    </div>
+    <figure class="shot hero-shot">
+      <div class="frame empty"><img src="images/hero.png" alt="jt-vc-portal 儀表板" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div>
+      <figcaption>主控台：建立 / 進入會議室、近期清單、用量一覽</figcaption>
+    </figure>
+  </div>
+</header>
+
+<!-- WHY -->
+<section id="why">
+  <div class="wrap">
+    <div class="kicker">Why</div>
+    <h2>為什麼用 jt-vc-portal？</h2>
+    <p class="section-sub">把會議邀請連結到處轉貼、沒有權限與記錄，難以管理也難以稽核。</p>
+    <div class="cols2">
+      <div class="panel warn">
+        <h3>沒有入口閘道時</h3>
+        <ul>
+          <li>邀請連結散落各處，誰建的、給了誰無從追查</li>
+          <li>來賓可任意進入，缺乏開放時段與身分控制</li>
+          <li>沒有登入與行為記錄，無法稽核或外拋 SIEM</li>
+          <li>綁死單一雲端服務，難以切換或自建省成本</li>
+        </ul>
+      </div>
+      <div class="panel good">
+        <h3>用 jt-vc-portal 後</h3>
+        <ul>
+          <li>統一入口：主持人登入才能建室，行為全程稽核</li>
+          <li>預約時段、來賓需具名、主持人在線才放行</li>
+          <li>多帳號 / 角色 / 2FA；登入記錄可外拋 syslog/CEF/GELF</li>
+          <li>雙模式：<a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> 或自建 Jitsi Meet，一鍵切換不改碼</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" class="alt">
+  <div class="wrap">
+    <div class="kicker">Features</div>
+    <h2>核心功能</h2>
+    <p class="section-sub">企業會議入口需要的都內建了，零外部 PHP 套件。</p>
+    <div class="grid">
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div><h3>雙連線模式</h3><p><a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>（RS256 + kid）或自建 Jitsi Meet（HS256 / 免 JWT），管理介面一鍵切換。</p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m23 7-7 5 7 5V7Z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div><h3>會議室管理</h3><p>建立 / 進入、亂數命名、近期清單、一鍵複製邀請、QR Code 彈窗。</p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div><h3>預約時段</h3><p>設定開放時段；未到顯示翻頁時鐘倒數，主持人提前進入即自動放行。</p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div><h3>Email 邀請</h3><p>填與會者 email，寄送含 <code>.ics</code> 行事曆的邀請信，可自訂主旨 / 內文範本。</p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/></svg></div><h3>來賓流程</h3><p>來賓需自填名稱才進場；非開放時段顯示等候 / 倒數 / 已結束頁。</p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><h3>多帳號 / 角色 / 2FA</h3><p>admin 看全部、host 只看自己建的；支援 TOTP 兩步驟驗證。</p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M9 11h6M9 15h4"/></svg></div><h3>完整稽核 + SIEM</h3><p>登入、建室、邀請、設定變更全記錄，可即時外拋 syslog / CEF / GELF。</p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 1 0-18c4.97 0 9 3.58 9 8 0 2.5-2 4-4 4h-2a2 2 0 0 0-1.5 3.3A1.5 1.5 0 0 1 12 21Z"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="9.5" cy="7.5" r="1"/><circle cx="14.5" cy="7.5" r="1"/><circle cx="16.5" cy="11.5" r="1"/></svg></div><h3>外觀客製</h3><p>22 種主題、可換站台名稱與 logo、會議室預設介面語言。</p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="14" width="3" height="3"/></svg></div><h3>用量統計</h3><p>JaaS 模式接 USAGE webhook，依訂閱週期統計 MAU、可手動校正。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- SECURITY -->
+<section id="security">
+  <div class="wrap">
+    <div class="kicker">Security</div>
+    <h2>安全性 · 對齊 OWASP Top 10:2025</h2>
+    <p class="section-sub">從設計到部署逐項把關。</p>
+    <div class="sec">
+      <div class="row"><span class="tag">A01</span><div><b>存取控制</b><span>未授權頁回 404、會議室依擁有者隔離、CSRF token。</span></div></div>
+      <div class="row"><span class="tag">A02</span><div><b>安全設定</b><span>關閉錯誤顯示與版本洩漏、安全標頭、敏感路徑拒絕存取。</span></div></div>
+      <div class="row"><span class="tag">A03</span><div><b>供應鏈</b><span>零外部 PHP 套件；映像建置時套用最新 OS 安全更新。</span></div></div>
+      <div class="row"><span class="tag">A04</span><div><b>加密</b><span>bcrypt 密碼、JWT 簽章、webhook HMAC、安全 session cookie。</span></div></div>
+      <div class="row"><span class="tag">A05</span><div><b>注入</b><span>輸出跳脫、輸入清洗、Email header injection 防護。</span></div></div>
+      <div class="row"><span class="tag">A07</span><div><b>認證</b><span>TOTP 2FA、fail2ban 登入鎖定（依真實來源 IP）。</span></div></div>
+      <div class="row"><span class="tag">A08</span><div><b>資料完整性</b><span>webhook 驗簽、idempotency 去重。</span></div></div>
+      <div class="row"><span class="tag">A09</span><div><b>記錄與告警</b><span>完整稽核記錄 + 即時 SIEM 外拋。</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- SCREENSHOTS -->
+<section id="screenshots" class="alt">
+  <div class="wrap">
+    <div class="kicker">Gallery</div>
+    <h2>畫面一覽</h2>
+    <p class="section-sub">（截圖陸續補上）</p>
+    <div class="showcase">
+      <div class="sc-row">
+        <figure class="shot sc-shot"><div class="frame empty"><img src="images/01-dashboard.png" alt="儀表板" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">01</span><h3>儀表板</h3><p>登入後的主控台：一鍵建立 / 進入會議室、檢視近期會議室清單與本期用量，所有操作全程稽核。</p></div>
+      </div>
+      <div class="sc-row">
+        <figure class="shot sc-shot"><div class="frame empty"><img src="images/02-create.png" alt="建立會議室" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">02</span><h3>建立會議室</h3><p>設定預約開放時段、填入與會者 Email、可亂數產生房名，建立後立即取得邀請連結。</p></div>
+      </div>
+      <div class="sc-row">
+        <figure class="shot sc-shot"><div class="frame empty"><img src="images/03-qr.png" alt="邀請 QR" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">03</span><h3>邀請連結 QR Code</h3><p>每個會議室都能彈出 QR Code，手機掃描即可加入，也能一鍵複製連結或寄送邀請信。</p></div>
+      </div>
+      <div class="sc-row">
+        <figure class="shot sc-shot"><div class="frame empty"><img src="images/04-countdown.png" alt="倒數頁" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">04</span><h3>來賓倒數頁</h3><p>未到開放時段時，來賓看到翻頁時鐘倒數；主持人提前進入會自動放行，無需苦等。</p></div>
+      </div>
+      <div class="sc-row">
+        <figure class="shot sc-shot"><div class="frame empty"><img src="images/05-audit.png" alt="稽核記錄" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">05</span><h3>稽核記錄</h3><p>登入、建室、邀請、設定變更等行為全數記錄，可依日期範圍篩選並分頁瀏覽，支援 SIEM 外拋。</p></div>
+      </div>
+      <div class="sc-row">
+        <figure class="shot sc-shot"><div class="frame empty"><img src="images/06-settings.png" alt="系統設定" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">06</span><h3>系統設定</h3><p>集中管理連線模式（JaaS / 自建）、SMTP 寄信、Log 外拋、站台名稱與 Logo、外觀主題。</p></div>
+      </div>
+      <div class="sc-row">
+        <figure class="shot sc-shot"><div class="frame empty"><img src="images/07-accounts.png" alt="帳號管理" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">07</span><h3>帳號管理</h3><p>多帳號與角色（admin / host）、TOTP 兩步驟驗證，顯示名稱與 Email 皆可編輯。</p></div>
+      </div>
+      <div class="sc-row">
+        <figure class="shot sc-shot"><div class="frame empty"><img src="images/08-themes.png" alt="主題" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">08</span><h3>外觀主題</h3><p>內建 22 種主題，從乾淨純白到深色科技風，一鍵切換並套用到所有頁面（含來賓頁）。</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INSTALL -->
+<section id="install">
+  <div class="wrap">
+    <div class="kicker">Install</div>
+    <h2>系統需求與安裝</h2>
+    <p class="section-sub">兩種安裝方式，資料與設定皆持久化、更新不遺失。</p>
+
+    <table style="margin-bottom:28px">
+      <thead><tr><th>項目</th><th>最低</th><th>建議</th></tr></thead>
+      <tbody>
+        <tr><td>PHP</td><td>8.2</td><td>8.4</td></tr>
+        <tr><td>Web 伺服器</td><td>Apache + mod_rewrite（AllowOverride All）</td><td>同左 + HTTPS</td></tr>
+        <tr><td>PHP 擴充</td><td>openssl、fileinfo、json、mbstring</td><td>同左</td></tr>
+        <tr><td>其他</td><td>可寫入資料目錄；JaaS 模式需 8x8 私鑰</td><td>Docker 24+</td></tr>
+      </tbody>
+    </table>
+
+    <h3>方法一：直接安裝（Apache + PHP）</h3>
+<pre><span class="c"># 取得程式並啟用 .htaccess</span>
+git clone https://github.com/jasoncheng7115/jt-vc-portal.git
+cd jt-vc-portal
+a2enmod rewrite headers
+cp dot.htaccess .htaccess
+
+<span class="c"># 持久化資料目錄（預設 /var/jaas-data，可於 config.php 調整）</span>
+sudo mkdir -p /var/jaas-data &amp;&amp; sudo chown www-data:www-data /var/jaas-data
+
+<span class="c"># JaaS 模式才需要：放入 8x8 私鑰</span>
+sudo mkdir -p keys &amp;&amp; sudo cp /path/to/private.key keys/private.key</pre>
+
+    <h3 style="margin-top:24px">方法二：Docker 打包部署</h3>
+<pre>git clone https://github.com/jasoncheng7115/jt-vc-portal.git
+cd jt-vc-portal
+docker build --pull -t jt-vc-portal .
+
+mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
+chown 33:33 /opt/jt-vc-portal/data
+cp /path/to/private.key /opt/jt-vc-portal/keys/private.key   <span class="c"># JaaS 模式</span>
+
+docker run -d --restart unless-stopped -p 58189:58189 \
+  -e JTVC_ADMIN_EMAIL="admin@example.com" \
+  -e JTVC_ADMIN_PASSWORD="請設定強密碼" \
+  -v /opt/jt-vc-portal/keys/:/var/www/html/keys \
+  -v /opt/jt-vc-portal/data/:/var/jaas-data \
+  --name jt-vc-portal jt-vc-portal</pre>
+
+    <h3 style="margin-top:24px">方法三：從 Release 載入預建映像</h3>
+<pre><span class="c"># 不想自己 build，直接下載 Release 打包映像（linux/amd64）</span>
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.1.1/jt-vc-portal-1.1.1-docker-amd64.tar.gz
+sha256sum -c jt-vc-portal-1.1.1-docker-amd64.tar.gz.sha256   <span class="c"># 驗證完整性</span>
+docker load &lt; jt-vc-portal-1.1.1-docker-amd64.tar.gz        <span class="c"># 載入為 jt-vc-portal:latest</span>
+
+mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
+chown 33:33 /opt/jt-vc-portal/data
+cp /path/to/private.key /opt/jt-vc-portal/keys/private.key   <span class="c"># JaaS 模式才需要</span>
+
+docker run -d --restart unless-stopped -p 58189:58189 \
+  -e JTVC_ADMIN_EMAIL="admin@example.com" \
+  -e JTVC_ADMIN_PASSWORD="請設定強密碼" \
+  -v /opt/jt-vc-portal/keys/:/var/www/html/keys \
+  -v /opt/jt-vc-portal/data/:/var/jaas-data \
+  --name jt-vc-portal jt-vc-portal:latest</pre>
+
+    <div class="note">完整步驟、Apache 站台範例、反向代理 HTTPS 與「更新 / 升級」說明請見 <a href="https://github.com/jasoncheng7115/jt-vc-portal#readme" target="_blank" rel="noopener">GitHub README</a>。</div>
+  </div>
+</section>
+
+<!-- DISCLAIMER -->
+<section id="disclaimer" class="alt">
+  <div class="wrap">
+    <h2>免責聲明</h2>
+    <div class="disclaimer">
+      本軟體依「現狀」（AS IS）提供，不附任何明示或默示之擔保。使用者須自行負責部署環境之安全性與合規性，包含第三方服務（如 <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>）之服務條款與費用。作者不對任何因使用本軟體所生之直接或間接損失負責。本專案以 <a href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a> 釋出。
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div>© <span id="yr"></span> Jason Cheng · 以 Apache License 2.0 釋出</div>
+    <div class="ftlinks">
+      <a href="https://github.com/jasoncheng7115/jt-vc-portal" target="_blank" rel="noopener">原始碼</a>
+      <a href="https://github.com/jasoncheng7115/jt-vc-portal/issues" target="_blank" rel="noopener">問題回報</a>
+      <a href="https://github.com/jasoncheng7115" target="_blank" rel="noopener">作者</a>
+    </div>
+  </div>
+</footer>
+
+<script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
+</body>
+</html>
