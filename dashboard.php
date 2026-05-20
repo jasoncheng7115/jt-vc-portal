@@ -178,7 +178,7 @@ render_topbar($me, $ip);
         <input type="checkbox" name="lobby" value="1"<?= $form_lobby ? ' checked' : '' ?>>
         <span class="lobby-text">
           <span class="lobby-title"><?= icon('lock', 14) ?>啟用大廳模式</span>
-          <span class="help" style="margin:0;">主持人進入後自動開啟;之後每位來賓需經主持人允許才能進入會議室。</span>
+          <span class="help" style="margin:0;">主持人進入後自動開啟；之後每位來賓需經主持人允許才能進入會議室。</span>
         </span>
       </label>
 
