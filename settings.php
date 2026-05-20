@@ -86,7 +86,7 @@ render_topbar($me, $ip);
           <?php endforeach; ?>
         </select>
       </div>
-      <div class="field"><label>會議記錄保留天數</label>
+      <div class="field"><label>會議時長保留天數</label>
         <input type="number" name="meeting_retention_days" min="7" max="3650" value="<?= (int)$meeting_retention ?>" style="width:120px;">
       </div>
       <button class="btn btn-secondary"><?= icon('check',14) ?>儲存</button>
@@ -94,9 +94,9 @@ render_topbar($me, $ip);
     <p class="help" style="margin:10px 0 0;">會議時長記錄（用量統計頁）保留最近 N 天，超過自動清除；預設 365 天。</p>
   </div>
 
-  <!-- 會議室自訂（僅自建 Jitsi Meet 模式顯示） -->
-  <?php if ($jaas['mode'] === 'selfhosted'): $mc = Settings::getMeetingCustom(); ?>
-  <div class="card">
+  <!-- 會議室自訂（僅自建 Jitsi Meet 模式；依連線模式下拉即時顯示） -->
+  <?php $mc = Settings::getMeetingCustom(); ?>
+  <div class="card js-card-selfhosted"<?= $jaas['mode']==='selfhosted' ? '' : ' style="display:none;"' ?>>
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('video', 18) ?>會議室自訂</h1>
     <p class="subtitle" style="margin:6px 0 18px;">自建 Jitsi Meet 模式專用：自訂會議室左上 logo、進入預設值與工具列功能。設定會在進入會議時帶入 Jitsi。</p>
     <form method="POST" action="/save-settings">
@@ -142,8 +142,8 @@ render_topbar($me, $ip);
 
       <button class="btn btn-primary"><?= icon('check') ?>儲存會議室自訂</button>
     </form>
+    <p class="help" style="margin:10px 0 0;">提示：切換上方「連線模式」為自建即可即時預覽本卡，<strong>需按下「儲存連線設定」並維持自建模式</strong>，設定才會套用到會議。</p>
   </div>
-  <?php endif; ?>
 
   <!-- 連線模式設定 -->
   <div class="card">
@@ -207,15 +207,17 @@ render_topbar($me, $ip);
           var m = sel.value;
           document.querySelectorAll('.mode-jaas').forEach(function(e){ e.style.display = (m==='jaas')?'':'none'; });
           document.querySelectorAll('.mode-self').forEach(function(e){ e.style.display = (m==='selfhosted')?'':'none'; });
+          // 依下拉即時顯示對應的整張卡（會議室自訂＝自建；8x8 用量＝JaaS）
+          document.querySelectorAll('.js-card-selfhosted').forEach(function(e){ e.style.display = (m==='selfhosted')?'':'none'; });
+          document.querySelectorAll('.js-card-jaas').forEach(function(e){ e.style.display = (m==='jaas')?'':'none'; });
         }
         sel.addEventListener('change', upd); upd();
       })();
     </script>
   </div>
 
-  <!-- 8x8 用量 webhook（僅 JaaS 模式顯示） -->
-  <?php if ($jaas['mode'] === 'jaas'): ?>
-  <div class="card">
+  <!-- 8x8 用量 webhook（僅 JaaS 模式；依連線模式下拉即時顯示） -->
+  <div class="card js-card-jaas"<?= $jaas['mode']==='jaas' ? '' : ' style="display:none;"' ?>>
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('chart', 18) ?>8x8 用量 Webhook</h1>
     <p class="subtitle" style="margin:6px 0 18px;">在 8x8 JaaS Console → Webhooks 設定下列 endpoint 與 secret，即可開始計量 MAU。</p>
     <div class="field"><label>Webhook URL</label>
@@ -256,7 +258,6 @@ render_topbar($me, $ip);
       <button class="btn btn-secondary"><?= icon('check',14) ?>校正本期用量</button>
     </form>
   </div>
-  <?php endif; ?>
 
   <!-- SMTP -->
   <div class="card">
@@ -368,6 +369,46 @@ render_topbar($me, $ip);
       document.querySelectorAll('#themeForm input[name=theme]').forEach(el => {
         el.addEventListener('change', () => document.getElementById('themeForm').submit());
       });
+    </script>
+  </div>
+
+  <!-- 設定匯出 / 匯入 -->
+  <div class="card">
+    <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('upload', 18) ?>設定匯出 / 匯入</h1>
+    <p class="subtitle" style="margin:6px 0 18px;">備份或搬移本系統的所有設定（含主題、連線模式、SMTP、外拋、會議室自訂、站台 logo 圖檔）。不含帳號、會議室與稽核記錄。</p>
+    <div class="alert alert-info" style="align-items:flex-start;">
+      <?= icon('warning') ?>
+      <span>匯出檔包含 <strong>機敏資訊</strong>（SMTP 密碼、JWT 共享密鑰、Webhook secret）。請妥善保管，勿外流或上傳到第三方。匯入會以檔案內容<strong>覆寫對應設定區塊</strong>。</span>
+    </div>
+    <div class="field-row" style="align-items:flex-end;">
+      <form method="POST" action="/settings-export">
+        <?= Auth::csrfField() ?>
+        <button class="btn btn-secondary"><?= icon('upload',14) ?>匯出設定（下載 JSON）</button>
+      </form>
+    </div>
+    <form method="POST" action="/settings-import" enctype="multipart/form-data" style="margin-top:14px;"
+          onsubmit="return confirm('確定要匯入並覆寫目前設定嗎？建議先匯出一份現有設定備份。');">
+      <?= Auth::csrfField() ?>
+      <div class="field">
+        <label>選擇設定檔（.json）</label>
+        <div class="file-picker">
+          <label class="file-btn"><?= icon('upload', 16) ?>選擇檔案
+            <input type="file" name="settings_file" id="impInput" accept="application/json,.json" required>
+          </label>
+          <span class="file-name" id="impName">未選擇檔案</span>
+        </div>
+      </div>
+      <button class="btn btn-primary"><?= icon('check') ?>匯入設定</button>
+    </form>
+    <script>
+      (function(){
+        var inp = document.getElementById('impInput');
+        if (!inp) return;
+        inp.addEventListener('change', function(){
+          var f = inp.files && inp.files[0];
+          document.getElementById('impName').textContent = f ? f.name : '未選擇檔案';
+        });
+      })();
     </script>
   </div>
 </main>

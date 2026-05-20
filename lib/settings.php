@@ -195,6 +195,28 @@ class Settings {
     return is_array($v) ? $v : [];
   }
 
+  // === 設定匯出 / 匯入 ===
+  /** 允許匯出 / 匯入的頂層設定鍵（白名單，避免匯入夾帶未知結構）。 */
+  const EXPORTABLE_KEYS = [
+    'theme', 'webhook_secret', 'plan_mau_limit', 'billing_start_day',
+    'meeting_retention_days', 'meeting_custom', 'meeting_lang',
+    'smtp', 'logship', 'site', 'jaas',
+  ];
+
+  /** 匯出用：回傳目前 settings.json 的原始內容。 */
+  public static function exportData(): array {
+    return self::load();
+  }
+
+  /** 匯入：只併入白名單內的鍵（present 才覆寫），其餘保留原值。 */
+  public static function importData(array $incoming): void {
+    $d = self::load();
+    foreach (self::EXPORTABLE_KEYS as $k) {
+      if (array_key_exists($k, $incoming)) $d[$k] = $incoming[$k];
+    }
+    self::save($d);
+  }
+
   /** 站台外觀：品牌名稱與自訂 logo。 */
   public static function getSite(): array {
     $c = self::load()['site'] ?? [];
