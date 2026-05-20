@@ -36,11 +36,9 @@ render_topbar($me, $ip);
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
 
-  <div class="nav-row">
-    <a class="btn btn-ghost btn-sm" href="/dashboard"><?= icon('arrow-right', 14) ?>回儀表板</a>
-  </div>
+  <?= admin_nav('audit') ?>
   <div class="card">
-    <h1>稽核記錄</h1>
+    <h1><?= icon('clock', 18) ?>稽核記錄</h1>
     <p class="subtitle">系統行為記錄（登入登出、建立 / 進入會議室、寄送邀請、帳號與設定變更等），同時即時外拋 SIEM（若已啟用）。</p>
 
     <form method="GET" action="/audit-log" class="inline-form" style="margin-bottom:16px;">
@@ -53,9 +51,9 @@ render_topbar($me, $ip);
         </select>
       </div>
       <div class="field"><label>開始日期</label>
-        <input type="text" id="from" name="from" value="<?= htmlspecialchars($from) ?>" placeholder="YYYY-MM-DD" autocomplete="off" style="min-width:140px;"></div>
+        <input type="text" id="from" name="from" value="<?= htmlspecialchars($from) ?>" placeholder="YYYY-MM-DD" autocomplete="off" style="width:120px;"></div>
       <div class="field"><label>結束日期</label>
-        <input type="text" id="to" name="to" value="<?= htmlspecialchars($to) ?>" placeholder="YYYY-MM-DD" autocomplete="off" style="min-width:140px;"></div>
+        <input type="text" id="to" name="to" value="<?= htmlspecialchars($to) ?>" placeholder="YYYY-MM-DD" autocomplete="off" style="width:120px;"></div>
       <div class="field"><label>關鍵字（帳號 / 詳情 / IP）</label>
         <input type="text" name="q" value="<?= htmlspecialchars($q) ?>" placeholder="搜尋"></div>
       <div class="field"><label>每頁</label>

@@ -281,7 +281,7 @@ docker run -d --restart unless-stopped \
 |---|---|---|
 | 網域 | `8x8.vc` | 你的 Jitsi 網域 |
 | 必填 | App ID、Key ID(kid)、RS256 私鑰 | 服務網域；（選）JWT app_id + HS256 密鑰 |
-| 計費 | 依 8x8 方案（MAU / 加購） | 自行維運 |
+| 計費 | 免費 Dev 方案（25 MAU/月），超過依 8x8 方案計費 | 自行維運 |
 
 自建 Jitsi Meet 若採 JWT，需在 prosody 啟用 token 驗證，且 app_id / app_secret 與本系統一致。
 

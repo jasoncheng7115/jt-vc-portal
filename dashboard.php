@@ -4,7 +4,6 @@ require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/layout.php';
 require_once __DIR__ . '/lib/rooms.php';
 require_once __DIR__ . '/lib/settings.php';
-require_once __DIR__ . '/lib/usage.php';
 
 $me = Auth::requireLogin();
 $ip = Auth::clientIp();
@@ -57,11 +56,6 @@ function mail_flash_text(string $m): string {
   return '';
 }
 
-$usage_count = Usage::currentMonthCount();
-$plan_limit  = Settings::getPlanLimit();
-$usage_pct   = $plan_limit > 0 ? min(100, round($usage_count / $plan_limit * 100)) : 0;
-$usage_lvl   = $usage_pct >= 95 ? 'crit' : ($usage_pct >= 80 ? 'warn' : 'ok');
-
 render_head('儀表板');
 render_topbar($me, $ip);
 ?>
@@ -71,31 +65,7 @@ render_topbar($me, $ip);
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/zh-tw.js"></script>
 
-  <div class="nav-row">
-    <a class="btn btn-secondary btn-sm" href="/profile"><?= icon('user', 14) ?>個人設定 / 2FA</a>
-    <?php if ($is_admin): ?>
-      <a class="btn btn-secondary btn-sm" href="/accounts"><?= icon('user', 14) ?>帳號管理</a>
-      <a class="btn btn-secondary btn-sm" href="/audit-log"><?= icon('clock', 14) ?>稽核記錄</a>
-      <a class="btn btn-secondary btn-sm" href="/settings"><?= icon('dashboard', 14) ?>系統設定</a>
-    <?php endif; ?>
-  </div>
-
-  <!-- 8x8 用量（僅 JaaS 模式顯示） -->
-  <?php if ($jaas_mode === 'jaas'): ?>
-  <div class="card card-usage">
-    <div class="usage-head">
-      <div>
-        <h1 style="margin:0;">本月 8x8 用量</h1>
-        <p class="subtitle" style="margin:6px 0 0;">JaaS Monthly Active Users（本期 <?= htmlspecialchars(Usage::currentPeriodLabel()) ?>）</p>
-      </div>
-      <div class="usage-num"><?= (int)$usage_count ?> <span class="lim">/ <?= (int)$plan_limit ?> MAU</span></div>
-    </div>
-    <div class="usage-bar"><div class="usage-fill lvl-<?= $usage_lvl ?>" style="width: <?= (int)$usage_pct ?>%"></div></div>
-    <p class="muted" style="font-size:12px;margin:0;">
-      <?= $usage_pct ?>% 已使用<?php if ($usage_count === 0): ?> · 需在 8x8 Console 設定 USAGE webhook 後才會開始計量<?php endif; ?>
-    </p>
-  </div>
-  <?php endif; ?>
+  <?php if ($is_admin): ?><?= admin_nav('dashboard') ?><?php endif; ?>
 
   <?php if ($created_data):
     $invite_url = SITE_URL . '/room/' . rawurlencode($created);
@@ -128,7 +98,7 @@ render_topbar($me, $ip);
   <?php endif; ?>
 
   <div class="card">
-    <h1>建立 / 進入會議室</h1>
+    <h1><?= icon('video', 18) ?>建立 / 進入會議室</h1>
     <p class="subtitle">輸入會議室名稱即可開始，或從下方近期清單快速進入。可選擇先建立連結但暫不進入會議。</p>
 
     <?php if ($error): ?>
@@ -149,7 +119,8 @@ render_topbar($me, $ip);
         <div class="help">命名建議使用英文或數字，以利分享。空格會自動轉成 <span class="kbd">-</span></div>
       </div>
 
-      <label class="lobby-toggle" for="scheduleChk">
+      <div class="schedule-block">
+      <label class="schedule-head" for="scheduleChk">
         <input type="checkbox" id="scheduleChk"<?= $schedule_open ? ' checked' : '' ?>>
         <span class="lobby-text">
           <span class="lobby-title"><?= icon('calendar', 14) ?>限定開放時段 / 寄送邀請</span>
@@ -173,6 +144,7 @@ render_topbar($me, $ip);
           <div class="help">填寫後系統會寄出含行事曆（.ics）的邀請信，對方可一鍵加入行事曆（需先於系統設定啟用 SMTP）。</div>
         </div>
       </div>
+      </div>
 
       <label class="lobby-toggle">
         <input type="checkbox" name="lobby" value="1"<?= $form_lobby ? ' checked' : '' ?>>
@@ -187,8 +159,10 @@ render_topbar($me, $ip);
         <button type="submit" name="mode" value="create" class="btn btn-secondary"><?= icon('link') ?>建立會議室連結</button>
       </div>
     </form>
+  </div>
 
-    <div class="section-title">近期會議室 <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400;">· 24 小時內<?= $is_admin ? '（全部主持人）' : '' ?></span></div>
+  <div class="card">
+    <h1><?= icon('clock', 18) ?>近期會議室 <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400;font-size:13px;">· 24 小時內<?= $is_admin ? '（全部主持人）' : '' ?></span></h1>
     <?php if (empty($rooms)): ?>
       <div class="empty">尚無近期會議室。建立後將會出現在這裡。</div>
     <?php else: ?>

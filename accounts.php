@@ -17,15 +17,13 @@ render_head('帳號管理');
 render_topbar($me, $ip);
 ?>
 <main class="container">
-  <div class="nav-row">
-    <a class="btn btn-ghost btn-sm" href="/dashboard"><?= icon('arrow-right', 14) ?>回儀表板</a>
-  </div>
+  <?= admin_nav('accounts') ?>
 
   <?php if ($msg): ?><div class="alert alert-success"><?= icon('check') ?><span><?= htmlspecialchars($msg) ?></span></div><?php endif; ?>
   <?php if ($err): ?><div class="alert alert-error"><?= icon('warning') ?><span><?= htmlspecialchars($err) ?></span></div><?php endif; ?>
 
   <div class="card">
-    <h1>帳號管理</h1>
+    <h1><?= icon('user', 18) ?>帳號管理</h1>
     <p class="subtitle">管理多個主持人帳號與角色。一般主持人只看得到自己建立的會議室；管理員可看全部。</p>
 
     <table class="table">
@@ -85,7 +83,7 @@ render_topbar($me, $ip);
   </div>
 
   <div class="card">
-    <h1 style="font-size:18px;margin:0 0 4px;">新增帳號</h1>
+    <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('plus', 18) ?>新增帳號</h1>
     <p class="subtitle" style="margin:6px 0 18px;">建立新的主持人或管理員帳號。</p>
     <form method="POST" action="/account-save">
       <?= Auth::csrfField() ?>

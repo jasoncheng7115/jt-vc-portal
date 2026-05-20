@@ -27,16 +27,14 @@ render_head('系統設定');
 render_topbar($me, $ip);
 ?>
 <main class="container">
-  <div class="nav-row">
-    <a class="btn btn-ghost btn-sm" href="/dashboard"><?= icon('arrow-right', 14) ?>回儀表板</a>
-  </div>
+  <?= admin_nav('settings') ?>
   <?php if ($msg): ?><div class="alert alert-success"><?= icon('check') ?><span><?= htmlspecialchars($msg) ?></span></div><?php endif; ?>
   <?php if ($err): ?><div class="alert alert-error"><?= icon('warning') ?><span><?= htmlspecialchars($err) ?></span></div><?php endif; ?>
 
   <!-- 站台設定 -->
   <?php $brand = site_brand(); ?>
   <div class="card">
-    <h1 style="font-size:18px;margin:0 0 4px;">站台設定</h1>
+    <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('home', 18) ?>站台設定</h1>
     <p class="subtitle" style="margin:6px 0 18px;">設定左上角 logo 與站台名稱，套用到所有頁面（含登入頁、來賓頁）。</p>
     <form method="POST" action="/save-site" enctype="multipart/form-data">
       <?= Auth::csrfField() ?>
@@ -76,7 +74,7 @@ render_topbar($me, $ip);
   <!-- 會議室介面 -->
   <?php $meeting_lang = Settings::getMeetingLang(); ?>
   <div class="card">
-    <h1 style="font-size:18px;margin:0 0 4px;">會議室介面</h1>
+    <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('video', 18) ?>會議室介面</h1>
     <p class="subtitle" style="margin:6px 0 18px;">設定來賓 / 主持人進入會議室時的預設介面語言（會關閉瀏覽器語言自動偵測，強制使用此語言）。</p>
     <form method="POST" action="/save-settings" class="inline-form">
       <?= Auth::csrfField() ?>
@@ -94,7 +92,7 @@ render_topbar($me, $ip);
 
   <!-- 連線模式設定 -->
   <div class="card">
-    <h1 style="font-size:18px;margin:0 0 4px;">連線模式設定</h1>
+    <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('link', 18) ?>連線模式設定</h1>
     <p class="subtitle" style="margin:6px 0 18px;">選擇使用 8x8 JaaS（雲端託管）或自建 Jitsi Meet。私鑰仍由主機掛載（<span class="mono">/var/www/html/keys/private.key</span>）。</p>
     <form method="POST" action="/save-settings">
       <?= Auth::csrfField() ?>
@@ -163,7 +161,7 @@ render_topbar($me, $ip);
   <!-- 8x8 用量 webhook（僅 JaaS 模式顯示） -->
   <?php if ($jaas['mode'] === 'jaas'): ?>
   <div class="card">
-    <h1 style="font-size:18px;margin:0 0 4px;">8x8 用量 Webhook</h1>
+    <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('chart', 18) ?>8x8 用量 Webhook</h1>
     <p class="subtitle" style="margin:6px 0 18px;">在 8x8 JaaS Console → Webhooks 設定下列 endpoint 與 secret，即可開始計量 MAU。</p>
     <div class="field"><label>Webhook URL</label>
       <div class="link-row">
@@ -207,7 +205,7 @@ render_topbar($me, $ip);
 
   <!-- SMTP -->
   <div class="card">
-    <h1 style="font-size:18px;margin:0 0 4px;">SMTP 寄信（會議邀請 .ics）</h1>
+    <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('calendar', 18) ?>SMTP 寄信（會議邀請 .ics）</h1>
     <p class="subtitle" style="margin:6px 0 18px;">啟用後，建立會議室時填寫的與會者 email 會收到含行事曆的邀請信。</p>
     <form method="POST" action="/save-settings">
       <?= Auth::csrfField() ?>
@@ -255,7 +253,7 @@ render_topbar($me, $ip);
 
   <!-- Log 外拋 -->
   <div class="card">
-    <h1 style="font-size:18px;margin:0 0 4px;">登入記錄外拋（SIEM）</h1>
+    <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('upload', 18) ?>登入記錄外拋（SIEM）</h1>
     <p class="subtitle" style="margin:6px 0 18px;">將登入事件即時送往 syslog / CEF / GELF collector，支援 UDP / TCP。</p>
     <form method="POST" action="/save-settings">
       <?= Auth::csrfField() ?>
@@ -298,7 +296,7 @@ render_topbar($me, $ip);
     $themes = Settings::themeOptions();
   ?>
   <div class="card" id="theme">
-    <h1 style="font-size:18px;margin:0 0 4px;">外觀主題</h1>
+    <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('edit', 18) ?>外觀主題</h1>
     <p class="subtitle" style="margin:6px 0 0;">站台層級設定，套用到所有頁面（含來賓頁）。點選即時套用。</p>
     <form method="POST" action="/set-theme" class="theme-picker" id="themeForm">
       <?= Auth::csrfField() ?>

@@ -13,7 +13,7 @@ class Settings {
     'dark', 'midnight', 'matrix', 'terminal', 'synthwave', 'cyber', 'neon',
   ];
   const DARK_THEMES = ['dark', 'midnight', 'matrix', 'terminal', 'synthwave', 'cyber', 'neon'];
-  const DEFAULT_THEME = 'layered';
+  const DEFAULT_THEME = 'mesh';
 
   public static function load(): array {
     if (!file_exists(self::FILE)) return [];
@@ -152,8 +152,8 @@ class Settings {
       'glow'      => ['name' => '光暈',        'desc' => '白底加品牌色漸層'],
       'aurora'    => ['name' => '極光',        'desc' => '紫藍粉多色光暈'],
       'sunset'    => ['name' => '夕陽',        'desc' => '暖橘紅漸層'],
-      'mesh'      => ['name' => '彩雲',        'desc' => '流行多色 mesh gradient'],
-      'layered'   => ['name' => '混搭（預設）','desc' => '柔灰 + 光暈 + 浮水印'],
+      'mesh'      => ['name' => '彩雲（預設）','desc' => '流行多色 mesh gradient'],
+      'layered'   => ['name' => '混搭',        'desc' => '柔灰 + 光暈 + 浮水印'],
       'hologram'  => ['name' => '全像',        'desc' => '彩虹流光科幻感'],
       // 工程感
       'blueprint' => ['name' => '藍圖',        'desc' => '工程藍方格底'],

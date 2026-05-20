@@ -1,7 +1,11 @@
 <?php
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/store.php';
 
 class Rooms {
+  /** 會議時長 session 記錄檔（主持人離開時 append 一筆）。 */
+  const MEETINGS_FILE = DATA_DIR . '/meetings.jsonl';
+
   /** 讀取整份資料（自動把舊版 int 結構升級成新版結構） */
   public static function load(): array {
     if (!file_exists(AUTO_ALLOW_FILE)) return [];
@@ -26,6 +30,7 @@ class Rooms {
           'ends_at'      => isset($v['ends_at'])   && $v['ends_at']   !== null ? (int)$v['ends_at']   : null,
           'host_joined'  => !empty($v['host_joined']),
           'host_seen_at' => isset($v['host_seen_at']) ? (int)$v['host_seen_at'] : null,
+          'host_joined_at' => isset($v['host_joined_at']) ? (int)$v['host_joined_at'] : null, // 本次主持 session 起始
           'owner'        => $v['owner'] ?? null,         // 建立者 user id
           'owner_name'   => $v['owner_name'] ?? null,    // 顯示用
           'attendees'    => is_array($v['attendees'] ?? null) ? $v['attendees'] : [],
@@ -70,22 +75,40 @@ class Rooms {
   /** 心跳超時門檻（秒）。> 此值未收到主持人心跳，視為已離開。 */
   const HOST_STALE_SECONDS = 45;
 
-  /** 主持人離開 → 把該房間的 host_joined 標回 false 並清掉 host_seen_at */
+  /** 主持人離開 → 結算本次 session 時長寫入 meetings.jsonl，並把 host_joined 標回 false */
   public static function setHostLeft(string $room): void {
     $rooms = self::load();
     if (isset($rooms[$room]) && is_array($rooms[$room])) {
+      $r = $rooms[$room];
+      if (!empty($r['host_joined_at'])) {
+        $start = (int)$r['host_joined_at'];
+        $end   = time();
+        if ($end > $start) {
+          Store::appendLine(self::MEETINGS_FILE, [
+            'ts'         => $end,
+            'time'       => date('c', $end),
+            'room'       => $room,
+            'start'      => $start,
+            'end'        => $end,
+            'dur'        => $end - $start,           // 秒
+            'owner'      => $r['owner'] ?? '',
+            'owner_name' => $r['owner_name'] ?? '',
+          ]);
+        }
+      }
       $rooms[$room]['host_joined'] = false;
-      unset($rooms[$room]['host_seen_at']);
+      unset($rooms[$room]['host_seen_at'], $rooms[$room]['host_joined_at']);
       self::save($rooms);
     }
   }
 
-  /** 主持人心跳：寫入 host_seen_at（並確保 host_joined=true） */
+  /** 主持人心跳：寫入 host_seen_at（並確保 host_joined=true、記下 session 起始） */
   public static function recordHostHeartbeat(string $room): void {
     $rooms = self::load();
     if (!isset($rooms[$room]) || !is_array($rooms[$room])) return;
     $rooms[$room]['host_joined']  = true;
     $rooms[$room]['host_seen_at'] = time();
+    if (empty($rooms[$room]['host_joined_at'])) $rooms[$room]['host_joined_at'] = time();
     self::save($rooms);
   }
 
@@ -114,6 +137,7 @@ class Rooms {
     if (!empty($opts['host_joined'])) {
       $existing['host_joined']  = true;
       $existing['host_seen_at'] = time();
+      if (empty($existing['host_joined_at'])) $existing['host_joined_at'] = time();
     }
     // owner 只在尚未有 owner 時設定（第一次建立者），避免事後被改寫
     if (!empty($opts['owner']) && empty($existing['owner'])) {
@@ -162,6 +186,20 @@ class Rooms {
     // 在開放時段內 → 直接放行
     return ['allow' => true, 'status' => 'open',
             'starts_at' => $starts, 'ends_at' => $ends, 'host_joined' => false];
+  }
+
+  /** 讀取「結束時間」落在 [$fromTs,$toTs] 內的會議 session（舊→新）。 */
+  public static function meetingSessions(int $fromTs, int $toTs): array {
+    if (!file_exists(self::MEETINGS_FILE)) return [];
+    $lines = @file(self::MEETINGS_FILE, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+    $out = [];
+    foreach ($lines as $ln) {
+      $e = json_decode($ln, true);
+      if (!is_array($e)) continue;
+      $end = (int)($e['end'] ?? $e['ts'] ?? 0);
+      if ($end >= $fromTs && $end <= $toTs) $out[] = $e;
+    }
+    return $out;
   }
 
   public static function sanitize(string $room): string {

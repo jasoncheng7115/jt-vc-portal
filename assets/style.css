@@ -354,8 +354,6 @@ body.is-dark .empty {
   background: transparent;
 }
 
-/* Schedule body */
-body.is-dark .schedule-body { border-color: rgba(255,255,255,0.10); background: rgba(255,255,255,0.02); }
 
 /* Alerts */
 body.is-dark .alert-error   { background: rgba(220,38,38,0.18);  color: #fca5a5; border-color: rgba(248,113,113,0.35); }
@@ -506,10 +504,8 @@ a:hover { text-decoration: underline; }
 }
 .brand-text { font-size: 15px; }
 .topbar .topbar-actions { display: flex; gap: 8px; align-items: center; }
+.topbar-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .topbar-version {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
   font-family: var(--mono);
   font-size: 12px;
   color: var(--text-muted);
@@ -524,15 +520,26 @@ a:hover { text-decoration: underline; }
 a.topbar-version:hover { color: var(--accent); border-color: var(--accent); text-decoration: none; }
 body.is-dark .topbar-version { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.12); }
 @media (max-width: 700px) { .topbar-version { display: none; } }
+.topbar-menu { position: relative; }
 .topbar-user {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 13px;
   color: var(--text-muted);
-  padding-right: 6px;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
 }
+.topbar-user:hover { background: var(--bg-muted); border-color: var(--border); }
+.topbar-menu.open .topbar-user { background: var(--bg-muted); border-color: var(--border); }
+.topbar-avatar { display: inline-flex; }
 .topbar-user-name { color: var(--text); font-weight: 500; }
+.topbar-user > .icon:last-child { opacity: .55; transition: transform .15s; }
+.topbar-menu.open .topbar-user > .icon:last-child { transform: rotate(90deg); }
 .topbar-user-ip {
   font-family: var(--mono);
   font-size: 11px;
@@ -541,9 +548,46 @@ body.is-dark .topbar-version { background: rgba(255,255,255,0.06); color: rgba(2
   padding: 1px 6px;
   border-radius: 4px;
 }
+.topbar-menu.open .topbar-user .topbar-user-ip { background: var(--bg); }
+
+.topbar-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 60;
+  min-width: 220px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+  display: none;
+}
+.topbar-menu.open .topbar-dropdown { display: block; }
+.dropdown-head { padding: 8px 10px 10px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
+.dropdown-name { font-weight: 600; color: var(--text); font-size: 14px; }
+.dropdown-sub { font-family: var(--mono); font-size: 11px; color: var(--text-soft); margin-top: 2px; }
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text);
+  text-decoration: none;
+}
+.dropdown-item:hover { background: var(--bg-muted); }
+
 body.is-dark .topbar-user { color: rgba(255,255,255,0.6); }
+body.is-dark .topbar-user:hover,
+body.is-dark .topbar-menu.open .topbar-user { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.12); }
 body.is-dark .topbar-user-name { color: #fff; }
 body.is-dark .topbar-user-ip { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
+body.is-dark .topbar-dropdown { background: #161616; border-color: rgba(255,255,255,0.12); }
+body.is-dark .dropdown-name { color: #fff; }
+body.is-dark .dropdown-item { color: rgba(255,255,255,0.9); }
+body.is-dark .dropdown-item:hover { background: rgba(255,255,255,0.08); }
 @media (max-width: 700px) { .topbar-user-ip, .topbar-user .badge { display: none; } }
 
 /* 管理導覽列（功能頁籤風格） */
@@ -602,6 +646,52 @@ body.is-dark .card-usage {
 .usage-fill.lvl-crit { background: var(--danger); }
 body.is-dark .usage-bar { background: rgba(255,255,255,0.08); }
 
+/* 導覽頁籤 active 標示 */
+.nav-row .btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+body.is-dark .nav-row .btn.active { background: rgba(37,99,235,0.18); color: #fff; }
+
+/* 用量頁：統計數字卡 */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.stat-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
+}
+.stat-num { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); line-height: 1.1; }
+.stat-label { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+body.is-dark .stat-card { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.10); }
+
+/* 卡片標題（非可收合，給圖表 / 時間軸用） */
+.card-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; color: var(--text); margin: 0 0 14px; }
+
+/* 圖表容器（固定高度，避免 Chart.js 無限長高） */
+.chart-wrap { position: relative; height: 280px; }
+
+/* 會議時長時間軸（Gantt） */
+.gantt { margin-top: 4px; }
+.gantt-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-soft); font-family: var(--mono); margin: 0 0 8px calc(140px + 12px); }
+.gantt-row { display: grid; grid-template-columns: 140px 1fr 70px; align-items: center; gap: 12px; padding: 4px 0; }
+.gantt-label { font-family: var(--mono); font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gantt-track { position: relative; height: 16px; background: var(--bg-muted); border-radius: 999px; }
+.gantt-bar { position: absolute; top: 0; height: 16px; min-width: 6px; border-radius: 999px; background: linear-gradient(90deg, #06b6d4, #7c3aed); }
+.gantt-dur { font-size: 12px; color: var(--text-muted); text-align: right; white-space: nowrap; }
+body.is-dark .gantt-track { background: rgba(255,255,255,0.08); }
+@media (max-width: 640px) {
+  .gantt-axis { margin-left: calc(90px + 12px); }
+  .gantt-row { grid-template-columns: 90px 1fr 56px; gap: 8px; }
+}
+
 /* 表格 */
 .table {
   width: 100%;
@@ -624,6 +714,11 @@ body.is-dark .usage-bar { background: rgba(255,255,255,0.08); }
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
+.table thead th.sortable { cursor: pointer; user-select: none; }
+.table thead th.sortable::after { content: '⇅'; margin-left: 6px; font-size: 10px; opacity: .35; }
+.table thead th.sortable[data-sort="asc"]::after  { content: '↑'; opacity: .85; }
+.table thead th.sortable[data-sort="desc"]::after { content: '↓'; opacity: .85; }
+.table thead th.sortable:hover { color: var(--text); }
 .table tbody td {
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
@@ -742,6 +837,8 @@ body.is-dark select {
   user-select: none;
 }
 .card.collapsible > .card-header:hover { background: var(--bg-muted); }
+.card-header-title { display: inline-flex; align-items: center; gap: 9px; min-width: 0; }
+.card-header-title .icon { flex-shrink: 0; color: var(--text-muted); }
 .card.collapsible > .card-header .chev {
   flex-shrink: 0;
   color: var(--text-muted);
@@ -883,15 +980,29 @@ input:focus {
 .row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .kbd { font-family: var(--mono); font-size: 12px; background: var(--bg-muted); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); }
 
-/* === Schedule body (勾選展開) === */
+/* === 限定時段：勾選列 + 展開填寫區，連成同一外框 === */
+.schedule-block {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+}
+.schedule-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+.schedule-head input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; width: 16px; height: 16px; cursor: pointer; }
 .schedule-body {
   padding: 14px;
   background: var(--bg-soft);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  margin: -6px 0 16px;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 }
 .schedule-body[hidden] { display: none; }
+body.is-dark .schedule-block { border-color: rgba(255,255,255,0.10); }
+body.is-dark .schedule-body { border-top-color: rgba(255,255,255,0.10); background: rgba(255,255,255,0.02); }
 
 .lobby-toggle {
   display: flex;
@@ -904,8 +1015,8 @@ input:focus {
   cursor: pointer;
 }
 .lobby-toggle input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; width: 16px; height: 16px; cursor: pointer; }
-.lobby-toggle .lobby-text { display: flex; flex-direction: column; gap: 3px; }
-.lobby-toggle .lobby-title { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--text); }
+.lobby-toggle .lobby-text, .schedule-head .lobby-text { display: flex; flex-direction: column; gap: 3px; }
+.lobby-toggle .lobby-title, .schedule-head .lobby-title { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--text); }
 body.is-dark .lobby-toggle { border-color: rgba(255,255,255,0.10); }
 
 /* === Room list === */

@@ -43,27 +43,62 @@ function render_topbar($user = null, ?string $ip = null): void {
   $brand = site_brand();
 ?>
 <header class="topbar">
-  <a class="brand" href="/">
-    <img class="brand-logo" src="<?= htmlspecialchars($brand['logo_src']) ?>" alt="<?= htmlspecialchars($brand['brand_name']) ?>" width="32" height="32">
-    <span class="brand-text"><?= htmlspecialchars($brand['brand_name']) ?></span>
-  </a>
-  <?php if ($logged_in): ?><a class="topbar-version" href="<?= htmlspecialchars(defined('APP_GITHUB_URL') ? APP_GITHUB_URL : '#') ?>" target="_blank" rel="noopener noreferrer" title="系統版本 · 前往 GitHub">v<?= htmlspecialchars(defined('APP_VERSION') ? APP_VERSION : '') ?></a><?php endif; ?>
+  <div class="topbar-left">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="<?= htmlspecialchars($brand['logo_src']) ?>" alt="<?= htmlspecialchars($brand['brand_name']) ?>" width="32" height="32">
+      <span class="brand-text"><?= htmlspecialchars($brand['brand_name']) ?></span>
+    </a>
+    <?php if ($logged_in): ?><a class="topbar-version" href="<?= htmlspecialchars(defined('APP_GITHUB_URL') ? APP_GITHUB_URL : '#') ?>" target="_blank" rel="noopener noreferrer" title="系統版本 · 前往 GitHub">v<?= htmlspecialchars(defined('APP_VERSION') ? APP_VERSION : '') ?></a><?php endif; ?>
+  </div>
   <div class="topbar-actions">
     <?php if ($logged_in): ?>
-      <?php if ($name !== ''): ?>
-        <span class="topbar-user">
-          <?= icon('user', 14) ?>
-          <span class="topbar-user-name"><?= htmlspecialchars($name) ?></span>
-          <?php if ($role === 'admin'): ?><span class="badge badge-accent" style="margin-left:2px;">管理員</span><?php endif; ?>
-          <?php if ($ip): ?><span class="topbar-user-ip"><?= htmlspecialchars($ip) ?></span><?php endif; ?>
-        </span>
-      <?php endif; ?>
       <a class="btn btn-ghost" href="/dashboard"><?= icon('dashboard') ?>儀表板</a>
+      <?php if ($name !== ''): ?>
+        <div class="topbar-menu">
+          <button type="button" class="topbar-user" id="topbarUserBtn" aria-haspopup="true" aria-expanded="false">
+            <span class="topbar-avatar"><?= icon('user', 16) ?></span>
+            <span class="topbar-user-name"><?= htmlspecialchars($name) ?></span>
+            <?php if ($role === 'admin'): ?><span class="badge badge-accent" style="margin-left:2px;">管理員</span><?php endif; ?>
+            <?php if ($ip): ?><span class="topbar-user-ip"><?= htmlspecialchars($ip) ?></span><?php endif; ?>
+            <?= icon('arrow-right', 14) ?>
+          </button>
+          <div class="topbar-dropdown" id="topbarDropdown" role="menu">
+            <div class="dropdown-head">
+              <div class="dropdown-name"><?= htmlspecialchars($name) ?></div>
+              <?php if ($ip): ?><div class="dropdown-sub"><?= htmlspecialchars($ip) ?></div><?php endif; ?>
+            </div>
+            <a class="dropdown-item" href="/profile" role="menuitem"><?= icon('user', 16) ?>個人設定 / 2FA</a>
+          </div>
+        </div>
+      <?php endif; ?>
       <a class="btn btn-secondary" href="/logout"><?= icon('log-out') ?>登出</a>
     <?php endif; ?>
   </div>
 </header>
 <?php }
+
+/**
+ * 管理頁共用頁籤列。$active = dashboard|accounts|audit|usage|settings。
+ * 用量頁籤僅 JaaS 模式顯示。
+ */
+function admin_nav(string $active = ''): string {
+  $jaas = Settings::getJaas()['mode'];
+  $tabs = [
+    'dashboard' => ['/dashboard', 'video',     '會議室管理'],
+    'accounts'  => ['/accounts',  'user',      '帳號管理'],
+    'audit'     => ['/audit-log', 'clock',     '稽核記錄'],
+  ];
+  if ($jaas === 'jaas') $tabs['usage'] = ['/usage', 'chart', '用量統計'];
+  $tabs['settings'] = ['/settings', 'dashboard', '系統設定'];
+
+  $html = '<div class="nav-row">';
+  foreach ($tabs as $key => $t) {
+    [$href, $ic, $label] = $t;
+    $cls = 'btn btn-secondary btn-sm' . ($key === $active ? ' active' : '');
+    $html .= '<a class="' . $cls . '" href="' . $href . '">' . icon($ic, 14) . htmlspecialchars($label) . '</a>';
+  }
+  return $html . '</div>';
+}
 
 function render_foot(): void { ?>
 <script>
@@ -78,7 +113,8 @@ function render_foot(): void { ?>
     var header = document.createElement('div');
     header.className = 'card-header';
     var span = document.createElement('span');
-    span.textContent = h.textContent;
+    span.className = 'card-header-title';
+    span.innerHTML = h.innerHTML;          // 保留標題內的 icon
     header.appendChild(span);
     var chevWrap = document.createElement('span');
     chevWrap.innerHTML = CHEV;
@@ -93,6 +129,53 @@ function render_foot(): void { ?>
     card.appendChild(body);
 
     header.addEventListener('click', function () { card.classList.toggle('collapsed'); });
+  });
+})();
+
+/* 右上帳號選單：點頭像 / 名稱展開，點外面或 Esc 收合。 */
+(function () {
+  var btn = document.getElementById('topbarUserBtn');
+  var menu = document.getElementById('topbarDropdown');
+  if (!btn || !menu) return;
+  var wrap = btn.parentElement;
+  function close() { wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
+  function toggle(e) {
+    e.stopPropagation();
+    var open = wrap.classList.toggle('open');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  btn.addEventListener('click', toggle);
+  document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+})();
+
+/* 表格欄位標題點擊排序（排序目前顯示的列；分頁表格僅排本頁）。 */
+(function () {
+  function num(v) { v = String(v).replace(/[, ]/g, ''); return /^-?\d+(\.\d+)?$/.test(v) ? parseFloat(v) : null; }
+  document.querySelectorAll('table.table').forEach(function (table) {
+    var thead = table.tHead;
+    if (!thead || !thead.rows.length) return;
+    var ths = thead.rows[0].cells;
+    Array.prototype.forEach.call(ths, function (th, idx) {
+      th.classList.add('sortable');
+      th.addEventListener('click', function () {
+        var tbody = table.tBodies[0];
+        if (!tbody) return;
+        var rows = Array.prototype.slice.call(tbody.rows);
+        var asc = th.getAttribute('data-sort') !== 'asc';
+        Array.prototype.forEach.call(ths, function (o) { if (o !== th) o.removeAttribute('data-sort'); });
+        th.setAttribute('data-sort', asc ? 'asc' : 'desc');
+        rows.sort(function (a, b) {
+          var x = (a.cells[idx] ? a.cells[idx].innerText : '').trim();
+          var y = (b.cells[idx] ? b.cells[idx].innerText : '').trim();
+          var nx = num(x), ny = num(y), r;
+          if (nx !== null && ny !== null) r = nx - ny;
+          else r = x.localeCompare(y, 'zh-Hant', { numeric: true });
+          return asc ? r : -r;
+        });
+        rows.forEach(function (r) { tbody.appendChild(r); });
+      });
+    });
   });
 })();
 </script>
@@ -117,6 +200,7 @@ function icon(string $name, int $size = 18): string {
       'login'       => '<path d="M14 12H4"/><path d="M4 12l4-4"/><path d="M4 12l4 4"/><path d="M10 4h7a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-7"/>',
       'log-out'     => '<path d="M10 12h10"/><path d="M20 12l-4-4"/><path d="M20 12l-4 4"/><path d="M14 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8"/>',
       'dashboard'   => '<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/>',
+      'chart'       => '<path d="M4 4v16h16"/><rect x="7" y="12" width="2.6" height="5" rx="0.6"/><rect x="11.7" y="9" width="2.6" height="8" rx="0.6"/><rect x="16.4" y="6" width="2.6" height="11" rx="0.6"/>',
       'refresh'     => '<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/>',
       'x'           => '<path d="M6 6l12 12"/><path d="M18 6L6 18"/>',
       'share'       => '<circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 11l8-4"/><path d="M8 13l8 4"/>',

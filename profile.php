@@ -31,7 +31,7 @@ render_topbar($me, $ip);
   <?php if ($err): ?><div class="alert alert-error"><?= icon('warning') ?><span><?= htmlspecialchars($err) ?></span></div><?php endif; ?>
 
   <div class="card">
-    <h1>個人設定</h1>
+    <h1><?= icon('user', 18) ?>個人設定</h1>
     <p class="subtitle"><?= htmlspecialchars($me['username']) ?> · <?= htmlspecialchars($me['email']) ?>
       <?php if (($me['role'] ?? '') === 'admin'): ?><span class="badge badge-accent">管理員</span><?php endif; ?></p>
 

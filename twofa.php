@@ -19,7 +19,7 @@ render_topbar(false);
 ?>
 <main class="container narrow">
   <div class="card">
-    <h1>兩步驟驗證</h1>
+    <h1><?= icon('lock', 18) ?>兩步驟驗證</h1>
     <p class="subtitle">請輸入驗證器 App（Google Authenticator / Authy）顯示的 6 位數驗證碼。</p>
 
     <?php if ($error): ?>
