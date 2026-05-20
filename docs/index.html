@@ -17,6 +17,7 @@
     <div class="links">
       <a href="#why">關鍵</a>
       <a href="#features">功能</a>
+      <a href="#compare">比較</a>
       <a href="#security">安全</a>
       <a href="#screenshots">畫面</a>
       <a href="#install">安裝</a>
@@ -99,6 +100,55 @@
       <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 1 0-18c4.97 0 9 3.58 9 8 0 2.5-2 4-4 4h-2a2 2 0 0 0-1.5 3.3A1.5 1.5 0 0 1 12 21Z"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="9.5" cy="7.5" r="1"/><circle cx="14.5" cy="7.5" r="1"/><circle cx="16.5" cy="11.5" r="1"/></svg></div><h3>外觀客製</h3><p>22 種主題、可換站台名稱與 logo、會議室預設介面語言。</p></div>
       <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="14" width="3" height="3"/></svg></div><h3>用量統計</h3><p>JaaS 模式接 USAGE webhook，依訂閱週期統計 MAU、可手動校正。</p></div>
     </div>
+  </div>
+</section>
+
+<!-- COMPARE -->
+<section id="compare">
+  <div class="wrap">
+    <div class="kicker">Compare</div>
+    <h2>怎麼選？8x8 JaaS 與自建 Jitsi Meet</h2>
+    <p class="section-sub">兩種模式都能在管理介面一鍵切換、不必改程式，依團隊規模與維運能力選擇即可。</p>
+
+    <div class="note" style="margin-bottom:26px">
+      <strong>小團隊建議從 <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> 起步：</strong>JaaS 提供<strong>免費 Dev 方案</strong>（每月有一定免費 MAU 額度），免架站、免維運即可上線，最適合小團隊、試用與內部小規模使用；待規模成長再評估轉自建。
+    </div>
+
+    <div class="cols2">
+      <div class="panel good">
+        <h3>8x8 JaaS（雲端託管）</h3>
+        <p style="margin:0 0 14px;color:var(--muted);font-size:14px;">適合：小團隊、想快速上線、不想維運伺服器。</p>
+        <ul>
+          <li><strong>免費 Dev 方案</strong>，小團隊幾乎零成本上線</li>
+          <li>免維運：伺服器、JVB、錄影皆由 8x8 代管</li>
+          <li>全球節點、品質穩定，幾分鐘即可開通</li>
+          <li>缺點：依 MAU 計費，規模大成本上升；媒體經第三方雲端，需評估隱私 / 合規</li>
+        </ul>
+      </div>
+      <div class="panel warn">
+        <h3>自建 Jitsi Meet</h3>
+        <p style="margin:0 0 14px;color:var(--muted);font-size:14px;">適合：重隱私自主、規模較大、具維運能力。</p>
+        <ul>
+          <li>完全自主掌控，媒體資料不出自家機房</li>
+          <li>無 MAU 計費，規模越大反而越省</li>
+          <li>可深度客製、與內網整合</li>
+          <li>缺點：需自行維運 Jitsi / prosody / jicofo / JVB；錄影需自架 Jibri；並發量大需擴充頻寬</li>
+        </ul>
+      </div>
+    </div>
+
+    <table style="margin-top:26px">
+      <thead><tr><th>項目</th><th>8x8 JaaS</th><th>自建 Jitsi Meet</th></tr></thead>
+      <tbody>
+        <tr><td>維運負擔</td><td>無（全代管）</td><td>需自行維運</td></tr>
+        <tr><td>上線速度</td><td>幾分鐘</td><td>需先架站</td></tr>
+        <tr><td>費用模式</td><td>免費 Dev 方案 / 依 MAU 計費</td><td>自有硬體與頻寬</td></tr>
+        <tr><td>資料主權</td><td>經 8x8 雲端</td><td>完全自有</td></tr>
+        <tr><td>錄影</td><td>內建（依方案）</td><td>需自架 Jibri</td></tr>
+        <tr><td>適合規模</td><td>小團隊 / 中小型</td><td>中大型 / 高隱私需求</td></tr>
+        <tr><td>JWT 簽章</td><td>RS256 + kid</td><td>HS256 或免 JWT</td></tr>
+      </tbody>
+    </table>
   </div>
 </section>
 
