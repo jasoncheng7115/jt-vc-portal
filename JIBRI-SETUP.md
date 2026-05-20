@@ -3,22 +3,22 @@
 接續 [JITSI-MEET-SETUP.md](JITSI-MEET-SETUP.md)，本文在同一套 docker-jitsi-meet 上加上 **Jibri 錄影**，並特別處理兩個重點：**同時多會議室錄製**與**錄影中文顯示**。
 
 > 適用版本：docker-jitsi-meet / `jitsi/jibri` **`stable-10888`**。
-> 本文以 **同時 5 場錄製（5 個 Jibri 實例）** 為目標撰寫；要增減場數時，把文中所有「5」一起調整即可。
+> 本文以 **同時 2 場錄製（2 個 Jibri 實例）** 為目標撰寫；要增減場數時，把文中所有「2」一起調整即可。
 
 ---
 
 ## 一、Jibri 是什麼、有什麼限制
 
 - Jibri（Jitsi Broadcasting Infrastructure）以一個 **headless Chrome** 加入會議，再用 **ffmpeg** 把畫面與聲音擷取成 `.mp4`（或推 RTMP 直播）。
-- **一個 Jibri 實例同時只能錄一場**。本文目標 **5 場並行 = 5 個 Jibri 實例**。
-- 需要 ALSA loopback（`snd-aloop`）虛擬音效裝置擷取聲音；**每個並行的 Jibri 各需一個獨立 loopback 裝置**（5 場 → 5 個）。
-- Jibri 很吃資源：每場約 1～2 vCPU + 1～2 GB RAM（headless Chrome + ffmpeg）。**5 場並行請預留約 6～10 vCPU + 6～10 GB RAM**（含系統餘裕）。
+- **一個 Jibri 實例同時只能錄一場**。本文目標 **2 場並行 = 2 個 Jibri 實例**。
+- 需要 ALSA loopback（`snd-aloop`）虛擬音效裝置擷取聲音；**每個並行的 Jibri 各需一個獨立 loopback 裝置**（2 場 → 2 個）。
+- Jibri 很吃資源：每場約 1～2 vCPU + 1～2 GB RAM（headless Chrome + ffmpeg）。**2 場並行請預留約 3～4 vCPU + 3～4 GB RAM**（含系統餘裕）。
 
 ### 必須裝在「VM」、不能裝在容器（LXC）內
 
 Jibri 需要在主機核心 **載入 `snd-aloop` 模組** 並存取 **`/dev/snd`**——這在共用宿主核心的容器（如 Proxmox LXC、其他 OS 級容器）裡**做不到**。因此：
 
-- **請把「跑 Docker 的這台 Jibri 主機」開成一台 VM（KVM／完整虛擬機，有自己的核心）**，再在 VM 內用 Docker 起 5 個 Jibri 容器。
+- **請把「跑 Docker 的這台 Jibri 主機」開成一台 VM（KVM／完整虛擬機，有自己的核心）**，再在 VM 內用 Docker 起 2 個 Jibri 容器。
 - 例：Proxmox → 開 **VM**（不是 LXC）→ 裝 Linux + Docker → 於 VM 內 `modprobe snd-aloop`。
 - 「不能裝在容器裡」指的是不要把 Jibri 主機本身做成 LXC；Jibri 服務本身仍是在 VM 內以 Docker 容器執行（這是 OK 的，因為 VM 有獨立核心可載入模組、可給容器 `/dev/snd`）。
 
@@ -26,16 +26,16 @@ Jibri 需要在主機核心 **載入 `snd-aloop` 模組** 並存取 **`/dev/snd`
 
 ## 二、主機前置：載入 snd-aloop（決定可並行的場數）
 
-在 **Jibri VM**（見第一節）裡，`snd-aloop` 必須在 **VM 的核心**載入；5 場並行就開 **5 個** loopback 裝置。
+在 **Jibri VM**（見第一節）裡，`snd-aloop` 必須在 **VM 的核心**載入；2 場並行就開 **2 個** loopback 裝置。
 
 ```bash
-# 目標 5 場 → 開 5 個 loopback 裝置
-sudo modprobe snd-aloop enable=1,1,1,1,1 index=0,1,2,3,4
-cat /proc/asound/cards          # 應看到 5 張 Loopback 卡
+# 目標 2 場 → 開 2 個 loopback 裝置
+sudo modprobe snd-aloop enable=1,1 index=0,1
+cat /proc/asound/cards          # 應看到 2 張 Loopback 卡
 
 # 開機自動載入並固定裝置數
 echo 'snd-aloop' | sudo tee /etc/modules-load.d/snd-aloop.conf
-printf 'options snd-aloop enable=1,1,1,1,1 index=0,1,2,3,4\n' | sudo tee /etc/modprobe.d/snd-aloop.conf
+printf 'options snd-aloop enable=1,1 index=0,1\n' | sudo tee /etc/modprobe.d/snd-aloop.conf
 ```
 
 > 要增減場數，`enable=` / `index=` 就列對應數量。例：3 場 → `enable=1,1,1 index=0,1,2`。
@@ -45,12 +45,15 @@ printf 'options snd-aloop enable=1,1,1,1,1 index=0,1,2,3,4\n' | sudo tee /etc/mo
 
 ## 三、啟用錄影（docker-jitsi-meet `.env`）
 
+> **不用再手改 prosody / jicofo / jibri 設定檔了。** 舊的「套件版（apt 安裝）」要手動改 `prosody` 的 recorder vhost、jibri brewery MUC、`jicofo` 屬性、`jibri.conf`、`prosodyctl register` 等——**docker 版這些全部由容器啟動時依環境變數自動產生**。你只要設 `.env` 變數即可，主機端真正要做的只剩 `snd-aloop`（第二節，因為那是核心層、容器產不出來）。
+
 ```ini
 ENABLE_RECORDING=1
 
-# 以下帳密 gen-passwords.sh 已產生，確認存在：
-# JIBRI_RECORDER_USER / JIBRI_RECORDER_PASSWORD
-# JIBRI_XMPP_USER / JIBRI_XMPP_PASSWORD
+# 帳號名沿用 env.example 預設即可（recorder / jibri）；密碼由 gen-passwords.sh 產生：
+#   JIBRI_RECORDER_PASSWORD、JIBRI_XMPP_PASSWORD（執行 ./gen-passwords.sh 後已寫入 .env）
+# JIBRI_RECORDER_USER=recorder
+# JIBRI_XMPP_USER=jibri
 
 # 時區（影響錄影檔名 / 內嵌時間 / log 時間；全部容器共用此值）
 TZ=Asia/Taipei
@@ -78,18 +81,18 @@ Jibri 容器需存取主機 `/dev/snd`（jibri.yml 已設 `devices: /dev/snd`）
 
 ---
 
-## 四、同時 5 場錄製（並行）
+## 四、同時 2 場錄製（並行）
 
-1. VM 的 snd-aloop 已開 **5** 個裝置（見第二節）。
-2. 把 jibri 服務 scale 到 **5**：
+1. VM 的 snd-aloop 已開 **2** 個裝置（見第二節）。
+2. 把 jibri 服務 scale 到 **2**：
    ```bash
-   docker compose -f docker-compose.yml -f jibri.yml up -d --scale jibri=5
+   docker compose -f docker-compose.yml -f jibri.yml up -d --scale jibri=2
    ```
-   每個 jibri 實例會佔用一張 loopback 卡；jicofo 會把每個錄影請求派給「空閒」的 jibri，最多同時 5 場。
-3. 確認：`docker compose -f docker-compose.yml -f jibri.yml ps` 應有 **5** 個 jibri 容器，且能在 5 間會議室同時開始錄影。
+   每個 jibri 實例會佔用一張 loopback 卡；jicofo 會把每個錄影請求派給「空閒」的 jibri，最多同時 2 場。
+3. 確認：`docker compose -f docker-compose.yml -f jibri.yml ps` 應有 **2** 個 jibri 容器，且能在 2 間會議室同時開始錄影。
 
-> 三者必須一致：`snd-aloop` 裝置數 = jibri 實例數 = 想並行的場數（本文皆為 5）。任一不足，超出的錄影請求會排不到 Jibri 而失敗 / pending。
-> 第 6 場以上：把第二節裝置數與此處 `--scale` 一起加大，並確認 VM 資源足夠。
+> 三者必須一致：`snd-aloop` 裝置數 = jibri 實例數 = 想並行的場數（本文皆為 2）。任一不足，超出的錄影請求會排不到 Jibri 而失敗 / pending。
+> 要更多場：把第二節裝置數與此處 `--scale` 一起加大，並確認 VM 資源足夠。
 
 ---
 
@@ -137,7 +140,7 @@ docker build -t jibri-cjk:stable-10888 ./jibri-cjk
 |---|---|
 | 按錄影沒反應 / 一直 pending | jibri 沒起來、`snd-aloop` 未載入、或無空閒 jibri（都在錄）→ 加開 loopback 並 scale jibri |
 | 錄影中文變豆腐字 | jibri 映像缺 CJK 字型 → 改用第五節的 `jibri-cjk` 映像 |
-| 錄不到 5 場 / 第 N 場排不到 | `snd-aloop` 裝置數或 jibri 實例數不足 5 → 依第二、四節把兩者都補到 5（資源也要夠） |
+| 錄不到 2 場 / 第 2 場排不到 | `snd-aloop` 裝置數或 jibri 實例數不足 2 → 依第二、四節把兩者都補到 2（資源也要夠） |
 | `modprobe snd-aloop` 失敗 | 這台是 LXC 容器、非 VM → 改用 VM（見第一節） |
 | 黑畫面 / 無聲的錄影檔 | `/dev/snd` 未掛進容器、snd-aloop 異常，或主機資源不足 |
 
