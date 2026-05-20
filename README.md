@@ -1,4 +1,4 @@
-# jt-vc-portal v1.1.1 — 視訊會議入口閘道
+# jt-vc-portal v1.2.0 — 視訊會議入口閘道
 
 > 搭配 Jitsi Meet 基底的會議入口系統，**雙模式**支援 [8x8 JaaS](https://jaas.8x8.vc/)（雲端託管）與 **[自建 Jitsi Meet](https://github.com/jitsi/jitsi-meet)**。
 > 主持人登入後即可建立會議室、產生邀請連結（含 QR / `.ics` 行事曆邀請），來賓憑連結加入。
@@ -158,14 +158,14 @@ server {
 
 ```bash
 # 1) 從 Release 頁下載映像與校驗檔（請改用最新版本號）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.1.1/jt-vc-portal-1.1.1-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.1.1/jt-vc-portal-1.1.1-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.2.0/jt-vc-portal-1.2.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.2.0/jt-vc-portal-1.2.0-docker-amd64.tar.gz.sha256
 
 # 2) 驗證完整性（應顯示 OK）
-sha256sum -c jt-vc-portal-1.1.1-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.2.0-docker-amd64.tar.gz.sha256
 
-# 3) 載入映像（會建立 jt-vc-portal:1.1.1 與 :latest 標籤）
-docker load < jt-vc-portal-1.1.1-docker-amd64.tar.gz
+# 3) 載入映像（會建立 jt-vc-portal:1.2.0 與 :latest 標籤）
+docker load < jt-vc-portal-1.2.0-docker-amd64.tar.gz
 
 # 4) 主機端準備持久化目錄（www-data UID 預設 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
