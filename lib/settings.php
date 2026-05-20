@@ -175,7 +175,7 @@ class Settings {
       'matrix'    => ['name' => 'Matrix',     'desc' => '黑底螢光綠數位雨'],
       'terminal'  => ['name' => '終端',        'desc' => '純黑終端機掃描線'],
       'synthwave' => ['name' => 'Synthwave',  'desc' => '80s 紫粉透視格線'],
-      'cyber'     => ['name' => '賽博',        'desc' => '青粉霓虹龐克'],
+      'cyber'     => ['name' => '電馭',        'desc' => '青粉霓虹龐克'],
       'neon'      => ['name' => '霓虹',        'desc' => '深紫底粉藍光球'],
     ];
   }

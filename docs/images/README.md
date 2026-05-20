@@ -1,17 +1,17 @@
-# Pages 截圖放這裡
+# Pages 截圖
 
-把擷取的畫面（建議 PNG、寬度約 1200–1600px）依下列檔名放入本資料夾，頁面就會自動顯示（未放時顯示「螢幕截圖待補」佔位框）。
+GitHub Pages 介紹頁使用的畫面截圖（已去除瀏覽器外框，僅保留網頁內容）。
 
 | 檔名 | 內容 |
 |---|---|
-| `hero.png` | 主視覺（儀表板整體） |
+| `hero.png` | 主視覺（儀表板） |
 | `01-dashboard.png` | 儀表板：建立 / 進入會議室、近期清單 |
-| `02-create.png` | 建立會議室：排程、與會者 Email、亂數命名 |
-| `03-qr.png` | 邀請連結 QR Code 彈窗 |
-| `04-countdown.png` | 來賓倒數頁（翻頁時鐘） |
-| `05-audit.png` | 稽核記錄（日期篩選 + 分頁） |
-| `06-settings.png` | 系統設定 |
-| `07-accounts.png` | 帳號管理 |
-| `08-themes.png` | 外觀主題 |
+| `02-create.png` | 建立會議室：預約時段、大廳模式、與會者 |
+| `03-usage.png` | 用量統計：MAU 趨勢、活動圖、會議時長、主持人排行 |
+| `04-audit.png` | 稽核記錄：日期篩選、欄位排序、SIEM 外拋 |
+| `05-accounts.png` | 帳號管理：角色、2FA |
+| `06-settings.png` | 系統設定：連線模式 / SMTP / 外拋 / 主題 |
+| `07-guest.png` | 來賓進入：先輸入名稱 |
+| `08-wait.png` | 等候 / 倒數頁（翻頁時鐘） |
 
-`logo.png` / `logo-64.png` 為站台 logo，已放入。
+`logo.png` / `logo-64.png` 為站台 logo。
