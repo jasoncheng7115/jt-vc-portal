@@ -1,7 +1,7 @@
 <?php
 // === 版本 ===
 // 每次有更新都要推進版本號（patch++ / 功能 minor++）。
-define('APP_VERSION', '1.1.1');
+define('APP_VERSION', '1.2.0');
 define('APP_GITHUB_URL', 'https://github.com/jasoncheng7115/jt-vc-portal');
 
 // === JaaS (8x8) 連線設定：改由管理介面設定，存於 settings.json，不再寫死 ===

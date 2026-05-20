@@ -24,6 +24,7 @@ $form_room      = (string)($form_values['room']      ?? ($_GET['room'] ?? ''));
 $form_starts_at = (string)($form_values['starts_at'] ?? '');
 $form_ends_at   = (string)($form_values['ends_at']   ?? '');
 $form_attendees = (string)($form_values['attendees'] ?? '');
+$form_lobby     = !empty($form_values['lobby']);
 $schedule_open  = ($form_starts_at !== '' || $form_ends_at !== '' || $form_attendees !== '');
 
 $created = $_GET['created'] ?? null;
@@ -106,6 +107,7 @@ render_topbar($me, $ip);
       <div class="muted" style="font-size:13px;margin-bottom:6px;">
         會議室 <strong style="font-family:var(--mono);color:var(--text);"><?= htmlspecialchars($created) ?></strong>
         <?php if ($created_data['starts_at']): ?> · 開放時段 <?= htmlspecialchars(fmt_range($created_data['starts_at'], $created_data['ends_at'])) ?><?php endif; ?>
+        <?php if (!empty($created_data['lobby'])): ?> · <span style="color:var(--text);"><?= icon('lock', 12) ?>大廳模式</span><?php endif; ?>
       </div>
       <div class="panel-link"><?= htmlspecialchars($invite_url) ?></div>
       <div class="panel-actions">
@@ -172,6 +174,14 @@ render_topbar($me, $ip);
         </div>
       </details>
 
+      <label class="lobby-toggle">
+        <input type="checkbox" name="lobby" value="1"<?= $form_lobby ? ' checked' : '' ?>>
+        <span class="lobby-text">
+          <span class="lobby-title"><?= icon('lock', 14) ?>啟用大廳模式</span>
+          <span class="help" style="margin:0;">主持人進入後自動開啟;之後每位來賓需經主持人允許才能進入會議室。</span>
+        </span>
+      </label>
+
       <div class="btn-group">
         <button type="submit" name="mode" value="host" class="btn btn-primary"><?= icon('play') ?>開始主持會議</button>
         <button type="submit" name="mode" value="create" class="btn btn-secondary"><?= icon('link') ?>建立會議室連結</button>
@@ -205,6 +215,7 @@ render_topbar($me, $ip);
                 <?php if ($is_admin && !empty($r['owner_name'])): ?><span><?= icon('user',11) ?> <?= htmlspecialchars($r['owner_name']) ?></span><?php endif; ?>
                 <?php if ($s !== null): ?><span><?= icon('calendar', 11) ?> <?= htmlspecialchars(fmt_range($s, $e)) ?></span><?php endif; ?>
                 <?php if (!empty($r['attendees'])): ?><span><?= icon('user',11) ?> <?= count($r['attendees']) ?> 位受邀</span><?php endif; ?>
+                <?php if (!empty($r['lobby'])): ?><span><?= icon('lock', 11) ?> 大廳模式</span><?php endif; ?>
               </div>
             </div>
             <div class="room-actions">

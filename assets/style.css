@@ -912,6 +912,21 @@ input:focus {
 .schedule-toggle[open] summary { border-bottom: 1px solid var(--border); color: var(--text); }
 .schedule-toggle .body { padding: 14px; background: var(--bg-soft); }
 
+.lobby-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  cursor: pointer;
+}
+.lobby-toggle input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; width: 16px; height: 16px; cursor: pointer; }
+.lobby-toggle .lobby-text { display: flex; flex-direction: column; gap: 3px; }
+.lobby-toggle .lobby-title { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--text); }
+body.is-dark .lobby-toggle { border-color: rgba(255,255,255,0.10); }
+
 /* === Room list === */
 .room-list {
   list-style: none;

@@ -4,6 +4,7 @@ require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/layout.php';
 require_once __DIR__ . '/lib/settings.php';
 require_once __DIR__ . '/lib/jaas.php';
+require_once __DIR__ . '/lib/rooms.php';
 
 Auth::requireLogin();
 if (empty($_SESSION['jwt']) || empty($_SESSION['room'])) {
@@ -13,6 +14,7 @@ if (empty($_SESSION['jwt']) || empty($_SESSION['room'])) {
 
 $jwt = $_SESSION['jwt'];
 $room = $_SESSION['room'];
+$lobby_on = !empty(Rooms::get($room)['lobby']);   // 大廳模式：主持人進場後自動開啟
 $invite_url = SITE_URL . '/room/' . rawurlencode($room);
 $theme = Settings::getTheme();
 $body_class = 'in-meeting theme-' . $theme . (Settings::isDark($theme) ? ' is-dark' : '');
@@ -95,6 +97,12 @@ window.addEventListener('load', () => {
   };
   const api = new JitsiMeetExternalAPI(<?= json_encode(Jaas::apiDomain()) ?>, options);
   api.addEventListener('readyToClose', () => { window.location.href = '/leave'; });
+<?php if ($lobby_on): ?>
+  // 大廳模式：主持人(本頁)進場後自動開啟，來賓需逐一允許才能進入
+  api.addEventListener('videoConferenceJoined', () => {
+    try { api.executeCommand('toggleLobby', true); } catch (e) {}
+  });
+<?php endif; ?>
 
   // === 主持人心跳：每 15 秒回報，遠端據此判斷主持人是否還在 ===
   const heartbeatUrl = '/host-heartbeat?room=' + encodeURIComponent(room);

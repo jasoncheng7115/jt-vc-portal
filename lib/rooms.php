@@ -17,6 +17,7 @@ class Rooms {
           'starts_at'   => null,
           'ends_at'     => null,
           'host_joined' => true,
+          'lobby'       => false,
         ];
       } elseif (is_array($v)) {
         $out[$name] = [
@@ -28,6 +29,7 @@ class Rooms {
           'owner'        => $v['owner'] ?? null,         // 建立者 user id
           'owner_name'   => $v['owner_name'] ?? null,    // 顯示用
           'attendees'    => is_array($v['attendees'] ?? null) ? $v['attendees'] : [],
+          'lobby'        => !empty($v['lobby']),          // 大廳模式：主持人進場自動開啟
         ];
       }
     }
@@ -102,6 +104,7 @@ class Rooms {
       'starts_at'   => null,
       'ends_at'     => null,
       'host_joined' => false,
+      'lobby'       => false,
     ];
 
     if (!empty($opts['update_schedule'])) {
@@ -119,6 +122,9 @@ class Rooms {
     }
     if (array_key_exists('attendees', $opts)) {
       $existing['attendees'] = $opts['attendees'];
+    }
+    if (array_key_exists('lobby', $opts)) {
+      $existing['lobby'] = !empty($opts['lobby']);
     }
 
     $rooms[$room] = $existing;

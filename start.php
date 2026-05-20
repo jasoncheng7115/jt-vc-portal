@@ -23,6 +23,7 @@ $form_input = [
   'starts_at' => (string)($_POST['starts_at'] ?? $_GET['starts_at'] ?? ''),
   'ends_at'   => (string)($_POST['ends_at']   ?? $_GET['ends_at']   ?? ''),
   'attendees' => (string)($_POST['attendees'] ?? ''),
+  'lobby'     => !empty($_POST['lobby']) ? '1' : '',
 ];
 $fail = function (string $msg) use ($form_input) {
   $_SESSION['room_error'] = $msg;
@@ -76,6 +77,7 @@ $opts = [
   'owner'           => $me['id'],
   'owner_name'      => $me['username'] ?? $me['email'],
   'attendees'       => $attendees,
+  'lobby'           => !empty($_POST['lobby']),
 ];
 Rooms::upsert($room, $opts);
 
@@ -89,7 +91,7 @@ if (!empty($attendees)) {
 }
 
 if ($mode === 'create') {
-  Audit::log('room_create', "會議室「{$room}」" . ($starts_at ? '（已設排程）' : ''));
+  Audit::log('room_create', "會議室「{$room}」" . ($starts_at ? '（已設排程）' : '') . (!empty($_POST['lobby']) ? '（大廳模式）' : ''));
   $q = '/dashboard?created=' . rawurlencode($room);
   if ($mail_result !== null) $q .= '&mail=' . rawurlencode($mail_result);
   header('Location: ' . $q);
