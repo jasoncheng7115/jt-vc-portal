@@ -35,7 +35,7 @@ render_topbar($me, $ip);
           <td><?= htmlspecialchars($u['display_name'] ?? '') ?></td>
           <td class="mono"><?= htmlspecialchars($u['email']) ?></td>
           <td><?= $u['role'] === 'admin' ? '管理員' : '主持人' ?></td>
-          <td><?= !empty($u['totp_enabled']) ? '✓' : '—' ?></td>
+          <td><?= !empty($u['totp_enabled']) ? icon('check', 16) : '—' ?></td>
           <td><?= !empty($u['disabled']) ? '<span class="badge badge-muted">停用</span>' : '<span class="badge badge-success">啟用</span>' ?></td>
           <td style="text-align:right;white-space:nowrap;">
             <button type="button" class="btn btn-ghost btn-sm" data-edit="<?= htmlspecialchars($u['id']) ?>"><?= icon('edit',14) ?>編輯</button>

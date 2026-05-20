@@ -29,6 +29,41 @@
 
 ---
 
+## 連接埠與 NAT 設定
+
+### 需開放的連接埠
+
+| 埠 | 協定 | 用途 | 必要性 |
+|---|---|---|---|
+| 443 | TCP | HTTPS 網頁 + 會議訊令（BOSH / WebSocket） | 必須 |
+| 80 | TCP | HTTP→HTTPS 轉址 + Let's Encrypt 簽發憑證 | 用內建 LE 時必須 |
+| 10000 | UDP | JVB 媒體（音視訊 RTP），**主要媒體通道** | 必須 |
+| 4443 | TCP | JVB 媒體 TCP 後援（使用者環境擋 UDP 時用） | 選用 |
+
+- 媒體幾乎都走 **UDP/10000**；少數網路擋 UDP 時才靠 **TCP/4443** 後援，建議兩個都開以求穩定。
+- 防火牆 / 雲端 Security Group 需放行上述 **inbound**。
+- 訊令（join、聊天）走 443/TCP；媒體（聲音畫面）走 10000/UDP——兩者缺一都會「進得去但黑畫面 / 沒聲音」。
+
+### 位於 NAT / 防火牆後（主機是私有 IP）
+
+JVB 預設會把「自己看到的 IP」告訴瀏覽器；若主機是私有 IP（NAT 後），來賓會拿到私有 IP 而連不到媒體。必須讓 JVB **對外宣告公網 IP**：
+
+1. 編輯 `.env`：
+   ```ini
+   # 多個以逗號分隔；同時列公網 + 私有 IP，可讓外網與內網都連得到
+   JVB_ADVERTISE_IPS=<公網IP>,<主機私有IP>
+   ```
+2. 路由器 / 防火牆做 **port forward** 到 Jitsi 主機：
+   - `UDP 10000` → 主機:10000（**最關鍵**）
+   - `TCP 443` → 主機:443
+   - `TCP 80` → 主機:80（Let's Encrypt 簽發 / 續約期間）
+   - （選）`TCP 4443` → 主機:4443
+3. 雲端主機（GCP / AWS / Azure 等）：在 VPC 防火牆 / Security Group 放行 `UDP 10000`、`TCP 443`、`TCP 80`（、`TCP 4443`），並把對外公網 IP 填入 `JVB_ADVERTISE_IPS`。
+
+> **最常見故障**：能進會議室但黑畫面 / 沒聲音 → 八成是 `UDP 10000` 未放行 / 未轉發，或 `JVB_ADVERTISE_IPS` 沒設成公網 IP。
+
+---
+
 ## 一、取得官方 docker-jitsi-meet
 
 ```bash
@@ -150,7 +185,7 @@ docker compose ps
 
 ## 七、錄影（Jibri，選用）
 
-會議錄影需另外部署 **Jibri**（獨立資源、一台同時錄一場），並在 prosody 開 recording 元件。jt-vc-portal 端的錄影按鈕觸發與後續入庫整合屬規劃中功能，本文不涵蓋。
+會議錄影需另外部署 **Jibri**（獨立資源、一台同時錄一場）。完整步驟——含 **同時多會議室錄製** 與 **錄影中文顯示（CJK 字型）** 的處理——見 **[JIBRI-SETUP.md](JIBRI-SETUP.md)**。
 
 ---
 
