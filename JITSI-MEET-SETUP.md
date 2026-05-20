@@ -44,21 +44,26 @@
 - 防火牆 / 雲端 Security Group 需放行上述 **inbound**。
 - 訊令（join、聊天）走 443/TCP；媒體（聲音畫面）走 10000/UDP——兩者缺一都會「進得去但黑畫面 / 沒聲音」。
 
+> **注意（與舊版不同）**：現代 Jitsi（含 `stable-10888`）的 JVB 採「**單一 UDP 埠 10000**」多工，所有與會者媒體都共用這一個埠——**不需要**再開「10000–20000 一整段範圍」。那是多年前舊版（`org.ice4j.ice.harvest.MIN/MAX_PORT` 動態埠範圍）的做法，docker 版單埠模式已淘汰。只要放行 `UDP 10000`（+ 選用 `TCP 4443`）即可。
+
 ### 位於 NAT / 防火牆後（主機是私有 IP）
 
-JVB 預設會把「自己看到的 IP」告訴瀏覽器；若主機是私有 IP（NAT 後），來賓會拿到私有 IP 而連不到媒體。必須讓 JVB **對外宣告公網 IP**：
+JVB 預設會把「自己看到的 IP」告訴瀏覽器；若主機是私有 IP（NAT 後），來賓會拿到私有 IP 而連不到媒體。必須讓 JVB **對外宣告公網 IP**。
 
-1. 編輯 `.env`：
-   ```ini
-   # 多個以逗號分隔；同時列公網 + 私有 IP，可讓外網與內網都連得到
-   JVB_ADVERTISE_IPS=<公網IP>,<主機私有IP>
-   ```
-2. 路由器 / 防火牆做 **port forward** 到 Jitsi 主機：
-   - `UDP 10000` → 主機:10000（**最關鍵**）
-   - `TCP 443` → 主機:443
-   - `TCP 80` → 主機:80（Let's Encrypt 簽發 / 續約期間）
-   - （選）`TCP 4443` → 主機:4443
-3. 雲端主機（GCP / AWS / Azure 等）：在 VPC 防火牆 / Security Group 放行 `UDP 10000`、`TCP 443`、`TCP 80`（、`TCP 4443`），並把對外公網 IP 填入 `JVB_ADVERTISE_IPS`。
+**(1) 編輯 `.env`**，讓 JVB 宣告公網 IP（多個以逗號分隔；同時列公網 + 私有 IP，可讓外網與內網都連得到）：
+
+```ini
+JVB_ADVERTISE_IPS=<公網IP>,<主機私有IP>
+```
+
+**(2) 路由器 / 防火牆做 port forward 到 Jitsi 主機：**
+
+- `UDP 10000` → 主機:10000（**最關鍵**）
+- `TCP 443` → 主機:443
+- `TCP 80` → 主機:80（Let's Encrypt 簽發 / 續約期間）
+- （選）`TCP 4443` → 主機:4443
+
+**(3) 雲端主機**（GCP / AWS / Azure 等）：在 VPC 防火牆 / Security Group 放行 `UDP 10000`、`TCP 443`、`TCP 80`（、`TCP 4443`），並把對外公網 IP 填入 `JVB_ADVERTISE_IPS`。
 
 > **最常見故障**：能進會議室但黑畫面 / 沒聲音 → 八成是 `UDP 10000` 未放行 / 未轉發，或 `JVB_ADVERTISE_IPS` 沒設成公網 IP。
 
@@ -103,7 +108,36 @@ TZ=Asia/Taipei
 ENABLE_LOBBY=1
 ```
 
-> 若前面已有反向代理處理 HTTPS，可改用 `HTTP_PORT` 並關閉 Let's Encrypt，由反代轉發到容器。
+### TLS 憑證選項（擇一）
+
+**(A) Let's Encrypt 自動憑證**（上面範例即是）：`ENABLE_LETSENCRYPT=1` + `LETSENCRYPT_DOMAIN` + `LETSENCRYPT_EMAIL`，容器會自動申請與續約。需 `TCP 80` 對外可達。
+
+**(B) 自有 SSL 憑證**（你已有憑證 / 公司 CA / 萬用憑證）：關閉 Let's Encrypt，把憑證放進 web 容器的 keys 目錄即可——
+
+```ini
+ENABLE_LETSENCRYPT=0
+```
+
+```bash
+# 憑證放到 web 設定卷的 keys/（CONFIG 預設 ~/.jitsi-meet-cfg）
+mkdir -p ~/.jitsi-meet-cfg/web/keys
+cp your-fullchain.pem ~/.jitsi-meet-cfg/web/keys/cert.crt   # 含中繼鏈的完整憑證
+cp your-private.key   ~/.jitsi-meet-cfg/web/keys/cert.key   # 對應私鑰
+# 重新啟動讓 web 容器套用
+docker compose up -d
+```
+
+> 檔名固定為 **`cert.crt`（完整鏈）** 與 **`cert.key`（私鑰）**，放在 `~/.jitsi-meet-cfg/web/keys/`（容器內 `/config/keys/`）。`HTTPS_PORT=443` 維持不變。憑證到期前換檔再 `docker compose restart web` 即可。
+
+**(C) 由前端反向代理處理 TLS**（憑證在 nginx / Traefik / HAProxy 上）：容器只出 HTTP，TLS 交給反代——
+
+```ini
+ENABLE_LETSENCRYPT=0
+DISABLE_HTTPS=1
+HTTP_PORT=8000
+```
+
+反代把 `https://meet.example.com` 轉到容器 `HTTP_PORT`，並務必轉發 **WebSocket**（會議訊令需要）與 `X-Forwarded-*` / `Host` 標頭。
 
 ---
 
@@ -168,6 +202,8 @@ docker compose ps
 | JWT sub | 留空即可（預設送 `*`）；多租戶才填租戶名 |
 
 存檔後，從 jt-vc-portal 建立會議室、開始主持，即會內嵌自建 Jitsi 並（若啟用）自動帶入 token。
+
+> **會議室左上 logo**：jt-vc-portal 進會議時會以 IFrame API 帶入「站台 logo」（`/logo`）作為會議室左上 logo（`defaultLogoUrl` / `DEFAULT_LOGO_URL`），無需改 Jitsi。要換 logo 到 **系統設定 → 站台設定** 上傳即可。註：少數 Jitsi 版本會限制 interfaceConfig 覆寫白名單，若沒生效，需在自建 Jitsi 的 `config.js` 允許該覆寫（自建可自行調整）。
 
 ---
 

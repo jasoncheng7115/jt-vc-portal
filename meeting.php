@@ -71,6 +71,7 @@ window.addEventListener('load', () => {
 <?php endif; ?>
     configOverwrite: {
       defaultLanguage: <?= json_encode(Settings::getMeetingLang()) ?>,
+      defaultLogoUrl: <?= json_encode(SITE_URL . '/logo') ?>,
       enableLobby: true,
       startWithAudioMuted: true,
       startWithVideoMuted: true,
@@ -93,7 +94,7 @@ window.addEventListener('load', () => {
         'settings','shareaudio','sharedvideo','shortcuts','stats','tileview','toggle-camera','videoquality'
       ]
     },
-    interfaceConfigOverwrite: { LANG_DETECTION: false, INVITE_URL: inviteUrl }
+    interfaceConfigOverwrite: { LANG_DETECTION: false, INVITE_URL: inviteUrl, DEFAULT_LOGO_URL: <?= json_encode(SITE_URL . '/logo') ?>, DEFAULT_WELCOME_PAGE_LOGO_URL: <?= json_encode(SITE_URL . '/logo') ?> }
   };
   const api = new JitsiMeetExternalAPI(<?= json_encode(Jaas::apiDomain()) ?>, options);
   api.addEventListener('readyToClose', () => { window.location.href = '/leave'; });

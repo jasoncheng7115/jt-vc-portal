@@ -145,13 +145,17 @@ Jibri 容器需存取主機 `/dev/snd`（jibri.yml 已設 `devices: /dev/snd`）
 
 ## 四、同時 2 場錄製（並行）
 
-1. VM 的 snd-aloop 已開 **2** 個裝置（見第二節）。
-2. 把 jibri 服務 scale 到 **2**：
-   ```bash
-   docker compose -f docker-compose.yml -f jibri.yml up -d --scale jibri=2
-   ```
-   每個 jibri 實例會佔用一張 loopback 卡；jicofo 會把每個錄影請求派給「空閒」的 jibri，最多同時 2 場。
-3. 確認：`docker compose -f docker-compose.yml -f jibri.yml ps` 應有 **2** 個 jibri 容器，且能在 2 間會議室同時開始錄影。
+**(1)** VM 的 snd-aloop 已開 **2** 個裝置（見第二節）。
+
+**(2)** 把 jibri 服務 scale 到 **2**：
+
+```bash
+docker compose -f docker-compose.yml -f jibri.yml up -d --scale jibri=2
+```
+
+每個 jibri 實例會佔用一張 loopback 卡；jicofo 會把每個錄影請求派給「空閒」的 jibri，最多同時 2 場。
+
+**(3)** 確認：`docker compose -f docker-compose.yml -f jibri.yml ps` 應有 **2** 個 jibri 容器，且能在 2 間會議室同時開始錄影。
 
 > 三者必須一致：`snd-aloop` 裝置數 = jibri 實例數 = 想並行的場數（本文皆為 2）。任一不足，超出的錄影請求會排不到 Jibri 而失敗 / pending。
 > 要更多場：把第二節裝置數與此處 `--scale` 一起加大，並確認 VM 資源足夠。
@@ -160,7 +164,7 @@ Jibri 容器需存取主機 `/dev/snd`（jibri.yml 已設 `devices: /dev/snd`）
 
 ## 五、錄影中文顯示（必做）
 
-Jibri 是用 headless Chrome「把會議畫面錄下來」。**官方 `jitsi/jibri` 映像不含 CJK 字型**，因此中文姓名 / 聊天 / 字幕在錄影裡會變成「□□」豆腐字。需在 jibri 映像加裝中文字型。
+Jibri 是用 headless Chrome「把會議畫面錄下來」。**官方 `jitsi/jibri` 映像不含 CJK 字型**，因此中文姓名 / 聊天 / 字幕在錄影裡會變成空白方框（□，俗稱缺字）。需在 jibri 映像加裝中文字型。
 
 建一個延伸映像：
 
@@ -184,7 +188,7 @@ docker build -t jibri-cjk:stable-10888 ./jibri-cjk
 
 在 `jibri.yml`（或 `docker-compose.override.yml`）把 jibri 服務的 `image:` 改成 `jibri-cjk:stable-10888`，再重啟。
 
-> 驗證：錄一段含中文姓名的會議，播放確認中文正常（非豆腐字）。Noto CJK 對繁體中文覆蓋最完整。
+> 驗證：錄一段含中文姓名的會議，播放確認中文正常（非缺字方框）。Noto CJK 對繁體中文覆蓋最完整。
 
 ---
 
@@ -201,13 +205,46 @@ docker build -t jibri-cjk:stable-10888 ./jibri-cjk
 | 症狀 | 處理 |
 |---|---|
 | 按錄影沒反應 / 一直 pending | jibri 沒起來、`snd-aloop` 未載入、或無空閒 jibri（都在錄）→ 加開 loopback 並 scale jibri |
-| 錄影中文變豆腐字 | jibri 映像缺 CJK 字型 → 改用第五節的 `jibri-cjk` 映像 |
+| 錄影中文變方框 / 缺字 | jibri 映像缺 CJK 字型 → 改用第五節的 `jibri-cjk` 映像 |
 | 錄不到 2 場 / 第 2 場排不到 | `snd-aloop` 裝置數或 jibri 實例數不足 2 → 依第二、四節把兩者都補到 2（資源也要夠） |
 | `modprobe snd-aloop` 失敗 | 這台是 LXC 容器、非 VM → 改用 VM（見第一節） |
 | 黑畫面 / 無聲的錄影檔 | `/dev/snd` 未掛進容器、snd-aloop 異常，或主機資源不足 |
 
 ---
 
-## 八、升級
+## 八、升級 SOP
 
-升級 Jitsi / Jibri 時，jibri 與 jibri-cjk 映像都要換成新的 `stable-<版本>` 並重 build CJK 映像。本文以 `stable-10888` 為準。
+升級時 Jibri 要跟著 Jitsi 走同一個 `stable-<版本>`；若用了第五節的 `jibri-cjk` 自訂映像，**記得用新版本號重 build**（否則 CJK 字型映像還停在舊版）。`snd-aloop`（第二節）與版本無關，不必重做。
+
+```bash
+cd docker-jitsi-meet
+
+# (1) 備份設定與既有錄影
+cp -a ~/.jitsi-meet-cfg ~/.jitsi-meet-cfg.bak-$(date +%Y%m%d)
+
+# (2) 取得新版（換成目標 tag）
+git fetch --tags
+git checkout stable-<新版本>
+#   .env 內若有 JITSI_IMAGE_VERSION，確認＝stable-<新版本>
+
+# (3) 重 build CJK 版 jibri 映像（用新版號）
+sed -i 's/stable-[0-9]*/stable-<新版本>/' jibri-cjk/Dockerfile
+docker build -t jibri-cjk:stable-<新版本> ./jibri-cjk
+#   jibri.yml / override 內 jibri 服務的 image: 也改成 jibri-cjk:stable-<新版本>
+
+# (4) 拉取其餘官方映像並重啟（維持 2 個 jibri 實例）
+docker compose -f docker-compose.yml -f jibri.yml pull
+docker compose -f docker-compose.yml -f jibri.yml up -d --scale jibri=2
+```
+
+升級後驗證：
+
+```bash
+docker compose -f docker-compose.yml -f jibri.yml ps     # web/prosody/jicofo/jvb + 2 個 jibri 都 Up
+```
+
+- 開一場會議按錄影 → 確認能錄、且**中文非缺字方框**（第五節）。
+- 同時開 2 間會議室都能錄 → 確認並行（第四節）未受升級影響。
+
+> 本文以 `stable-10888` 為準；把上面 `<新版本>` 換成要升的 tag 即可。
+> `snd-aloop` 是核心模組、與映像版本無關，升級時不用重設（除非你重灌了 VM）。
