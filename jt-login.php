@@ -33,7 +33,7 @@ render_topbar(false);
 <main class="container narrow">
   <div class="card">
     <h1>主持人登入</h1>
-    <p class="subtitle">使用授權帳號建立並進入 8x8（Jitsi）會議室。</p>
+    <p class="subtitle">使用授權帳號建立並進入會議管理中心。</p>
 
     <?php if ($error): ?>
       <div class="alert alert-error"><?= icon('warning') ?><span><?= htmlspecialchars($error) ?></span></div>
