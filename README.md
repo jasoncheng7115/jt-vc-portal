@@ -289,6 +289,12 @@ docker run -d --restart unless-stopped \
 
 > **完整自建整合步驟**（從官方 Docker 版 Jitsi Meet 一路設定到與本系統搭配）見 **[JITSI-MEET-SETUP.md](JITSI-MEET-SETUP.md)**。
 
+> **重要 — 行動裝置存取限制（採 JWT 時）**
+> 啟用 JWT 驗證後（**8x8 JaaS 一律需要**；自建 Jitsi Meet 設 `ENABLE_AUTH=1` 時），會議室只接受 jt-vc-portal 簽發的 token。
+> **官方 Jitsi Meet 行動 App（iOS / Android）將無法直接加入**——它不經過本入口、取不到 token，會被拒絕。
+> 行動裝置使用者請改用**手機瀏覽器**開啟邀請連結，透過本入口加入（會內嵌會議，體驗一致）。
+> 自建若採「免 JWT 匿名模式」（`ENABLE_AUTH=0`）則行動 App 可直接加入，但任何人知道會議室名稱即可進入，**安全性較低**。
+
 ---
 
 ## 安全性

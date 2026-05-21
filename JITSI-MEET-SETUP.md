@@ -245,6 +245,10 @@ HTTP_PORT=8000
 
 讓 Jitsi **只接受 jt-vc-portal 簽發的 token**，避免任何人猜到會議室名稱就闖入。jt-vc-portal 自建模式使用 **HS256 共享密鑰**簽 token。
 
+> **重要 — 啟用 JWT 後，官方行動 App 無法直接加入**
+> 開啟 `ENABLE_AUTH=1`（JWT）後，會議室只接受 jt-vc-portal 簽發的 token。**官方 Jitsi Meet 行動 App（iOS / Android）不經過本入口、取不到 token，將無法加入**（會出現驗證 / token 錯誤）。
+> 行動裝置請改用**手機瀏覽器**開啟邀請連結，透過 jt-vc-portal 加入。若必須讓原生 App 直接進房，只能維持「免 JWT 匿名模式」（下節），但安全性較低。
+
 在 `.env` 設定：
 
 ```ini
