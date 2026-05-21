@@ -233,6 +233,19 @@ class Rooms {
     return $out;
   }
 
+  /** 時長最長的前 N 場會議（所有保留中的記錄，依 dur 由長到短）。 */
+  public static function topMeetingsByDuration(int $limit = 25): array {
+    if (!file_exists(self::MEETINGS_FILE)) return [];
+    $lines = @file(self::MEETINGS_FILE, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+    $out = [];
+    foreach ($lines as $ln) {
+      $e = json_decode($ln, true);
+      if (is_array($e) && (int)($e['dur'] ?? 0) > 0) $out[] = $e;
+    }
+    usort($out, fn($a, $b) => ((int)($b['dur'] ?? 0)) <=> ((int)($a['dur'] ?? 0)));
+    return array_slice($out, 0, max(1, $limit));
+  }
+
   public static function sanitize(string $room): string {
     $room = trim($room);
     $room = preg_replace('/\s+/u', '-', $room);

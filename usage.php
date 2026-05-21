@@ -86,6 +86,20 @@ foreach ($sessions as $s) {
 }
 uasort($host_rank, fn($a, $b) => $b['dur'] <=> $a['dur']);
 
+// === 會議時長排行（所有保留記錄，前 25 長）===
+$topMeetings = Rooms::topMeetingsByDuration(25);
+$topLabels = [];
+$topMins   = [];
+$topTips   = [];
+foreach ($topMeetings as $tm) {
+  $room = (string)($tm['room'] ?? '');
+  $when = date('Y-m-d H:i', (int)($tm['start'] ?? $tm['ts'] ?? 0));
+  $dur  = (int)($tm['dur'] ?? 0);
+  $topLabels[] = $room . '（' . date('m/d', (int)($tm['start'] ?? $tm['ts'] ?? 0)) . '）';
+  $topMins[]   = round($dur / 60, 1);
+  $topTips[]   = $room . '　' . $when . '　' . fmt_dur($dur);
+}
+
 render_head($is_jaas ? '用量統計' : '會議統計');
 render_topbar($me, $ip);
 ?>
@@ -139,6 +153,18 @@ render_topbar($me, $ip);
   <div class="card">
     <div class="card-title"><?= icon('chart', 16) ?>近 30 天活動</div>
     <div class="chart-wrap"><canvas id="dailyChart"></canvas></div>
+  </div>
+
+  <!-- 會議時長排行 Top 25 -->
+  <div class="card">
+    <div class="card-title"><?= icon('clock', 16) ?>會議時長排行
+      <span class="muted" style="font-weight:400;font-size:12px;margin-left:8px;">所有記錄 · 最長前 25 場</span>
+    </div>
+    <?php if (!empty($topMeetings)): ?>
+      <div class="chart-wrap" style="height:<?= max(220, count($topMeetings) * 24 + 40) ?>px;"><canvas id="topDurChart"></canvas></div>
+    <?php else: ?>
+      <p class="muted" style="font-size:13px;margin:4px 0 0;">尚無會議記錄。會議結束（主持人離開）後即會在此累積。</p>
+    <?php endif; ?>
   </div>
 
   <!-- 主持人排行榜 -->
@@ -216,6 +242,20 @@ render_topbar($me, $ip);
                  scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
     });
   }
+  // 會議時長排行 Top 25（水平長條，最長在上）
+  const topLabels = <?= json_encode($topLabels) ?>.slice().reverse();
+  const topMins   = <?= json_encode($topMins) ?>.slice().reverse();
+  const topTips   = <?= json_encode($topTips) ?>.slice().reverse();
+  if (document.getElementById('topDurChart') && topMins.length) {
+    new Chart(document.getElementById('topDurChart'), {
+      type: 'bar',
+      data: { labels: topLabels, datasets: [{ label: '時長（分鐘）', data: topMins, backgroundColor: '#0ea5e9', borderRadius: 5, maxBarThickness: 18 }] },
+      options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => topTips[c.dataIndex] } } },
+        scales: { x: { beginAtZero: true, title: { display: true, text: '分鐘' } } } }
+    });
+  }
+
   new Chart(document.getElementById('dailyChart'), {
     type: 'line',
     data: { labels: <?= json_encode($dailyLabels) ?>, datasets: [
