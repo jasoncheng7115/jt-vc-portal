@@ -111,10 +111,18 @@ window.addEventListener('load', () => {
   let _localId = null;
 <?php if ($lobby_on): ?>
   // 大廳只有 moderator 能開；toggleLobby(true) 是「設為開」(冪等)，重複呼叫安全。
-  // 進場當下可能還沒拿到 moderator，故 (a) 角色變 moderator 時開、(b) 進場後延遲再試一次。
+  // moderator 角色在進場後才授予(可能數秒)，故持續重試直到角色確認或逾時。
   const enableLobby = () => { try { api.executeCommand('toggleLobby', true); } catch (e) {} };
+  let _lobbyTimer = null;
+  const startLobbyAuto = () => {
+    if (_lobbyTimer) return;
+    let n = 0;
+    enableLobby();
+    _lobbyTimer = setInterval(() => { enableLobby(); if (++n >= 10) { clearInterval(_lobbyTimer); _lobbyTimer = null; } }, 1500);
+  };
+  const stopLobbyAuto = () => { if (_lobbyTimer) { clearInterval(_lobbyTimer); _lobbyTimer = null; } };
   api.addEventListener('participantRoleChanged', (e) => {
-    if (e && e.id === _localId && e.role === 'moderator') enableLobby();
+    if (e && e.id === _localId && e.role === 'moderator') { enableLobby(); stopLobbyAuto(); }
   });
 <?php endif; ?>
   api.addEventListener('videoConferenceJoined', (e) => {
@@ -123,7 +131,7 @@ window.addEventListener('load', () => {
     try { api.executeCommand('setTileView', true); } catch (e) {}   // 預設畫廊檢視
 <?php endif; ?>
 <?php if ($lobby_on): ?>
-    setTimeout(enableLobby, 2000);   // 後援：此時通常已取得 moderator
+    startLobbyAuto();   // 持續重試開大廳，直到取得 moderator 後生效
 <?php endif; ?>
   });
 <?php endif; ?>
