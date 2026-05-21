@@ -9,22 +9,25 @@
 ## 目錄
 
 **基礎概念**
+
 - [架構概念](#架構概念)
 - [前置需求](#前置需求)
-- [連接埠與 NAT 設定](#連接埠與-nat-設定)（含媒體後援 / TURN）
+- [連接埠與 NAT 設定（含媒體後援 / TURN）](#連接埠與-nat-設定)
 
 **安裝步驟**
-1. [取得官方 docker-jitsi-meet](#一取得官方-docker-jitsi-meet)
-2. [基本對外設定（`.env`）](#二基本對外設定編輯-env)
-3. [啟用 JWT 驗證（建議）](#三啟用-jwt-驗證建議)
-4. [啟動 Jitsi](#四啟動-jitsi)
-5. [jt-vc-portal 端設定](#五jt-vc-portal-端設定)
+
+- [一、取得官方 docker-jitsi-meet](#一取得官方-docker-jitsi-meet)
+- [二、基本對外設定（`.env`）](#二基本對外設定編輯-env)
+- [三、啟用 JWT 驗證（建議）](#三啟用-jwt-驗證建議)
+- [四、啟動 Jitsi](#四啟動-jitsi)
+- [五、jt-vc-portal 端設定](#五jt-vc-portal-端設定)
 
 **進階 / 維運**
-6. [疑難排解](#六疑難排解)
-7. [錄影（Jibri）](#七錄影jibri選用)
-8. [品牌 logo 與隱藏錄製者](#八品牌-logo-與隱藏錄製者伺服器-configjs)
-9. [升級 Jitsi](#九升級-jitsi)
+
+- [六、疑難排解](#六疑難排解)
+- [七、錄影（Jibri）](#七錄影jibri選用)
+- [八、品牌 logo 與隱藏錄製者](#八品牌-logo-與隱藏錄製者伺服器-configjs)
+- [九、升級 Jitsi](#九升級-jitsi)
 
 ---
 

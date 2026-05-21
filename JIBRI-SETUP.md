@@ -10,20 +10,23 @@
 ## 目錄
 
 **規劃**
+
 - [部署拓撲（建議獨立 VM）](#部署拓撲建議-jibri-獨立一台-vm)
 - [一、Jibri 是什麼、限制與資源](#一jibri-是什麼有什麼限制)
 
 **安裝步驟（同機版，最易上手）**
-2. [主機前置：snd-aloop](#二主機vm前置載入-snd-aloop決定可並行的場數)
-3. [啟用錄影（`.env`）](#三啟用錄影docker-jitsi-meet-env)
-4. [同時 2 場錄製](#四同時-2-場錄製並行)
-5. [錄影中文顯示（必做）](#五錄影中文顯示必做)
-6. [錄影檔與調閱（jibri-recordings-api）](#六錄影檔與調閱jibri-recordings-api)
+
+- [二、主機前置：snd-aloop](#二主機vm前置載入-snd-aloop決定可並行的場數)
+- [三、啟用錄影（`.env`）](#三啟用錄影docker-jitsi-meet-env)
+- [四、同時 2 場錄製](#四同時-2-場錄製並行)
+- [五、錄影中文顯示（必做）](#五錄影中文顯示必做)
+- [六、錄影檔與調閱（jibri-recordings-api）](#六錄影檔與調閱jibri-recordings-api)
 
 **維運 / 進階**
-7. [疑難排解](#七疑難排解)
-8. [升級 SOP](#八升級-sop)
-9. [獨立 Jibri VM（與 Jitsi 分機）](#九獨立-jibri-vm與-jitsi-分機實作步驟)
+
+- [七、疑難排解](#七疑難排解)
+- [八、升級 SOP](#八升級-sop)
+- [九、獨立 Jibri VM（與 Jitsi 分機）](#九獨立-jibri-vm與-jitsi-分機實作步驟)
 
 ---
 
