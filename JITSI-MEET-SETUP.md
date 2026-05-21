@@ -284,7 +284,21 @@ JWT_ACCEPTED_AUDIENCES=jt-vc-portal   # 與 App ID 相同
 ENABLE_WELCOME_PAGE=0
 ```
 
-> 不影響 jt-vc-portal 的 IFrame 內嵌——它透過 `external_api.js` 指定房間加入，與歡迎頁無關。
+> 注意：關掉歡迎頁後，直接打根目錄 `/` 會**自動產生隨機房名**，手機還會跳出「在應用程式中加入」的深層連結頁（點了也會被 JWT 擋）。
+
+**更乾淨：把根目錄導回 portal。** 利用 web 容器既有的 `include /config/nginx-custom/*.conf;`，丟一個只對 `/` 轉址的設定（房間網址、`external_api.js`、IFrame 內嵌都不受影響）：
+
+```bash
+mkdir -p ~/.jitsi-meet-cfg/web/nginx-custom
+cat > ~/.jitsi-meet-cfg/web/nginx-custom/redirect-root.conf <<'EOF'
+location = / {
+    return 302 https://vc.example.com/;   # 換成你的 jt-vc-portal 網址
+}
+EOF
+docker exec docker-jitsi-meet-web-1 nginx -s reload
+```
+
+> 這樣直接打 `meet.example.com` 會轉到入口 portal；只有經 portal 內嵌（`/<房間>` + `external_api.js`）的請求照常服務。
 
 ### 不想用 JWT（開放模式）
 
