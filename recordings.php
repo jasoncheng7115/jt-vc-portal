@@ -3,6 +3,7 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/settings.php';
 require_once __DIR__ . '/lib/recordings.php';
+require_once __DIR__ . '/lib/rooms.php';
 require_once __DIR__ . '/lib/layout.php';
 
 $me = Auth::requireAdmin();
@@ -15,6 +16,26 @@ unset($_SESSION['rec_msg'], $_SESSION['rec_err']);
 $configured = Recordings::configured();
 $stats = $configured ? Recordings::stats() : null;
 $list  = $configured ? Recordings::listRecordings() : [];
+
+// 用 portal 的會議記錄（meetings.jsonl）依「房間 + 時間」對應出主持人與參與者。
+// 錄影本身（Jibri）不知道主持人/參與者，這些在 portal 端才有。
+$sess_by_room = [];
+foreach (Rooms::meetingSessions(0, time() + 86400) as $s) {
+  $sess_by_room[(string)($s['room'] ?? '')][] = $s;
+}
+function rec_match_session(array $r, array $byRoom): ?array {
+  $room = (string)($r['room'] ?? '');
+  $end  = (int)($r['mtime'] ?? 0);
+  $best = null; $bestDelta = PHP_INT_MAX;
+  foreach ($byRoom[$room] ?? [] as $s) {
+    $ss = (int)($s['start'] ?? 0); $se = (int)($s['end'] ?? 0);
+    if ($end >= $ss - 120 && $end <= $se + 300) {   // 錄影結束時間落在會議時段內(含寬限)
+      $delta = abs($se - $end);
+      if ($delta < $bestDelta) { $bestDelta = $delta; $best = $s; }
+    }
+  }
+  return $best;
+}
 
 function rec_bytes($n): string {
   $n = (float)$n; $u = ['B', 'KB', 'MB', 'GB', 'TB']; $i = 0;
@@ -90,15 +111,21 @@ render_topbar($me, $ip);
       <div class="field" style="max-width:280px;margin:14px 0 8px;">
         <input type="text" id="recSearch" placeholder="搜尋會議室…" autocomplete="off">
       </div>
-      <table class="table">
-        <thead><tr><th>會議室</th><th>時間</th><th>長度</th><th>大小</th><th>狀態</th><th style="text-align:right;">操作</th></tr></thead>
+      <p class="muted" style="font-size:12px;margin:0 0 8px;">點任一列（操作鍵除外）可展開該場參與者。</p>
+      <table class="table audit-table">
+        <thead><tr><th class="caret-col no-sort"></th><th>會議室</th><th>主持人</th><th>時間</th><th>長度</th><th>大小</th><th>狀態</th><th style="text-align:right;">操作</th></tr></thead>
         <tbody>
         <?php foreach ($list as $r):
           $rid = (string)$r['id']; $st = (string)($r['status'] ?? 'ok');
           $playable = $st !== 'orphan' && !empty($r['file']);
+          $match = rec_match_session($r, $sess_by_room);
+          $host  = $match ? (string)($match['owner_name'] ?? '') : '';
+          $parts = $match && is_array($match['participants'] ?? null) ? $match['participants'] : [];
         ?>
-          <tr class="rec-row" data-room="<?= htmlspecialchars(mb_strtolower((string)($r['room'] ?? ''))) ?>">
+          <tr class="rec-row row-main" data-room="<?= htmlspecialchars(mb_strtolower((string)($r['room'] ?? ''))) ?>" title="點擊展開參與者">
+            <td class="caret-col"><svg class="caret" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></td>
             <td><strong><?= htmlspecialchars($r['room'] ?: '（未知）') ?></strong></td>
+            <td><?= $host !== '' ? htmlspecialchars($host) : '<span class="muted">—</span>' ?></td>
             <td class="mono" style="white-space:nowrap;"><?= htmlspecialchars(date('Y-m-d H:i:s', (int)$r['mtime'])) ?></td>
             <td class="mono"><?= htmlspecialchars(rec_dur($r['duration'] ?? 0)) ?></td>
             <td class="mono"><?= rec_bytes($r['size']) ?></td>
@@ -114,6 +141,27 @@ render_topbar($me, $ip);
                 <input type="hidden" name="id" value="<?= htmlspecialchars($rid) ?>">
                 <button class="btn btn-ghost btn-sm"><?= icon('trash', 14) ?>刪除</button>
               </form>
+            </td>
+          </tr>
+          <tr class="row-detail" hidden>
+            <td colspan="8">
+              <?php if (!empty($parts)): ?>
+              <table class="table" style="margin:0;">
+                <thead><tr><th>參與者</th><th>進入</th><th>離開</th><th>停留</th></tr></thead>
+                <tbody>
+                <?php foreach ($parts as $p): $pin = (int)($p['in'] ?? 0); $pout = (int)($p['out'] ?? $pin); ?>
+                  <tr>
+                    <td><?= htmlspecialchars((string)($p['name'] ?? '')) ?: '（未具名）' ?></td>
+                    <td class="mono"><?= date('H:i:s', $pin) ?></td>
+                    <td class="mono"><?= date('H:i:s', $pout) ?></td>
+                    <td class="mono"><?= htmlspecialchars(rec_dur(max(0, $pout - $pin))) ?></td>
+                  </tr>
+                <?php endforeach; ?>
+                </tbody>
+              </table>
+              <?php else: ?>
+                <span class="muted" style="font-size:13px;">無對應的參與者記錄（此場可能在參與者統計功能上線前錄製，或主持人未在場回報）。</span>
+              <?php endif; ?>
             </td>
           </tr>
         <?php endforeach; ?>
@@ -149,12 +197,24 @@ render_topbar($me, $ip);
   document.getElementById('closePlay').addEventListener('click', close);
   modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
 
+  // 點列展開參與者（避開操作鍵 / 連結 / 表單）
+  document.querySelectorAll('tr.rec-row.row-main').forEach(function (row) {
+    row.addEventListener('click', function (e) {
+      if (e.target.closest('button, a, form, input')) return;
+      var d = row.nextElementSibling;
+      if (d && d.classList.contains('row-detail')) { d.hidden = !d.hidden; row.classList.toggle('open'); }
+    });
+  });
+
   var search = document.getElementById('recSearch');
   if (search) {
     search.addEventListener('input', function () {
       var q = search.value.trim().toLowerCase();
       document.querySelectorAll('tr.rec-row').forEach(function (row) {
-        row.style.display = (!q || (row.dataset.room || '').indexOf(q) !== -1) ? '' : 'none';
+        var show = (!q || (row.dataset.room || '').indexOf(q) !== -1);
+        row.style.display = show ? '' : 'none';
+        var d = row.nextElementSibling;   // 連帶處理該列的明細
+        if (d && d.classList.contains('row-detail')) { if (!show) { d.hidden = true; row.classList.remove('open'); } d.style.display = show ? '' : 'none'; }
       });
     });
   }
