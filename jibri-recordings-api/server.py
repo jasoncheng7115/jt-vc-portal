@@ -149,19 +149,24 @@ def scan():
             out.append({"id": rid, "room": _room_of(d, None), "file": None,
                         "size": _dir_size(d), "mtime": int(st.st_mtime), "status": "orphan"})
             continue
-        st = os.stat(os.path.join(d, mp4))
+        mp4path = os.path.join(d, mp4)
+        st = os.stat(mp4path)
         age = now - st.st_mtime
         # Jibri 會在「停止錄影並 finalize」後才寫 metadata.json；它一旦存在就代表已結束。
         # 不能只靠 mtime（剛停的檔 mtime 也很新，會誤判為錄製中）。
+        # 完成與否以「能否解析出 mp4 時長(mvhd)」判定，不用檔案大小（短/靜態畫面也可能很小但完整）。
+        dur = 0
         if has_meta:
-            status = "incomplete" if st.st_size < MIN_OK_SIZE else "ok"
+            dur = _mp4_duration(mp4path)
+            status = "ok" if dur > 0 else "incomplete"   # 已 finalize 且可解析時長 → 正常
         elif age < RECORDING_GRACE:
             status = "recording"      # 還在寫、尚未 finalize（無 metadata.json）
         else:
+            dur = _mp4_duration(mp4path)
             status = "incomplete"     # 無 metadata 又久未變動 → 中斷殘留
         out.append({"id": rid, "room": _room_of(d, mp4), "file": mp4,
                     "size": st.st_size, "mtime": int(st.st_mtime), "status": status,
-                    "duration": _mp4_duration(os.path.join(d, mp4)) if status != "recording" else 0})
+                    "duration": dur})
     out.sort(key=lambda x: x["mtime"], reverse=True)
     return out
 
