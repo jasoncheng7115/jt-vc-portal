@@ -749,7 +749,7 @@ body.is-dark .table tbody tr.edit-row td { background: rgba(255,255,255,0.03); }
 .file-picker input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .file-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  min-height: 44px; box-sizing: border-box;
+  min-height: 44px; box-sizing: border-box; line-height: 1;
   padding: 0 16px; font-size: 14px; font-weight: 500;
   border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
   background: #fff; color: var(--text); cursor: pointer;
@@ -876,7 +876,7 @@ body.is-dark .card.collapsible > .card-header:hover { background: rgba(255,255,2
 }
 
 /* === Form === */
-.field { margin-bottom: 16px; }
+.field { margin-bottom: 24px; }
 .field label {
   display: block;
   font-size: 13px;

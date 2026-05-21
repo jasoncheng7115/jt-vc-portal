@@ -81,9 +81,9 @@ render_topbar($me, $ip);
       <?= Auth::csrfField() ?>
       <input type="hidden" name="section" value="login_path">
       <div class="field"><label>登入路徑</label>
-        <div class="link-row">
-          <span class="mono" style="color:var(--text-muted);"><?= htmlspecialchars(rtrim(SITE_URL, '/')) ?>/</span>
-          <input type="text" name="login_path" maxlength="64" value="<?= htmlspecialchars($login_path) ?>" placeholder="jt-login" style="max-width:240px;" pattern="[A-Za-z0-9._-]{1,64}">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span class="mono" style="color:var(--text-muted);white-space:nowrap;"><?= htmlspecialchars(rtrim(SITE_URL, '/')) ?>/</span>
+          <input type="text" name="login_path" maxlength="64" value="<?= htmlspecialchars($login_path) ?>" placeholder="jt-login" style="min-width:200px;" pattern="[A-Za-z0-9._-]{1,64}">
         </div>
         <div class="help">僅允許英數與 <span class="mono">. _ -</span>，長度 1–64。留空還原為預設 <span class="mono">jt-login</span>。</div>
       </div>
@@ -295,6 +295,8 @@ render_topbar($me, $ip);
 
     <h2 style="font-size:15px;margin:0 0 4px;">Jibri 錄影服務</h2>
     <p class="subtitle" style="margin:4px 0 12px;">
+      在自建 Jibri 主機上安裝 <span class="mono">jibri-recordings-api</span> 後即可串接——安裝步驟見
+      <a href="<?= htmlspecialchars(APP_GITHUB_URL) ?>/blob/main/JIBRI-SETUP.md#六錄影檔與調閱jibri-recordings-api" target="_blank" rel="noopener">JIBRI-SETUP.md</a>。<br>
       偵測狀態：
       <?php if (!$jibri_has): ?><span class="badge badge-muted">未設定</span>
       <?php elseif ($jibri_ok): ?><span class="badge badge-success"><?= icon('check',11) ?>已連線</span>
