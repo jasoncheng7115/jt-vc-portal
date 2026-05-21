@@ -249,6 +249,7 @@ render_topbar($me, $ip);
       <button type="button" class="btn btn-primary" id="qrCopyLink"><?= icon('copy',14) ?>複製連結</button>
     </div>
     <div class="modal-footer">
+      <a class="btn btn-primary" id="qrEnter" href="#"><?= icon('arrow-right',14) ?>進入會議室</a>
       <button type="button" class="btn btn-secondary" id="qrDownload"><?= icon('download') ?>下載圖片</button>
       <button type="button" class="btn btn-secondary" id="qrClose"><?= icon('x',14) ?>關閉</button>
     </div>
@@ -290,6 +291,7 @@ document.addEventListener('click', async (e) => {
   function open(url, room){
     linkInput.value = url;
     document.getElementById('qrRoom').textContent = room;
+    document.getElementById('qrEnter').href = '/start?room=' + encodeURIComponent(room) + '&mode=host';
     box.innerHTML = '';
     qr = new QRCode(box, { text: url, width: 220, height: 220, colorDark:'#18181b', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.M });
     modal.classList.add('open');
