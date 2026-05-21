@@ -64,6 +64,7 @@ render_topbar($me, $ip);
         </select>
       </div>
       <button class="btn btn-secondary btn-sm"><?= icon('arrow-right',14) ?>篩選</button>
+      <a class="btn btn-secondary btn-sm" href="/audit-export<?= $qsBase ? '?'.htmlspecialchars($qsBase) : '' ?>"><?= icon('download',14) ?>匯出 CSV</a>
     </form>
 
     <?php if (empty($rows)): ?>

@@ -5,11 +5,12 @@ require_once __DIR__ . '/lib/users.php';
 require_once __DIR__ . '/lib/totp.php';
 require_once __DIR__ . '/lib/ratelimit.php';
 require_once __DIR__ . '/lib/audit.php';
+require_once __DIR__ . '/lib/settings.php';
 
 Auth::start();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['2fa_uid'])) {
-  header('Location: /jt-login');
+  header('Location: ' . Settings::loginUrl());
   exit;
 }
 Auth::csrfCheck();
@@ -23,7 +24,7 @@ $code = (string)($_POST['code'] ?? '');
 $user = Users::find($uid);
 if (!$user || !empty($user['disabled']) || empty($user['totp_secret'])) {
   unset($_SESSION['2fa_uid'], $_SESSION['2fa_login']);
-  header('Location: /jt-login');
+  header('Location: ' . Settings::loginUrl());
   exit;
 }
 
@@ -31,7 +32,7 @@ if (RateLimit::isLocked($ip)) {
   Audit::log('login_locked', "嘗試帳號：{$login}（2FA 階段）", ['actor' => $login, 'result' => 'warn']);
   unset($_SESSION['2fa_uid'], $_SESSION['2fa_login']);
   $_SESSION['login_error'] = '因多次失敗，此來源已被鎖定，請稍後再試。';
-  header('Location: /jt-login');
+  header('Location: ' . Settings::loginUrl());
   exit;
 }
 

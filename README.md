@@ -1,4 +1,4 @@
-# jt-vc-portal v1.4.1 — 會議管理系統
+# jt-vc-portal v1.5.0 — 會議管理系統
 
 > 搭配 Jitsi Meet 基底的會議入口系統，**雙模式**支援 [8x8 JaaS](https://jaas.8x8.vc/)[^8x8]（雲端託管）與 **[自建 Jitsi Meet](https://github.com/jitsi/jitsi-meet)**。
 > 主持人登入後即可建立會議室、產生邀請連結（含 QR / `.ics` 行事曆邀請），來賓經由邀請連結加入。
@@ -161,14 +161,14 @@ server {
 
 ```bash
 # 1) 從 Release 頁下載映像與校驗檔（請改用最新版本號）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.4.1/jt-vc-portal-1.4.1-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.4.1/jt-vc-portal-1.4.1-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.5.0/jt-vc-portal-1.5.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.5.0/jt-vc-portal-1.5.0-docker-amd64.tar.gz.sha256
 
 # 2) 驗證完整性（應顯示 OK）
-sha256sum -c jt-vc-portal-1.4.1-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.5.0-docker-amd64.tar.gz.sha256
 
-# 3) 載入映像（會建立 jt-vc-portal:1.4.1 與 :latest 標籤）
-docker load < jt-vc-portal-1.4.1-docker-amd64.tar.gz
+# 3) 載入映像（會建立 jt-vc-portal:1.5.0 與 :latest 標籤）
+docker load < jt-vc-portal-1.5.0-docker-amd64.tar.gz
 
 # 4) 主機端準備持久化目錄（www-data UID 預設 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -271,7 +271,9 @@ docker run -d --restart unless-stopped \
 2. 進入 **系統設定**：
    - **連線模式**：選 8x8 JaaS 或自建 Jitsi Meet，填入對應參數。
    - **站台設定**：站台名稱、logo。
+   - **登入頁路徑**（選填）：把登入入口改成祕密路徑（見下方）。
    - **會議室介面**：預設 UI 語言（預設繁體中文）。
+   - **錄製設定**（選填）：錄製者顯示名稱、串接自建 Jibri 錄影調閱服務與保留政策。
    - **SMTP**（選填）：寄送 `.ics` 邀請信。
    - **登入記錄外拋**（選填）：syslog / CEF / GELF。
 3. 到 **個人設定** 變更密碼並啟用 2FA。
@@ -297,6 +299,37 @@ docker run -d --restart unless-stopped \
 
 ---
 
+## 登入頁路徑偽裝
+
+預設登入入口為 `/jt-login`。可於 **系統設定 → 登入頁路徑** 改成只有你知道的祕密路徑（僅允許英數與 `. _ -`，長度 1–64），降低被自動掃描 / 暴力嘗試的機會。
+
+- 改掉後，原本的 `/jt-login` 與任何未對應的路徑都會直接回 **404**；只有設定的路徑會顯示登入頁。
+- 變更不會把實際路徑寫進稽核 / SIEM（避免外洩）。
+- **務必記住新路徑。** 若忘記或被鎖死，從伺服器端用 CLI 還原：
+
+```bash
+# Docker 部署
+docker exec -u www-data jaas-auth php /var/www/html/login-path.php show     # 顯示目前路徑
+docker exec -u www-data jaas-auth php /var/www/html/login-path.php reset    # 還原為 /jt-login
+docker exec -u www-data jaas-auth php /var/www/html/login-path.php set xxx  # 直接指定新路徑
+
+# 直接安裝（Apache + PHP）：在專案根目錄執行
+sudo -u www-data php login-path.php reset
+```
+
+---
+
+## 錄影調閱（自建 Jibri）
+
+自建 Jitsi Meet + Jibri 錄影時，可在 Jibri 主機上跑隨附的 `jibri-recordings-api`（純 Python 標準庫服務），讓 portal 線上**列表 / 播放 / 下載 / 刪除**錄影，並顯示**錄影主機容量**。
+
+- 服務只接受本 portal 來源 IP + Bearer token；portal 端再強制管理者登入後代理。
+- 於 **系統設定 → 錄製設定 → Jibri 錄影服務** 填入服務 URL 與 token，偵測到後導覽列即出現「錄影記錄」。
+- **保留政策**（預設全部停用）：依時間（保留 N 天）、依容量（保留可用空間 / 錄影總量上限，由舊到新刪）、自動清理殘留 / 未完成錄影。錄製中的檔案永不清理。
+- 服務安裝與 systemd 設定見 **[JIBRI-SETUP.md](JIBRI-SETUP.md)**。
+
+---
+
 ## 安全性
 
 遵循 OWASP Top 10:2025，逐項對應：
@@ -307,7 +340,7 @@ docker run -d --restart unless-stopped \
 - **A04 加密**：bcrypt 密碼、JWT 簽章、webhook HMAC、安全 session cookie。
 - **A05 注入**：輸出跳脫、輸入清洗、Email header injection 防護。
 - **A06 安全設計**：閘道式架構、預設安全（來賓須具名、主持人在線上才放行）、角色最小權限。
-- **A07 認證**：TOTP 2FA、fail2ban 登入鎖定（依真實來源 IP）。
+- **A07 認證**：TOTP 2FA、fail2ban 登入鎖定（依真實來源 IP）、可選的登入頁路徑偽裝。
 - **A08 資料完整性**：webhook 以 HMAC 簽章驗證來源，並用 idempotency key 去除重複事件。
 - **A09 記錄與告警**：完整稽核記錄 + 即時 SIEM 外拋。
 - **A10 例外處理**：失敗安全降級——讀取失敗回預設、寄信 / 外拋失敗不阻斷主流程、錯誤不外洩。

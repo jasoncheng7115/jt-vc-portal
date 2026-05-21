@@ -19,6 +19,12 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{DOCUMENT_ROOT}/$1.php -f
 RewriteRule ^(.*)$ $1.php [L]
 
+# 登入頁路由偽裝：未對應實體檔的單段請求 → 交給 jt-login.php 判斷是否為設定的登入路徑
+# （符合就顯示登入頁，否則 404；預設 /jt-login 仍走上面那條規則對應到實體檔）
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^[A-Za-z0-9._-]+$ jt-login.php [L]
+
 # 安全 headers
 <IfModule mod_headers.c>
   Header set X-Content-Type-Options "nosniff"

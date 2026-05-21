@@ -3,7 +3,15 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/users.php';
 require_once __DIR__ . '/lib/ratelimit.php';
+require_once __DIR__ . '/lib/settings.php';
 require_once __DIR__ . '/lib/layout.php';
+
+// 登入頁路由偽裝：只有「設定的登入路徑」才顯示登入頁。
+// 預設 /jt-login 被改掉後直接 404；其他未對應路徑（經 .htaccess 轉來此檔）也一律 404。
+$__req_path = trim((string)parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/');
+if ($__req_path !== Settings::getLoginPath()) {
+  Auth::notFound();
+}
 
 Auth::start();
 Users::bootstrap(); // 首次自動建立初始管理員

@@ -211,11 +211,82 @@ docker build -t jibri-cjk:stable-10888 ./jibri-cjk
 
 ---
 
-## 六、錄影檔與調閱
+## 六、錄影檔與調閱（jibri-recordings-api）
 
-- 錄影 `.mp4` 存在 jibri 的錄影目錄（對應 host volume，預設約 `~/.jitsi-meet-cfg/jibri`）。
-- 錄完會執行 `finalize.sh`（若有設定）：可在此上傳到物件儲存 / 通知系統。
-- 與 jt-vc-portal 的整合（會議頁錄影按鈕、錄影入庫、權限調閱）屬**規劃中功能**，目前 Jibri 僅負責產出檔案。
+### 錄影輸出位置
+
+建議把錄影輸出到獨立、好管理的路徑（不要放家目錄隱藏資料夾）。在 jibri 服務的 compose 把錄影 volume 對應到 `/srv/recordings`：
+
+```yaml
+    volumes:
+      - ${CONFIG}/jibri:/config:Z
+      - /srv/recordings:/config/recordings
+```
+
+`JIBRI_RECORDING_DIR` 維持容器內 `/config/recordings`。每場錄影一個子資料夾（UUID），內含 `<room>_<時間>.mp4` 與 `metadata.json`。
+
+### 錄影調閱服務
+
+隨附 `jibri-recordings-api`（純 Python 標準庫、零第三方套件），讓 jt-vc-portal 線上**列表 / 播放 / 下載 / 刪除**錄影、顯示**主機容量**、套用**保留政策**。
+
+1) 放置程式（`server.py` 在本 repo 的 `jibri-recordings-api/` 目錄）：
+
+```bash
+sudo mkdir -p /opt/jibri-recordings-api
+sudo cp jibri-recordings-api/server.py /opt/jibri-recordings-api/server.py
+```
+
+2) 環境設定 `/etc/jibri-recordings-api.env`（`chmod 600`）：
+
+```bash
+REC_DIR=/srv/recordings
+API_TOKEN=$(openssl rand -hex 32)   # 產生後填入
+ALLOW_IPS=<portal 主機 IP>,127.0.0.1
+PORT=9080
+```
+
+3) systemd 服務 `/etc/systemd/system/jibri-recordings-api.service`：
+
+```ini
+[Unit]
+Description=Jibri Recordings API (portal-only)
+After=network.target
+
+[Service]
+EnvironmentFile=/etc/jibri-recordings-api.env
+ExecStart=/usr/bin/python3 /opt/jibri-recordings-api/server.py
+Restart=always
+RestartSec=3
+# 沙箱：只放行 /srv/recordings 可寫（清理 / 刪除 / 設定檔）
+ProtectSystem=strict
+ReadWritePaths=/srv/recordings
+ProtectHome=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
+```
+
+4) 啟用：
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now jibri-recordings-api
+systemctl is-active jibri-recordings-api
+```
+
+5) 在 portal **系統設定 → 錄製設定 → Jibri 錄影服務** 填入 `http://<jibri 主機 IP>:9080` 與上面的 token，按「儲存並測試」顯示「已連線」後，導覽列即出現「錄影記錄」。
+
+> **安全性**：服務同時用「來源 IP 允許清單 + Bearer token」雙重驗證，只接受 portal；portal 端再強制管理者登入後代理串流。`ProtectSystem=strict` + `ReadWritePaths=/srv/recordings` 讓服務只能讀寫錄影目錄。
+
+### 保留政策（預設全部停用）
+
+於 portal 錄製設定卡片設定，下發給服務、由背景執行緒每小時套用：
+
+- **依時間**：保留最近 N 天，超過自動刪除。
+- **依容量**：保留可用空間（`min_free_gb`）或錄影總量上限（`max_used_gb`），皆由舊到新刪。
+- **殘留清理**：會議異常結束留下的未完成 / 殘片，超過 N 小時清除。
+- 錄製中的檔案（5 分鐘內仍被寫入）**永不清理**；清理動作記錄於 `/srv/recordings/.api-cleanup.log`。
 
 ---
 

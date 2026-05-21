@@ -35,6 +35,10 @@ class Audit {
       '2fa_enable'     => '啟用 2FA',
       '2fa_disable'    => '停用 2FA',
       'usage_baseline' => '校正用量基準',
+      'audit_export'       => '匯出稽核記錄',
+      'recording_download' => '下載錄影',
+      'recording_delete'   => '刪除錄影',
+      'recording_cleanup'  => '清理錄影',
     ];
   }
 
@@ -111,6 +115,30 @@ class Audit {
       'rows'  => array_slice($rows, ($page - 1) * $per, $per),
       'total' => $total, 'page' => $page, 'pages' => $pages, 'per' => $per,
     ];
+  }
+
+  /** 與 search() 相同的篩選，但回傳「全部符合」的列（不分頁），供匯出用。 */
+  public static function searchAll(array $f = []): array {
+    $rows = [];
+    if (!file_exists(self::FILE)) return $rows;
+    $lines = @file(self::FILE, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+    $fromTs = !empty($f['from']) ? strtotime($f['from'] . ' 00:00:00') : null;
+    $toTs   = !empty($f['to'])   ? strtotime($f['to'] . ' 23:59:59') : null;
+    $q = !empty($f['q']) ? mb_strtolower($f['q']) : '';
+    for ($i = count($lines) - 1; $i >= 0; $i--) {
+      $e = json_decode($lines[$i], true);
+      if (!is_array($e)) continue;
+      $ts = $e['ts'] ?? strtotime($e['time'] ?? 'now');
+      if (!empty($f['action']) && ($e['action'] ?? '') !== $f['action']) continue;
+      if ($fromTs !== null && $ts < $fromTs) continue;
+      if ($toTs !== null && $ts > $toTs) continue;
+      if ($q !== '') {
+        $hay = mb_strtolower(($e['actor'] ?? '') . ' ' . ($e['actor_name'] ?? '') . ' ' . ($e['detail'] ?? '') . ' ' . ($e['ip'] ?? ''));
+        if (mb_strpos($hay, $q) === false) continue;
+      }
+      $rows[] = $e;
+    }
+    return $rows;
   }
 
   /** 查詢（新→舊），可選 action / 關鍵字（actor / detail / ip）過濾。 */

@@ -5,12 +5,13 @@ require_once __DIR__ . '/lib/users.php';
 require_once __DIR__ . '/lib/totp.php';
 require_once __DIR__ . '/lib/ratelimit.php';
 require_once __DIR__ . '/lib/audit.php';
+require_once __DIR__ . '/lib/settings.php';
 
 Auth::start();
 Users::bootstrap();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-  header('Location: /jt-login');
+  header('Location: ' . Settings::loginUrl());
   exit;
 }
 Auth::csrfCheck();
@@ -22,7 +23,7 @@ $password = (string)($_POST['password'] ?? '');
 
 $fail = function (string $msg) {
   $_SESSION['login_error'] = $msg;
-  header('Location: /jt-login');
+  header('Location: ' . Settings::loginUrl());
   exit;
 };
 

@@ -5,6 +5,7 @@ require_once __DIR__ . '/lib/settings.php';
 require_once __DIR__ . '/lib/mailer.php';
 require_once __DIR__ . '/lib/logship.php';
 require_once __DIR__ . '/lib/usage.php';
+require_once __DIR__ . '/lib/recordings.php';
 require_once __DIR__ . '/lib/layout.php';
 
 $me = Auth::requireAdmin();
@@ -69,6 +70,30 @@ render_topbar($me, $ip);
       <?php endif; ?>
       <button class="btn btn-primary"><?= icon('check') ?>儲存站台設定</button>
     </form>
+  </div>
+
+  <!-- 登入頁路徑偽裝 -->
+  <?php $login_path = Settings::getLoginPath(); ?>
+  <div class="card">
+    <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('lock', 18) ?>登入頁路徑</h1>
+    <p class="subtitle" style="margin:6px 0 18px;">把登入入口改成只有你知道的祕密路徑，降低被自動掃描 / 暴力嘗試的機會。改掉後原本的 <span class="mono">/jt-login</span> 會直接回 404。</p>
+    <form method="POST" action="/save-settings" class="inline-form">
+      <?= Auth::csrfField() ?>
+      <input type="hidden" name="section" value="login_path">
+      <div class="field"><label>登入路徑</label>
+        <div class="link-row">
+          <span class="mono" style="color:var(--text-muted);"><?= htmlspecialchars(rtrim(SITE_URL, '/')) ?>/</span>
+          <input type="text" name="login_path" maxlength="64" value="<?= htmlspecialchars($login_path) ?>" placeholder="jt-login" style="max-width:240px;" pattern="[A-Za-z0-9._-]{1,64}">
+        </div>
+        <div class="help">僅允許英數與 <span class="mono">. _ -</span>，長度 1–64。留空還原為預設 <span class="mono">jt-login</span>。</div>
+      </div>
+      <button class="btn btn-secondary"><?= icon('check',14) ?>儲存登入路徑</button>
+    </form>
+    <div class="alert alert-info" style="align-items:flex-start;margin-top:14px;">
+      <?= icon('warning') ?>
+      <span>請務必記住新路徑——忘記時只能從伺服器端用 CLI 還原：<br>
+        <span class="mono">docker exec -u www-data jaas-auth php /var/www/html/login-path.php reset</span></span>
+    </div>
   </div>
 
   <!-- 會議室介面 -->
@@ -245,10 +270,17 @@ render_topbar($me, $ip);
   </div>
 
   <!-- 錄製設定 -->
-  <?php $recorder_name = Settings::getRecorderName(); ?>
+  <?php
+    $recorder_name = Settings::getRecorderName();
+    $jibri  = Settings::getJibri();
+    $jibri_has = Settings::hasJibri();
+    $jibri_ok  = $jibri_has ? Recordings::ping() : false;
+    $rconf  = $jibri_ok ? (Recordings::getConfig() ?? []) : [];
+  ?>
   <div class="card">
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('video', 18) ?>錄製設定</h1>
-    <p class="subtitle" style="margin:6px 0 18px;">設定會議錄製時，錄製者在與會者清單中顯示的名稱（取代 Jitsi 預設的「Fellow Jitster」）。</p>
+    <p class="subtitle" style="margin:6px 0 18px;">錄製者顯示名稱、自建 Jibri 錄影服務串接與錄影保留政策。</p>
+
     <form method="POST" action="/save-settings" class="inline-form">
       <?= Auth::csrfField() ?>
       <input type="hidden" name="section" value="recording">
@@ -258,6 +290,62 @@ render_topbar($me, $ip);
       <button class="btn btn-secondary"><?= icon('check',14) ?>儲存</button>
     </form>
     <p class="help" style="margin:10px 0 0;">此名稱實際是「未具名與會者」的預設顯示名稱；本系統的主持人與來賓一律具名，因此只有錄製者會套用到。留空則用「會議錄影」。</p>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:20px 0;">
+
+    <h2 style="font-size:15px;margin:0 0 4px;">Jibri 錄影服務</h2>
+    <p class="subtitle" style="margin:4px 0 12px;">
+      偵測狀態：
+      <?php if (!$jibri_has): ?><span class="badge badge-muted">未設定</span>
+      <?php elseif ($jibri_ok): ?><span class="badge badge-success"><?= icon('check',11) ?>已連線</span>
+      <?php else: ?><span class="badge badge-warning"><?= icon('warning',11) ?>無法連線</span><?php endif; ?>
+      <?php if ($jibri_ok): ?><a href="/recordings" style="margin-left:8px;">前往錄影記錄 →</a><?php endif; ?>
+    </p>
+    <form method="POST" action="/save-settings" class="inline-form">
+      <?= Auth::csrfField() ?>
+      <input type="hidden" name="section" value="jibri">
+      <div class="field"><label>服務 URL</label>
+        <input type="url" name="jibri_url" value="<?= htmlspecialchars($jibri['url']) ?>" placeholder="http://10.0.0.10:9080" style="max-width:320px;">
+        <div class="help">自建 Jibri 主機上 jibri-recordings-api 的位址（含通訊埠，預設 9080）。</div>
+      </div>
+      <div class="field"><label>存取 Token</label>
+        <input type="password" name="jibri_token" value="" placeholder="<?= $jibri['token'] !== '' ? '已設定（留空不變更）' : '尚未設定' ?>" autocomplete="new-password" style="max-width:320px;">
+        <div class="help">對應服務端 <span class="mono">/etc/jibri-recordings-api.env</span> 的 <span class="mono">API_TOKEN</span>。留空表示沿用既有。</div>
+      </div>
+      <button class="btn btn-secondary"><?= icon('check',14) ?>儲存並測試</button>
+    </form>
+
+    <?php if ($jibri_ok):
+      $r_time = !empty($rconf['time_enabled']); $r_days = (int)($rconf['time_days'] ?? 30);
+      $r_cap  = !empty($rconf['cap_enabled']);  $r_mode = $rconf['cap_mode'] ?? 'min_free_gb'; $r_cap_gb = (int)($rconf['cap_value_gb'] ?? 10);
+      $r_orp  = !empty($rconf['orphan_auto']);  $r_orp_h = (int)($rconf['orphan_age_hours'] ?? 24);
+    ?>
+    <hr style="border:none;border-top:1px solid var(--border);margin:20px 0;">
+    <h2 style="font-size:15px;margin:0 0 4px;">錄影保留政策</h2>
+    <p class="subtitle" style="margin:4px 0 12px;">超過條件的錄影由服務端自動清理（預設全部停用）。錄製中的檔案永不清理。</p>
+    <form method="POST" action="/save-settings">
+      <?= Auth::csrfField() ?>
+      <input type="hidden" name="section" value="recording_retention">
+      <div class="field">
+        <label style="font-weight:400;display:block;margin:4px 0;"><input type="checkbox" name="time_enabled" value="1" <?= $r_time?'checked':'' ?>> 依時間清理：保留最近
+          <input type="number" name="time_days" min="1" max="3650" value="<?= $r_days ?>" style="width:80px;"> 天，超過自動刪除</label>
+      </div>
+      <div class="field">
+        <label style="font-weight:400;display:block;margin:4px 0;"><input type="checkbox" name="cap_enabled" value="1" <?= $r_cap?'checked':'' ?>> 依容量清理：
+          <select name="cap_mode" style="width:150px;">
+            <option value="min_free_gb" <?= $r_mode==='min_free_gb'?'selected':'' ?>>保留可用空間</option>
+            <option value="max_used_gb" <?= $r_mode==='max_used_gb'?'selected':'' ?>>錄影總量上限</option>
+          </select>
+          <input type="number" name="cap_value_gb" min="1" max="100000" value="<?= $r_cap_gb ?>" style="width:90px;"> GB（由舊到新刪除）</label>
+      </div>
+      <div class="field">
+        <label style="font-weight:400;display:block;margin:4px 0;"><input type="checkbox" name="orphan_auto" value="1" <?= $r_orp?'checked':'' ?>> 自動清理殘留 / 未完成錄影：超過
+          <input type="number" name="orphan_age_hours" min="1" max="8760" value="<?= $r_orp_h ?>" style="width:80px;"> 小時</label>
+        <div class="help">會議異常結束時可能留下無法播放的殘片，此選項會在指定時數後清除。</div>
+      </div>
+      <button class="btn btn-secondary"><?= icon('check',14) ?>儲存保留政策</button>
+    </form>
+    <?php endif; ?>
   </div>
 
   <!-- 8x8 用量 webhook（僅 JaaS 模式；依連線模式下拉即時顯示） -->

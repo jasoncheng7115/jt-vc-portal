@@ -111,6 +111,56 @@ class Settings {
     self::save($d);
   }
 
+  // === Jibri 錄影調閱服務（自建 Jibri 主機上的 jibri-recordings-api）===
+  /** 服務連線設定：URL（已去尾斜線）與 Bearer token。 */
+  public static function getJibri(): array {
+    $d = self::load();
+    return [
+      'url'   => rtrim(trim((string)($d['jibri_url'] ?? '')), '/'),
+      'token' => (string)($d['jibri_token'] ?? ''),
+    ];
+  }
+
+  /** 儲存服務設定；token 留空表示沿用既有（前端以遮罩顯示，不必每次重輸）。 */
+  public static function setJibri(string $url, string $token): void {
+    $d = self::load();
+    $d['jibri_url'] = rtrim(trim($url), '/');
+    if (trim($token) !== '') $d['jibri_token'] = trim($token);
+    self::save($d);
+  }
+
+  /** 是否已設定 Jibri 服務（URL + token 皆有）。 */
+  public static function hasJibri(): bool {
+    $j = self::getJibri();
+    return $j['url'] !== '' && $j['token'] !== '';
+  }
+
+  // === 登入頁路由偽裝 ===
+  const DEFAULT_LOGIN_PATH = 'jt-login';
+  /** 合法的登入路徑格式（單段、無斜線）。 */
+  public static function validLoginPath(string $p): bool {
+    return (bool)preg_match('/^[A-Za-z0-9._-]{1,64}$/', trim($p, '/'));
+  }
+  /** 目前登入頁路徑（不含前導斜線），預設 jt-login。 */
+  public static function getLoginPath(): string {
+    $p = trim((string)(self::load()['login_path'] ?? ''), '/');
+    return self::validLoginPath($p) ? $p : self::DEFAULT_LOGIN_PATH;
+  }
+  /** 設定登入頁路徑；空字串還原為預設。回傳是否成功。 */
+  public static function setLoginPath(string $p): bool {
+    $p = trim($p, '/');
+    if ($p === '') $p = self::DEFAULT_LOGIN_PATH;
+    if (!self::validLoginPath($p)) return false;
+    $d = self::load();
+    $d['login_path'] = $p;
+    self::save($d);
+    return true;
+  }
+  /** 登入頁完整路徑（含前導斜線），供轉址用。 */
+  public static function loginUrl(): string {
+    return '/' . self::getLoginPath();
+  }
+
   // === 會議室自訂（僅自建 Jitsi Meet 模式套用）===
   /** 一律保留、不開放關閉的工具列按鈕。 */
   const MEETING_BASE_BUTTONS = ['camera','microphone','toggle-camera','hangup','fullscreen','videoquality','profile','settings','filmstrip','highlight','help','shortcuts','mute-everyone','mute-video-everyone'];

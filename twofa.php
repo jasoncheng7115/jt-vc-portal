@@ -1,13 +1,14 @@
 <?php
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/auth.php';
+require_once __DIR__ . '/lib/settings.php';
 require_once __DIR__ . '/lib/layout.php';
 
 Auth::start();
 
 // 必須先通過密碼驗證（verify.php 設了 2fa_uid）
 if (empty($_SESSION['2fa_uid'])) {
-  header('Location: /jt-login');
+  header('Location: ' . Settings::loginUrl());
   exit;
 }
 

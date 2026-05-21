@@ -90,6 +90,7 @@ function admin_nav(string $active = ''): string {
     'audit'     => ['/audit-log', 'clock',     '稽核記錄'],
   ];
   $tabs['usage'] = ['/usage', 'chart', $jaas === 'jaas' ? '用量統計' : '會議統計'];
+  if (Settings::hasJibri()) $tabs['recordings'] = ['/recordings', 'video', '錄影記錄'];
   $tabs['settings'] = ['/settings', 'dashboard', '系統設定'];
 
   $html = '<div class="nav-row">';
@@ -226,6 +227,7 @@ function icon(string $name, int $size = 18): string {
       'edit'        => '<path d="M4 20h4L18.5 9.5l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/>',
       'download'    => '<path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M5 21h14"/>',
       'upload'      => '<path d="M12 21V9"/><path d="M7 13l5-5 5 5"/><path d="M5 4h14"/>',
+      'trash'       => '<path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/>',
     ];
   }
   $body = $paths[$name] ?? '';

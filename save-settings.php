@@ -6,6 +6,7 @@ require_once __DIR__ . '/lib/mailer.php';
 require_once __DIR__ . '/lib/logship.php';
 require_once __DIR__ . '/lib/usage.php';
 require_once __DIR__ . '/lib/audit.php';
+require_once __DIR__ . '/lib/recordings.php';
 
 $me = Auth::requireAdmin();
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: /settings'); exit; }
@@ -34,6 +35,32 @@ if ($section === 'recording') {
   $back('set_msg', '錄製設定已更新。');
 }
 
+if ($section === 'jibri') {
+  Settings::setJibri($_POST['jibri_url'] ?? '', $_POST['jibri_token'] ?? '');
+  Audit::log('settings_update', 'Jibri 錄影服務設定更新（' . (Settings::getJibri()['url'] ?: '未設定') . '）');
+  if (!Settings::hasJibri()) $back('set_msg', 'Jibri 錄影服務設定已清除。');
+  $ok = Recordings::ping();
+  $back($ok ? 'set_msg' : 'set_err',
+        $ok ? 'Jibri 錄影服務已連線。' : 'Jibri 服務設定已儲存，但目前無法連線，請確認 URL、token 與來源 IP 允許清單。');
+}
+
+if ($section === 'recording_retention') {
+  if (!Settings::hasJibri()) $back('set_err', '尚未設定 Jibri 錄影服務。');
+  $conf = [
+    'time_enabled'     => !empty($_POST['time_enabled']),
+    'time_days'        => (int)($_POST['time_days'] ?? 30),
+    'cap_enabled'      => !empty($_POST['cap_enabled']),
+    'cap_mode'         => in_array($_POST['cap_mode'] ?? '', ['min_free_gb', 'max_used_gb'], true) ? $_POST['cap_mode'] : 'min_free_gb',
+    'cap_value_gb'     => (int)($_POST['cap_value_gb'] ?? 10),
+    'orphan_auto'      => !empty($_POST['orphan_auto']),
+    'orphan_age_hours' => (int)($_POST['orphan_age_hours'] ?? 24),
+  ];
+  $saved = Recordings::setConfig($conf);
+  if ($saved === null) $back('set_err', '保留政策儲存失敗（Jibri 服務無法連線）。');
+  Audit::log('settings_update', '錄影保留政策更新：時間清理 ' . ($conf['time_enabled'] ? '開（' . $conf['time_days'] . '天）' : '關') . '、容量清理 ' . ($conf['cap_enabled'] ? '開' : '關') . '、殘留清理 ' . ($conf['orphan_auto'] ? '開' : '關'));
+  $back('set_msg', '錄影保留政策已更新。');
+}
+
 if ($section === 'meeting_custom') {
   if (Settings::getJaas()['mode'] !== 'selfhosted') $back('set_err', '會議室自訂僅適用於自建 Jitsi Meet 模式。');
   $tb = is_array($_POST['tb'] ?? null) ? $_POST['tb'] : [];
@@ -49,6 +76,20 @@ if ($section === 'meeting_custom') {
   ]);
   Audit::log('settings_update', '會議室自訂（自建 Jitsi Meet）');
   $back('set_msg', '會議室自訂已更新。');
+}
+
+if ($section === 'login_path') {
+  $p = trim((string)($_POST['login_path'] ?? ''), '/');
+  if ($p === '') $p = Settings::DEFAULT_LOGIN_PATH;
+  if (!Settings::validLoginPath($p)) $back('set_err', '登入路徑格式不合法（僅允許英數與 . _ -，長度 1–64）。');
+  // 避免與既有頁面 / 實體檔衝突而讓登入頁無法到達（jt-login 本身是登入處理器，允許）。
+  if ($p !== 'jt-login' && file_exists(__DIR__ . '/' . $p . '.php')) {
+    $back('set_err', '此路徑與既有頁面衝突，請換一個。');
+  }
+  Settings::setLoginPath($p);
+  // 基於安全不在稽核 / SIEM 記錄實際路徑值。
+  Audit::log('settings_update', '登入路徑已變更（為安全不記錄實際值）');
+  $back('set_msg', '登入路徑已更新，請改用新路徑登入；忘記時可用 CLI 還原。');
 }
 
 if ($section === 'jaas') {
