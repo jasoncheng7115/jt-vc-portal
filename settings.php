@@ -158,34 +158,37 @@ render_topbar($me, $ip);
           <option value="selfhosted" <?= $jaas['mode']==='selfhosted'?'selected':'' ?>>自建 Jitsi Meet</option>
         </select>
       </div>
-      <div class="field-row">
-        <div class="field"><label>服務網域</label>
-          <input type="text" name="domain" value="<?= htmlspecialchars($jaas['domain']) ?>" placeholder="JaaS：8x8.vc／自建：meet.example.com"></div>
-        <div class="field"><label>本系統對外網址（組邀請連結 / QR）</label>
-          <input type="text" name="site_url" value="<?= htmlspecialchars($jaas['site_url']) ?>" placeholder="https://vc.example.com"></div>
-      </div>
-      <div class="field"><label>App ID <span class="muted" style="font-weight:400;">（JaaS：Tenant／App ID，必填；自建：JWT 的 aud/iss，可留空）</span></label>
-        <input type="text" name="app_id" value="<?= htmlspecialchars($jaas['app_id']) ?>" placeholder="vpaas-magic-cookie-xxxxxxxx"></div>
+      <!-- 共用 -->
+      <div class="field"><label>本系統對外網址（組邀請連結 / QR，兩模式共用）</label>
+        <input type="text" name="site_url" value="<?= htmlspecialchars($jaas['site_url']) ?>" placeholder="https://vc.example.com"></div>
 
-      <!-- JaaS 專用 -->
+      <!-- JaaS 專用（與自建設定分開儲存，互不覆蓋） -->
       <div class="mode-jaas">
+        <div class="field"><label>服務網域</label>
+          <input type="text" name="domain" value="<?= htmlspecialchars($jaas['jaas_domain']) ?>" placeholder="8x8.vc"></div>
+        <div class="field"><label>App ID <span class="muted" style="font-weight:400;">（Tenant／App ID，必填）</span></label>
+          <input type="text" name="app_id" value="<?= htmlspecialchars($jaas['jaas_app_id']) ?>" placeholder="vpaas-magic-cookie-xxxxxxxx"></div>
         <div class="field"><label>Key ID（kid，JaaS JWT 簽章用，通常為 App ID/xxxxxx）</label>
           <input type="text" name="kid" value="<?= htmlspecialchars($jaas['kid']) ?>" placeholder="vpaas-magic-cookie-xxxxxxxx/abc123"></div>
       </div>
 
-      <!-- 自建專用 -->
+      <!-- 自建專用（與 JaaS 設定分開儲存，互不覆蓋） -->
       <div class="mode-self">
         <div class="alert alert-info" style="align-items:flex-start;">
           <?= icon('info') ?>
           <span>
             <strong>切換成自建 Jitsi Meet 前，請先在你的 Jitsi 伺服器準備：</strong><br>
             ① Jitsi 已部署且可由外網 <strong>HTTPS</strong> 存取，並允許本站載入其 <span class="mono">external_api.js</span>（CORS / 反向代理放行）。<br>
-            ② 上方「服務網域」填你的 Jitsi 網域（如 <span class="mono">meet.example.com</span>）。<br>
+            ② 下方「服務網域」填你的 Jitsi 網域（如 <span class="mono">meet.example.com</span>）。<br>
             ③ 若採「需要 JWT」：Jitsi 的 <span class="mono">prosody</span> 需啟用 JWT token 驗證（<span class="mono">mod_auth_token</span> / <span class="mono">authentication = "token"</span>），且 <strong>App ID 與 app_id 一致、下方共享密鑰與 prosody 的 <span class="mono">app_secret</span> 一致</strong>，jicofo/prosody 設定完成。<br>
             ④ 若採「不需 JWT」：Jitsi 須允許匿名加入（預設）。<br>
             ⑤ 錄影需自建環境另架 <span class="mono">Jibri</span>；逐字稿 / 直播同理（本站工具列已預設關閉這兩項）。
           </span>
         </div>
+        <div class="field"><label>服務網域</label>
+          <input type="text" name="sh_domain" value="<?= htmlspecialchars($jaas['sh_domain']) ?>" placeholder="meet.example.com"></div>
+        <div class="field"><label>App ID <span class="muted" style="font-weight:400;">（JWT 的 aud / iss，可留空）</span></label>
+          <input type="text" name="sh_app_id" value="<?= htmlspecialchars($jaas['sh_app_id']) ?>" placeholder="jt-vc-portal"></div>
         <div class="field"><label>認證方式</label>
           <select name="sh_auth">
             <option value="none" <?= $jaas['sh_auth']==='none'?'selected':'' ?>>不需 JWT（匿名加入）</option>
@@ -194,8 +197,8 @@ render_topbar($me, $ip);
         </div>
         <div class="field"><label>JWT 共享密鑰（HS256，須與 prosody 的 app_secret 一致）</label>
           <input type="password" name="sh_secret" value="<?= htmlspecialchars($jaas['sh_secret']) ?>" autocomplete="new-password" placeholder="自建 Jitsi Meet 的 app_secret"></div>
-        <div class="field"><label>JWT sub（留空預設用上方服務網域）</label>
-          <input type="text" name="sh_sub" value="<?= htmlspecialchars($jaas['sh_sub']) ?>" placeholder="通常為 meet.example.com 或 *"></div>
+        <div class="field"><label>JWT sub（留空預設送 *）</label>
+          <input type="text" name="sh_sub" value="<?= htmlspecialchars($jaas['sh_sub']) ?>" placeholder="通常為 * 或租戶名"></div>
       </div>
 
       <button class="btn btn-primary"><?= icon('check') ?>儲存連線設定</button>

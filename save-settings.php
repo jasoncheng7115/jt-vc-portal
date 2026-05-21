@@ -44,14 +44,26 @@ if ($section === 'meeting_custom') {
 }
 
 if ($section === 'jaas') {
-  Settings::setSection('jaas', [
-    'app_id'   => trim($_POST['app_id'] ?? ''),
-    'kid'      => trim($_POST['kid'] ?? ''),
-    'domain'   => trim($_POST['domain'] ?? '') ?: '8x8.vc',
-    'site_url' => rtrim(trim($_POST['site_url'] ?? ''), '/'),
-  ]);
-  Audit::log('settings_update', '連線模式設定（' . ($_POST['mode'] ?? '') . '）');
-  $back('set_msg', 'JaaS 連線設定已更新。');
+  $mode   = in_array($_POST['mode'] ?? 'jaas', ['jaas', 'selfhosted'], true) ? $_POST['mode'] : 'jaas';
+  $shAuth = in_array($_POST['sh_auth'] ?? 'none', ['none', 'jwt'], true) ? $_POST['sh_auth'] : 'none';
+  // 以既有設定為基礎合併，兩模式設定分開存、互不覆蓋
+  $cur = Settings::getSection('jaas');
+  $cur['_v']        = Settings::JAAS_SCHEMA_VERSION;
+  $cur['mode']      = $mode;
+  $cur['site_url']  = rtrim(trim($_POST['site_url'] ?? ''), '/');   // 共用
+  // JaaS 專屬
+  $cur['domain']    = trim($_POST['domain'] ?? '') ?: '8x8.vc';
+  $cur['app_id']    = trim($_POST['app_id'] ?? '');
+  $cur['kid']       = trim($_POST['kid'] ?? '');
+  // 自建專屬
+  $cur['sh_domain'] = trim($_POST['sh_domain'] ?? '');
+  $cur['sh_app_id'] = trim($_POST['sh_app_id'] ?? '');
+  $cur['sh_auth']   = $shAuth;
+  $cur['sh_secret'] = (string)($_POST['sh_secret'] ?? '');
+  $cur['sh_sub']    = trim($_POST['sh_sub'] ?? '');
+  Settings::setSection('jaas', $cur);
+  Audit::log('settings_update', '連線模式設定（' . $mode . '）');
+  $back('set_msg', '連線設定已更新。');
 }
 
 if ($section === 'plan') {

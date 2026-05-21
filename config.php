@@ -6,6 +6,7 @@ define('APP_GITHUB_URL', 'https://github.com/jasoncheng7115/jt-vc-portal');
 
 // === JaaS (8x8) 連線設定：改由管理介面設定，存於 settings.json，不再寫死 ===
 require_once __DIR__ . '/lib/settings.php';
+Settings::migrate();   // 升級後自動把舊版設定轉成新結構（冪等；無變更不寫檔）
 $__jaas = Settings::getJaas();
 define('JITSI_APP_ID',    $__jaas['app_id']);
 define('JITSI_TENANT_ID', $__jaas['app_id']);  // JaaS 的 tenant 即 app id

@@ -236,22 +236,68 @@ class Settings {
     ];
   }
 
-  /** 連線設定，支援 JaaS 與自建 Jitsi Meet 兩種模式。 */
+  // === 連線設定（JaaS / 自建 Jitsi Meet，兩種模式設定分開存、互不覆蓋）===
+  const JAAS_SCHEMA_VERSION = 2;
+
+  /**
+   * 連線設定 schema 遷移（純記憶體、冪等）。
+   * v1（舊）：domain / app_id 為「兩模式共用」的單一欄位。
+   * v2（新）：JaaS 用 domain / app_id；自建用 sh_domain / sh_app_id，互不覆蓋。
+   * 遷移時依「當時的 mode」把舊共用值分流到對應模式的專屬欄位，確保升級不壞、舊設定不丟。
+   */
+  private static function migrateJaas(array $c): array {
+    if ((int)($c['_v'] ?? 1) >= self::JAAS_SCHEMA_VERSION) return $c;
+    $mode = (($c['mode'] ?? 'jaas') === 'selfhosted') ? 'selfhosted' : 'jaas';
+    if ($mode === 'selfhosted') {
+      // 舊自建設定把網域 / app_id 存在共用欄位 → 移到自建專屬，JaaS 專屬回預設
+      if (!array_key_exists('sh_domain', $c) && array_key_exists('domain', $c)) $c['sh_domain'] = $c['domain'];
+      if (!array_key_exists('sh_app_id', $c) && array_key_exists('app_id', $c)) $c['sh_app_id'] = $c['app_id'];
+      $c['domain'] = '8x8.vc';
+      $c['app_id'] = '';
+    }
+    // mode = jaas：domain / app_id 原本就是 JaaS 值，保留即可；sh_* 預設空
+    $c['_v'] = self::JAAS_SCHEMA_VERSION;
+    return $c;
+  }
+
+  /** 升級後一次性把舊版連線設定寫回新結構（冪等；無 jaas 或已是新版則不動）。 */
+  public static function migrate(): void {
+    $d = self::load();
+    if (!isset($d['jaas']) || !is_array($d['jaas'])) return;
+    if ((int)($d['jaas']['_v'] ?? 1) >= self::JAAS_SCHEMA_VERSION) return;
+    $d['jaas'] = self::migrateJaas($d['jaas']);
+    self::save($d);
+  }
+
+  /**
+   * 連線設定。回傳值含「目前模式解析後」的 domain / app_id（其餘程式只看這兩個），
+   * 另附兩組模式專屬原始值（jaas_domain / jaas_app_id / sh_domain / sh_app_id）供設定表單渲染。
+   */
   public static function getJaas(): array {
-    $c = self::load()['jaas'] ?? [];
-    $mode = $c['mode'] ?? 'jaas';
-    if (!in_array($mode, ['jaas', 'selfhosted'], true)) $mode = 'jaas';
-    $shAuth = $c['sh_auth'] ?? 'none';
-    if (!in_array($shAuth, ['none', 'jwt'], true)) $shAuth = 'none';
+    $c = self::migrateJaas(self::load()['jaas'] ?? []);
+    $mode = in_array($c['mode'] ?? 'jaas', ['jaas', 'selfhosted'], true) ? $c['mode'] : 'jaas';
+    $shAuth = in_array($c['sh_auth'] ?? 'none', ['none', 'jwt'], true) ? $c['sh_auth'] : 'none';
+    $jaasDomain = ($c['domain'] ?? '') !== '' ? $c['domain'] : '8x8.vc';
+    $jaasAppId  = $c['app_id'] ?? '';
+    $shDomain   = $c['sh_domain'] ?? '';
+    $shAppId    = $c['sh_app_id'] ?? '';
+    // 依目前模式解析實際生效的 domain / app_id
+    $domain = $mode === 'jaas' ? $jaasDomain : $shDomain;
+    $appId  = $mode === 'jaas' ? $jaasAppId  : $shAppId;
     return [
-      'mode'      => $mode,                               // jaas | selfhosted
-      'app_id'    => $c['app_id']   ?? '',                // JaaS: tenant id；自建: JWT aud/iss（可空）
-      'kid'       => $c['kid']      ?? '',                // JaaS: JWT header kid
-      'domain'    => $c['domain']   ?? ($mode === 'jaas' ? '8x8.vc' : ''), // 服務網域
-      'site_url'  => rtrim($c['site_url'] ?? '', '/'),    // 本系統對外網址
-      'sh_auth'   => $shAuth,                             // 自建是否需 JWT
-      'sh_secret' => $c['sh_secret'] ?? '',               // 自建 JWT HS256 共享密鑰
-      'sh_sub'    => $c['sh_sub'] ?? '',                  // 自建 JWT sub（預設用 domain）
+      'mode'        => $mode,                               // jaas | selfhosted
+      'app_id'      => $appId,                              // 解析後（目前模式）
+      'kid'         => $c['kid'] ?? '',                     // JaaS: JWT header kid
+      'domain'      => $domain,                             // 解析後（目前模式）
+      'site_url'    => rtrim($c['site_url'] ?? '', '/'),    // 本系統對外網址（共用）
+      'sh_auth'     => $shAuth,                             // 自建是否需 JWT
+      'sh_secret'   => $c['sh_secret'] ?? '',               // 自建 JWT HS256 共享密鑰
+      'sh_sub'      => $c['sh_sub'] ?? '',                  // 自建 JWT sub
+      // 兩組模式專屬原始值（設定表單用，互不覆蓋）
+      'jaas_domain' => $jaasDomain,
+      'jaas_app_id' => $jaasAppId,
+      'sh_domain'   => $shDomain,
+      'sh_app_id'   => $shAppId,
     ];
   }
 
