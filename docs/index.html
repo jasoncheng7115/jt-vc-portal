@@ -21,6 +21,7 @@
       <a href="#security">安全</a>
       <a href="#screenshots">畫面</a>
       <a href="#install">安裝</a>
+      <a href="#appendix">附錄</a>
       <a class="gh" href="https://github.com/jasoncheng7115/jt-vc-portal" target="_blank" rel="noopener">GitHub</a>
     </div>
   </div>
@@ -40,7 +41,7 @@
     <p class="lead-note"><svg class="ln-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 8v.01"/></svg><span>8x8 自 2018 年起為 <strong>Jitsi / Jitsi Meet</strong> 的開發與維護公司；<strong>8x8 JaaS（Jitsi as a Service）</strong>即其官方雲端託管的 Jitsi 服務。</span></p>
     <div class="cta">
       <a class="btn btn-primary" href="#install">開始安裝</a>
-      <a class="btn btn-ghost" href="https://github.com/jasoncheng7115/jt-vc-portal" target="_blank" rel="noopener">在 GitHub 查看</a>
+      <a class="btn btn-ghost" href="https://github.com/jasoncheng7115/jt-vc-portal" target="_blank" rel="noopener">在 GitHub 檢視</a>
     </div>
     <div class="badges">
       <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License">
@@ -331,6 +332,27 @@ docker stop jt-vc-portal &amp;&amp; docker rm jt-vc-portal      <span class="c">
 </section>
 
 <!-- DISCLAIMER -->
+<!-- APPENDIX -->
+<section id="appendix">
+  <div class="wrap">
+    <div class="kicker">Appendix</div>
+    <h2>附錄：進階文件</h2>
+    <p class="section-sub">自建 Jitsi Meet 與錄影的完整部署 SOP。</p>
+    <div class="cols2">
+      <div class="panel">
+        <h3>自建 Jitsi Meet 整合</h3>
+        <p>從官方 Docker 版 Jitsi Meet 一路設定到與 jt-vc-portal 搭配：架構、連接埠 / NAT、TLS、JWT 與主持人權限、媒體後援 / TURN。</p>
+        <p><a class="btn btn-primary" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/JITSI-MEET-SETUP.md" target="_blank" rel="noopener">JITSI-MEET-SETUP.md</a></p>
+      </div>
+      <div class="panel">
+        <h3>Jibri 錄影整合</h3>
+        <p>在自建 Jitsi 上加上 Jibri 錄影：VM 需求、snd-aloop、同時多會議室錄製、錄影中文顯示（CJK 字型）、獨立 Jibri VM 實作。</p>
+        <p><a class="btn btn-secondary" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/JIBRI-SETUP.md" target="_blank" rel="noopener">JIBRI-SETUP.md</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="disclaimer" class="alt">
   <div class="wrap">
     <h2>免責聲明</h2>

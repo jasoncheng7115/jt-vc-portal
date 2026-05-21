@@ -22,7 +22,7 @@
 
 **怎麼分開：** Jibri 透過 **XMPP 連到主 stack 的 prosody**（網路可達即可，不必同機）。獨立 Jibri VM 上仍用本文步驟（snd-aloop + jibri 容器），但 `.env` 的 `XMPP_SERVER` / `XMPP_*_DOMAIN` / `JIBRI_*` 要指向**主 Jitsi 主機**並與其一致（即 docker-jitsi-meet 的「standalone Jibri」做法）。
 
-> 本文後續步驟以「同一台」寫，最容易上手；若要「獨立 VM」拓撲，把 Jibri 相關步驟搬到獨立 VM、並把 XMPP 連線指向主機即可。需要我另寫一份「獨立 Jibri VM」版的詳細設定再告訴我。
+> 本文第三～四節以「同一台」寫，最容易上手。**若要「獨立 Jibri VM」(與 Jitsi 分機，建議的正式做法)，完整實作步驟見[第九節](#九獨立-jibri-vm與-jitsi-分機實作步驟)。** 第二節(snd-aloop)、第五節(CJK 字型)兩台都需要。
 
 ---
 
@@ -195,7 +195,8 @@ RUN apt-get update \
       fonts-noto-cjk fonts-noto-cjk-extra fonts-noto-color-emoji \
  && fc-cache -f \
  && rm -rf /var/lib/apt/lists/*
-USER jibri
+# 重要：不要切回 USER jibri。jibri 映像以 root 啟動 s6（會自行降權到 jibri 跑服務）；
+# 若結尾加 USER jibri，容器啟動會出現 "s6-mkdir: /var/run/s6: Permission denied" 並不斷重啟。
 ```
 
 build 並讓 compose 改用它：
@@ -266,3 +267,135 @@ docker compose -f docker-compose.yml -f jibri.yml ps     # web/prosody/jicofo/jv
 
 > 本文以 `stable-10888` 為準；把上面 `<新版本>` 換成要升的 tag 即可。
 > `snd-aloop` 是核心模組、與映像版本無關，升級時不用重設（除非你重灌了 VM）。
+
+---
+
+## 九、獨立 Jibri VM（與 Jitsi 分機）實作步驟
+
+正式環境建議 Jibri 獨立一台 VM（見「部署拓撲」）。以下為實機驗證過的完整步驟，假設：
+
+- 主 Jitsi 主機：`192.168.1.134`（docker-jitsi-meet 在 `/opt/docker-jitsi-meet`，對外 `meet.example.com`）。
+- Jibri VM：另一台、**KVM 非 LXC**、同網段可連到主機。
+
+### 9-1 主 Jitsi 主機（`192.168.1.134`）端
+
+```bash
+cd /opt/docker-jitsi-meet
+# (1) 啟用錄影
+sed -i 's/^#\?ENABLE_RECORDING=.*/ENABLE_RECORDING=1/' .env || echo "ENABLE_RECORDING=1" >> .env
+
+# (2) 對 Jibri VM 開放 prosody 的 c2s 埠 5222（standalone Jibri 要連它）
+#     用 docker-compose.override.yml 發佈，綁定主機 LAN IP（不對外）
+cat >> docker-compose.override.yml <<'EOF'
+  prosody:
+    ports:
+      - "192.168.1.134:5222:5222"
+EOF
+#     注意：override 的 services: 區塊只能有一個，已有其他服務時把 prosody 併進去
+
+docker compose up -d prosody jicofo     # 套用錄影 + 5222
+```
+
+取出 Jibri VM 要用的值（**密碼勿外流**）：
+
+```bash
+grep -E '^JIBRI_XMPP_PASSWORD=|^JIBRI_RECORDER_PASSWORD=' .env   # 兩個密碼，等下複製到 Jibri VM
+# XMPP domains（用映像預設即可，本版為）：
+#   XMPP_DOMAIN=meet.jitsi  AUTH=auth.meet.jitsi  INTERNAL_MUC=internal-muc.meet.jitsi
+#   RECORDER(hidden)=hidden.meet.jitsi   brewery=jibribrewery
+# 可從 prosody 確認：docker exec docker-jitsi-meet-prosody-1 sh -c 'grep -E "^VirtualHost|^Component" /config/conf.d/jitsi-meet.cfg.lua'
+```
+
+### 9-2 Jibri VM 端
+
+1) 先完成**第二節（snd-aloop ×N）**與 Docker 安裝。
+
+2) 取 repo、建 `.env`（XMPP 指向主機、密碼與主機一致）：
+
+```bash
+cd /opt && git clone https://github.com/jitsi/docker-jitsi-meet.git
+cd docker-jitsi-meet && git checkout stable-10888
+cp env.example .env && ./gen-passwords.sh        # 先填齊欄位
+mkdir -p ~/.jitsi-meet-cfg/jibri/recordings
+
+# 設定（換成你的主機 IP / 網域；JIBRI_*_PASSWORD 填主機那兩個值）
+cat >> .env <<'EOF'
+PUBLIC_URL=https://meet.example.com
+TZ=Asia/Taipei
+ENABLE_RECORDING=1
+XMPP_SERVER=192.168.1.134
+XMPP_PORT=5222
+XMPP_TRUST_ALL_CERTS=1
+XMPP_DOMAIN=meet.jitsi
+XMPP_AUTH_DOMAIN=auth.meet.jitsi
+XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
+XMPP_MUC_DOMAIN=muc.meet.jitsi
+XMPP_RECORDER_DOMAIN=hidden.meet.jitsi
+JIBRI_BREWERY_MUC=jibribrewery
+JIBRI_XMPP_USER=jibri
+JIBRI_RECORDER_USER=recorder
+JIBRI_RECORDING_DIR=/config/recordings
+JIBRI_XMPP_PASSWORD=<貼主機的 JIBRI_XMPP_PASSWORD>
+JIBRI_RECORDER_PASSWORD=<貼主機的 JIBRI_RECORDER_PASSWORD>
+EOF
+```
+
+> **關鍵**：`XMPP_SERVER` 指向主機、`XMPP_TRUST_ALL_CERTS=1`（prosody 內部憑證為自簽）、`JIBRI_*_PASSWORD` 與主機**完全一致**（jibri/recorder 帳號是註冊在主機 prosody 上）；XMPP domains 與主機相同。
+
+3) 建 CJK 映像（第五節，**注意不要 `USER jibri`**）。
+
+4) 建獨立 compose（只跑 jibri、自帶 `/dev/snd` 與 `extra_hosts`）：
+
+```yaml
+# docker-compose.jibri-standalone.yml
+services:
+  jibri:
+    image: jibri-cjk:stable-10888
+    restart: unless-stopped
+    volumes:
+      - ${CONFIG}/jibri:/config:Z
+    shm_size: "2gb"
+    cap_add: [ SYS_ADMIN ]
+    devices: [ "/dev/snd:/dev/snd" ]
+    extra_hosts:
+      - "meet.example.com:192.168.1.134"   # 讓錄影 Chrome 解析到主機內網 IP
+    environment:
+      - PUBLIC_URL
+      - TZ
+      - XMPP_SERVER
+      - XMPP_PORT
+      - XMPP_TRUST_ALL_CERTS
+      - XMPP_DOMAIN
+      - XMPP_AUTH_DOMAIN
+      - XMPP_INTERNAL_MUC_DOMAIN
+      - XMPP_MUC_DOMAIN
+      - XMPP_RECORDER_DOMAIN
+      - JIBRI_XMPP_USER
+      - JIBRI_XMPP_PASSWORD
+      - JIBRI_RECORDER_USER
+      - JIBRI_RECORDER_PASSWORD
+      - JIBRI_BREWERY_MUC
+      - JIBRI_RECORDING_DIR
+      - DISPLAY=:0
+```
+
+5) 起 2 路：
+
+```bash
+docker compose -f docker-compose.jibri-standalone.yml up -d --scale jibri=2
+```
+
+### 9-3 驗證
+
+```bash
+# Jibri VM：兩個容器都 running，且 log 出現 "Joined MUC: jibribrewery@internal-muc.meet.jitsi"
+docker compose -f docker-compose.jibri-standalone.yml ps
+docker logs <jibri容器> 2>&1 | grep -E "Authenticated|Joined MUC"
+
+# 主機 jicofo：應看到 2 個 brewery 實例 available = true
+docker logs docker-jitsi-meet-jicofo-1 2>&1 | grep -i "brewery instance"
+```
+
+最後開一場會議按錄影實測（中文不缺字、可同時錄 2 間）。
+
+> 常見坑：① CJK Dockerfile 結尾誤加 `USER jibri` → 容器一直重啟（s6 權限）。② `JIBRI_*_PASSWORD` 與主機不一致 → log 顯示 authentication 失敗。③ 主機 prosody 5222 未對 Jibri VM 開放 → 連不上。④ Jibri VM 解析不到 `meet.example.com` 內網 IP → 用 `extra_hosts` 或內部 DNS 解決。
