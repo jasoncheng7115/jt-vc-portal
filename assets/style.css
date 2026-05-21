@@ -910,6 +910,47 @@ input:focus {
   border-color: var(--text);
   box-shadow: 0 0 0 3px rgba(24,24,27,0.08);
 }
+
+/* 自訂核取方塊 / 單選圓鈕（取代瀏覽器原生，全站視覺一致） */
+input[type="checkbox"],
+input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex-shrink: 0;
+  vertical-align: -4px;
+  border: 1.5px solid var(--border-strong);
+  background: #fff;
+  cursor: pointer;
+  position: relative;
+  transition: border-color .12s ease, background .12s ease, box-shadow .12s ease;
+}
+input[type="checkbox"] { border-radius: 5px; }
+input[type="radio"] { border-radius: 50%; }
+input[type="checkbox"]:hover,
+input[type="radio"]:hover { border-color: var(--text); }
+input[type="checkbox"]:checked,
+input[type="radio"]:checked { background: var(--text); border-color: var(--text); }
+input[type="checkbox"]:checked::after {
+  content: ""; position: absolute; left: 5px; top: 1.5px;
+  width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+input[type="radio"]:checked::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 7px; height: 7px; border-radius: 50%; background: #fff;
+  transform: translate(-50%, -50%);
+}
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible { box-shadow: 0 0 0 3px rgba(24,24,27,0.14); }
+body.is-dark input[type="checkbox"],
+body.is-dark input[type="radio"] { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.28); }
+body.is-dark input[type="checkbox"]:checked,
+body.is-dark input[type="radio"]:checked { background: #fff; border-color: #fff; }
+body.is-dark input[type="checkbox"]:checked::after { border-color: #18181b; }
+body.is-dark input[type="radio"]:checked::after { background: #18181b; }
 .field-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1001,7 +1042,7 @@ input:focus {
   padding: 12px 14px;
   cursor: pointer;
 }
-.schedule-head input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; width: 16px; height: 16px; cursor: pointer; }
+.schedule-head input[type="checkbox"] { margin-top: 2px; flex-shrink: 0; width: 18px; height: 18px; cursor: pointer; }
 .schedule-body {
   padding: 14px;
   background: var(--bg-soft);
@@ -1022,7 +1063,7 @@ body.is-dark .schedule-body { border-top-color: rgba(255,255,255,0.10); backgrou
   margin-bottom: 16px;
   cursor: pointer;
 }
-.lobby-toggle input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; width: 16px; height: 16px; cursor: pointer; }
+.lobby-toggle input[type="checkbox"] { margin-top: 2px; flex-shrink: 0; width: 18px; height: 18px; cursor: pointer; }
 .lobby-toggle .lobby-text, .schedule-head .lobby-text { display: flex; flex-direction: column; gap: 3px; }
 .lobby-toggle .lobby-title, .schedule-head .lobby-title { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--text); }
 body.is-dark .lobby-toggle { border-color: rgba(255,255,255,0.10); }
