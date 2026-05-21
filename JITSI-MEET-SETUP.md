@@ -243,7 +243,7 @@ HTTP_PORT=8000
 
 ## 三、啟用 JWT 驗證（建議）
 
-讓 Jitsi **只接受 jt-vc-portal 簽發的 token**，避免任何人猜到房名就闖入。jt-vc-portal 自建模式使用 **HS256 共享密鑰**簽 token。
+讓 Jitsi **只接受 jt-vc-portal 簽發的 token**，避免任何人猜到會議室名稱就闖入。jt-vc-portal 自建模式使用 **HS256 共享密鑰**簽 token。
 
 在 `.env` 設定：
 
@@ -272,7 +272,7 @@ JWT_ACCEPTED_AUDIENCES=jt-vc-portal   # 與 App ID 相同
 
 ### 不想用 JWT（開放模式）
 
-只要 `ENABLE_AUTH=0`，並在 jt-vc-portal「自建是否需 JWT」選「否」即可——前端不帶 token，任何人有房名就能進。**安全性較低，僅適合內網 / 測試。**
+只要 `ENABLE_AUTH=0`，並在 jt-vc-portal「自建是否需 JWT」選「否」即可——前端不帶 token，任何人有會議室名稱就能進。**安全性較低，僅適合內網 / 測試。**
 
 ---
 

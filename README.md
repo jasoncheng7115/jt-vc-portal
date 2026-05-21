@@ -25,7 +25,7 @@
 - **大廳模式**：建立會議室時可選；主持人進場自動開啟，來賓需經主持人逐一允許才能進入會議室。
 - **Email 邀請**：填寫與會者 email，寄送含 `.ics`（METHOD:REQUEST）的邀請信，可一鍵加入行事曆。
 - **多帳號 / 角色 / 2FA**：admin 看全部、host 只看自己建立的會議室；支援 TOTP 兩步驟驗證。
-- **稽核與安全**：完整行為稽核記錄（登入、建室、邀請、設定變更…）+ 即時外拋 syslog / CEF / GELF；fail2ban 登入鎖定；CSRF；對齊 OWASP Top 10:2025。
+- **稽核與安全**：完整行為稽核記錄（登入、建室、邀請、設定變更…）+ 即時外拋 syslog / CEF / GELF；fail2ban 登入鎖定；CSRF；遵循 OWASP Top 10:2025。
 - **可自訂外觀**：22 種主題、可換站台名稱與 logo、會議室預設 UI 語言。
 - **用量統計**：JaaS 模式可接 USAGE webhook，依訂閱週期統計 MAU。
 - **零外部 PHP 套件**：核心全部手寫，無 composer 相依（前端僅用 CDN 的 qrcodejs / flatpickr）。
@@ -293,12 +293,18 @@ docker run -d --restart unless-stopped \
 
 ## 安全性
 
-- **存取控制**（OWASP A01）：未授權頁面回 404、會議室依擁有者隔離、CSRF token。
-- **認證**（A07）：bcrypt 密碼、TOTP 2FA、fail2ban 登入鎖定（依真實來源 IP）。
-- **加密**（A04）：JWT 簽章、webhook HMAC 簽章驗證、安全 session cookie。
-- **記錄與告警**（A09）：完整稽核記錄 + 即時 SIEM 外拋。
-- **設定強化**（A02）：關閉錯誤顯示與版本洩漏、安全標頭、敏感路徑拒絕存取。
-- **供應鏈**（A03）：零外部 PHP 套件；Dockerfile 建置時套用最新 OS 安全更新。
+遵循 OWASP Top 10:2025，逐項對應：
+
+- **A01 存取控制**：未授權頁面回 404、會議室依擁有者隔離、CSRF token。
+- **A02 安全設定**：關閉錯誤顯示與版本洩漏、安全標頭、敏感路徑拒絕存取。
+- **A03 供應鏈**：零外部 PHP 套件；前端 CDN 資源加 SRI 完整性驗證；映像建置時套用最新 OS 安全更新。
+- **A04 加密**：bcrypt 密碼、JWT 簽章、webhook HMAC、安全 session cookie。
+- **A05 注入**：輸出跳脫、輸入清洗、Email header injection 防護。
+- **A06 安全設計**：閘道式架構、預設安全（來賓須具名、主持人在線上才放行）、角色最小權限。
+- **A07 認證**：TOTP 2FA、fail2ban 登入鎖定（依真實來源 IP）。
+- **A08 資料完整性**：webhook 以 HMAC 簽章驗證來源，並用 idempotency key 去除重複事件。
+- **A09 記錄與告警**：完整稽核記錄 + 即時 SIEM 外拋。
+- **A10 例外處理**：失敗安全降級——讀取失敗回預設、寄信 / 外拋失敗不阻斷主流程、錯誤不外洩。
 - 私鑰、設定與執行資料皆存於掛載卷，**不進版控**（見 `.gitignore`）。
 
 ---
