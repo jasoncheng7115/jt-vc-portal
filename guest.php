@@ -176,6 +176,7 @@ window.addEventListener('load', () => {
 $status = $eval['status'];
 $starts_at = $eval['starts_at'];
 $ends_at   = $eval['ends_at'];
+$poll = Settings::getGuestPollSeconds();
 
 render_head($status === 'countdown' ? '會議即將開始' : ($status === 'expired' ? '會議已結束' : '等候主持人'));
 ?>
@@ -228,7 +229,7 @@ render_head($status === 'countdown' ? '會議即將開始' : ($status === 'expir
       <?php else: /* wait_host */ ?>
         <div class="spinner"></div>
         <h1>等候主持人開啟會議室</h1>
-        <p class="muted" style="margin:6px 0 0;">系統將每 60 秒自動檢查，主持人進入後您會自動加入。</p>
+        <p class="muted" style="margin:6px 0 0;">系統將每 <?= (int)$poll ?> 秒自動檢查，主持人進入後您會自動加入。</p>
         <div class="stage-actions">
           <button type="button" class="btn btn-secondary" id="retryNow"><?= icon('refresh', 14) ?>立即重試</button>
         </div>
@@ -240,7 +241,7 @@ render_head($status === 'countdown' ? '會議即將開始' : ($status === 'expir
 <script>
   const ROOM = <?= json_encode($room) ?>;
   const STATUS = <?= json_encode($status) ?>;
-  const POLL_MS = 60000;
+  const POLL_MS = <?= (int)$poll * 1000 ?>;
   let startsAt  = <?= $starts_at !== null ? (int)$starts_at : 'null' ?>;
   let endsAt    = <?= $ends_at   !== null ? (int)$ends_at   : 'null' ?>;
   let serverNow = <?= time() ?>;

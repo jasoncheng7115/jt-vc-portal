@@ -72,7 +72,7 @@ render_topbar($me, $ip);
   </div>
 
   <!-- 會議室介面 -->
-  <?php $meeting_lang = Settings::getMeetingLang(); $meeting_retention = Settings::getMeetingRetentionDays(); ?>
+  <?php $meeting_lang = Settings::getMeetingLang(); $meeting_retention = Settings::getMeetingRetentionDays(); $guest_poll = Settings::getGuestPollSeconds(); ?>
   <div class="card">
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('video', 18) ?>會議室介面</h1>
     <p class="subtitle" style="margin:6px 0 18px;">設定來賓 / 主持人進入會議室時的預設介面語言（會關閉瀏覽器語言自動偵測，強制使用此語言）。</p>
@@ -89,9 +89,12 @@ render_topbar($me, $ip);
       <div class="field"><label>會議時長保留天數</label>
         <input type="number" name="meeting_retention_days" min="7" max="3650" value="<?= (int)$meeting_retention ?>" style="width:120px;">
       </div>
+      <div class="field"><label>等候頁自動檢查間隔（秒）</label>
+        <input type="number" name="guest_poll_seconds" min="10" max="600" value="<?= (int)$guest_poll ?>" style="width:120px;">
+      </div>
       <button class="btn btn-secondary"><?= icon('check',14) ?>儲存</button>
     </form>
-    <p class="help" style="margin:10px 0 0;">會議時長記錄（用量統計頁）保留最近 N 天，超過自動清除；預設 365 天。</p>
+    <p class="help" style="margin:10px 0 0;">會議時長記錄（用量統計頁）保留最近 N 天，超過自動清除；預設 365 天。<br>來賓在「等候主持人 / 倒數」頁每隔此秒數自動重新檢查是否可進入；預設 30 秒，範圍 10–600。</p>
   </div>
 
   <!-- 連線模式設定 -->

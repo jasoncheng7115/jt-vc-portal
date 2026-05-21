@@ -87,6 +87,18 @@ class Settings {
     self::save($d);
   }
 
+  /** 來賓等候頁自動檢查間隔（秒），預設 30；範圍 10–600。 */
+  public static function getGuestPollSeconds(): int {
+    $d = (int)(self::load()['guest_poll_seconds'] ?? 30);
+    return max(10, min(600, $d));
+  }
+
+  public static function setGuestPollSeconds(int $s): void {
+    $d = self::load();
+    $d['guest_poll_seconds'] = max(10, min(600, $s));
+    self::save($d);
+  }
+
   // === 會議室自訂（僅自建 Jitsi Meet 模式套用）===
   /** 一律保留、不開放關閉的工具列按鈕。 */
   const MEETING_BASE_BUTTONS = ['camera','microphone','toggle-camera','hangup','fullscreen','videoquality','profile','settings','filmstrip','highlight','help','shortcuts','mute-everyone','mute-video-everyone'];

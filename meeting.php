@@ -80,7 +80,7 @@ window.addEventListener('load', () => {
       resolution: <?= (int)$mui['resolution'] ?>,
       fileRecordingsEnabled: true,
       fileRecordingsServiceEnabled: true,
-      recordingService: { enabled: true, sharingEnabled: true },
+      recordingService: { enabled: true, sharingEnabled: false },
       // 停用即時逐字稿與直播串流（避免額外計費）
       transcribingEnabled: false,
       transcription: { enabled: false, autoCaptionOnRecord: false },
