@@ -32,6 +32,13 @@
 
 ---
 
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
 ## 部署拓撲（建議 Jibri 獨立一台 VM）
 
 | 規模 | 建議 |
@@ -50,6 +57,13 @@
 > 本文第三～四節以「同一台」寫，最容易上手。**若要「獨立 Jibri VM」(與 Jitsi 分機，建議的正式做法)，完整實作步驟見[第九節](#九獨立-jibri-vm與-jitsi-分機實作步驟)。** 第二節(snd-aloop)、第五節(CJK 字型)兩台都需要。
 
 ---
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 
 ## 一、Jibri 是什麼、有什麼限制
 
@@ -85,6 +99,13 @@ Jibri 需要在主機核心 **載入 `snd-aloop` 模組** 並存取 **`/dev/snd`
 - **最小可跑**（偶爾 1 路）：2 vCPU / 4 GB / 系統 20 GB + 錄影空間。
 
 ---
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 
 ## 二、主機（VM）前置：載入 snd-aloop（決定可並行的場數）
 
@@ -148,6 +169,13 @@ cat /proc/asound/cards        # 應看到 2 張 "Loopback" 卡（index 0、1）
 
 ---
 
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
 ## 三、啟用錄影（docker-jitsi-meet `.env`）
 
 > **不用再手改 prosody / jicofo / jibri 設定檔了。** 舊的「套件版（apt 安裝）」要手動改 `prosody` 的 recorder vhost、jibri brewery MUC、`jicofo` 屬性、`jibri.conf`、`prosodyctl register` 等——**docker 版這些全部由容器啟動時依環境變數自動產生**。你只要設 `.env` 變數即可，主機端真正要做的只剩 `snd-aloop`（第二節，因為那是核心層、容器產不出來）。
@@ -185,6 +213,13 @@ Jibri 容器需存取主機 `/dev/snd`（jibri.yml 已設 `devices: /dev/snd`）
 - `CONFIG` 變數（docker-jitsi-meet `.env`，預設 `~/.jitsi-meet-cfg`）決定所有元件設定 / 資料的主機根目錄；要整批換位置改它。
 
 ---
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 
 ## 四、增減錄製器
 
@@ -238,6 +273,13 @@ docker compose -f docker-compose.yml -f jibri.yml ps              # 應有對應
 
 ---
 
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
 ## 五、錄影中文顯示（必做）
 
 Jibri 是用 headless Chrome「把會議畫面錄下來」。**官方 `jitsi/jibri` 映像不含 CJK 字型**，因此中文姓名 / 聊天 / 字幕在錄影裡會變成空白方框（□，俗稱缺字）。需在 jibri 映像加裝中文字型。
@@ -268,6 +310,13 @@ docker build -t jibri-cjk:stable-10888 ./jibri-cjk
 > 驗證：錄一段含中文姓名的會議，播放確認中文正常（非缺字方框）。Noto CJK 對繁體中文覆蓋最完整。
 
 ---
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 
 ## 六、錄影檔與調閱（jibri-recordings-api）
 
@@ -356,6 +405,13 @@ systemctl is-active jibri-recordings-api
 
 ---
 
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
 ## 七、疑難排解
 
 | 症狀 | 處理 |
@@ -369,6 +425,13 @@ systemctl is-active jibri-recordings-api
 | 錄影檔顯示「錄製中」一直不變 | portal 用 `metadata.json` 是否存在判定是否結束（Jibri 在 finalize 後才寫它）；若 finalize 異常未寫出，會卡在「錄製中」→ 查 jibri log 是否有 finalize 錯誤 |
 
 ---
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 
 ## 八、升級 SOP
 
@@ -408,6 +471,13 @@ docker compose -f docker-compose.yml -f jibri.yml ps     # web/prosody/jicofo/jv
 > `snd-aloop` 是核心模組、與映像版本無關，升級時不用重設（除非你重灌了 VM）。
 
 ---
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 
 ## 九、獨立 Jibri VM（與 Jitsi 分機）實作步驟
 

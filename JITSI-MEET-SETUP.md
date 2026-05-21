@@ -33,6 +33,13 @@
 
 ---
 
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
 ## 架構概念
 
 ```
@@ -49,6 +56,13 @@
 
 ---
 
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
 ## 前置需求
 
 - 一台對外可連、有 DNS 的主機，例 `meet.example.com`（需與 jt-vc-portal 不同網域或子網域）。
@@ -57,6 +71,13 @@
 - 已安裝 Docker 與 Docker Compose。
 
 ---
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 
 ## 連接埠與 NAT 設定
 
@@ -196,6 +217,13 @@ external_services = {
 
 ---
 
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
 ## 一、取得官方 docker-jitsi-meet
 
 ```bash
@@ -212,6 +240,13 @@ mkdir -p ~/.jitsi-meet-cfg/{web,transcripts,prosody/config,prosody/prosody-plugi
 > `.env` 內的 `JITSI_IMAGE_VERSION` 應為 `stable-10888`（與 checkout 的 tag 一致），確保拉到對應映像。
 
 ---
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 
 ## 二、基本對外設定（編輯 `.env`）
 
@@ -267,6 +302,13 @@ HTTP_PORT=8000
 反代把 `https://meet.example.com` 轉到容器 `HTTP_PORT`，並務必轉發 **WebSocket**（會議信令需要）與 `X-Forwarded-*` / `Host` 標頭。
 
 ---
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 
 ## 三、啟用 JWT 驗證（建議）
 
@@ -350,6 +392,13 @@ GLOBAL_CONFIG=disable_cascading_set = false    # jicofo 開驗證時必設，否
 
 ---
 
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
 ## 四、啟動 Jitsi
 
 ```bash
@@ -360,6 +409,13 @@ docker compose ps
 驗證：瀏覽器開 `https://meet.example.com/external_api.js` 應可取得 JS（jt-vc-portal 內嵌時會載入它）。
 
 ---
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 
 ## 五、jt-vc-portal 端設定
 
@@ -389,6 +445,13 @@ docker compose ps
 
 ---
 
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
 ## 六、疑難排解
 
 | 症狀 | 可能原因 / 處理 |
@@ -402,11 +465,25 @@ docker compose ps
 
 ---
 
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
 ## 七、錄影（Jibri，選用）
 
 會議錄影需另外部署 **Jibri**（獨立資源、一台同時錄一場）。完整步驟——含 **同時多會議室錄製** 與 **錄影中文顯示（CJK 字型）** 的處理——見 **[JIBRI-SETUP.md](JIBRI-SETUP.md)**。
 
 ---
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 
 ## 八、品牌 logo 與隱藏錄製者（伺服器 config.js）
 
@@ -455,6 +532,13 @@ docker exec docker-jitsi-meet-web-1 grep -E "defaultLogoUrl|hiddenDomain" /confi
 再錄一段測試：播放確認左上是自訂 logo（非 jitsi 預設浮水印），且與會者清單/人數**不含**錄製者。
 
 ---
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 
 ## 九、升級 Jitsi
 

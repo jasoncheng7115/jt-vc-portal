@@ -33,6 +33,13 @@
 
 ---
 
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
 ## 系統需求
 
 | 項目 | 最低 | 建議 |
@@ -45,6 +52,13 @@
 > 自建 Jitsi Meet 模式另需一台可用的 Jitsi Meet 伺服器（詳見「連線模式」）。
 
 ---
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 
 ## 安裝方式一：直接安裝（Apache + PHP）
 
@@ -112,6 +126,13 @@ PHP 安全強化（建議於 `php.ini` 或 conf.d）：`display_errors=Off`、`e
 
 ---
 
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
 ## 安裝方式二：Docker 打包部署
 
 ```bash
@@ -156,6 +177,13 @@ server {
 
 ---
 
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
 ## 安裝方式三：從 GitHub Release 載入預建映像
 
 不想自己 build？可直接下載 [Release](https://github.com/jasoncheng7115/jt-vc-portal/releases) 附的打包映像（`linux/amd64`），`docker load` 後即可執行。
@@ -191,6 +219,13 @@ docker run -d --restart unless-stopped \
 > HTTPS 反向代理設定同方式二。
 
 ---
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 
 ## 更新 / 升級
 
@@ -266,6 +301,13 @@ docker run -d --restart unless-stopped \
 
 ---
 
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
 ## 首次設定
 
 1. 開啟站台 → `/jt-login` 以初始管理員登入（密碼見上方）。
@@ -300,6 +342,13 @@ docker run -d --restart unless-stopped \
 
 ---
 
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
 ## 登入頁路徑偽裝
 
 預設登入入口為 `/jt-login`。可於 **系統設定 → 登入頁路徑** 改成只有你知道的祕密路徑（僅允許英數與 `. _ -`，長度 1–64），降低被自動掃描 / 暴力嘗試的機會。
@@ -320,6 +369,13 @@ sudo -u www-data php login-path.php reset
 
 ---
 
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
 ## 錄影調閱（自建 Jibri）
 
 自建 Jitsi Meet + Jibri 錄影時，可在 Jibri 主機上跑隨附的 `jibri-recordings-api`（純 Python 標準庫服務），讓 portal 線上**列表 / 播放 / 下載 / 刪除**錄影，並顯示**錄影主機容量**。
@@ -330,6 +386,13 @@ sudo -u www-data php login-path.php reset
 - 服務安裝與 systemd 設定見 **[JIBRI-SETUP.md](JIBRI-SETUP.md)**。
 
 ---
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 
 ## 安全性
 
@@ -349,13 +412,34 @@ sudo -u www-data php login-path.php reset
 
 ---
 
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
 ## 授權
 
 本專案以 [Apache License 2.0](LICENSE) 釋出。
 
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
 ## 免責聲明
 
 本軟體依「現狀」提供，不附任何明示或默示之擔保。使用者須自行負責部署環境之安全性與合規性（含第三方服務如 8x8 JaaS 之條款與費用）。作者不對任何因使用本軟體所生之直接或間接損失負責。
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 
 ## 作者 / 連結
 
