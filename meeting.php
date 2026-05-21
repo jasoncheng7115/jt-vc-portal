@@ -79,8 +79,9 @@ window.addEventListener('load', () => {
       videoQuality: {
         codecPreferenceOrder: ['VP9', 'H264', 'VP8', 'AV1'],
         mobileCodecPreferenceOrder: ['VP9', 'H264', 'VP8', 'AV1'],
-        enableAdaptiveMode: true
+        enableAdaptiveMode: false   // 不因頻寬自動關閉他人視訊（停用「已關閉視訊以節省頻寬」）
       },
+      channelLastN: -1,             // 接收所有人的視訊，不因 lastN 關閉
       enableLobby: true,
       startWithAudioMuted: <?= $mui['mute_audio'] ? 'true' : 'false' ?>,
       startWithVideoMuted: <?= $mui['mute_video'] ? 'true' : 'false' ?>,
