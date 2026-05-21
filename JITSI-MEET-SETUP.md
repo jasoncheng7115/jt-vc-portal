@@ -274,6 +274,18 @@ JWT_ACCEPTED_AUDIENCES=jt-vc-portal   # 與 App ID 相同
 >
 > 為何 sub 預設 `*`：標準單網域 docker-jitsi-meet（非租戶）的 prosody token 驗證只接受 `sub` 為 `*` 或租戶名；本系統已預設送 `*`，直接可用。
 
+### 啟用 JWT 後的存取行為（會擋匿名）
+
+開啟 JWT 後，`https://meet.example.com/` 的前端仍會載入，但**沒有 jt-vc-portal 簽發的 token 就無法建立或加入任何會議室**（會出現驗證失敗）——等於**不能匿名開房**，也一併擋掉直接打網域進來的官方手機 App。只有經 jt-vc-portal（帶 token）進來的人才進得去。
+
+若連「輸入房名的歡迎頁」都不想露出、把 meet 當純後端，可在 `.env` 加：
+
+```ini
+ENABLE_WELCOME_PAGE=0
+```
+
+> 不影響 jt-vc-portal 的 IFrame 內嵌——它透過 `external_api.js` 指定房間加入，與歡迎頁無關。
+
 ### 不想用 JWT（開放模式）
 
 只要 `ENABLE_AUTH=0`，並在 jt-vc-portal「自建是否需 JWT」選「否」即可——前端不帶 token，任何人有會議室名稱就能進。**安全性較低，僅適合內網 / 測試。**
