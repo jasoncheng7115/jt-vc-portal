@@ -105,18 +105,32 @@ render_topbar($me, $ip);
 
       <div class="field">
         <label>會議室左上 logo</label>
-        <label style="font-weight:400;display:block;margin:4px 0;"><input type="radio" name="logo_mode" value="site" <?= $mc['logo_mode']==='site'?'checked':'' ?>> 使用站台 logo（系統設定 → 站台設定）</label>
+        <label style="font-weight:400;display:block;margin:4px 0;"><input type="radio" name="logo_mode" value="site" <?= $mc['logo_mode']==='site'?'checked':'' ?>> 沿用本系統 jt-vc-portal 的站台 logo（即「系統設定 → 站台設定」上傳的那個）</label>
         <label style="font-weight:400;display:block;margin:4px 0;"><input type="radio" name="logo_mode" value="custom" <?= $mc['logo_mode']==='custom'?'checked':'' ?>> 自訂 logo 網址</label>
         <label style="font-weight:400;display:block;margin:4px 0;"><input type="radio" name="logo_mode" value="none" <?= $mc['logo_mode']==='none'?'checked':'' ?>> 不顯示 logo</label>
       </div>
-      <div class="field"><label>自訂 logo 網址</label>
+      <div class="field" id="fieldLogoUrl"><label>自訂 logo 網址</label>
         <input type="url" name="logo_url" value="<?= htmlspecialchars($mc['logo_url']) ?>" placeholder="https://example.com/logo.png">
         <div class="help">選「自訂 logo 網址」時生效，需為公開可存取的圖片網址。</div>
       </div>
-      <div class="field"><label>logo 點擊連結</label>
+      <div class="field" id="fieldLogoLink"><label>logo 點擊連結</label>
         <input type="url" name="logo_link" value="<?= htmlspecialchars($mc['logo_link']) ?>" placeholder="https://example.com">
         <div class="help">點按會議室 logo 時開啟的網址；留空則用本系統對外網址。</div>
       </div>
+      <script>
+        (function(){
+          var radios = document.querySelectorAll('input[name="logo_mode"]');
+          var fUrl = document.getElementById('fieldLogoUrl');
+          var fLink = document.getElementById('fieldLogoLink');
+          function upd(){
+            var m = (document.querySelector('input[name="logo_mode"]:checked') || {}).value;
+            if (fUrl)  fUrl.style.display  = (m === 'custom') ? '' : 'none';   // 僅「自訂網址」顯示
+            if (fLink) fLink.style.display = (m === 'none')   ? 'none' : '';   // 「不顯示 logo」時連結也隱藏
+          }
+          radios.forEach(function(r){ r.addEventListener('change', upd); });
+          upd();
+        })();
+      </script>
 
       <div class="field">
         <label>進入預設值</label>

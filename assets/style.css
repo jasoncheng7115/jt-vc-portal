@@ -293,6 +293,7 @@ body.is-dark .field .help { color: rgba(255,255,255,0.5); }
 body.is-dark input[type="text"],
 body.is-dark input[type="email"],
 body.is-dark input[type="password"],
+body.is-dark input[type="url"],
 body.is-dark input[type="datetime-local"] {
   background: rgba(255,255,255,0.04);
   border-color: rgba(255,255,255,0.14);
@@ -300,6 +301,7 @@ body.is-dark input[type="datetime-local"] {
 }
 body.is-dark input[type="text"]::placeholder,
 body.is-dark input[type="email"]::placeholder,
+body.is-dark input[type="url"]::placeholder,
 body.is-dark input[type="password"]::placeholder { color: rgba(255,255,255,0.35); }
 body.is-dark input:focus {
   border-color: rgba(255,255,255,0.5);
@@ -891,6 +893,7 @@ input[type="text"],
 input[type="email"],
 input[type="password"],
 input[type="number"],
+input[type="url"],
 input[type="datetime-local"] {
   width: 100%;
   padding: 10px 12px;
