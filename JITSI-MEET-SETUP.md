@@ -274,30 +274,26 @@ JWT_ACCEPTED_AUDIENCES=jt-vc-portal   # 與 App ID 相同
 >
 > 為何 sub 預設 `*`：標準單網域 docker-jitsi-meet（非租戶）的 prosody token 驗證只接受 `sub` 為 `*` 或租戶名；本系統已預設送 `*`，直接可用。
 
-### 啟用 JWT 後的存取行為（會擋匿名）
+### 啟用 JWT 後的存取行為（預設已擋匿名）
 
-開啟 JWT 後，`https://meet.example.com/` 的前端仍會載入，但**沒有 jt-vc-portal 簽發的 token 就無法建立或加入任何會議室**（會出現驗證失敗）——等於**不能匿名開房**，也一併擋掉直接打網域進來的官方手機 App。只有經 jt-vc-portal（帶 token）進來的人才進得去。
+開啟 JWT 後，`https://meet.example.com/` 的前端仍會載入，但**沒有 jt-vc-portal 簽發的 token 就無法建立或加入任何會議室**（會出現驗證失敗）——已經**擋掉匿名開房**，也擋掉直接打網域進來的官方手機 App。只有經 jt-vc-portal（帶 token）進來的人才進得去，**安全性無虞**。
 
-若連「輸入房名的歡迎頁」都不想露出、把 meet 當純後端，可在 `.env` 加：
-
-```ini
-ENABLE_WELCOME_PAGE=0
-```
-
-> 注意：關掉歡迎頁後，直接打根目錄 `/` 會**自動產生隨機房名**，手機還會跳出「在應用程式中加入」的深層連結頁（點了也會被 JWT 擋）。
-
-**更乾淨：把根目錄導回 portal。** 利用 web 容器既有的 `include /config/nginx-custom/*.conf;`，丟一個只對 `/` 轉址的設定（房間網址、`external_api.js`、IFrame 內嵌都不受影響）：
-
-```bash
-mkdir -p ~/.jitsi-meet-cfg/web/nginx-custom
-cat > ~/.jitsi-meet-cfg/web/nginx-custom/redirect-root.conf <<'EOF'
-location = / {
-    return 302 https://vc.example.com/;   # 換成你的 jt-vc-portal 網址
-}
-EOF
-docker exec docker-jitsi-meet-web-1 nginx -s reload
-```
-
+> **以下純屬「觀感」美化，可選，不做也不影響安全。** 只有當你在意「直接打 `meet.example.com` 還看得到 Jitsi 介面 / 隨機房 / App 安裝提示」、想把 meet 當純後端時，再改這段：
+>
+> **(1) 隱藏歡迎頁**（`.env`）：`ENABLE_WELCOME_PAGE=0`。注意關掉後直接打 `/` 會自動產生隨機房名，手機仍會跳「在應用程式中加入」深層連結頁（點了也會被 JWT 擋）。
+>
+> **(2) 更乾淨——根目錄導回 portal**：利用 web 容器既有的 `include /config/nginx-custom/*.conf;`，丟一個只對 `/` 轉址的設定（房間網址、`external_api.js`、IFrame 內嵌都不受影響）：
+>
+> ```bash
+> mkdir -p ~/.jitsi-meet-cfg/web/nginx-custom
+> cat > ~/.jitsi-meet-cfg/web/nginx-custom/redirect-root.conf <<'EOF'
+> location = / {
+>     return 302 https://vc.example.com/;   # 換成你的 jt-vc-portal 網址
+> }
+> EOF
+> docker exec docker-jitsi-meet-web-1 nginx -s reload
+> ```
+>
 > 這樣直接打 `meet.example.com` 會轉到入口 portal；只有經 portal 內嵌（`/<房間>` + `external_api.js`）的請求照常服務。
 
 ### 不想用 JWT（開放模式）
