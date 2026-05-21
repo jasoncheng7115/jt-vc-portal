@@ -1,4 +1,4 @@
-# jt-vc-portal v1.5.0 — 會議管理系統
+# jt-vc-portal v1.6.0 — 會議管理系統
 
 > 搭配 Jitsi Meet 基底的會議入口系統，**雙模式**支援 [8x8 JaaS](https://jaas.8x8.vc/)[^8x8]（雲端託管）與 **[自建 Jitsi Meet](https://github.com/jitsi/jitsi-meet)**。
 > 主持人登入後即可建立會議室、產生邀請連結（含 QR / `.ics` 行事曆邀請），來賓經由邀請連結加入。
@@ -26,8 +26,9 @@
 - **Email 邀請**：填寫與會者 email，寄送含 `.ics`（METHOD:REQUEST）的邀請信，可一鍵加入行事曆。
 - **多帳號 / 角色 / 2FA**：admin 看全部、host 只看自己建立的會議室；支援 TOTP 兩步驟驗證。
 - **稽核與安全**：完整行為稽核記錄（登入、建室、邀請、設定變更…）+ 即時外拋 syslog / CEF / GELF；fail2ban 登入鎖定；CSRF；遵循 OWASP Top 10:2025。
-- **可自訂外觀**：22 種主題、可換站台名稱與 logo、會議室預設 UI 語言。
-- **用量統計**：JaaS 模式可接 USAGE webhook，依訂閱週期統計 MAU。
+- **錄影調閱**（自建 Jibri）：串接 Jibri 主機的錄影服務，線上列表 / 播放 / 下載 / 刪除、主機容量、保留政策（時間 / 容量 / 殘留，預設停用）；主持人可調閱自己主持會議的錄影。
+- **可自訂外觀**：60 種 Jitsi 介面語言、22 種主題、可換站台名稱與 logo、登入頁路徑偽裝。
+- **會議統計**：會議時長排行、尖峰同時人數與參與者進出時間軸；JaaS 模式另可接 USAGE webhook 統計 MAU。
 - **零外部 PHP 套件**：核心全部手寫，無 composer 相依（前端僅用 CDN 的 qrcodejs / flatpickr）。
 
 ---
@@ -161,14 +162,14 @@ server {
 
 ```bash
 # 1) 從 Release 頁下載映像與校驗檔（請改用最新版本號）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.5.0/jt-vc-portal-1.5.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.5.0/jt-vc-portal-1.5.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.6.0/jt-vc-portal-1.6.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.6.0/jt-vc-portal-1.6.0-docker-amd64.tar.gz.sha256
 
 # 2) 驗證完整性（應顯示 OK）
-sha256sum -c jt-vc-portal-1.5.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.6.0-docker-amd64.tar.gz.sha256
 
-# 3) 載入映像（會建立 jt-vc-portal:1.5.0 與 :latest 標籤）
-docker load < jt-vc-portal-1.5.0-docker-amd64.tar.gz
+# 3) 載入映像（會建立 jt-vc-portal:1.6.0 與 :latest 標籤）
+docker load < jt-vc-portal-1.6.0-docker-amd64.tar.gz
 
 # 4) 主機端準備持久化目錄（www-data UID 預設 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data

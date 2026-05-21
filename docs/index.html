@@ -269,9 +269,9 @@ docker run -d --restart unless-stopped -p 58189:58189 \
 
     <h3 style="margin-top:24px">方法三：從 Release 載入預建映像</h3>
 <pre><span class="c"># 不想自己 build，直接下載 Release 打包映像（linux/amd64）</span>
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.5.0/jt-vc-portal-1.5.0-docker-amd64.tar.gz
-sha256sum -c jt-vc-portal-1.5.0-docker-amd64.tar.gz.sha256   <span class="c"># 驗證完整性</span>
-docker load &lt; jt-vc-portal-1.5.0-docker-amd64.tar.gz        <span class="c"># 載入為 jt-vc-portal:latest</span>
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.6.0/jt-vc-portal-1.6.0-docker-amd64.tar.gz
+sha256sum -c jt-vc-portal-1.6.0-docker-amd64.tar.gz.sha256   <span class="c"># 驗證完整性</span>
+docker load &lt; jt-vc-portal-1.6.0-docker-amd64.tar.gz        <span class="c"># 載入為 jt-vc-portal:latest</span>
 
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
 chown 33:33 /opt/jt-vc-portal/data
