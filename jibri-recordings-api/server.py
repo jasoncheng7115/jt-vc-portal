@@ -170,6 +170,24 @@ def scan():
     out.sort(key=lambda x: x["mtime"], reverse=True)
     return out
 
+def recorder_count():
+    """本機已註冊的錄製器數：先數執行中的 jibri 容器，後援用 snd-aloop loopback 卡數。"""
+    try:
+        import subprocess
+        out = subprocess.run(["docker", "ps", "--format", "{{.Names}}"],
+                             capture_output=True, text=True, timeout=4)
+        if out.returncode == 0:
+            n = sum(1 for ln in out.stdout.splitlines() if "jibri" in ln.lower())
+            if n > 0:
+                return {"recorders": n, "source": "docker"}
+    except Exception:
+        pass
+    try:
+        with open("/proc/asound/cards") as f:
+            return {"recorders": f.read().lower().count("loopback"), "source": "loopback"}
+    except Exception:
+        return {"recorders": 0, "source": "unknown"}
+
 def stats():
     du = shutil.disk_usage(REC_DIR if os.path.isdir(REC_DIR) else "/")
     recs = scan()
@@ -179,6 +197,7 @@ def stats():
     return {
         "disk": {"total": du.total, "used": du.used, "free": du.free},
         "recordings": {"count": len(recs), "size": sum(r["size"] for r in recs), "by_status": by},
+        "jibri": recorder_count(),
         "config": load_conf(),
     }
 

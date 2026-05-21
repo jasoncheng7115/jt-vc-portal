@@ -251,8 +251,10 @@ render_topbar($me, $ip);
     $recorder_name = Settings::getRecorderName();
     $jibri  = Settings::getJibri();
     $jibri_has = Settings::hasJibri();
-    $jibri_ok  = $jibri_has ? Recordings::ping() : false;
-    $rconf  = $jibri_ok ? (Recordings::getConfig() ?? []) : [];
+    $jstats = $jibri_has ? Recordings::stats() : null;   // 一次取回連線狀態 + 設定 + 錄製器數
+    $jibri_ok = $jstats !== null;
+    $rconf  = is_array($jstats['config'] ?? null) ? $jstats['config'] : [];
+    $jrec   = $jstats['jibri']['recorders'] ?? null;
   ?>
   <div class="card">
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('video', 18) ?>錄製設定</h1>
@@ -279,6 +281,10 @@ render_topbar($me, $ip);
       <?php elseif ($jibri_ok): ?><span class="badge badge-success"><?= icon('check',11) ?>已連線</span>
       <?php else: ?><span class="badge badge-warning"><?= icon('warning',11) ?>無法連線</span><?php endif; ?>
       <?php if ($jibri_ok): ?><a href="/recordings" style="margin-left:8px;">前往錄影記錄 →</a><?php endif; ?>
+      <?php if ($jibri_ok && $jrec !== null): ?>
+        <br>已註冊錄製器：<strong><?= (int)$jrec ?></strong> 個（可同時錄製場數）。
+        <a href="<?= htmlspecialchars(APP_GITHUB_URL) ?>/blob/main/JIBRI-SETUP.md#四同時-2-場錄製並行" target="_blank" rel="noopener">增減錄製器 →</a>
+      <?php endif; ?>
     </p>
     <form method="POST" action="/save-settings">
       <?= Auth::csrfField() ?>
