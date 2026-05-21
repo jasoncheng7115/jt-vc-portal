@@ -97,22 +97,6 @@ render_topbar($me, $ip);
     <p class="help" style="margin:10px 0 0;">會議時長記錄（用量統計頁）保留最近 N 天，超過自動清除；預設 365 天。<br>來賓在「等候主持人 / 倒數」頁每隔此秒數自動重新檢查是否可進入；預設 30 秒，範圍 10–600。</p>
   </div>
 
-  <!-- 錄製設定 -->
-  <?php $recorder_name = Settings::getRecorderName(); ?>
-  <div class="card">
-    <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('video', 18) ?>錄製設定</h1>
-    <p class="subtitle" style="margin:6px 0 18px;">設定會議錄製時，錄製者在與會者清單中顯示的名稱（取代 Jitsi 預設的「Fellow Jitster」）。</p>
-    <form method="POST" action="/save-settings" class="inline-form">
-      <?= Auth::csrfField() ?>
-      <input type="hidden" name="section" value="recording">
-      <div class="field"><label>錄製者顯示名稱</label>
-        <input type="text" name="recorder_name" maxlength="40" value="<?= htmlspecialchars($recorder_name) ?>" placeholder="會議錄影" style="max-width:280px;">
-      </div>
-      <button class="btn btn-secondary"><?= icon('check',14) ?>儲存</button>
-    </form>
-    <p class="help" style="margin:10px 0 0;">此名稱實際是「未具名與會者」的預設顯示名稱；本系統的主持人與來賓一律具名，因此只有錄製者會套用到。留空則用「會議錄影」。</p>
-  </div>
-
   <!-- 連線模式設定 -->
   <div class="card">
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('link', 18) ?>連線模式設定</h1>
@@ -258,6 +242,22 @@ render_topbar($me, $ip);
       <button class="btn btn-primary"><?= icon('check') ?>儲存會議室自訂</button>
     </form>
     <p class="help" style="margin:10px 0 0;">提示：切換上方「連線模式」為自建即可即時預覽本卡，<strong>需按下「儲存連線設定」並維持自建模式</strong>，設定才會套用到會議。</p>
+  </div>
+
+  <!-- 錄製設定 -->
+  <?php $recorder_name = Settings::getRecorderName(); ?>
+  <div class="card">
+    <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('video', 18) ?>錄製設定</h1>
+    <p class="subtitle" style="margin:6px 0 18px;">設定會議錄製時，錄製者在與會者清單中顯示的名稱（取代 Jitsi 預設的「Fellow Jitster」）。</p>
+    <form method="POST" action="/save-settings" class="inline-form">
+      <?= Auth::csrfField() ?>
+      <input type="hidden" name="section" value="recording">
+      <div class="field"><label>錄製者顯示名稱</label>
+        <input type="text" name="recorder_name" maxlength="40" value="<?= htmlspecialchars($recorder_name) ?>" placeholder="會議錄影" style="max-width:280px;">
+      </div>
+      <button class="btn btn-secondary"><?= icon('check',14) ?>儲存</button>
+    </form>
+    <p class="help" style="margin:10px 0 0;">此名稱實際是「未具名與會者」的預設顯示名稱；本系統的主持人與來賓一律具名，因此只有錄製者會套用到。留空則用「會議錄影」。</p>
   </div>
 
   <!-- 8x8 用量 webhook（僅 JaaS 模式；依連線模式下拉即時顯示） -->
