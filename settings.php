@@ -304,7 +304,7 @@ render_topbar($me, $ip);
       <?php else: ?><span class="badge badge-warning"><?= icon('warning',11) ?>無法連線</span><?php endif; ?>
       <?php if ($jibri_ok): ?><a href="/recordings" style="margin-left:8px;">前往錄影記錄 →</a><?php endif; ?>
     </p>
-    <form method="POST" action="/save-settings" class="inline-form">
+    <form method="POST" action="/save-settings">
       <?= Auth::csrfField() ?>
       <input type="hidden" name="section" value="jibri">
       <div class="field"><label>服務 URL</label>
@@ -315,7 +315,7 @@ render_topbar($me, $ip);
         <input type="password" name="jibri_token" value="" placeholder="<?= $jibri['token'] !== '' ? '已設定（留空不變更）' : '尚未設定' ?>" autocomplete="new-password" style="max-width:320px;">
         <div class="help">對應服務端 <span class="mono">/etc/jibri-recordings-api.env</span> 的 <span class="mono">API_TOKEN</span>。留空表示沿用既有。</div>
       </div>
-      <button class="btn btn-secondary"><?= icon('check',14) ?>儲存並測試</button>
+      <button class="btn btn-primary"><?= icon('check',14) ?>儲存並測試</button>
     </form>
 
     <?php if ($jibri_ok):
