@@ -85,7 +85,7 @@ render_topbar($me, $ip);
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <span class="mono" style="color:var(--text-muted);white-space:nowrap;"><?= htmlspecialchars(rtrim(SITE_URL, '/')) ?>/</span>
           <input type="text" name="login_path" maxlength="64" value="<?= htmlspecialchars($login_path) ?>" placeholder="jt-login" pattern="[A-Za-z0-9._-]{1,64}" style="width:240px;max-width:100%;">
-          <button class="btn btn-secondary" style="white-space:nowrap;height:42px;"><?= icon('check',14) ?>儲存登入路徑</button>
+          <button class="btn btn-primary" style="white-space:nowrap;height:42px;"><?= icon('check',14) ?>儲存登入路徑</button>
         </div>
         <div class="help">僅允許英數與 <span class="mono">. _ -</span>，長度 1–64。留空還原為預設 <span class="mono">jt-login</span>。</div>
       </div>
@@ -118,7 +118,7 @@ render_topbar($me, $ip);
       <div class="field"><label>等候頁自動檢查間隔（秒）</label>
         <input type="number" name="guest_poll_seconds" min="10" max="600" value="<?= (int)$guest_poll ?>" style="width:120px;">
       </div>
-      <button class="btn btn-secondary"><?= icon('check',14) ?>儲存</button>
+      <button class="btn btn-primary"><?= icon('check',14) ?>儲存</button>
     </form>
     <p class="help" style="margin:10px 0 0;">會議時長記錄（用量統計頁）保留最近 N 天，超過自動清除；預設 365 天。<br>來賓在「等候主持人 / 倒數」頁每隔此秒數自動重新檢查是否可進入；預設 30 秒，範圍 10–600。</p>
   </div>
@@ -202,39 +202,10 @@ render_topbar($me, $ip);
   <?php $mc = Settings::getMeetingCustom(); ?>
   <div class="card js-card-selfhosted"<?= $jaas['mode']==='selfhosted' ? '' : ' style="display:none;"' ?>>
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('video', 18) ?>會議室自訂</h1>
-    <p class="subtitle" style="margin:6px 0 18px;">自建 Jitsi Meet 模式專用：自訂會議室左上 logo、進入預設值與工具列功能。設定會在進入會議時帶入 Jitsi。</p>
+    <p class="subtitle" style="margin:6px 0 18px;">自建 Jitsi Meet 模式專用：進入預設值與工具列功能。設定會在進入會議時帶入 Jitsi。<br>會議室左上 logo 改由 Jitsi 伺服器統一設定（現場與錄影一致），見 <a href="<?= htmlspecialchars(APP_GITHUB_URL) ?>/blob/main/JITSI-MEET-SETUP.md" target="_blank" rel="noopener">JITSI-MEET-SETUP.md</a>。</p>
     <form method="POST" action="/save-settings">
       <?= Auth::csrfField() ?>
       <input type="hidden" name="section" value="meeting_custom">
-
-      <div class="field">
-        <label>會議室左上 logo</label>
-        <label style="font-weight:400;display:block;margin:4px 0;"><input type="radio" name="logo_mode" value="site" <?= $mc['logo_mode']==='site'?'checked':'' ?>> 沿用本系統 jt-vc-portal 的站台 logo（即「系統設定 → 站台設定」上傳的那個）</label>
-        <label style="font-weight:400;display:block;margin:4px 0;"><input type="radio" name="logo_mode" value="custom" <?= $mc['logo_mode']==='custom'?'checked':'' ?>> 自訂 logo 網址</label>
-        <label style="font-weight:400;display:block;margin:4px 0;"><input type="radio" name="logo_mode" value="none" <?= $mc['logo_mode']==='none'?'checked':'' ?>> 不顯示 logo</label>
-      </div>
-      <div class="field" id="fieldLogoUrl"><label>自訂 logo 網址</label>
-        <input type="url" name="logo_url" value="<?= htmlspecialchars($mc['logo_url']) ?>" placeholder="https://example.com/logo.png">
-        <div class="help">選「自訂 logo 網址」時生效，需為公開可存取的圖片網址。</div>
-      </div>
-      <div class="field" id="fieldLogoLink"><label>logo 點擊連結</label>
-        <input type="url" name="logo_link" value="<?= htmlspecialchars($mc['logo_link']) ?>" placeholder="https://example.com">
-        <div class="help">點按會議室 logo 時開啟的網址；留空則用本系統對外網址。</div>
-      </div>
-      <script>
-        (function(){
-          var radios = document.querySelectorAll('input[name="logo_mode"]');
-          var fUrl = document.getElementById('fieldLogoUrl');
-          var fLink = document.getElementById('fieldLogoLink');
-          function upd(){
-            var m = (document.querySelector('input[name="logo_mode"]:checked') || {}).value;
-            if (fUrl)  fUrl.style.display  = (m === 'custom') ? '' : 'none';   // 僅「自訂網址」顯示
-            if (fLink) fLink.style.display = (m === 'none')   ? 'none' : '';   // 「不顯示 logo」時連結也隱藏
-          }
-          radios.forEach(function(r){ r.addEventListener('change', upd); });
-          upd();
-        })();
-      </script>
 
       <div class="field">
         <label>進入預設值</label>
@@ -288,7 +259,7 @@ render_topbar($me, $ip);
       <div class="field"><label>錄製者顯示名稱</label>
         <input type="text" name="recorder_name" maxlength="40" value="<?= htmlspecialchars($recorder_name) ?>" placeholder="會議錄影" style="max-width:280px;">
       </div>
-      <button class="btn btn-secondary"><?= icon('check',14) ?>儲存</button>
+      <button class="btn btn-primary"><?= icon('check',14) ?>儲存</button>
     </form>
     <p class="help" style="margin:10px 0 0;">此名稱實際是「未具名與會者」的預設顯示名稱；本系統的主持人與來賓一律具名，因此只有錄製者會套用到。留空則用「會議錄影」。</p>
 
@@ -346,7 +317,7 @@ render_topbar($me, $ip);
           <input type="number" name="orphan_age_hours" min="1" max="8760" value="<?= $r_orp_h ?>" style="width:80px;"> 小時</label>
         <div class="help">會議異常結束時可能留下無法播放的殘片，此選項會在指定時數後清除。</div>
       </div>
-      <button class="btn btn-secondary"><?= icon('check',14) ?>儲存保留政策</button>
+      <button class="btn btn-primary"><?= icon('check',14) ?>儲存保留政策</button>
     </form>
     <?php endif; ?>
   </div>
@@ -374,7 +345,7 @@ render_topbar($me, $ip);
         <input type="number" name="plan_mau_limit" min="1" value="<?= (int)$plan_limit ?>" style="min-width:120px;"></div>
       <div class="field"><label>計費週期每月起始日</label>
         <input type="number" name="billing_start_day" min="1" max="28" value="<?= (int)$billing_day ?>" style="min-width:120px;"></div>
-      <button class="btn btn-secondary"><?= icon('check',14) ?>儲存</button>
+      <button class="btn btn-primary"><?= icon('check',14) ?>儲存</button>
     </form>
     <p class="muted" style="font-size:12px;margin:10px 0 0;">
       8x8 用量是依「訂閱週期」歸零（不是日曆月）。請把起始日設成與你 8x8 帳號相同（如 8x8 顯示 4/23–5/23 就填 <strong>23</strong>），計量才會對齊。目前本期：<strong><?= htmlspecialchars(Usage::currentPeriodLabel()) ?></strong>。
@@ -390,7 +361,7 @@ render_topbar($me, $ip);
       <input type="hidden" name="section" value="usage_baseline">
       <div class="field"><label>本期目前用量</label>
         <input type="number" name="current_value" min="0" value="<?= (int)$usage_now ?>" style="min-width:120px;"></div>
-      <button class="btn btn-secondary"><?= icon('check',14) ?>校正本期用量</button>
+      <button class="btn btn-primary"><?= icon('check',14) ?>校正本期用量</button>
     </form>
   </div>
 

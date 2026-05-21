@@ -381,7 +381,42 @@ docker compose ps
 
 ---
 
-## 八、升級 Jitsi
+## 八、會議室 / 錄影左上 logo（自訂品牌）
+
+會議畫面左上的 logo（浮水印）有兩個來源，要分清楚：
+
+- **現場觀看**：經 jt-vc-portal 的 IFrame，理論上可由 portal 帶入；
+- **Jibri 錄影**：Jibri 用它自己的瀏覽器**直接連 Jitsi 伺服器**錄影，**不經過 portal 的 IFrame**，所以只吃 **Jitsi 伺服器自身的 `config.js`**。
+
+因此，要讓**現場與錄影一致**顯示自訂 logo，最簡單可靠的做法是**設在 Jitsi 伺服器**（設一次即可；之後換圖不必再改這裡）。docker-jitsi-meet 在每次容器啟動時，會把 `config/custom-config.js`、`config/custom-interface_config.js` 自動**附加**到產生的設定後面（見 web 容器 `/etc/cont-init.d/10-config`），所以放這兩個檔即可持久化。
+
+`CONFIG` 預設為 `~/.jitsi-meet-cfg`，web 設定即在 `~/.jitsi-meet-cfg/web/`：
+
+```bash
+# logo 指向 jt-vc-portal 的站台 logo 端點（公開可存取；Jibri 主機也要連得到）
+cat > ~/.jitsi-meet-cfg/web/custom-config.js <<'JS'
+config.defaultLogoUrl = "https://vc.example.com/logo";
+JS
+
+cat > ~/.jitsi-meet-cfg/web/custom-interface_config.js <<'JS'
+interfaceConfig.DEFAULT_LOGO_URL = "https://vc.example.com/logo";
+interfaceConfig.JITSI_WATERMARK_LINK = "https://vc.example.com";
+interfaceConfig.SHOW_JITSI_WATERMARK = true;
+JS
+
+# 套用（會重啟 web 容器，現場服務中斷數秒）
+docker restart docker-jitsi-meet-web-1
+```
+
+> 把 `https://vc.example.com/logo` 換成你的 jt-vc-portal 對外網址 + `/logo`（portal 會把「系統設定 → 站台設定」上傳的 logo 服務在此路徑，回傳 PNG）。
+> 之後在 portal 換 logo 圖檔即自動生效（網址不變，**不需再重啟 Jitsi**）。
+> 因為 logo 統一在伺服器設定，jt-vc-portal「系統設定 → 會議室自訂」已不再提供會議室 logo 選項。
+
+驗證：`docker exec docker-jitsi-meet-web-1 grep defaultLogoUrl /config/config.js` 應看到你的網址；再錄一段測試，播放確認左上是自訂 logo（非 jitsi 預設浮水印）。
+
+---
+
+## 九、升級 Jitsi
 
 ```bash
 cd docker-jitsi-meet
@@ -391,4 +426,4 @@ docker compose pull
 docker compose up -d
 ```
 
-JWT 與整合設定不需更動。本文撰寫時最新穩定版為 `stable-10888`。
+JWT 與整合設定不需更動（`custom-config.js` / `custom-interface_config.js` 會保留並自動再附加）。本文撰寫時最新穩定版為 `stable-10888`。

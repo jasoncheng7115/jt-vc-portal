@@ -72,7 +72,7 @@ render_topbar($me, $ip);
     <?php else: ?>
       <p class="muted" style="font-size:12px;margin:0 0 8px;">點擊任一列可展開明細（含完整 User-Agent）。</p>
       <table class="table audit-table">
-        <thead><tr><th class="caret-col no-sort"></th><th>時間</th><th>行為</th><th>帳號</th><th>顯示名稱</th><th>詳情</th><th>結果</th><th>來源 IP</th></tr></thead>
+        <thead><tr><th class="caret-col no-sort"></th><th>時間</th><th>行為</th><th>帳號</th><th>詳情</th><th>結果</th><th>來源 IP</th></tr></thead>
         <tbody>
         <?php foreach ($rows as $r):
           $act = $r['action'] ?? '';
@@ -86,17 +86,17 @@ render_topbar($me, $ip);
             <td class="mono" style="white-space:nowrap;"><?= htmlspecialchars($fullTime) ?></td>
             <td><?= htmlspecialchars($actLabel) ?></td>
             <td class="mono"><?= htmlspecialchars($r['actor'] ?? '') ?><?= ($r['role'] ?? '')==='guest' ? ' <span class="badge badge-muted">來賓</span>' : '' ?></td>
-            <td><?= htmlspecialchars($r['actor_name'] ?? '') ?></td>
             <td style="max-width:320px;"><?= htmlspecialchars($r['detail'] ?? '') ?></td>
             <td><?= audit_badge($r['result'] ?? 'ok') ?></td>
             <td class="mono"><?= htmlspecialchars($r['ip'] ?? '') ?></td>
           </tr>
           <tr class="row-detail" hidden>
-            <td colspan="8">
+            <td colspan="7">
               <dl class="audit-detail">
                 <dt>時間</dt><dd class="mono"><?= htmlspecialchars($fullTime) ?></dd>
                 <dt>行為</dt><dd><?= htmlspecialchars($actLabel) ?>（<?= htmlspecialchars($act) ?>）</dd>
                 <dt>帳號 / 角色</dt><dd><?= htmlspecialchars($r['actor'] ?? '') ?><?= $roleLabel !== '' ? '　·　' . htmlspecialchars($roleLabel) : '' ?></dd>
+                <dt>顯示名稱</dt><dd><?= htmlspecialchars($r['actor_name'] ?? '') ?: '—' ?></dd>
                 <dt>來源 IP</dt><dd class="mono"><?= htmlspecialchars($r['ip'] ?? '') ?: '—' ?></dd>
                 <dt>完整詳情</dt><dd><?= htmlspecialchars($r['detail'] ?? '') ?: '—' ?></dd>
                 <dt>User-Agent</dt><dd class="mono ua"><?= htmlspecialchars($ua) ?: '—' ?></dd>

@@ -73,13 +73,14 @@ window.addEventListener('load', () => {
     configOverwrite: {
       defaultLanguage: <?= json_encode(Settings::getMeetingLang()) ?>,
       disableDeepLinking: true,
+<?php if (Settings::getJaas()['mode'] === 'selfhosted'): ?>      hiddenDomain: 'hidden.meet.jitsi',   // 隱藏 Jibri 錄製者（其登入網域）於與會者清單
+<?php endif; ?>
       videoQuality: {
         codecPreferenceOrder: ['VP9', 'H264', 'VP8', 'AV1'],
         mobileCodecPreferenceOrder: ['VP9', 'H264', 'VP8', 'AV1'],
         enableAdaptiveMode: true
       },
-<?php if ($mui['logo_url'] !== ''): ?>      defaultLogoUrl: <?= json_encode($mui['logo_url']) ?>,
-<?php endif; ?>      enableLobby: true,
+      enableLobby: true,
       startWithAudioMuted: <?= $mui['mute_audio'] ? 'true' : 'false' ?>,
       startWithVideoMuted: <?= $mui['mute_video'] ? 'true' : 'false' ?>,
       resolution: <?= (int)$mui['resolution'] ?>,
@@ -98,12 +99,7 @@ window.addEventListener('load', () => {
     interfaceConfigOverwrite: {
       LANG_DETECTION: false,
       INVITE_URL: inviteUrl,
-      DEFAULT_REMOTE_DISPLAY_NAME: <?= json_encode(Settings::getRecorderName()) ?>,
-      SHOW_JITSI_WATERMARK: <?= $mui['logo_url'] !== '' ? 'true' : 'false' ?>,
-<?php if ($mui['logo_url'] !== ''): ?>      DEFAULT_LOGO_URL: <?= json_encode($mui['logo_url']) ?>,
-      DEFAULT_WELCOME_PAGE_LOGO_URL: <?= json_encode($mui['logo_url']) ?>,
-      JITSI_WATERMARK_LINK: <?= json_encode($mui['logo_link']) ?>,
-<?php endif; ?>
+      DEFAULT_REMOTE_DISPLAY_NAME: <?= json_encode(Settings::getRecorderName()) ?>
     }
   };
   const api = new JitsiMeetExternalAPI(<?= json_encode(Jaas::apiDomain()) ?>, options);

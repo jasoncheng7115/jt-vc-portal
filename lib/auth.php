@@ -137,14 +137,26 @@ class Auth {
     }
   }
 
-  /** 統一 404 回應（中性、不洩漏內部結構）。 */
+  /** 統一 404 回應（套用站台主題與品牌；中性、不洩漏內部結構）。 */
   public static function notFound(): void {
     http_response_code(404);
     header('Content-Type: text/html; charset=utf-8');
-    echo "<!DOCTYPE html><html lang=\"zh-TW\"><head><meta charset=\"UTF-8\">"
-       . "<title>404 Not Found</title></head><body style=\"font-family:sans-serif;"
-       . "text-align:center;margin-top:80px;color:#555;\"><h1>404</h1>"
-       . "<p>找不到頁面。</p></body></html>";
+    require_once __DIR__ . '/settings.php';
+    require_once __DIR__ . '/layout.php';
+    if (function_exists('render_head')) {
+      render_head('404');
+      render_topbar(false);
+      echo '<main class="container narrow"><div class="card" style="text-align:center;padding:48px 24px;">'
+         . '<div style="font-size:64px;font-weight:700;line-height:1;">404</div>'
+         . '<p class="subtitle" style="margin-top:12px;">找不到頁面。</p>'
+         . '<a class="btn btn-secondary btn-sm" href="/" style="margin-top:18px;display:inline-flex;">' . icon('home', 14) . '回首頁</a>'
+         . '</div></main>';
+      render_foot();
+    } else {
+      echo '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8">'
+         . '<title>404</title></head><body style="font-family:sans-serif;text-align:center;'
+         . 'margin-top:80px;color:#555;"><h1>404</h1><p>找不到頁面。</p></body></html>';
+    }
     exit;
   }
 }
