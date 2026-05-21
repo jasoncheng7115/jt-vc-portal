@@ -219,7 +219,7 @@ render_topbar($me, $ip);
         </select>
       </div>
       <div class="field"><label>預設檢視</label>
-        <select name="default_view" style="width:200px;">
+        <select name="default_view" style="max-width:320px;">
           <option value="speaker" <?= $mc['default_view']==='speaker'?'selected':'' ?>>演講者檢視（大畫面 + 縮圖）</option>
           <option value="tile" <?= $mc['default_view']==='tile'?'selected':'' ?>>畫廊檢視（並排格狀）</option>
         </select>
