@@ -1,5 +1,7 @@
 # Jibri 錄影 × 自建 Jitsi Meet 設定
 
+> **作者**：Jason Cheng　·　GitHub [@jasoncheng7115](https://github.com/jasoncheng7115)　·　專案 [jt-vc-portal](https://github.com/jasoncheng7115/jt-vc-portal)
+
 接續 [JITSI-MEET-SETUP.md](JITSI-MEET-SETUP.md)，本文在同一套 docker-jitsi-meet 上加上 **Jibri 錄影**，並特別處理兩個重點：**同時多會議室錄製**與**錄影中文顯示**。
 
 > 適用版本：docker-jitsi-meet / `jitsi/jibri` **`stable-10888`**。
