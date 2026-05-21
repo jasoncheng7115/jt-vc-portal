@@ -33,7 +33,7 @@ $fail = function (string $msg) use ($form_input) {
 };
 
 if ($room === '') {
-  $fail('請輸入有效的會議室名稱（中英文、數字、底線、連字號）。');
+  $fail('請輸入有效的會議室名稱（僅限英文、數字、- 與 _；中文等非 ASCII 字元不支援）。');
 }
 
 $mode = $_POST['mode'] ?? $_GET['mode'] ?? 'host';

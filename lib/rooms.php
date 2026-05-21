@@ -289,11 +289,14 @@ class Rooms {
     return array_slice($out, 0, max(1, $limit));
   }
 
+  /** 會議室名稱正規化：僅留 ASCII 英數與 - _（Jitsi 會議室不支援非 ASCII 名稱，中文等會被移除）。 */
   public static function sanitize(string $room): string {
     $room = trim($room);
-    $room = preg_replace('/\s+/u', '-', $room);
-    $room = preg_replace('/[^\p{L}\p{N}\-_]/u', '', $room);
-    return mb_substr($room, 0, 64);
+    $room = preg_replace('/\s+/u', '-', $room);          // 空白 → -
+    $room = preg_replace('/[^A-Za-z0-9_-]/', '', $room);  // 僅留英數 - _（移除中文等非 ASCII）
+    $room = preg_replace('/-+/', '-', $room);             // 收斂連續 -
+    $room = trim($room, '-_');
+    return substr($room, 0, 64);
   }
 
   /** datetime-local 字串轉 unix（依 PHP 預設時區，已在 config.php 設成 Asia/Taipei） */

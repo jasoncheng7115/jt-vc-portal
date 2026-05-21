@@ -134,11 +134,11 @@ render_topbar($me, $ip);
         <div class="link-row">
           <input type="text" id="room" name="room" required autofocus
                  placeholder="例如：weekly-sync"
-                 pattern="[\p{L}\p{N}_\-]+" title="可使用中英文、數字、底線、連字號"
+                 pattern="[A-Za-z0-9_\-]+" title="僅限英文、數字、- 與 _"
                  value="<?= htmlspecialchars($form_room) ?>">
           <button type="button" class="btn btn-secondary" id="randomRoom" title="亂數產生會議室名稱"><?= icon('refresh',14) ?>亂數</button>
         </div>
-        <div class="help">命名建議使用英文或數字，以利分享。空格會自動轉成 <span class="kbd">-</span></div>
+        <div class="help">僅限英文、數字、<span class="kbd">-</span>、<span class="kbd">_</span>；空格自動轉 <span class="kbd">-</span>，中文等其他字元會自動移除（Jitsi 會議室不支援非 ASCII 名稱）。</div>
       </div>
 
       <div class="schedule-block">
@@ -313,6 +313,20 @@ document.addEventListener('click', async (e) => {
     a.href = src; a.download = (document.getElementById('qrRoom').textContent || 'room') + '-qr.png';
     document.body.appendChild(a); a.click(); a.remove();
   };
+})();
+
+// 會議室名稱即時轉換：空白→-、移除非 ASCII（Jitsi 不支援中文等會議室名稱）
+(function(){
+  const input = document.getElementById('room');
+  if (!input) return;
+  input.addEventListener('input', () => {
+    const v = input.value.replace(/\s+/g, '-').replace(/[^A-Za-z0-9_-]/g, '');
+    if (v !== input.value) {
+      const pos = input.selectionStart;
+      input.value = v;
+      try { input.setSelectionRange(pos - 1, pos - 1); } catch (e) {}
+    }
+  });
 })();
 
 // 亂數產生會議室名稱（形容詞-名詞-數字，好讀好分享）
