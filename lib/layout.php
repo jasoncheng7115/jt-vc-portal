@@ -193,7 +193,41 @@ function render_foot(): void { ?>
     });
   });
 })();
+
+/* 自訂確認對話框：取代瀏覽器原生 confirm()。表單加 data-confirm="訊息" 即攔截。 */
+(function () {
+  var pending = null;
+  function m() { return document.getElementById('confirmModal'); }
+  function close() { var x = m(); if (x) x.classList.remove('open'); pending = null; }
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!form || form.nodeName !== 'FORM' || !form.getAttribute('data-confirm')) return;
+    var msg = form.getAttribute('data-confirm');
+    var x = m();
+    if (!x) { if (!window.confirm(msg)) e.preventDefault(); return; }   // 後援
+    e.preventDefault();
+    pending = form;
+    x.querySelector('.confirm-msg').textContent = msg;
+    x.classList.add('open');
+  }, true);
+  document.addEventListener('click', function (e) {
+    var x = m(); if (!x || !x.classList.contains('open')) return;
+    if (e.target.closest('#confirmOk')) { var f = pending; close(); if (f) f.submit(); }   // .submit() 不再觸發 submit 事件
+    else if (e.target.closest('#confirmCancel') || e.target === x) close();
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+})();
 </script>
+<div class="modal-backdrop" id="confirmModal">
+  <div class="modal" role="dialog" aria-modal="true" style="max-width:420px;">
+    <h2>請確認</h2>
+    <p class="confirm-msg modal-sub" style="margin:8px 0 0;"></p>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="confirmCancel"><?= icon('x',14) ?>取消</button>
+      <button type="button" class="btn btn-primary" id="confirmOk"><?= icon('check',14) ?>確定</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
 <?php }

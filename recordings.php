@@ -107,10 +107,10 @@ render_topbar($me, $ip);
         </div>
       </div>
 
-      <form method="POST" action="/recordings-action" style="margin:14px 0 4px;">
+      <form method="POST" action="/recordings-action" style="margin:14px 0 4px;" data-confirm="依目前保留政策立即清理？此動作會刪除符合條件的錄影。">
         <?= Auth::csrfField() ?>
         <input type="hidden" name="action" value="cleanup">
-        <button class="btn btn-secondary btn-sm" onclick="return confirm('依目前保留政策立即清理？此動作會刪除符合條件的錄影。');"><?= icon('trash', 14) ?>依保留政策立即清理</button>
+        <button class="btn btn-secondary btn-sm"><?= icon('trash', 14) ?>依保留政策立即清理</button>
         <span class="help" style="margin-left:8px;">保留政策於 <a href="/settings">系統設定 → 錄製設定</a> 調整。</span>
       </form>
       <?php endif; ?>
@@ -146,7 +146,7 @@ render_topbar($me, $ip);
                 <a class="btn btn-secondary btn-sm" href="/recordings-file?id=<?= rawurlencode($rid) ?>&dl=1"><?= icon('download', 14) ?>下載</a>
               <?php endif; ?>
               <?php if ($is_admin): ?>
-              <form method="POST" action="/recordings-action" style="display:inline;" onsubmit="return confirm('確定刪除此錄影？此動作無法復原。');">
+              <form method="POST" action="/recordings-action" style="display:inline;" data-confirm="確定刪除此錄影？此動作無法復原。">
                 <?= Auth::csrfField() ?>
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="id" value="<?= htmlspecialchars($rid) ?>">

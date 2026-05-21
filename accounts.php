@@ -40,7 +40,7 @@ render_topbar($me, $ip);
           <td style="text-align:right;white-space:nowrap;">
             <button type="button" class="btn btn-ghost btn-sm" data-edit="<?= htmlspecialchars($u['id']) ?>"><?= icon('edit',14) ?>編輯</button>
             <form method="POST" action="/account-delete" style="display:inline;"
-                  onsubmit="return confirm('確定刪除帳號 <?= htmlspecialchars($u['username']) ?>？');">
+                  data-confirm="確定刪除帳號 <?= htmlspecialchars($u['username']) ?>？">
               <?= Auth::csrfField() ?>
               <input type="hidden" name="id" value="<?= htmlspecialchars($u['id']) ?>">
               <button class="btn btn-ghost btn-sm" <?= $u['id'] === $me['id'] ? 'disabled title="不能刪除自己"' : '' ?>><?= icon('x',14) ?>刪除</button>

@@ -228,7 +228,7 @@ render_topbar($me, $ip);
       <div class="field">
         <label>視訊頻寬</label>
         <label style="font-weight:400;display:block;margin:4px 0;"><input type="checkbox" name="bw_save_off" value="1" <?= !empty($mc['bw_save_off'])?'checked':'' ?>> 關閉「視訊省頻寬」自動降載（不因頻寬自動關閉他人視訊）</label>
-        <div class="help">預設不勾＝維持 Jitsi 省頻寬（網路差時會自動關他人視訊以保流暢）。勾選後一律接收所有人視訊，畫質較好但吃頻寬，網路差時可能改成卡頓。</div>
+        <div class="help">預設勾選＝一律接收所有人視訊，畫質較好但較吃頻寬（網路差時可能改成卡頓）。取消勾選＝維持 Jitsi 省頻寬，網路差時自動關他人視訊以保流暢。</div>
       </div>
 
       <div class="field">
@@ -486,7 +486,7 @@ render_topbar($me, $ip);
   <!-- 設定匯出 / 匯入 -->
   <div class="card">
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('upload', 18) ?>設定匯出 / 匯入</h1>
-    <p class="subtitle" style="margin:6px 0 18px;">備份或搬移本系統的所有設定（含主題、連線模式、SMTP、外拋、會議室自訂、站台 logo 圖檔）。不含帳號、會議室與稽核記錄。</p>
+    <p class="subtitle" style="margin:6px 0 18px;">備份或搬移本系統的所有設定（含主題、連線模式、SMTP、外拋、會議室自訂、站台 logo、錄製/錄影服務、登入路徑、來賓等候等）。不含帳號、會議室與稽核記錄。</p>
     <div class="alert alert-info" style="align-items:flex-start;">
       <?= icon('warning') ?>
       <span>匯出檔包含 <strong>機敏資訊</strong>（SMTP 密碼、JWT 共享密鑰、Webhook secret）。請妥善保管，勿外流或上傳到第三方。匯入會以檔案內容<strong>覆寫對應設定區塊</strong>。</span>
@@ -498,7 +498,7 @@ render_topbar($me, $ip);
       </form>
     </div>
     <form method="POST" action="/settings-import" enctype="multipart/form-data" style="margin-top:14px;"
-          onsubmit="return confirm('確定要匯入並覆寫目前設定嗎？建議先匯出一份現有設定備份。');">
+          data-confirm="確定要匯入並覆寫目前設定嗎？建議先匯出一份現有設定備份。">
       <?= Auth::csrfField() ?>
       <div class="field">
         <label>選擇設定檔（.json）</label>

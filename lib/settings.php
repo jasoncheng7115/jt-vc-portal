@@ -196,7 +196,7 @@ class Settings {
       'mute_video' => $d['mute_video'] ?? true,
       'resolution' => in_array($res, [720, 1080], true) ? $res : 1080,
       'default_view' => $view,
-      'bw_save_off' => !empty($d['bw_save_off']),   // 關閉「視訊省頻寬」自動降載（預設關）
+      'bw_save_off' => $d['bw_save_off'] ?? true,   // 關閉「視訊省頻寬」自動降載（預設開＝不自動關他人視訊）
       'toolbar'    => $toolbar,
     ];
   }
@@ -345,15 +345,21 @@ class Settings {
   /** 允許匯出 / 匯入的頂層設定鍵（白名單，避免匯入夾帶未知結構）。 */
   const EXPORTABLE_KEYS = [
     'theme', 'webhook_secret', 'plan_mau_limit', 'billing_start_day',
-    'meeting_retention_days', 'meeting_custom', 'meeting_lang',
-    'smtp', 'logship', 'site', 'jaas',
+    'meeting_retention_days', 'guest_poll_seconds', 'meeting_lang',
+    'recorder_name', 'jibri_url', 'jibri_token', 'login_path',
+    'meeting_custom', 'smtp', 'logship', 'site', 'jaas',
   ];
   /** 結構鍵：值必須是物件 / 陣列，否則略過（避免匯入錯型把設定弄壞）。 */
   const EXPORT_ARRAY_KEYS = ['meeting_custom', 'smtp', 'logship', 'site', 'jaas'];
 
-  /** 匯出用：回傳目前 settings.json 的原始內容。 */
+  /** 匯出用：只輸出白名單內（本版應有）的設定鍵，與匯入範圍一致。 */
   public static function exportData(): array {
-    return self::load();
+    $d = self::load();
+    $out = [];
+    foreach (self::EXPORTABLE_KEYS as $k) {
+      if (array_key_exists($k, $d)) $out[$k] = $d[$k];
+    }
+    return $out;
   }
 
   /** 匯入：只併入白名單內的鍵（present 才覆寫），並驗證型別，其餘保留原值。 */
