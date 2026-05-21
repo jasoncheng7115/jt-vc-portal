@@ -135,10 +135,10 @@ window.addEventListener('load', () => {
       videoQuality: {
         codecPreferenceOrder: ['VP9', 'H264', 'VP8', 'AV1'],
         mobileCodecPreferenceOrder: ['VP9', 'H264', 'VP8', 'AV1'],
-        enableAdaptiveMode: false   // 不因頻寬自動關閉他人視訊（停用「已關閉視訊以節省頻寬」）
+        enableAdaptiveMode: <?= $mui['bw_save_off'] ? 'false' : 'true' ?>   // 會議室自訂「關閉視訊省頻寬」勾選時為 false
       },
-      channelLastN: -1,             // 接收所有人的視訊，不因 lastN 關閉
-      enableLobby: true,
+<?php if ($mui['bw_save_off']): ?>      channelLastN: -1,   // 接收所有人視訊、不因 lastN 關閉（與省頻寬一起停用）
+<?php endif; ?>      enableLobby: true,
       prejoinPageEnabled: false,
       prejoinConfig: { enabled: false },
       startWithAudioMuted: <?= $mui['mute_audio'] ? 'true' : 'false' ?>,

@@ -196,6 +196,7 @@ class Settings {
       'mute_video' => $d['mute_video'] ?? true,
       'resolution' => in_array($res, [720, 1080], true) ? $res : 1080,
       'default_view' => $view,
+      'bw_save_off' => !empty($d['bw_save_off']),   // 關閉「視訊省頻寬」自動降載（預設關）
       'toolbar'    => $toolbar,
     ];
   }
@@ -215,6 +216,7 @@ class Settings {
       'mute_video' => !empty($v['mute_video']),
       'resolution' => in_array($res, [720, 1080], true) ? $res : 1080,
       'default_view' => $view,
+      'bw_save_off' => !empty($v['bw_save_off']),
       'toolbar'    => $toolbar,
     ];
     self::save($d);
@@ -230,6 +232,7 @@ class Settings {
         'logo_link'  => $site,
         'mute_audio' => true, 'mute_video' => true, 'resolution' => 1080,
         'default_view' => 'speaker',
+        'bw_save_off' => false,
         'toolbar'    => array_merge(self::MEETING_BASE_BUTTONS, $allToggles),
       ];
     }
@@ -245,6 +248,7 @@ class Settings {
       'mute_video' => (bool)$mc['mute_video'],
       'resolution' => (int)$mc['resolution'],
       'default_view' => $mc['default_view'],
+      'bw_save_off' => (bool)$mc['bw_save_off'],
       'toolbar'    => array_values($toolbar),
     ];
   }

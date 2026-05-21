@@ -225,6 +225,11 @@ render_topbar($me, $ip);
         </select>
         <div class="help">進入會議時的預設版面；之後仍可在會議內自行切換。</div>
       </div>
+      <div class="field">
+        <label>視訊頻寬</label>
+        <label style="font-weight:400;display:block;margin:4px 0;"><input type="checkbox" name="bw_save_off" value="1" <?= !empty($mc['bw_save_off'])?'checked':'' ?>> 關閉「視訊省頻寬」自動降載（不因頻寬自動關閉他人視訊）</label>
+        <div class="help">預設不勾＝維持 Jitsi 省頻寬（網路差時會自動關他人視訊以保流暢）。勾選後一律接收所有人視訊，畫質較好但吃頻寬，網路差時可能改成卡頓。</div>
+      </div>
 
       <div class="field">
         <label>工具列功能</label>
