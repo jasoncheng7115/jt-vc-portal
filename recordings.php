@@ -121,7 +121,7 @@ render_topbar($me, $ip);
         <div class="empty">目前沒有錄影檔。</div>
       <?php else: ?>
       <div class="field" style="max-width:280px;margin:14px 0 8px;">
-        <input type="text" id="recSearch" placeholder="搜尋會議室…" autocomplete="off">
+        <input type="text" id="recSearch" placeholder="搜尋會議室 / 主持人 / 參與者…" autocomplete="off">
       </div>
       <p class="muted" style="font-size:12px;margin:0 0 8px;">點任一列（操作鍵除外）可展開該場參與者。</p>
       <table class="table audit-table">
@@ -133,8 +133,10 @@ render_topbar($me, $ip);
           $match = rec_match_session($r, $sess_by_room);
           $host  = $match ? (string)($match['owner_name'] ?? '') : '';
           $parts = $match && is_array($match['participants'] ?? null) ? $match['participants'] : [];
+          // 可搜尋字串：會議室 + 主持人 + 所有參與者名稱（小寫）
+          $search_str = (string)($r['room'] ?? '') . ' ' . $host . ' ' . implode(' ', array_map(fn($p) => (string)($p['name'] ?? ''), $parts));
         ?>
-          <tr class="rec-row row-main" data-room="<?= htmlspecialchars(mb_strtolower((string)($r['room'] ?? ''))) ?>" title="點擊展開參與者">
+          <tr class="rec-row row-main" data-search="<?= htmlspecialchars(mb_strtolower($search_str)) ?>" title="點擊展開參與者">
             <td class="caret-col"><svg class="caret" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></td>
             <td><strong><?= htmlspecialchars($r['room'] ?: '（未知）') ?></strong></td>
             <td><?= $host !== '' ? htmlspecialchars($host) : '<span class="muted">—</span>' ?></td>
@@ -225,7 +227,7 @@ render_topbar($me, $ip);
     search.addEventListener('input', function () {
       var q = search.value.trim().toLowerCase();
       document.querySelectorAll('tr.rec-row').forEach(function (row) {
-        var show = (!q || (row.dataset.room || '').indexOf(q) !== -1);
+        var show = (!q || (row.dataset.search || '').indexOf(q) !== -1);
         row.style.display = show ? '' : 'none';
         var d = row.nextElementSibling;   // 連帶處理該列的明細
         if (d && d.classList.contains('row-detail')) { if (!show) { d.hidden = true; row.classList.remove('open'); } d.style.display = show ? '' : 'none'; }

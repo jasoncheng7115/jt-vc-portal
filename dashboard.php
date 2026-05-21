@@ -38,7 +38,7 @@ $form_room      = (string)($form_values['room']      ?? ($_GET['room'] ?? ''));
 $form_starts_at = (string)($form_values['starts_at'] ?? '');
 $form_ends_at   = (string)($form_values['ends_at']   ?? '');
 $form_attendees = (string)($form_values['attendees'] ?? '');
-$form_lobby     = !empty($form_values['lobby']);
+$form_lobby     = !empty($form_values) ? !empty($form_values['lobby']) : true;  // 新表單預設啟用大廳模式
 $schedule_open  = ($form_starts_at !== '' || $form_ends_at !== '' || $form_attendees !== '');
 
 $created = $_GET['created'] ?? null;

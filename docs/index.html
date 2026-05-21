@@ -101,8 +101,9 @@
       <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><circle cx="12" cy="16" r="1"/></svg></div><h3>大廳模式</h3><p>建立會議室可選；主持人進場自動開啟，來賓需經主持人逐一允許才能進入。</p></div>
       <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><h3>多帳號 / 角色 / 2FA</h3><p>admin 看全部、host 只看自己建的；支援 TOTP 兩步驟驗證。</p></div>
       <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M9 11h6M9 15h4"/></svg></div><h3>完整稽核 + SIEM</h3><p>登入、建室、邀請、設定變更全記錄，可即時外拋 syslog / CEF / GELF。</p></div>
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 1 0-18c4.97 0 9 3.58 9 8 0 2.5-2 4-4 4h-2a2 2 0 0 0-1.5 3.3A1.5 1.5 0 0 1 12 21Z"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="9.5" cy="7.5" r="1"/><circle cx="14.5" cy="7.5" r="1"/><circle cx="16.5" cy="11.5" r="1"/></svg></div><h3>外觀客製</h3><p>22 種主題、可換站台名稱與 logo、會議室預設介面語言。</p></div>
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="14" width="3" height="3"/></svg></div><h3>用量統計</h3><p>JaaS 模式接 USAGE webhook，依訂閱週期統計 MAU、可手動校正。</p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 1 0-18c4.97 0 9 3.58 9 8 0 2.5-2 4-4 4h-2a2 2 0 0 0-1.5 3.3A1.5 1.5 0 0 1 12 21Z"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="9.5" cy="7.5" r="1"/><circle cx="14.5" cy="7.5" r="1"/><circle cx="16.5" cy="11.5" r="1"/></svg></div><h3>外觀客製</h3><p>60 種 Jitsi 介面語言、22 種主題、站台名稱 / logo、登入頁路徑偽裝。</p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="14" width="3" height="3"/></svg></div><h3>會議統計</h3><p>會議時長排行、尖峰同時人數與參與者進出時間軸；JaaS 模式另接 USAGE webhook 統計 MAU。</p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2"/></svg></div><h3>錄影調閱（自建 Jibri）</h3><p>串接 Jibri 主機錄影服務：線上列表 / 播放 / 下載 / 刪除、主機容量、保留政策（時間 / 容量 / 殘留）；主持人可調閱自己會議的錄影。</p></div>
     </div>
   </div>
 </section>
@@ -216,6 +217,18 @@
       <div class="sc-row">
         <figure class="shot sc-shot"><div class="frame"><img src="images/08-wait.png" alt="等候 / 倒數頁" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
         <div class="sc-text"><span class="num">08</span><h3>等候 / 倒數頁</h3><p>非開放時段時，來賓會看到優雅的翻頁時鐘倒數與會議起訖時間；一旦主持人提前進入，系統每隔數秒自動偵測並放行，來賓無需重整、不必苦等。</p></div>
+      </div>
+      <div class="sc-row">
+        <figure class="shot sc-shot"><div class="frame"><img src="images/09-recordings.png" alt="錄影記錄" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">09</span><h3>錄影記錄</h3><p>串接自建 Jibri 主機的錄影服務：線上列表 / 播放 / 下載 / 刪除、錄影主機容量與保留政策；點任一列可展開該場參與者進出明細。主持人可調閱自己主持會議的錄影。</p></div>
+      </div>
+      <div class="sc-row">
+        <figure class="shot sc-shot"><div class="frame"><img src="images/10-room-customize.png" alt="建立 / 進入會議室" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">10</span><h3>建立 / 進入會議室</h3><p>輸入會議室名稱即可開始（非 ASCII 字元自動轉換），可設開放時段、寄送邀請、啟用大廳模式；也能先建立連結暫不進入。</p></div>
+      </div>
+      <div class="sc-row">
+        <figure class="shot sc-shot"><div class="frame"><img src="images/11-settings-recording.png" alt="錄製設定" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">11</span><h3>錄製設定</h3><p>錄製者顯示名稱、串接 Jibri 錄影服務（顯示已註冊錄製器數）、錄影保留政策（依時間 / 容量 / 殘留自動清理，預設停用）。</p></div>
       </div>
     </div>
   </div>
@@ -347,7 +360,7 @@ docker stop jt-vc-portal &amp;&amp; docker rm jt-vc-portal      <span class="c">
       <div class="panel">
         <h3>Jibri 錄影整合</h3>
         <p>在自建 Jitsi 上加上 Jibri 錄影：VM 需求、snd-aloop、同時多會議室錄製、錄影中文顯示（CJK 字型）、獨立 Jibri VM 實作。</p>
-        <p><a class="btn btn-secondary" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/JIBRI-SETUP.md" target="_blank" rel="noopener">JIBRI-SETUP.md</a></p>
+        <p><a class="btn btn-ghost" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/JIBRI-SETUP.md" target="_blank" rel="noopener">JIBRI-SETUP.md</a></p>
       </div>
     </div>
   </div>
