@@ -6,6 +6,28 @@
 
 ---
 
+## 目錄
+
+**基礎概念**
+- [架構概念](#架構概念)
+- [前置需求](#前置需求)
+- [連接埠與 NAT 設定](#連接埠與-nat-設定)（含媒體後援 / TURN）
+
+**安裝步驟**
+1. [取得官方 docker-jitsi-meet](#一取得官方-docker-jitsi-meet)
+2. [基本對外設定（`.env`）](#二基本對外設定編輯-env)
+3. [啟用 JWT 驗證（建議）](#三啟用-jwt-驗證建議)
+4. [啟動 Jitsi](#四啟動-jitsi)
+5. [jt-vc-portal 端設定](#五jt-vc-portal-端設定)
+
+**進階 / 維運**
+6. [疑難排解](#六疑難排解)
+7. [錄影（Jibri）](#七錄影jibri選用)
+8. [品牌 logo 與隱藏錄製者](#八品牌-logo-與隱藏錄製者伺服器-configjs)
+9. [升級 Jitsi](#九升級-jitsi)
+
+---
+
 ## 架構概念
 
 ```
@@ -350,11 +372,11 @@ docker compose ps
 
 存檔後，從 jt-vc-portal 建立會議室、開始主持，即會內嵌自建 Jitsi 並（若啟用）自動帶入 token。
 
-> **會議室左上 logo**：jt-vc-portal 進會議時會以 IFrame API 帶入「站台 logo」（`/logo`）作為會議室左上 logo（`defaultLogoUrl` / `DEFAULT_LOGO_URL`），無需改 Jitsi。要換 logo 到 **系統設定 → 站台設定** 上傳即可。註：少數 Jitsi 版本會限制 interfaceConfig 覆寫白名單，若沒生效，需在自建 Jitsi 的 `config.js` 允許該覆寫（自建可自行調整）。
+> **會議室左上 logo**：改由 Jitsi 伺服器 `config.js` 統一設定（現場與錄影一致），見[第八節](#八品牌-logo-與隱藏錄製者伺服器-configjs)。jt-vc-portal 不再以 IFrame 覆寫 logo，「會議室自訂」也已移除 logo 選項。
 
 > **以下都由 jt-vc-portal 在進會議時帶入，無需改 Jitsi：**
 > - **停用「用 App 加入」深層連結**（`configOverwrite.disableDeepLinking = true`）：手機經 portal 進會議直接在瀏覽器開啟，不會跳官方 App 安裝/開啟頁（該 App 因 JWT 無法連入）。
-> - **會議室自訂**（系統設定 → 會議室自訂，自建模式）：左上 logo、進入靜音/關鏡頭、畫質上限、**預設檢視（演講者／畫廊）**、工具列功能逐項開關——皆於進會議時帶入。
+> - **會議室自訂**（系統設定 → 會議室自訂，自建模式）：進入靜音/關鏡頭、畫質上限、**預設檢視（演講者／畫廊）**、工具列功能逐項開關——皆於進會議時帶入。
 > - **大廳模式**：建立會議室時勾選，主持人進場（取得 moderator 後）自動開啟，來賓需逐一核准才能進入。
 > - **編碼偏好**（`videoQuality.codecPreferenceOrder = VP9, H264, VP8, AV1`）：純桌機會議用 VP9（低頻寬畫質佳）；**含 iPhone/iPad 的會議自動改用硬體 H.264**（iOS Safari 不支援 VP9，否則會落到畫質最差的 VP8）。
 
@@ -381,38 +403,51 @@ docker compose ps
 
 ---
 
-## 八、會議室 / 錄影左上 logo（自訂品牌）
+## 八、品牌 logo 與隱藏錄製者（伺服器 config.js）
 
-會議畫面左上的 logo（浮水印）有兩個來源，要分清楚：
+這兩項都要設在 **Jitsi 伺服器自身的 `config.js`**，原因相同：
 
-- **現場觀看**：經 jt-vc-portal 的 IFrame，理論上可由 portal 帶入；
-- **Jibri 錄影**：Jibri 用它自己的瀏覽器**直接連 Jitsi 伺服器**錄影，**不經過 portal 的 IFrame**，所以只吃 **Jitsi 伺服器自身的 `config.js`**。
+- **Jibri 錄影**用它自己的瀏覽器**直接連 Jitsi 伺服器**，**不經過 portal 的 IFrame**——所以 portal 帶入的設定對錄影無效，只有伺服器 `config.js` 才會同時影響「現場 + 錄影」。
+- 隱藏錄製者（`hiddenDomain`）用 IFrame `configOverwrite` 覆寫不一定生效，設在伺服器端最可靠。
 
-因此，要讓**現場與錄影一致**顯示自訂 logo，最簡單可靠的做法是**設在 Jitsi 伺服器**（設一次即可；之後換圖不必再改這裡）。docker-jitsi-meet 在每次容器啟動時，會把 `config/custom-config.js`、`config/custom-interface_config.js` 自動**附加**到產生的設定後面（見 web 容器 `/etc/cont-init.d/10-config`），所以放這兩個檔即可持久化。
+docker-jitsi-meet 每次容器啟動時，會把 `~/.jitsi-meet-cfg/web/custom-config.js`、`custom-interface_config.js` 自動**附加**到產生的設定後（見 web 容器 `/etc/cont-init.d/10-config`），放這兩個檔即可持久化。
 
-`CONFIG` 預設為 `~/.jitsi-meet-cfg`，web 設定即在 `~/.jitsi-meet-cfg/web/`：
+**設定（兩個檔）：**
 
 ```bash
-# logo 指向 jt-vc-portal 的站台 logo 端點（公開可存取；Jibri 主機也要連得到）
+# (1) config.js 覆寫：左上 logo + 隱藏錄製者
 cat > ~/.jitsi-meet-cfg/web/custom-config.js <<'JS'
-config.defaultLogoUrl = "https://vc.example.com/logo";
+config.defaultLogoUrl = "https://vc.example.com/logo";   // 換成你的 portal 網址 + /logo
+config.hiddenDomain   = "hidden.meet.jitsi";             // 錄製者登入網域，從與會者清單/人數隱藏
 JS
 
+# (2) interface_config.js 覆寫：浮水印 logo
 cat > ~/.jitsi-meet-cfg/web/custom-interface_config.js <<'JS'
-interfaceConfig.DEFAULT_LOGO_URL = "https://vc.example.com/logo";
+interfaceConfig.DEFAULT_LOGO_URL     = "https://vc.example.com/logo";
 interfaceConfig.JITSI_WATERMARK_LINK = "https://vc.example.com";
 interfaceConfig.SHOW_JITSI_WATERMARK = true;
 JS
+```
 
-# 套用（會重啟 web 容器，現場服務中斷數秒）
+**套用（會重啟 web 容器，現場服務中斷數秒）：**
+
+```bash
 docker restart docker-jitsi-meet-web-1
 ```
 
-> 把 `https://vc.example.com/logo` 換成你的 jt-vc-portal 對外網址 + `/logo`（portal 會把「系統設定 → 站台設定」上傳的 logo 服務在此路徑，回傳 PNG）。
-> 之後在 portal 換 logo 圖檔即自動生效（網址不變，**不需再重啟 Jitsi**）。
-> 因為 logo 統一在伺服器設定，jt-vc-portal「系統設定 → 會議室自訂」已不再提供會議室 logo 選項。
+**重點：**
 
-驗證：`docker exec docker-jitsi-meet-web-1 grep defaultLogoUrl /config/config.js` 應看到你的網址；再錄一段測試，播放確認左上是自訂 logo（非 jitsi 預設浮水印）。
+- `https://vc.example.com/logo` 換成你的 jt-vc-portal 對外網址 + `/logo`（portal 把「系統設定 → 站台設定」上傳的 logo 服務在此，回傳 PNG；Jibri 主機也要連得到此網址）。
+- 之後在 portal 換 logo 圖檔即自動生效（網址不變，**不必再重啟 Jitsi**）。
+- `hidden.meet.jitsi` 是 docker-jitsi-meet 的錄製者網域（`XMPP_RECORDER_DOMAIN`），通常即此值；可用 `docker exec docker-jitsi-meet-prosody-1 grep -i VirtualHost /config/conf.d/*.lua` 確認。
+
+**驗證：**
+
+```bash
+docker exec docker-jitsi-meet-web-1 grep -E "defaultLogoUrl|hiddenDomain" /config/config.js
+```
+
+再錄一段測試：播放確認左上是自訂 logo（非 jitsi 預設浮水印），且與會者清單/人數**不含**錄製者。
 
 ---
 

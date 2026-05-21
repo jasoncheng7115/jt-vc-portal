@@ -7,6 +7,26 @@
 
 ---
 
+## 目錄
+
+**規劃**
+- [部署拓撲（建議獨立 VM）](#部署拓撲建議-jibri-獨立一台-vm)
+- [一、Jibri 是什麼、限制與資源](#一jibri-是什麼有什麼限制)
+
+**安裝步驟（同機版，最易上手）**
+2. [主機前置：snd-aloop](#二主機vm前置載入-snd-aloop決定可並行的場數)
+3. [啟用錄影（`.env`）](#三啟用錄影docker-jitsi-meet-env)
+4. [同時 2 場錄製](#四同時-2-場錄製並行)
+5. [錄影中文顯示（必做）](#五錄影中文顯示必做)
+6. [錄影檔與調閱（jibri-recordings-api）](#六錄影檔與調閱jibri-recordings-api)
+
+**維運 / 進階**
+7. [疑難排解](#七疑難排解)
+8. [升級 SOP](#八升級-sop)
+9. [獨立 Jibri VM（與 Jitsi 分機）](#九獨立-jibri-vm與-jitsi-分機實作步驟)
+
+---
+
 ## 部署拓撲（建議 Jibri 獨立一台 VM）
 
 | 規模 | 建議 |
@@ -307,6 +327,8 @@ systemctl is-active jibri-recordings-api
 | 錄不到 2 場 / 第 2 場排不到 | `snd-aloop` 裝置數或 jibri 容器數不足 2 → 依第二、四節把兩者都補到 2（資源也要夠） |
 | `modprobe snd-aloop` 失敗 | 這台是 LXC 容器、非 VM → 改用 VM（見第一節） |
 | 黑畫面 / 無聲的錄影檔 | `/dev/snd` 未掛進容器、snd-aloop 異常，或主機資源不足 |
+| log 出現 `Failed to run finalize script /path/to/finalize` | **無害**——未設 finalize 腳本時的預設佔位路徑，停止錄影時會嘗試執行而失敗，但**不影響錄影檔產出**。要消除就設 `JIBRI_FINALIZE_RECORDING_SCRIPT_PATH` 指向一個存在的腳本（或一個空的 `.sh`）。 |
+| 錄影檔顯示「錄製中」一直不變 | portal 用 `metadata.json` 是否存在判定是否結束（Jibri 在 finalize 後才寫它）；若 finalize 異常未寫出，會卡在「錄製中」→ 查 jibri log 是否有 finalize 錯誤 |
 
 ---
 
