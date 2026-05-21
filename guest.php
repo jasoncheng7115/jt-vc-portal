@@ -159,6 +159,11 @@ window.addEventListener('load', () => {
   };
   const api = new JitsiMeetExternalAPI(<?= json_encode(Jaas::apiDomain()) ?>, options);
   api.addEventListener('readyToClose', () => { window.location.href = '/leave'; });
+<?php if ($mui['default_view'] === 'tile'): ?>
+  api.addEventListener('videoConferenceJoined', () => {
+    try { api.executeCommand('setTileView', true); } catch (e) {}   // 預設畫廊檢視
+  });
+<?php endif; ?>
 });
 </script>
 </body>

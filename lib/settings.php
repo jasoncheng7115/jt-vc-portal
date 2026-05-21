@@ -108,6 +108,7 @@ class Settings {
     }
     $mode = in_array($d['logo_mode'] ?? 'site', ['site','custom','none'], true) ? $d['logo_mode'] : 'site';
     $res  = (int)($d['resolution'] ?? 1080);
+    $view = in_array($d['default_view'] ?? 'speaker', ['speaker','tile'], true) ? $d['default_view'] : 'speaker';
     return [
       'logo_mode'  => $mode,
       'logo_url'   => (string)($d['logo_url'] ?? ''),
@@ -115,6 +116,7 @@ class Settings {
       'mute_audio' => $d['mute_audio'] ?? true,
       'mute_video' => $d['mute_video'] ?? true,
       'resolution' => in_array($res, [720, 1080], true) ? $res : 1080,
+      'default_view' => $view,
       'toolbar'    => $toolbar,
     ];
   }
@@ -125,6 +127,7 @@ class Settings {
     foreach (array_keys(self::MEETING_TOGGLE_BUTTONS) as $k) $toolbar[$k] = !empty($v['toolbar'][$k]);
     $mode = in_array($v['logo_mode'] ?? 'site', ['site','custom','none'], true) ? $v['logo_mode'] : 'site';
     $res  = (int)($v['resolution'] ?? 1080);
+    $view = in_array($v['default_view'] ?? 'speaker', ['speaker','tile'], true) ? $v['default_view'] : 'speaker';
     $d['meeting_custom'] = [
       'logo_mode'  => $mode,
       'logo_url'   => trim((string)($v['logo_url'] ?? '')),
@@ -132,6 +135,7 @@ class Settings {
       'mute_audio' => !empty($v['mute_audio']),
       'mute_video' => !empty($v['mute_video']),
       'resolution' => in_array($res, [720, 1080], true) ? $res : 1080,
+      'default_view' => $view,
       'toolbar'    => $toolbar,
     ];
     self::save($d);
@@ -146,6 +150,7 @@ class Settings {
         'logo_url'   => $site !== '' ? $site . '/logo' : '',
         'logo_link'  => $site,
         'mute_audio' => true, 'mute_video' => true, 'resolution' => 1080,
+        'default_view' => 'speaker',
         'toolbar'    => array_merge(self::MEETING_BASE_BUTTONS, $allToggles),
       ];
     }
@@ -160,6 +165,7 @@ class Settings {
       'mute_audio' => (bool)$mc['mute_audio'],
       'mute_video' => (bool)$mc['mute_video'],
       'resolution' => (int)$mc['resolution'],
+      'default_view' => $mc['default_view'],
       'toolbar'    => array_values($toolbar),
     ];
   }

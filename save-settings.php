@@ -37,6 +37,7 @@ if ($section === 'meeting_custom') {
     'mute_audio' => !empty($_POST['mute_audio']),
     'mute_video' => !empty($_POST['mute_video']),
     'resolution' => (int)($_POST['resolution'] ?? 1080),
+    'default_view' => $_POST['default_view'] ?? 'speaker',
     'toolbar'    => $tb,
   ]);
   Audit::log('settings_update', '會議室自訂（自建 Jitsi Meet）');

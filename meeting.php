@@ -102,10 +102,14 @@ window.addEventListener('load', () => {
   };
   const api = new JitsiMeetExternalAPI(<?= json_encode(Jaas::apiDomain()) ?>, options);
   api.addEventListener('readyToClose', () => { window.location.href = '/leave'; });
-<?php if ($lobby_on): ?>
-  // 大廳模式：主持人(本頁)進場後自動開啟，來賓需逐一允許才能進入
+<?php if ($lobby_on || $mui['default_view'] === 'tile'): ?>
   api.addEventListener('videoConferenceJoined', () => {
-    try { api.executeCommand('toggleLobby', true); } catch (e) {}
+<?php if ($mui['default_view'] === 'tile'): ?>
+    try { api.executeCommand('setTileView', true); } catch (e) {}   // 預設畫廊檢視
+<?php endif; ?>
+<?php if ($lobby_on): ?>
+    try { api.executeCommand('toggleLobby', true); } catch (e) {}   // 大廳：主持人進場自動開啟
+<?php endif; ?>
   });
 <?php endif; ?>
 

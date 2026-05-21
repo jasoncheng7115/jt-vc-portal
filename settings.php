@@ -218,6 +218,13 @@ render_topbar($me, $ip);
           <option value="1080" <?= $mc['resolution']===1080?'selected':'' ?>>1080p（Full HD）</option>
         </select>
       </div>
+      <div class="field"><label>預設檢視</label>
+        <select name="default_view" style="width:200px;">
+          <option value="speaker" <?= $mc['default_view']==='speaker'?'selected':'' ?>>演講者檢視（大畫面 + 縮圖）</option>
+          <option value="tile" <?= $mc['default_view']==='tile'?'selected':'' ?>>畫廊檢視（並排格狀）</option>
+        </select>
+        <div class="help">進入會議時的預設版面；之後仍可在會議內自行切換。</div>
+      </div>
 
       <div class="field">
         <label>工具列功能</label>

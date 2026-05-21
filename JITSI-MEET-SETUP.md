@@ -331,6 +331,10 @@ docker compose ps
 
 > **會議室左上 logo**：jt-vc-portal 進會議時會以 IFrame API 帶入「站台 logo」（`/logo`）作為會議室左上 logo（`defaultLogoUrl` / `DEFAULT_LOGO_URL`），無需改 Jitsi。要換 logo 到 **系統設定 → 站台設定** 上傳即可。註：少數 Jitsi 版本會限制 interfaceConfig 覆寫白名單，若沒生效，需在自建 Jitsi 的 `config.js` 允許該覆寫（自建可自行調整）。
 
+> **以下都由 jt-vc-portal 在進會議時帶入，無需改 Jitsi：**
+> - **停用「用 App 加入」深層連結**（`configOverwrite.disableDeepLinking = true`）：手機經 portal 進會議直接在瀏覽器開啟，不會跳官方 App 安裝/開啟頁（該 App 因 JWT 無法連入）。
+> - **會議室自訂**（系統設定 → 會議室自訂，自建模式）：左上 logo、進入靜音/關鏡頭、畫質上限、**預設檢視（演講者／畫廊）**、工具列功能逐項開關——皆於進會議時帶入。
+
 ---
 
 ## 六、疑難排解
