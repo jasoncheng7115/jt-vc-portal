@@ -130,6 +130,11 @@ window.addEventListener('load', () => {
     configOverwrite: {
       defaultLanguage: <?= json_encode(Settings::getMeetingLang()) ?>,
       disableDeepLinking: true,
+      videoQuality: {
+        codecPreferenceOrder: ['VP9', 'VP8', 'H264', 'AV1'],
+        mobileCodecPreferenceOrder: ['VP9', 'VP8', 'H264', 'AV1'],
+        enableAdaptiveMode: true
+      },
 <?php if ($mui['logo_url'] !== ''): ?>      defaultLogoUrl: <?= json_encode($mui['logo_url']) ?>,
 <?php endif; ?>      enableLobby: true,
       prejoinPageEnabled: false,
