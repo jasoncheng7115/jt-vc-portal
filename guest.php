@@ -155,6 +155,7 @@ window.addEventListener('load', () => {
     interfaceConfigOverwrite: {
       LANG_DETECTION: false,
       INVITE_URL: <?= json_encode(SITE_URL . '/room/' . rawurlencode($room)) ?>,
+      DEFAULT_REMOTE_DISPLAY_NAME: <?= json_encode(Settings::getRecorderName()) ?>,
       SHOW_JITSI_WATERMARK: <?= $mui['logo_url'] !== '' ? 'true' : 'false' ?>,
 <?php if ($mui['logo_url'] !== ''): ?>      DEFAULT_LOGO_URL: <?= json_encode($mui['logo_url']) ?>,
       DEFAULT_WELCOME_PAGE_LOGO_URL: <?= json_encode($mui['logo_url']) ?>,

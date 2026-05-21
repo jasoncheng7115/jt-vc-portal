@@ -28,6 +28,12 @@ if ($section === 'meeting') {
   $back('set_msg', '會議室設定已更新。');
 }
 
+if ($section === 'recording') {
+  Settings::setRecorderName($_POST['recorder_name'] ?? '');
+  Audit::log('settings_update', '錄製設定：錄製者顯示名稱「' . Settings::getRecorderName() . '」');
+  $back('set_msg', '錄製設定已更新。');
+}
+
 if ($section === 'meeting_custom') {
   if (Settings::getJaas()['mode'] !== 'selfhosted') $back('set_err', '會議室自訂僅適用於自建 Jitsi Meet 模式。');
   $tb = is_array($_POST['tb'] ?? null) ? $_POST['tb'] : [];

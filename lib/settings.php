@@ -99,6 +99,18 @@ class Settings {
     self::save($d);
   }
 
+  /** 錄製者（無名稱與會者）顯示名稱，取代 Jitsi 預設「Fellow Jitster」；預設「會議錄影」。 */
+  public static function getRecorderName(): string {
+    $v = trim((string)(self::load()['recorder_name'] ?? ''));
+    return $v !== '' ? $v : '會議錄影';
+  }
+
+  public static function setRecorderName(string $name): void {
+    $d = self::load();
+    $d['recorder_name'] = mb_substr(trim($name), 0, 40);
+    self::save($d);
+  }
+
   // === 會議室自訂（僅自建 Jitsi Meet 模式套用）===
   /** 一律保留、不開放關閉的工具列按鈕。 */
   const MEETING_BASE_BUTTONS = ['camera','microphone','toggle-camera','hangup','fullscreen','videoquality','profile','settings','filmstrip','highlight','help','shortcuts','mute-everyone','mute-video-everyone'];
