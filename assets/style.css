@@ -747,9 +747,10 @@ body.is-dark .table tbody tr.edit-row td { background: rgba(255,255,255,0.03); }
 /* 自訂檔案選擇器（隱藏原生 input） */
 .file-picker { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .file-picker input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-.file-btn {
+/* 用 .file-picker 前綴提高權重，蓋過 .field label{display:block}（否則按鈕變 block、文字靠上） */
+.file-picker .file-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  min-height: 44px; box-sizing: border-box; line-height: 1;
+  min-height: 44px; box-sizing: border-box; line-height: 1; margin-bottom: 0;
   padding: 0 16px; font-size: 14px; font-weight: 500;
   border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
   background: #fff; color: var(--text); cursor: pointer;

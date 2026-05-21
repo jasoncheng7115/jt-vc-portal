@@ -77,17 +77,18 @@ render_topbar($me, $ip);
   <div class="card">
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('lock', 18) ?>登入頁路徑</h1>
     <p class="subtitle" style="margin:6px 0 18px;">把登入入口改成只有你知道的祕密路徑，降低被自動掃描 / 暴力嘗試的機會。改掉後原本的 <span class="mono">/jt-login</span> 會直接回 404。</p>
-    <form method="POST" action="/save-settings" class="inline-form">
+    <form method="POST" action="/save-settings">
       <?= Auth::csrfField() ?>
       <input type="hidden" name="section" value="login_path">
-      <div class="field"><label>登入路徑</label>
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+      <div class="field">
+        <label>登入路徑</label>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <span class="mono" style="color:var(--text-muted);white-space:nowrap;"><?= htmlspecialchars(rtrim(SITE_URL, '/')) ?>/</span>
-          <input type="text" name="login_path" maxlength="64" value="<?= htmlspecialchars($login_path) ?>" placeholder="jt-login" style="min-width:200px;" pattern="[A-Za-z0-9._-]{1,64}">
+          <input type="text" name="login_path" maxlength="64" value="<?= htmlspecialchars($login_path) ?>" placeholder="jt-login" pattern="[A-Za-z0-9._-]{1,64}" style="width:240px;max-width:100%;">
+          <button class="btn btn-secondary" style="white-space:nowrap;height:42px;"><?= icon('check',14) ?>儲存登入路徑</button>
         </div>
         <div class="help">僅允許英數與 <span class="mono">. _ -</span>，長度 1–64。留空還原為預設 <span class="mono">jt-login</span>。</div>
       </div>
-      <button class="btn btn-secondary"><?= icon('check',14) ?>儲存登入路徑</button>
     </form>
     <div class="alert alert-info" style="align-items:flex-start;margin-top:14px;">
       <?= icon('warning') ?>

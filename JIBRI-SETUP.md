@@ -3,7 +3,7 @@
 接續 [JITSI-MEET-SETUP.md](JITSI-MEET-SETUP.md)，本文在同一套 docker-jitsi-meet 上加上 **Jibri 錄影**，並特別處理兩個重點：**同時多會議室錄製**與**錄影中文顯示**。
 
 > 適用版本：docker-jitsi-meet / `jitsi/jibri` **`stable-10888`**。
-> 本文以 **同時 2 場錄製（2 個 Jibri 實例）** 為目標撰寫；要增減場數時，把文中所有「2」一起調整即可。
+> 本文以 **同時 2 場錄製（2 個 Jibri 容器）** 為目標撰寫；要增減場數時，把文中所有「2」一起調整即可。
 
 ---
 
@@ -12,7 +12,7 @@
 | 規模 | 建議 |
 |---|---|
 | 測試 / 小規模、偶爾錄 1 場 | Jibri 與 Jitsi **同一台 VM**（同一套 docker-compose，最省事，即本文預設步驟） |
-| 正式 / 多實例（本文 2 場以上） | **Jibri 獨立一台（或多台）VM**，與 Jitsi 主機分開 |
+| 正式 / 多容器（本文 2 場以上） | **Jibri 獨立一台（或多台）VM**，與 Jitsi 主機分開 |
 
 **為什麼正式環境要分開：**
 
@@ -29,7 +29,7 @@
 ## 一、Jibri 是什麼、有什麼限制
 
 - Jibri（Jitsi Broadcasting Infrastructure）以一個 **headless Chrome** 加入會議，再用 **ffmpeg** 把畫面與聲音擷取成 `.mp4`（或推 RTMP 直播）。
-- **一個 Jibri 實例同時只能錄一場**。本文目標 **2 場並行 = 2 個 Jibri 實例**。
+- **一個 Jibri 容器同時只能錄一場**。本文目標 **2 場並行 = 2 個 Jibri 容器**。
 - 需要 ALSA loopback（`snd-aloop`）虛擬音效裝置擷取聲音；**每個並行的 Jibri 各需一個獨立 loopback 裝置**（2 場 → 2 個）。
 - Jibri 很吃資源：每路約 1～2 vCPU + 1～2 GB RAM（headless Chrome + ffmpeg）。**2 路並行建議 4 vCPU / 8 GB**（詳見下方「VM 資源建議」表）。
 
@@ -171,11 +171,11 @@ Jibri 容器需存取主機 `/dev/snd`（jibri.yml 已設 `devices: /dev/snd`）
 docker compose -f docker-compose.yml -f jibri.yml up -d --scale jibri=2
 ```
 
-每個 jibri 實例會佔用一張 loopback 卡；jicofo 會把每個錄影請求派給「空閒」的 jibri，最多同時 2 場。
+每個 jibri 容器會佔用一張 loopback 卡；jicofo 會把每個錄影請求派給「空閒」的 jibri，最多同時 2 場。
 
 **(3)** 確認：`docker compose -f docker-compose.yml -f jibri.yml ps` 應有 **2** 個 jibri 容器，且能在 2 間會議室同時開始錄影。
 
-> 三者必須一致：`snd-aloop` 裝置數 = jibri 實例數 = 想並行的場數（本文皆為 2）。任一不足，超出的錄影請求會排不到 Jibri 而失敗 / pending。
+> 三者必須一致：`snd-aloop` 裝置數 = jibri 容器數 = 想並行的場數（本文皆為 2）。任一不足，超出的錄影請求會排不到 Jibri 而失敗 / pending。
 > 要更多場：把第二節裝置數與此處 `--scale` 一起加大，並確認 VM 資源足夠。
 
 ---
@@ -296,7 +296,7 @@ systemctl is-active jibri-recordings-api
 |---|---|
 | 按錄影沒反應 / 一直 pending | jibri 沒起來、`snd-aloop` 未載入、或無空閒 jibri（都在錄）→ 加開 loopback 並 scale jibri |
 | 錄影中文變方框 / 缺字 | jibri 映像缺 CJK 字型 → 改用第五節的 `jibri-cjk` 映像 |
-| 錄不到 2 場 / 第 2 場排不到 | `snd-aloop` 裝置數或 jibri 實例數不足 2 → 依第二、四節把兩者都補到 2（資源也要夠） |
+| 錄不到 2 場 / 第 2 場排不到 | `snd-aloop` 裝置數或 jibri 容器數不足 2 → 依第二、四節把兩者都補到 2（資源也要夠） |
 | `modprobe snd-aloop` 失敗 | 這台是 LXC 容器、非 VM → 改用 VM（見第一節） |
 | 黑畫面 / 無聲的錄影檔 | `/dev/snd` 未掛進容器、snd-aloop 異常，或主機資源不足 |
 
@@ -322,7 +322,7 @@ sed -i 's/stable-[0-9]*/stable-<新版本>/' jibri-cjk/Dockerfile
 docker build -t jibri-cjk:stable-<新版本> ./jibri-cjk
 #   jibri.yml / override 內 jibri 服務的 image: 也改成 jibri-cjk:stable-<新版本>
 
-# (4) 拉取其餘官方映像並重啟（維持 2 個 jibri 實例）
+# (4) 拉取其餘官方映像並重啟（維持 2 個 jibri 容器）
 docker compose -f docker-compose.yml -f jibri.yml pull
 docker compose -f docker-compose.yml -f jibri.yml up -d --scale jibri=2
 ```
@@ -463,7 +463,7 @@ docker compose -f docker-compose.jibri-standalone.yml up -d --scale jibri=2
 docker compose -f docker-compose.jibri-standalone.yml ps
 docker logs <jibri容器> 2>&1 | grep -E "Authenticated|Joined MUC"
 
-# 主機 jicofo：應看到 2 個 brewery 實例 available = true
+# 主機 jicofo：應看到 brewery 內 2 個 jibri available = true
 docker logs docker-jitsi-meet-jicofo-1 2>&1 | grep -i "brewery instance"
 ```
 
