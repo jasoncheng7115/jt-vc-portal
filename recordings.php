@@ -28,13 +28,15 @@ foreach (Rooms::meetingSessions(0, time() + 86400) as $s) {
   $sess_by_room[(string)($s['room'] ?? '')][] = $s;
 }
 function rec_match_session(array $r, array $byRoom): ?array {
-  $room = (string)($r['room'] ?? '');
-  $end  = (int)($r['mtime'] ?? 0);
+  $room  = (string)($r['room'] ?? '');
+  $end   = (int)($r['mtime'] ?? 0);
+  $start = $end - (int)($r['duration'] ?? 0);   // 錄影「開始」時間
   $best = null; $bestDelta = PHP_INT_MAX;
   foreach ($byRoom[$room] ?? [] as $s) {
     $ss = (int)($s['start'] ?? 0); $se = (int)($s['end'] ?? 0);
-    if ($end >= $ss - 120 && $end <= $se + 300) {   // 錄影結束時間落在會議時段內(含寬限)
-      $delta = abs($se - $end);
+    // 以「錄影開始時間」落在會議時段內(含小寬限)為準，避免同房間的新錄影誤抓到上一場
+    if ($start >= $ss - 120 && $start <= $se + 60) {
+      $delta = abs($ss - $start);
       if ($delta < $bestDelta) { $bestDelta = $delta; $best = $s; }
     }
   }
