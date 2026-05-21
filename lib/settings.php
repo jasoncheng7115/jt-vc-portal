@@ -121,11 +121,16 @@ class Settings {
     ];
   }
 
-  /** 儲存服務設定；token 留空表示沿用既有（前端以遮罩顯示，不必每次重輸）。 */
+  /** 儲存服務設定；token 留空表示沿用既有（前端以遮罩顯示，不必每次重輸）。URL 留空＝整組清除。 */
   public static function setJibri(string $url, string $token): void {
     $d = self::load();
-    $d['jibri_url'] = rtrim(trim($url), '/');
-    if (trim($token) !== '') $d['jibri_token'] = trim($token);
+    $url = rtrim(trim($url), '/');
+    if ($url === '') {
+      unset($d['jibri_url'], $d['jibri_token']);   // 清除整組設定
+    } else {
+      $d['jibri_url'] = $url;
+      if (trim($token) !== '') $d['jibri_token'] = trim($token);
+    }
     self::save($d);
   }
 

@@ -36,12 +36,14 @@ if ($section === 'recording') {
 }
 
 if ($section === 'jibri') {
-  Settings::setJibri($_POST['jibri_url'] ?? '', $_POST['jibri_token'] ?? '');
+  $jurl = trim($_POST['jibri_url'] ?? '');
+  Settings::setJibri($jurl, $_POST['jibri_token'] ?? '');
   Audit::log('settings_update', 'Jibri 錄影服務設定更新（' . (Settings::getJibri()['url'] ?: '未設定') . '）');
-  if (!Settings::hasJibri()) $back('set_msg', 'Jibri 錄影服務設定已清除。');
+  if ($jurl === '') $back('set_msg', 'Jibri 錄影服務設定已清除。');
+  if (!Settings::hasJibri()) $back('set_err', '已儲存服務 URL，但尚未設定 Token，請填入 Token 才能啟用。');
   $ok = Recordings::ping();
   $back($ok ? 'set_msg' : 'set_err',
-        $ok ? 'Jibri 錄影服務已連線。' : 'Jibri 服務設定已儲存，但目前無法連線，請確認 URL、token 與來源 IP 允許清單。');
+        $ok ? 'Jibri 錄影服務已連線。' : 'Jibri 服務設定已儲存，但目前無法連線，請確認 URL、Token 與來源 IP 允許清單。');
 }
 
 if ($section === 'recording_retention') {
