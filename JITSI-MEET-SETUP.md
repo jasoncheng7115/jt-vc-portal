@@ -260,6 +260,11 @@ JWT_APP_ID=jt-vc-portal               # ← 對應 jt-vc-portal 的「App ID」
 JWT_APP_SECRET=<請產生一段長亂數>      # ← 對應 jt-vc-portal 的「app_secret（HS256 共享密鑰）」
 JWT_ACCEPTED_ISSUERS=jt-vc-portal     # 與 App ID 相同
 JWT_ACCEPTED_AUDIENCES=jt-vc-portal   # 與 App ID 相同
+
+# === 主持人權限控制（很重要，見下方說明，三者缺一不可）===
+ENABLE_AUTO_OWNER=0                            # 不讓「第一個進房者」自動變 moderator
+XMPP_MUC_MODULES=token_affiliation             # 依 token 的 moderator 旗標設角色（映像已內建此模組）
+GLOBAL_CONFIG=disable_cascading_set = false    # jicofo 開驗證時必設，否則設完 member 又被改回 owner
 ```
 
 對應關係（**三邊必須一致**）：
@@ -273,6 +278,22 @@ JWT_ACCEPTED_AUDIENCES=jt-vc-portal   # 與 App ID 相同
 > **產生密鑰**：`openssl rand -hex 32`，兩邊貼一樣的值。
 >
 > 為何 sub 預設 `*`：標準單網域 docker-jitsi-meet（非租戶）的 prosody token 驗證只接受 `sub` 為 `*` 或租戶名；本系統已預設送 `*`，直接可用。
+
+### 主持人權限控制（重要：否則所有人都是主持人）
+
+**docker-jitsi-meet 用 JWT 時，預設「只要持有效 token 就是 moderator」**——即使 token 帶 `context.user.moderator: false` 也不會被執行。後果是**來賓也是主持人**：可踢人、結束所有人會議、且**繞過大廳**。要讓「只有指定主持人是 moderator」，上方 `.env` 那三行**缺一不可**：
+
+| 設定 | 作用 |
+|---|---|
+| `ENABLE_AUTO_OWNER=0` | 關掉「第一個進房者自動變 owner」。 |
+| `XMPP_MUC_MODULES=token_affiliation` | 啟用 prosody 模組，依 token 的 `moderator` 旗標把使用者設為 `owner`（主持人）或 `member`（一般與會者）。模組已內建於映像 `/prosody-plugins-contrib/token_affiliation`。 |
+| `GLOBAL_CONFIG=disable_cascading_set = false` | jicofo 有開驗證時，會在模組設完 `member` 後**又把人重新授予 owner**；此設定讓模組在進場後反覆重設 `member`（約 1.6 秒內 9 次）壓過去。**少這行，來賓被大廳放行後仍會變回主持人。** |
+
+設定後 `docker compose up -d`（會重建 prosody / jicofo）。對應 jt-vc-portal：主持人 token 帶 `moderator: true`、來賓帶 `moderator: false`（本系統自動處理），於是**主持人 = owner / moderator、來賓 = member**（不能踢人 / 結束會議、會被大廳擋）。
+
+> **不需要把主持人與來賓分到不同 domain / 租戶**——同一個入口、同一個 token，靠 `moderator` 旗標區分即可。
+>
+> 驗證：以來賓身分進會議，其 participants 面板 / 「⋯」選單**不該**出現「全部靜音 / 結束會議 / 踢人」；只有主持人有。
 
 ### 啟用 JWT 後的存取行為（預設已擋匿名）
 
@@ -334,6 +355,10 @@ docker compose ps
 > **以下都由 jt-vc-portal 在進會議時帶入，無需改 Jitsi：**
 > - **停用「用 App 加入」深層連結**（`configOverwrite.disableDeepLinking = true`）：手機經 portal 進會議直接在瀏覽器開啟，不會跳官方 App 安裝/開啟頁（該 App 因 JWT 無法連入）。
 > - **會議室自訂**（系統設定 → 會議室自訂，自建模式）：左上 logo、進入靜音/關鏡頭、畫質上限、**預設檢視（演講者／畫廊）**、工具列功能逐項開關——皆於進會議時帶入。
+> - **大廳模式**：建立會議室時勾選，主持人進場（取得 moderator 後）自動開啟，來賓需逐一核准才能進入。
+> - **編碼偏好**（`videoQuality.codecPreferenceOrder = VP9, H264, VP8, AV1`）：純桌機會議用 VP9（低頻寬畫質佳）；**含 iPhone/iPad 的會議自動改用硬體 H.264**（iOS Safari 不支援 VP9，否則會落到畫質最差的 VP8）。
+
+> **行動端收視畫質**：手機在行動網路看對方視訊偏糊，主因是行動下行頻寬 + 自適應碼率（LAN 端頻寬大所以清楚）。VP9/H.264 已盡量改善；要更好需原生 App（但本架構因 JWT 無法用 App），或確保媒體走 UDP 10000 直連而非 TCP 中繼。
 
 ---
 
