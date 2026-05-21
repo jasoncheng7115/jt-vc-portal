@@ -108,12 +108,22 @@ window.addEventListener('load', () => {
   const api = new JitsiMeetExternalAPI(<?= json_encode(Jaas::apiDomain()) ?>, options);
   api.addEventListener('readyToClose', () => { window.location.href = '/leave'; });
 <?php if ($lobby_on || $mui['default_view'] === 'tile'): ?>
-  api.addEventListener('videoConferenceJoined', () => {
+  let _localId = null;
+<?php if ($lobby_on): ?>
+  // 大廳只有 moderator 能開；toggleLobby(true) 是「設為開」(冪等)，重複呼叫安全。
+  // 進場當下可能還沒拿到 moderator，故 (a) 角色變 moderator 時開、(b) 進場後延遲再試一次。
+  const enableLobby = () => { try { api.executeCommand('toggleLobby', true); } catch (e) {} };
+  api.addEventListener('participantRoleChanged', (e) => {
+    if (e && e.id === _localId && e.role === 'moderator') enableLobby();
+  });
+<?php endif; ?>
+  api.addEventListener('videoConferenceJoined', (e) => {
+    _localId = e && e.id;
 <?php if ($mui['default_view'] === 'tile'): ?>
     try { api.executeCommand('setTileView', true); } catch (e) {}   // 預設畫廊檢視
 <?php endif; ?>
 <?php if ($lobby_on): ?>
-    try { api.executeCommand('toggleLobby', true); } catch (e) {}   // 大廳：主持人進場自動開啟
+    setTimeout(enableLobby, 2000);   // 後援：此時通常已取得 moderator
 <?php endif; ?>
   });
 <?php endif; ?>
