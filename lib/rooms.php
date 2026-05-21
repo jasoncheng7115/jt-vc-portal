@@ -36,6 +36,7 @@ class Rooms {
           'attendees'    => is_array($v['attendees'] ?? null) ? $v['attendees'] : [],
           'lobby'        => !empty($v['lobby']),          // 大廳模式：主持人進場自動開啟
         ];
+        if (isset($v['roster']) && is_array($v['roster'])) $out[$name]['roster'] = $v['roster']; // 本次 session 與會者名冊快照
       }
     }
     return $out;
