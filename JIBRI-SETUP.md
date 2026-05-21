@@ -236,16 +236,24 @@ sudo mkdir -p /opt/jibri-recordings-api
 sudo cp jibri-recordings-api/server.py /opt/jibri-recordings-api/server.py
 ```
 
-2) 環境設定 `/etc/jibri-recordings-api.env`（`chmod 600`）：
+2) 先產生一段隨機 token（複製輸出的字串）：
+
+```bash
+openssl rand -hex 32
+```
+
+3) 建立環境設定檔 `/etc/jibri-recordings-api.env`，把上一步的輸出**貼到** `API_TOKEN=` 後面（這是 systemd EnvironmentFile，不是 shell，**不能**寫 `$(...)`，要填實際字串）：
 
 ```bash
 REC_DIR=/srv/recordings
-API_TOKEN=$(openssl rand -hex 32)   # 產生後填入
+API_TOKEN=貼上上一步產生的隨機字串
 ALLOW_IPS=<portal 主機 IP>,127.0.0.1
 PORT=9080
 ```
 
-3) systemd 服務 `/etc/systemd/system/jibri-recordings-api.service`：
+設好權限：`chmod 600 /etc/jibri-recordings-api.env`。
+
+4) systemd 服務 `/etc/systemd/system/jibri-recordings-api.service`：
 
 ```ini
 [Unit]
@@ -267,7 +275,7 @@ NoNewPrivileges=true
 WantedBy=multi-user.target
 ```
 
-4) 啟用：
+5) 啟用：
 
 ```bash
 sudo systemctl daemon-reload
@@ -275,7 +283,7 @@ sudo systemctl enable --now jibri-recordings-api
 systemctl is-active jibri-recordings-api
 ```
 
-5) 在 portal **系統設定 → 錄製設定 → Jibri 錄影服務** 填入 `http://<jibri 主機 IP>:9080` 與上面的 token，按「儲存並測試」顯示「已連線」後，導覽列即出現「錄影記錄」。
+6) 在 portal **系統設定 → 錄製設定 → Jibri 錄影服務** 填入 `http://<jibri 主機 IP>:9080` 與上面的 token，按「儲存並測試」顯示「已連線」後，導覽列即出現「錄影記錄」。
 
 > **安全性**：服務同時用「來源 IP 允許清單 + Bearer token」雙重驗證，只接受 portal；portal 端再強制管理者登入後代理串流。`ProtectSystem=strict` + `ReadWritePaths=/srv/recordings` 讓服務只能讀寫錄影目錄。
 
