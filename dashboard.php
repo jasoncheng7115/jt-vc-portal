@@ -207,6 +207,7 @@ render_topbar($me, $ip);
               <span class="room-name"><?= htmlspecialchars($name) ?></span>
               <div class="room-meta">
                 <?= $badge ?>
+                <?php if (!empty($r['lobby'])): ?><span class="badge badge-accent"><?= icon('lock',11) ?>大廳模式</span><?php endif; ?>
                 <span>建立於 <?= fmt_when($r['created_at']) ?></span>
                 <?php if ($is_admin && !empty($r['owner_name'])): ?><span><?= icon('user',11) ?> <?= htmlspecialchars($r['owner_name']) ?></span><?php endif; ?>
                 <?php
@@ -223,7 +224,6 @@ render_topbar($me, $ip);
                 <?php endif; ?>
                 <?php if ($s !== null): ?><span><?= icon('calendar', 11) ?> <?= htmlspecialchars(fmt_range($s, $e)) ?></span><?php endif; ?>
                 <?php if (!empty($r['attendees'])): ?><span><?= icon('user',11) ?> <?= count($r['attendees']) ?> 位受邀</span><?php endif; ?>
-                <?php if (!empty($r['lobby'])): ?><span><?= icon('lock', 11) ?> 大廳模式</span><?php endif; ?>
               </div>
             </div>
             <div class="room-actions">
