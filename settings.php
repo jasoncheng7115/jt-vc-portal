@@ -131,7 +131,8 @@ render_topbar($me, $ip);
             ② 下方「服務網域」填你的 Jitsi 網域（如 <span class="mono">meet.example.com</span>）。<br>
             ③ 若採「需要 JWT」：Jitsi 的 <span class="mono">prosody</span> 需啟用 JWT token 驗證（<span class="mono">mod_auth_token</span> / <span class="mono">authentication = "token"</span>），且 <strong>App ID 與 app_id 一致、下方共享密鑰與 prosody 的 <span class="mono">app_secret</span> 一致</strong>，jicofo/prosody 設定完成。<br>
             ④ 若採「不需 JWT」：Jitsi 須允許匿名加入（預設）。<br>
-            ⑤ 錄影需自建環境另架 <span class="mono">Jibri</span>；逐字稿 / 直播同理（本站工具列已預設關閉這兩項）。
+            ⑤ 錄影需自建環境另架 <span class="mono">Jibri</span>；逐字稿 / 直播同理（本站工具列已預設關閉這兩項）。<br>
+            <strong>完整設定步驟</strong>（從官方 Docker 版 Jitsi Meet 一路設到與本系統搭配，含 JWT、媒體後援 / TURN、Jibri 錄影）見 <a href="<?= htmlspecialchars(APP_GITHUB_URL) ?>/blob/main/JITSI-MEET-SETUP.md" target="_blank" rel="noopener">JITSI-MEET-SETUP.md</a>。
           </span>
         </div>
         <div class="field"><label>服務網域</label>
