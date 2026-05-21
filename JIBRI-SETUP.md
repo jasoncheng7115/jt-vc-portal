@@ -31,7 +31,7 @@
 - Jibri（Jitsi Broadcasting Infrastructure）以一個 **headless Chrome** 加入會議，再用 **ffmpeg** 把畫面與聲音擷取成 `.mp4`（或推 RTMP 直播）。
 - **一個 Jibri 實例同時只能錄一場**。本文目標 **2 場並行 = 2 個 Jibri 實例**。
 - 需要 ALSA loopback（`snd-aloop`）虛擬音效裝置擷取聲音；**每個並行的 Jibri 各需一個獨立 loopback 裝置**（2 場 → 2 個）。
-- Jibri 很吃資源：每場約 1～2 vCPU + 1～2 GB RAM（headless Chrome + ffmpeg）。**2 場並行請預留約 3～4 vCPU + 3～4 GB RAM**（含系統餘裕）。
+- Jibri 很吃資源：每路約 1～2 vCPU + 1～2 GB RAM（headless Chrome + ffmpeg）。**2 路並行建議 4 vCPU / 8 GB**（詳見下方「VM 資源建議」表）。
 
 ### 必須裝在「VM」、不能裝在容器（LXC）內
 
@@ -40,6 +40,24 @@ Jibri 需要在主機核心 **載入 `snd-aloop` 模組** 並存取 **`/dev/snd`
 - **請把「跑 Docker 的這台 Jibri 主機」開成一台 VM（KVM/完整虛擬機，有自己的核心）**，再在 VM 內用 Docker 起 2 個 Jibri 容器。
 - 例：Proxmox → 開 **VM**（不是 LXC）→ 裝 Linux + Docker → 於 VM 內 `modprobe snd-aloop`。
 - 「不能裝在容器裡」指的是不要把 Jibri 主機本身做成 LXC；Jibri 服務本身仍是在 VM 內以 Docker 容器執行（這是 OK 的，因為 VM 有獨立核心可載入模組、可給容器 `/dev/snd`）。
+
+### VM 資源建議（以本文目標「2 路同時錄製」為準）
+
+| 項目 | 建議 | 備註 |
+|---|---|---|
+| vCPU | **4 核**（最少 3、舒適 6） | Jibri = headless Chrome + ffmpeg 編碼，很吃 CPU；每路約 1～2 vCPU |
+| RAM | **8 GB**（最少 4） | 每路 Chrome + ffmpeg 約 1～2 GB，加系統餘裕 |
+| 系統碟 | **20–30 GB** | OS + Docker + Jibri/Chrome 映像約 10～15 GB |
+| 錄影空間 | **另計，建議獨立碟 / NFS（100 GB 起）** | 見下方容量估算；可用 `finalize.sh` 自動搬走後刪本地 |
+| 音效 | **snd-aloop ×2**（每路一張 loopback） | 必須是 VM、不可 LXC（見上） |
+
+**錄影容量估算（容易被忽略）**：1080p30 H.264 約 **0.5～1 GB / 小時 / 路**；估「同時路數 × 單場時長 × 保留份數」。例：2 路各錄 2 小時 ≈ 2～4 GB。長期保留請把錄影放獨立大碟或 NAS / 物件儲存。
+
+**其他**：
+- **網路**：Jibri 要把整場會議「下載」進來再錄，需穩定頻寬到 Jitsi / JVB，最好同網段。
+- **CPU 類型（Proxmox）**：Jibri 綁 `snd-aloop` 核心模組，live migration 意義不大；用 `host` 或 `x86-64-v2-AES` 皆可，離線搬移沒問題。
+- **要更多路**：vCPU / RAM、`snd-aloop` 裝置數（第二節）、`--scale jibri=N`（第四節）一起等比放大（例：3 路 ≈ 6 vCPU / 12 GB）。
+- **最小可跑**（偶爾 1 路）：2 vCPU / 4 GB / 系統 20 GB + 錄影空間。
 
 ---
 
