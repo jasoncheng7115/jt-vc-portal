@@ -274,10 +274,10 @@ docker compose -f docker-compose.yml -f jibri.yml ps     # web/prosody/jicofo/jv
 
 正式環境建議 Jibri 獨立一台 VM（見「部署拓撲」）。以下為實機驗證過的完整步驟，假設：
 
-- 主 Jitsi 主機：`192.168.1.134`（docker-jitsi-meet 在 `/opt/docker-jitsi-meet`，對外 `meet.example.com`）。
+- 主 Jitsi 主機：`10.0.0.10`（docker-jitsi-meet 在 `/opt/docker-jitsi-meet`，對外 `meet.example.com`）。
 - Jibri VM：另一台、**KVM 非 LXC**、同網段可連到主機。
 
-### 9-1 主 Jitsi 主機（`192.168.1.134`）端
+### 9-1 主 Jitsi 主機（`10.0.0.10`）端
 
 ```bash
 cd /opt/docker-jitsi-meet
@@ -289,7 +289,7 @@ sed -i 's/^#\?ENABLE_RECORDING=.*/ENABLE_RECORDING=1/' .env || echo "ENABLE_RECO
 cat >> docker-compose.override.yml <<'EOF'
   prosody:
     ports:
-      - "192.168.1.134:5222:5222"
+      - "10.0.0.10:5222:5222"
 EOF
 #     注意：override 的 services: 區塊只能有一個，已有其他服務時把 prosody 併進去
 
@@ -323,7 +323,7 @@ cat >> .env <<'EOF'
 PUBLIC_URL=https://meet.example.com
 TZ=Asia/Taipei
 ENABLE_RECORDING=1
-XMPP_SERVER=192.168.1.134
+XMPP_SERVER=10.0.0.10
 XMPP_PORT=5222
 XMPP_TRUST_ALL_CERTS=1
 XMPP_DOMAIN=meet.jitsi
@@ -358,7 +358,7 @@ services:
     cap_add: [ SYS_ADMIN ]
     devices: [ "/dev/snd:/dev/snd" ]
     extra_hosts:
-      - "meet.example.com:192.168.1.134"   # 讓錄影 Chrome 解析到主機內網 IP
+      - "meet.example.com:10.0.0.10"   # 讓錄影 Chrome 解析到主機內網 IP
     environment:
       - PUBLIC_URL
       - TZ
