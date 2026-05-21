@@ -99,6 +99,8 @@ h2{font-size:33px;letter-spacing:-.025em;margin:0 0 10px;line-height:1.2}
 .panel.good h3::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--green)}
 .panel ul{margin:0;padding-left:20px;color:var(--muted)}
 .panel li{margin:8px 0}
+#appendix .panel{display:flex;flex-direction:column}
+#appendix .panel>p:last-child{margin-top:auto;margin-bottom:0}
 
 /* feature grid */
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
