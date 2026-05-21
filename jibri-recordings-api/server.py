@@ -72,6 +72,53 @@ def _dir_size(d):
             s += os.path.getsize(p)
     return s
 
+def _mp4_duration(path):
+    """讀 mp4 mvhd box 取得長度（秒）；純標準庫、不需 ffprobe。失敗回 0。"""
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, 2); filesize = f.tell(); f.seek(0)
+            pos = 0
+            while pos < filesize:
+                f.seek(pos)
+                hdr = f.read(8)
+                if len(hdr) < 8:
+                    break
+                size = int.from_bytes(hdr[:4], "big"); typ = hdr[4:8]; hs = 8
+                if size == 1:
+                    size = int.from_bytes(f.read(8), "big"); hs = 16
+                elif size == 0:
+                    size = filesize - pos
+                if typ == b"moov":
+                    end = pos + size; inner = pos + hs
+                    while inner < end:
+                        f.seek(inner)
+                        ih = f.read(8)
+                        if len(ih) < 8:
+                            break
+                        isize = int.from_bytes(ih[:4], "big"); ityp = ih[4:8]; ihs = 8
+                        if isize == 1:
+                            isize = int.from_bytes(f.read(8), "big"); ihs = 16
+                        elif isize == 0:
+                            isize = end - inner
+                        if ityp == b"mvhd":
+                            f.seek(inner + ihs)
+                            ver = f.read(1)[0]; f.read(3)
+                            if ver == 1:
+                                f.read(16); timescale = int.from_bytes(f.read(4), "big"); duration = int.from_bytes(f.read(8), "big")
+                            else:
+                                f.read(8); timescale = int.from_bytes(f.read(4), "big"); duration = int.from_bytes(f.read(4), "big")
+                            return int(duration / timescale) if timescale else 0
+                        if isize <= 0:
+                            break
+                        inner += isize
+                    return 0
+                if size <= 0:
+                    break
+                pos += size
+    except Exception:
+        return 0
+    return 0
+
 def _room_of(d, mp4):
     meta = os.path.join(d, "metadata.json")
     if os.path.isfile(meta):
@@ -113,7 +160,8 @@ def scan():
         else:
             status = "incomplete"     # 無 metadata 又久未變動 → 中斷殘留
         out.append({"id": rid, "room": _room_of(d, mp4), "file": mp4,
-                    "size": st.st_size, "mtime": int(st.st_mtime), "status": status})
+                    "size": st.st_size, "mtime": int(st.st_mtime), "status": status,
+                    "duration": _mp4_duration(os.path.join(d, mp4)) if status != "recording" else 0})
     out.sort(key=lambda x: x["mtime"], reverse=True)
     return out
 

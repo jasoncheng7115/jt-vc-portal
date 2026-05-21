@@ -31,6 +31,12 @@ function rec_status_badge(string $s): string {
   [$cls, $txt] = $map[$s] ?? ['badge-muted', $s];
   return '<span class="badge ' . $cls . '">' . htmlspecialchars($txt) . '</span>';
 }
+function rec_dur($s): string {
+  $s = (int)$s;
+  if ($s <= 0) return '—';
+  $h = intdiv($s, 3600); $m = intdiv($s % 3600, 60); $sec = $s % 60;
+  return $h > 0 ? sprintf('%d:%02d:%02d', $h, $m, $sec) : sprintf('%d:%02d', $m, $sec);
+}
 
 render_head('錄影記錄');
 render_topbar($me, $ip);
@@ -81,16 +87,20 @@ render_topbar($me, $ip);
       <?php if (empty($list)): ?>
         <div class="empty">目前沒有錄影檔。</div>
       <?php else: ?>
+      <div class="field" style="max-width:280px;margin:14px 0 8px;">
+        <input type="text" id="recSearch" placeholder="搜尋會議室…" autocomplete="off">
+      </div>
       <table class="table">
-        <thead><tr><th>會議室</th><th>時間</th><th>大小</th><th>狀態</th><th style="text-align:right;">操作</th></tr></thead>
+        <thead><tr><th>會議室</th><th>時間</th><th>長度</th><th>大小</th><th>狀態</th><th style="text-align:right;">操作</th></tr></thead>
         <tbody>
         <?php foreach ($list as $r):
           $rid = (string)$r['id']; $st = (string)($r['status'] ?? 'ok');
           $playable = $st !== 'orphan' && !empty($r['file']);
         ?>
-          <tr>
+          <tr class="rec-row" data-room="<?= htmlspecialchars(mb_strtolower((string)($r['room'] ?? ''))) ?>">
             <td><strong><?= htmlspecialchars($r['room'] ?: '（未知）') ?></strong></td>
             <td class="mono" style="white-space:nowrap;"><?= htmlspecialchars(date('Y-m-d H:i:s', (int)$r['mtime'])) ?></td>
+            <td class="mono"><?= htmlspecialchars(rec_dur($r['duration'] ?? 0)) ?></td>
             <td class="mono"><?= rec_bytes($r['size']) ?></td>
             <td><?= rec_status_badge($st) ?></td>
             <td style="text-align:right;white-space:nowrap;">
@@ -138,6 +148,16 @@ render_topbar($me, $ip);
   });
   document.getElementById('closePlay').addEventListener('click', close);
   modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+
+  var search = document.getElementById('recSearch');
+  if (search) {
+    search.addEventListener('input', function () {
+      var q = search.value.trim().toLowerCase();
+      document.querySelectorAll('tr.rec-row').forEach(function (row) {
+        row.style.display = (!q || (row.dataset.room || '').indexOf(q) !== -1) ? '' : 'none';
+      });
+    });
+  }
 })();
 </script>
 <?php render_foot(); ?>

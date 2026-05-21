@@ -202,7 +202,7 @@ render_topbar($me, $ip);
   <?php $mc = Settings::getMeetingCustom(); ?>
   <div class="card js-card-selfhosted"<?= $jaas['mode']==='selfhosted' ? '' : ' style="display:none;"' ?>>
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('video', 18) ?>會議室自訂</h1>
-    <p class="subtitle" style="margin:6px 0 18px;">自建 Jitsi Meet 模式專用：進入預設值與工具列功能。設定會在進入會議時帶入 Jitsi。<br>會議室左上 logo 改由 Jitsi 伺服器統一設定（現場與錄影一致），見 <a href="<?= htmlspecialchars(APP_GITHUB_URL) ?>/blob/main/JITSI-MEET-SETUP.md" target="_blank" rel="noopener">JITSI-MEET-SETUP.md</a>。</p>
+    <p class="subtitle" style="margin:6px 0 18px;">自建 Jitsi Meet 模式專用：進入預設值與工具列功能。設定會在進入會議時帶入 Jitsi。</p>
     <form method="POST" action="/save-settings">
       <?= Auth::csrfField() ?>
       <input type="hidden" name="section" value="meeting_custom">
