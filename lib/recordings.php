@@ -4,9 +4,33 @@
  * 服務端僅接受本 portal 來源 IP + token；本類別再在 portal 端強制管理者登入。
  */
 require_once __DIR__ . '/settings.php';
+require_once __DIR__ . '/rooms.php';
 
 class Recordings {
   public static function configured(): bool { return Settings::hasJibri(); }
+
+  /** 該錄影所屬會議的主持人 user id：先看房間現存擁有者，再依時間對應 meetings.jsonl。 */
+  public static function ownerOf(array $rec): string {
+    $room = (string)($rec['room'] ?? '');
+    if ($room === '') return '';
+    $r = Rooms::get($room);
+    if (!empty($r['owner'])) return (string)$r['owner'];
+    $end = (int)($rec['mtime'] ?? 0);
+    $best = null; $bd = PHP_INT_MAX;
+    foreach (Rooms::meetingSessions(0, time() + 86400) as $s) {
+      if ((string)($s['room'] ?? '') !== $room) continue;
+      $ss = (int)($s['start'] ?? 0); $se = (int)($s['end'] ?? 0);
+      if ($end >= $ss - 120 && $end <= $se + 300) { $d = abs($se - $end); if ($d < $bd) { $bd = $d; $best = $s; } }
+    }
+    return $best ? (string)($best['owner'] ?? '') : '';
+  }
+
+  /** 管理者看全部；主持人只能存取自己主持的會議錄影。 */
+  public static function canAccess(array $rec, array $me): bool {
+    if (($me['role'] ?? '') === 'admin') return true;
+    $o = self::ownerOf($rec);
+    return $o !== '' && $o === ($me['id'] ?? '');
+  }
 
   /** 發 JSON 請求；回傳 ['ok'=>bool,'code'=>int,'data'=>array|null]。 */
   private static function req(string $method, string $path, ?array $body = null, int $timeout = 8): array {

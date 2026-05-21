@@ -83,15 +83,21 @@ function render_topbar($user = null, ?string $ip = null): void {
  * 統計頁兩種模式皆顯示：JaaS 稱「用量統計」（含 MAU），自建稱「會議統計」。
  */
 function admin_nav(string $active = ''): string {
-  $jaas = Settings::getJaas()['mode'];
-  $tabs = [
-    'dashboard' => ['/dashboard', 'video',     '會議室管理'],
-    'accounts'  => ['/accounts',  'user',      '帳號管理'],
-    'audit'     => ['/audit-log', 'clock',     '稽核記錄'],
-  ];
-  $tabs['usage'] = ['/usage', 'chart', $jaas === 'jaas' ? '用量統計' : '會議統計'];
-  if (Settings::hasJibri()) $tabs['recordings'] = ['/recordings', 'video', '錄影記錄'];
-  $tabs['settings'] = ['/settings', 'dashboard', '系統設定'];
+  if (Auth::isAdmin()) {
+    $jaas = Settings::getJaas()['mode'];
+    $tabs = [
+      'dashboard' => ['/dashboard', 'video',     '會議室管理'],
+      'accounts'  => ['/accounts',  'user',      '帳號管理'],
+      'audit'     => ['/audit-log', 'clock',     '稽核記錄'],
+    ];
+    $tabs['usage'] = ['/usage', 'chart', $jaas === 'jaas' ? '用量統計' : '會議統計'];
+    if (Settings::hasJibri()) $tabs['recordings'] = ['/recordings', 'video', '錄影記錄'];
+    $tabs['settings'] = ['/settings', 'dashboard', '系統設定'];
+  } else {
+    // 主持人：只有會議室管理 +（有 Jibri 時）自己會議的錄影記錄
+    $tabs = ['dashboard' => ['/dashboard', 'video', '會議室管理']];
+    if (Settings::hasJibri()) $tabs['recordings'] = ['/recordings', 'video', '錄影記錄'];
+  }
 
   $html = '<div class="nav-row">';
   foreach ($tabs as $key => $t) {

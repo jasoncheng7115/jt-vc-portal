@@ -6,16 +6,20 @@ require_once __DIR__ . '/lib/recordings.php';
 require_once __DIR__ . '/lib/rooms.php';
 require_once __DIR__ . '/lib/layout.php';
 
-$me = Auth::requireAdmin();
+$me = Auth::requireLogin();
 $ip = Auth::clientIp();
+$is_admin = ($me['role'] ?? '') === 'admin';
 
 $msg = $_SESSION['rec_msg'] ?? '';
 $err = $_SESSION['rec_err'] ?? '';
 unset($_SESSION['rec_msg'], $_SESSION['rec_err']);
 
 $configured = Recordings::configured();
-$stats = $configured ? Recordings::stats() : null;
+$stats = ($configured && $is_admin) ? Recordings::stats() : null;   // 容量統計僅管理者
 $list  = $configured ? Recordings::listRecordings() : [];
+if ($configured && !$is_admin) {                                    // 主持人只看自己主持的會議錄影
+  $list = array_values(array_filter($list, fn($r) => Recordings::canAccess($r, $me)));
+}
 
 // 用 portal 的會議記錄（meetings.jsonl）依「房間 + 時間」對應出主持人與參與者。
 // 錄影本身（Jibri）不知道主持人/參與者，這些在 portal 端才有。
@@ -70,23 +74,28 @@ render_topbar($me, $ip);
 
   <div class="card">
     <h1><?= icon('video', 18) ?>錄影記錄</h1>
-    <p class="subtitle">調閱自建 Jibri 主機上的會議錄影，可線上播放、下載與刪除。</p>
+    <p class="subtitle"><?= $is_admin ? '調閱自建 Jibri 主機上的會議錄影，可線上播放、下載與刪除。' : '調閱您主持的會議錄影，可線上播放與下載。' ?></p>
 
     <?php if (!$configured): ?>
+      <?php if ($is_admin): ?>
       <div class="alert alert-info" style="align-items:flex-start;">
         <?= icon('warning') ?>
         <span>尚未設定 Jibri 錄影服務。請至 <a href="/settings">系統設定 → 錄製設定</a> 填入服務 URL 與 token。</span>
       </div>
-    <?php elseif ($stats === null): ?>
+      <?php else: ?>
+      <div class="alert alert-info"><?= icon('warning') ?><span>錄影服務尚未啟用。</span></div>
+      <?php endif; ?>
+    <?php elseif ($is_admin && $stats === null): ?>
       <div class="alert alert-error" style="align-items:flex-start;">
         <?= icon('warning') ?>
         <span>無法連線到 Jibri 錄影服務，請確認服務狀態、URL 與 token，以及來源 IP 允許清單。</span>
       </div>
-    <?php else:
-      $disk = $stats['disk']; $rec = $stats['recordings'];
-      $usedPct = $disk['total'] > 0 ? round($disk['used'] / $disk['total'] * 100) : 0;
-      $lvl = $usedPct >= 90 ? 'lvl-crit' : ($usedPct >= 75 ? 'lvl-warn' : 'lvl-ok');
-    ?>
+    <?php else: ?>
+      <?php if ($is_admin && $stats !== null):
+        $disk = $stats['disk']; $rec = $stats['recordings'];
+        $usedPct = $disk['total'] > 0 ? round($disk['used'] / $disk['total'] * 100) : 0;
+        $lvl = $usedPct >= 90 ? 'lvl-crit' : ($usedPct >= 75 ? 'lvl-warn' : 'lvl-ok');
+      ?>
       <div style="margin:6px 0 4px;">
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:6px;">
           <span style="display:inline-flex;align-items:center;gap:5px;"><?= icon('chart', 14) ?>錄影主機容量</span>
@@ -104,6 +113,7 @@ render_topbar($me, $ip);
         <button class="btn btn-secondary btn-sm" onclick="return confirm('依目前保留政策立即清理？此動作會刪除符合條件的錄影。');"><?= icon('trash', 14) ?>依保留政策立即清理</button>
         <span class="help" style="margin-left:8px;">保留政策於 <a href="/settings">系統設定 → 錄製設定</a> 調整。</span>
       </form>
+      <?php endif; ?>
 
       <?php if (empty($list)): ?>
         <div class="empty">目前沒有錄影檔。</div>
@@ -135,12 +145,14 @@ render_topbar($me, $ip);
                 <button type="button" class="btn btn-secondary btn-sm js-play" data-id="<?= htmlspecialchars($rid) ?>" data-room="<?= htmlspecialchars($r['room']) ?>"><?= icon('play', 14) ?>播放</button>
                 <a class="btn btn-secondary btn-sm" href="/recordings-file?id=<?= rawurlencode($rid) ?>&dl=1"><?= icon('download', 14) ?>下載</a>
               <?php endif; ?>
+              <?php if ($is_admin): ?>
               <form method="POST" action="/recordings-action" style="display:inline;" onsubmit="return confirm('確定刪除此錄影？此動作無法復原。');">
                 <?= Auth::csrfField() ?>
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="id" value="<?= htmlspecialchars($rid) ?>">
                 <button class="btn btn-ghost btn-sm"><?= icon('trash', 14) ?>刪除</button>
               </form>
+              <?php endif; ?>
             </td>
           </tr>
           <tr class="row-detail" hidden>

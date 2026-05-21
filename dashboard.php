@@ -87,7 +87,7 @@ render_topbar($me, $ip);
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js" integrity="sha384-5JqMv4L/Xa0hfvtF06qboNdhvuYXUku9ZrhZh3bSk8VXF0A/RuSLHpLsSV9Zqhl6" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/zh-tw.js" integrity="sha384-mjJeOdHLBw1XvGBUqn+UxU0xEtQSbR1nG/0o9getG2BM2o6lfJvCwTjPwyvzKrOY" crossorigin="anonymous"></script>
 
-  <?php if ($is_admin): ?><?= admin_nav('dashboard') ?><?php endif; ?>
+  <?php if ($is_admin || Settings::hasJibri()): ?><?= admin_nav('dashboard') ?><?php endif; ?>
 
   <?php if ($created_data):
     $invite_url = SITE_URL . '/room/' . rawurlencode($created);
