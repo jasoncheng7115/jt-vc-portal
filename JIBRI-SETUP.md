@@ -18,7 +18,7 @@
 
 - [二、主機前置：snd-aloop](#二主機vm前置載入-snd-aloop決定可並行的場數)
 - [三、啟用錄影（`.env`）](#三啟用錄影docker-jitsi-meet-env)
-- [四、同時 2 場錄製](#四同時-2-場錄製並行)
+- [四、增減錄製器](#四增減錄製器)
 - [五、錄影中文顯示（必做）](#五錄影中文顯示必做)
 - [六、錄影檔與調閱（jibri-recordings-api）](#六錄影檔與調閱jibri-recordings-api)
 
@@ -184,22 +184,55 @@ Jibri 容器需存取主機 `/dev/snd`（jibri.yml 已設 `devices: /dev/snd`）
 
 ---
 
-## 四、同時 2 場錄製（並行）
+## 四、增減錄製器
 
-**(1)** VM 的 snd-aloop 已開 **2** 個裝置（見第二節）。
+「錄製器」= 一個 jibri 容器，**一個容器同時只能錄一場**。要同時錄 N 場 = **N 張 snd-aloop loopback 卡 + N 個 jibri 容器**，兩者數量必須一致。
 
-**(2)** 把 jibri 服務 scale 到 **2**：
+> 以下指令以**同機版**（`-f docker-compose.yml -f jibri.yml`）為例；**獨立 Jibri VM** 請把 compose 參數換成 `-f docker-compose.jibri-standalone.yml`（見[第九節](#九獨立-jibri-vm與-jitsi-分機實作步驟)）。
+
+### (1) 設定 loopback 卡數（決定可錄上限）
+
+在 **Jibri VM 作業系統層**（非容器內）設定，要幾場就開幾張。以 2 張為例：
 
 ```bash
+echo 'snd-aloop' | sudo tee /etc/modules-load.d/snd-aloop.conf
+echo 'options snd-aloop enable=1,1 index=0,1' | sudo tee /etc/modprobe.d/snd-aloop.conf
+sudo modprobe -r snd-aloop 2>/dev/null && sudo modprobe snd-aloop enable=1,1 index=0,1   # 顯示 in use 代表正在錄影 → 改重開機
+cat /proc/asound/cards          # 應看到 2 張 Loopback 卡
+```
+
+3 場就 `enable=1,1,1 index=0,1,2`，依此類推。改完最保險是重開機一次（模組已載入時 options 會被忽略）。
+
+### (2) 增加 / 設定 jibri 容器數（卡數需先 ≥ N）
+
+```bash
+cd docker-jitsi-meet
 docker compose -f docker-compose.yml -f jibri.yml up -d --scale jibri=2
 ```
 
-每個 jibri 容器會佔用一張 loopback 卡；jicofo 會把每個錄影請求派給「空閒」的 jibri，最多同時 2 場。
+### (3) 減少容器數（多的會被停掉）
 
-**(3)** 確認：`docker compose -f docker-compose.yml -f jibri.yml ps` 應有 **2** 個 jibri 容器，且能在 2 間會議室同時開始錄影。
+```bash
+docker compose -f docker-compose.yml -f jibri.yml up -d --scale jibri=1
+```
 
-> 三者必須一致：`snd-aloop` 裝置數 = jibri 容器數 = 想並行的場數（本文皆為 2）。任一不足，超出的錄影請求會排不到 Jibri 而失敗 / pending。
-> 要更多場：把第二節裝置數與此處 `--scale` 一起加大，並確認 VM 資源足夠。
+### (4) 停止 / 重新啟動（不刪設定與錄影檔）
+
+```bash
+docker compose -f docker-compose.yml -f jibri.yml stop jibri      # 全部停止
+docker compose -f docker-compose.yml -f jibri.yml start jibri     # 重新啟動
+docker compose -f docker-compose.yml -f jibri.yml restart jibri   # 重啟（stop + start）
+```
+
+### (5) 確認
+
+```bash
+docker compose -f docker-compose.yml -f jibri.yml ps              # 應有對應數量的 jibri 容器，皆 running
+```
+
+每個 jibri 容器佔一張 loopback 卡；jicofo 會把每個錄影請求派給「空閒」的 jibri，最多同時錄 = min(卡數, 容器數) 場。
+
+> 三者一致：`snd-aloop 卡數 = jibri 容器數 = 想並行的場數`。任一不足，超出的錄影請求會排不到 Jibri 而失敗 / pending。增減時兩邊一起調，並確認 VM 資源（每路約 1～2 vCPU + 1～2 GB）足夠。
 
 ---
 

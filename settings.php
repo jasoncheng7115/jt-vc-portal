@@ -283,7 +283,7 @@ render_topbar($me, $ip);
       <?php if ($jibri_ok): ?><a href="/recordings" style="margin-left:8px;">前往錄影記錄 →</a><?php endif; ?>
       <?php if ($jibri_ok && $jrec !== null): ?>
         <br>已註冊錄製器：<strong><?= (int)$jrec ?></strong> 個（可同時錄製場數）。
-        <a href="<?= htmlspecialchars(APP_GITHUB_URL) ?>/blob/main/JIBRI-SETUP.md#四同時-2-場錄製並行" target="_blank" rel="noopener">增減錄製器 →</a>
+        <a href="<?= htmlspecialchars(APP_GITHUB_URL) ?>/blob/main/JIBRI-SETUP.md#四增減錄製器" target="_blank" rel="noopener">增減錄製器 →</a>
       <?php endif; ?>
     </p>
     <form method="POST" action="/save-settings">
