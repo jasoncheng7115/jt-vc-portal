@@ -133,9 +133,25 @@ window.addEventListener('load', () => {
   });
 <?php endif; ?>
 
-  // === 主持人心跳：每 15 秒回報，遠端據此判斷主持人是否還在 ===
+  // === 與會者名冊（供「尖峰同時人數 / 參與者時間軸」統計）===
+  // 隱藏的錄製者(hiddenDomain)不會觸發 participantJoined，故不會被計入。
+  const roster = {};            // id -> {name, in, out}
+  const nowSec = () => Math.floor(Date.now() / 1000);
+  const rosterArr = () => Object.keys(roster).map((k) => roster[k]);
+  api.addEventListener('videoConferenceJoined', (e) => { if (e && e.id) roster[e.id] = { name: e.displayName || '我', in: nowSec(), out: null }; });
+  api.addEventListener('participantJoined', (e) => { if (e && e.id) roster[e.id] = { name: e.displayName || '', in: nowSec(), out: null }; });
+  api.addEventListener('participantLeft', (e) => { if (e && e.id && roster[e.id]) roster[e.id].out = nowSec(); });
+  api.addEventListener('displayNameChange', (e) => { if (e && e.id && roster[e.id]) roster[e.id].name = e.displayname || e.displayName || roster[e.id].name; });
+
+  // === 主持人心跳：每 15 秒回報，遠端據此判斷主持人是否還在（並夾帶名冊快照）===
   const heartbeatUrl = '/host-heartbeat?room=' + encodeURIComponent(room);
-  const beat = () => { fetch(heartbeatUrl, { method: 'POST', cache: 'no-store', keepalive: true }).catch(() => {}); };
+  const beat = () => {
+    fetch(heartbeatUrl, {
+      method: 'POST', cache: 'no-store', keepalive: true,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roster: rosterArr() })
+    }).catch(() => {});
+  };
   beat();
   setInterval(beat, 15000);
 

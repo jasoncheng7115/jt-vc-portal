@@ -97,6 +97,7 @@ class Rooms {
         $start = (int)$r['host_joined_at'];
         $end   = time();
         if ($end > $start) {
+          [$participants, $peak] = self::finalizeRoster($r['roster'] ?? null, $start, $end);
           Store::appendLine(self::MEETINGS_FILE, [
             'ts'         => $end,
             'time'       => date('c', $end),
@@ -106,8 +107,12 @@ class Rooms {
             'dur'        => $end - $start,           // 秒
             'owner'      => $r['owner'] ?? '',
             'owner_name' => $r['owner_name'] ?? '',
+            'attendees'  => count($participants),    // 不重複參與者數
+            'peak'       => $peak,                    // 尖峰同時人數
+            'participants' => $participants,          // [{name,in,out}]，參與者時間軸
           ]);
         }
+      unset($rooms[$room]['roster']);
       }
       $rooms[$room]['host_joined'] = false;
       unset($rooms[$room]['host_seen_at'], $rooms[$room]['host_joined_at']);
@@ -115,14 +120,51 @@ class Rooms {
     }
   }
 
-  /** 主持人心跳：寫入 host_seen_at（並確保 host_joined=true、記下 session 起始） */
-  public static function recordHostHeartbeat(string $room): void {
+  /** 主持人心跳：寫入 host_seen_at（並確保 host_joined=true、記下 session 起始）；可附帶與會者名冊快照 */
+  public static function recordHostHeartbeat(string $room, ?array $roster = null): void {
     $rooms = self::load();
     if (!isset($rooms[$room]) || !is_array($rooms[$room])) return;
     $rooms[$room]['host_joined']  = true;
     $rooms[$room]['host_seen_at'] = time();
     if (empty($rooms[$room]['host_joined_at'])) $rooms[$room]['host_joined_at'] = time();
+    if (is_array($roster)) {
+      $clean = [];
+      foreach (array_slice($roster, 0, 200) as $p) {   // 上限 200，避免 rooms.json 膨脹
+        if (!is_array($p)) continue;
+        $in = (int)($p['in'] ?? 0);
+        if ($in <= 0) continue;
+        $clean[] = [
+          'name' => mb_substr(trim((string)($p['name'] ?? '')), 0, 64),
+          'in'   => $in,
+          'out'  => (isset($p['out']) && $p['out'] !== null) ? (int)$p['out'] : null,
+        ];
+      }
+      $rooms[$room]['roster'] = $clean;
+    }
     self::save($rooms);
+  }
+
+  /** 把名冊快照結算成 [participants[{name,in,out}], 尖峰同時人數]；時間 clamp 進 [start,end]。 */
+  private static function finalizeRoster($roster, int $start, int $end): array {
+    if (!is_array($roster) || !$roster) return [[], 0];
+    $participants = [];
+    $evts = [];
+    foreach ($roster as $p) {
+      if (!is_array($p)) continue;
+      $in  = (int)($p['in'] ?? 0);
+      if ($in <= 0) continue;
+      $out = (isset($p['out']) && $p['out'] !== null) ? (int)$p['out'] : $end;  // 未離場 → 算到散會
+      $in  = max($in, $start);
+      $out = min(max($out, $in), $end);
+      $participants[] = ['name' => (string)($p['name'] ?? ''), 'in' => $in, 'out' => $out];
+      $evts[] = [$in, 1];
+      $evts[] = [$out, -1];
+    }
+    // 尖峰：同一時刻先 +1 再 -1（讓瞬間重疊也計入）
+    usort($evts, fn($a, $b) => ($a[0] <=> $b[0]) ?: ($b[1] <=> $a[1]));
+    $cur = 0; $peak = 0;
+    foreach ($evts as $e) { $cur += $e[1]; if ($cur > $peak) $peak = $cur; }
+    return [$participants, $peak];
   }
 
   /** 判斷主持人是否真的還在（心跳新鮮）。沒有 host_seen_at 欄位（舊資料）→ 視為新鮮以維持相容。 */

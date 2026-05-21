@@ -15,5 +15,12 @@ if ($room === '') {
   http_response_code(400);
   exit;
 }
-Rooms::recordHostHeartbeat($room);
+// 可選：JSON body 帶與會者名冊快照 { roster: [{name,in,out}] }
+$roster = null;
+$raw = file_get_contents('php://input');
+if (is_string($raw) && $raw !== '') {
+  $j = json_decode($raw, true);
+  if (is_array($j) && isset($j['roster']) && is_array($j['roster'])) $roster = $j['roster'];
+}
+Rooms::recordHostHeartbeat($room, $roster);
 http_response_code(204);

@@ -228,6 +228,66 @@ render_topbar($me, $ip);
     <?php endif; ?>
   </div>
 
+  <!-- 本期會議參與者（尖峰同時人數 + 進出時間軸）-->
+  <?php $sessWithP = array_values(array_filter($sessions, fn($s) => !empty($s['participants']))); ?>
+  <div class="card">
+    <div class="card-title"><?= icon('user', 16) ?>本期會議參與者
+      <span class="muted" style="font-weight:400;font-size:12px;margin-left:8px;">尖峰同時人數與參與者進出時間軸</span>
+    </div>
+    <?php if (!empty($sessWithP)): ?>
+      <p class="muted" style="font-size:12px;margin:0 0 8px;">點任一列展開參與者進出明細。</p>
+      <table class="table audit-table">
+        <thead><tr><th class="caret-col no-sort"></th><th>會議室</th><th>主持人</th><th>時間</th><th>尖峰同時</th><th>不重複</th></tr></thead>
+        <tbody>
+        <?php foreach (array_reverse($sessWithP) as $s):
+          $st = (int)($s['start'] ?? 0); $en = (int)($s['end'] ?? $st);
+          $ps = is_array($s['participants'] ?? null) ? $s['participants'] : [];
+        ?>
+          <tr class="row-main" title="點擊展開明細">
+            <td class="caret-col"><svg class="caret" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></td>
+            <td><strong><?= htmlspecialchars((string)($s['room'] ?? '')) ?></strong></td>
+            <td><?= htmlspecialchars((string)($s['owner_name'] ?? '')) ?: '—' ?></td>
+            <td class="mono" style="white-space:nowrap;"><?= date('m/d H:i', $st) ?>–<?= date('H:i', $en) ?></td>
+            <td><strong><?= (int)($s['peak'] ?? 0) ?></strong> 人</td>
+            <td><?= (int)($s['attendees'] ?? count($ps)) ?> 人</td>
+          </tr>
+          <tr class="row-detail" hidden>
+            <td colspan="6">
+              <table class="table" style="margin:0;">
+                <thead><tr><th>參與者</th><th>進入</th><th>離開</th><th>停留</th></tr></thead>
+                <tbody>
+                <?php foreach ($ps as $p): $pin = (int)($p['in'] ?? 0); $pout = (int)($p['out'] ?? $pin); ?>
+                  <tr>
+                    <td><?= htmlspecialchars((string)($p['name'] ?? '')) ?: '（未具名）' ?></td>
+                    <td class="mono"><?= date('H:i:s', $pin) ?></td>
+                    <td class="mono"><?= date('H:i:s', $pout) ?></td>
+                    <td class="mono"><?= htmlspecialchars(fmt_dur(max(0, $pout - $pin))) ?></td>
+                  </tr>
+                <?php endforeach; ?>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table>
+    <?php else: ?>
+      <p class="muted" style="font-size:13px;margin:4px 0 0;">本期尚無參與者統計。新會議結束後會在此累積（需主持人在場，由主持人端回報；舊會議無此資料）。</p>
+    <?php endif; ?>
+  </div>
+
+<script>
+(function () {
+  // 參與者明細：點列展開（與稽核記錄相同樣式）
+  document.querySelectorAll('#js-attendee-card .row-main, .card .row-main').forEach(function (row) {
+    row.addEventListener('click', function () {
+      var d = row.nextElementSibling;
+      if (d && d.classList.contains('row-detail')) { d.hidden = !d.hidden; row.classList.toggle('open'); }
+    });
+  });
+})();
+</script>
+
 <script>
 (function () {
   if (!window.Chart) return;
