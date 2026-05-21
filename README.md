@@ -213,7 +213,7 @@ cp dot.htaccess .htaccess
 sudo systemctl reload apache2
 ```
 
-完成後登入確認 topbar 中央版本號已更新。
+完成後登入確認 topbar 左上（站台名稱旁）版本號已更新。
 
 ### 方法二：Docker 更新
 
@@ -240,7 +240,7 @@ docker ps --filter name=jt-vc-portal
 ```
 
 > 初始管理員的環境變數（`JTVC_ADMIN_*`）僅首次建立帳號時用；更新時可省略。
-> 版本號顯示於登入後 topbar 中央（點擊可前往本專案 GitHub），可用以確認已更新到新版。
+> 版本號顯示於登入後 topbar 左上、站台名稱旁（點擊可前往本專案 GitHub），可用以確認已更新到新版。
 
 ### 方法三：Release 映像更新
 

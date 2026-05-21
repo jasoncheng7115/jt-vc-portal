@@ -275,8 +275,10 @@ class Settings {
    */
   public static function getJaas(): array {
     $c = self::migrateJaas(self::load()['jaas'] ?? []);
-    $mode = in_array($c['mode'] ?? 'jaas', ['jaas', 'selfhosted'], true) ? $c['mode'] : 'jaas';
-    $shAuth = in_array($c['sh_auth'] ?? 'none', ['none', 'jwt'], true) ? $c['sh_auth'] : 'none';
+    $mode = $c['mode'] ?? 'jaas';
+    if (!in_array($mode, ['jaas', 'selfhosted'], true)) $mode = 'jaas';
+    $shAuth = $c['sh_auth'] ?? 'none';
+    if (!in_array($shAuth, ['none', 'jwt'], true)) $shAuth = 'none';
     $jaasDomain = ($c['domain'] ?? '') !== '' ? $c['domain'] : '8x8.vc';
     $jaasAppId  = $c['app_id'] ?? '';
     $shDomain   = $c['sh_domain'] ?? '';
