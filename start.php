@@ -84,8 +84,12 @@ $opts = [
   'owner'           => $me['id'],
   'owner_name'      => $me['username'] ?? $me['email'],
   'attendees'       => $attendees,
-  'lobby'           => !empty($_POST['lobby']),
 ];
+// 只有「建立 / 設定表單」(POST，含大廳勾選欄位) 才更新 lobby；
+// 從清單點「進入」(GET) 不帶此欄位，須保留原值，否則會把先前勾的大廳清掉。
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $opts['lobby'] = !empty($_POST['lobby']);
+}
 Rooms::upsert($room, $opts);
 
 // 寄送邀請信（有填 email 且 SMTP 已啟用時）
