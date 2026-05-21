@@ -37,7 +37,7 @@
       <span class="eyebrow">雙模</span>
     </div>
     <h1>會議在手，<span class="grad">主權我有</span></h1>
-    <p class="lead">搭配 Jitsi Meet 基底的系統，打造 Webex/Zoom 風格的會議入口，但一切由你掌控：多帳號 / 角色 / 2FA、預約、大廳、完整稽核與 SIEM 外拋。連線模式支援 <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>（雲端託管）或<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">自建 Jitsi Meet</a>，一鍵切換。</p>
+    <p class="lead">搭配 Jitsi Meet 基底的開源視訊會議系統，打造 Webex/Zoom 風格的會議入口，但一切由你掌控：多帳號 / 角色 / 2FA、預約、大廳、完整稽核與 SIEM 外拋。連線模式支援 <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>（雲端託管）或<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">自建 Jitsi Meet</a>，一鍵切換。</p>
     <p class="lead-note"><svg class="ln-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 8v.01"/></svg><span>8x8 自 2018 年起為 <strong>Jitsi / Jitsi Meet</strong> 的開發與維護公司；<strong>8x8 JaaS（Jitsi as a Service）</strong>即其官方雲端託管的 Jitsi 服務。</span></p>
     <div class="cta">
       <a class="btn btn-primary" href="#install">開始安裝</a>
@@ -358,8 +358,9 @@ docker stop jt-vc-portal &amp;&amp; docker rm jt-vc-portal      <span class="c">
         <p><a class="btn btn-primary" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/JITSI-MEET-SETUP.md" target="_blank" rel="noopener">JITSI-MEET-SETUP.md</a></p>
       </div>
       <div class="panel">
-        <h3>Jibri 錄影整合</h3>
+        <h3>Jibri 錄影整合 <span class="tag-opt">選配</span></h3>
         <p>在自建 Jitsi 上加上 Jibri 錄影：VM 需求、snd-aloop、同時多會議室錄製、錄影中文顯示（CJK 字型）、獨立 Jibri VM 實作。</p>
+        <p class="note-opt">非必要——不安裝完全不影響 Jitsi Meet 與會議運作，只是不提供錄影功能；需要時再加裝即可。</p>
         <p><a class="btn btn-ghost" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/JIBRI-SETUP.md" target="_blank" rel="noopener">JIBRI-SETUP.md</a></p>
       </div>
     </div>

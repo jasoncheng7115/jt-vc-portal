@@ -42,6 +42,8 @@ h2{font-size:33px;letter-spacing:-.025em;margin:0 0 10px;line-height:1.2}
 .btn-primary:hover{filter:brightness(1.05);box-shadow:0 12px 28px rgba(124,58,237,.30);text-decoration:none;transform:translateY(-1px)}
 .btn-ghost{background:#fff;color:var(--text);border-color:var(--border-strong)}
 .btn-ghost:hover{background:var(--bg-soft);text-decoration:none;border-color:var(--soft)}
+.tag-opt{display:inline-block;font-size:12px;font-weight:600;color:var(--accent);background:rgba(124,58,237,.10);border:1px solid rgba(124,58,237,.28);border-radius:999px;padding:1px 9px;vertical-align:middle;margin-left:8px}
+.note-opt{font-size:13px;color:var(--muted);margin-top:8px}
 
 /* hero — 白底 + 頂部彩雲光暈 */
 .hero{position:relative;overflow:hidden;background:#fff;border-bottom:1px solid var(--border)}
