@@ -94,71 +94,6 @@ render_topbar($me, $ip);
     <p class="help" style="margin:10px 0 0;">會議時長記錄（用量統計頁）保留最近 N 天，超過自動清除；預設 365 天。</p>
   </div>
 
-  <!-- 會議室自訂（僅自建 Jitsi Meet 模式；依連線模式下拉即時顯示） -->
-  <?php $mc = Settings::getMeetingCustom(); ?>
-  <div class="card js-card-selfhosted"<?= $jaas['mode']==='selfhosted' ? '' : ' style="display:none;"' ?>>
-    <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('video', 18) ?>會議室自訂</h1>
-    <p class="subtitle" style="margin:6px 0 18px;">自建 Jitsi Meet 模式專用：自訂會議室左上 logo、進入預設值與工具列功能。設定會在進入會議時帶入 Jitsi。</p>
-    <form method="POST" action="/save-settings">
-      <?= Auth::csrfField() ?>
-      <input type="hidden" name="section" value="meeting_custom">
-
-      <div class="field">
-        <label>會議室左上 logo</label>
-        <label style="font-weight:400;display:block;margin:4px 0;"><input type="radio" name="logo_mode" value="site" <?= $mc['logo_mode']==='site'?'checked':'' ?>> 沿用本系統 jt-vc-portal 的站台 logo（即「系統設定 → 站台設定」上傳的那個）</label>
-        <label style="font-weight:400;display:block;margin:4px 0;"><input type="radio" name="logo_mode" value="custom" <?= $mc['logo_mode']==='custom'?'checked':'' ?>> 自訂 logo 網址</label>
-        <label style="font-weight:400;display:block;margin:4px 0;"><input type="radio" name="logo_mode" value="none" <?= $mc['logo_mode']==='none'?'checked':'' ?>> 不顯示 logo</label>
-      </div>
-      <div class="field" id="fieldLogoUrl"><label>自訂 logo 網址</label>
-        <input type="url" name="logo_url" value="<?= htmlspecialchars($mc['logo_url']) ?>" placeholder="https://example.com/logo.png">
-        <div class="help">選「自訂 logo 網址」時生效，需為公開可存取的圖片網址。</div>
-      </div>
-      <div class="field" id="fieldLogoLink"><label>logo 點擊連結</label>
-        <input type="url" name="logo_link" value="<?= htmlspecialchars($mc['logo_link']) ?>" placeholder="https://example.com">
-        <div class="help">點按會議室 logo 時開啟的網址；留空則用本系統對外網址。</div>
-      </div>
-      <script>
-        (function(){
-          var radios = document.querySelectorAll('input[name="logo_mode"]');
-          var fUrl = document.getElementById('fieldLogoUrl');
-          var fLink = document.getElementById('fieldLogoLink');
-          function upd(){
-            var m = (document.querySelector('input[name="logo_mode"]:checked') || {}).value;
-            if (fUrl)  fUrl.style.display  = (m === 'custom') ? '' : 'none';   // 僅「自訂網址」顯示
-            if (fLink) fLink.style.display = (m === 'none')   ? 'none' : '';   // 「不顯示 logo」時連結也隱藏
-          }
-          radios.forEach(function(r){ r.addEventListener('change', upd); });
-          upd();
-        })();
-      </script>
-
-      <div class="field">
-        <label>進入預設值</label>
-        <label style="font-weight:400;display:block;margin:4px 0;"><input type="checkbox" name="mute_audio" value="1" <?= $mc['mute_audio']?'checked':'' ?>> 進入時靜音麥克風</label>
-        <label style="font-weight:400;display:block;margin:4px 0;"><input type="checkbox" name="mute_video" value="1" <?= $mc['mute_video']?'checked':'' ?>> 進入時關閉鏡頭</label>
-      </div>
-      <div class="field"><label>畫質上限</label>
-        <select name="resolution" style="width:160px;">
-          <option value="720" <?= $mc['resolution']===720?'selected':'' ?>>720p（HD）</option>
-          <option value="1080" <?= $mc['resolution']===1080?'selected':'' ?>>1080p（Full HD）</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label>工具列功能</label>
-        <div class="help" style="margin:0 0 8px;">勾選要在會議室工具列開放的功能。基本功能（麥克風、鏡頭、掛斷、全螢幕、設定等）一律保留。</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;">
-          <?php foreach (Settings::MEETING_TOGGLE_BUTTONS as $key => $label): ?>
-            <label style="font-weight:400;"><input type="checkbox" name="tb[<?= htmlspecialchars($key) ?>]" value="1" <?= !empty($mc['toolbar'][$key])?'checked':'' ?>> <?= htmlspecialchars($label) ?></label>
-          <?php endforeach; ?>
-        </div>
-      </div>
-
-      <button class="btn btn-primary"><?= icon('check') ?>儲存會議室自訂</button>
-    </form>
-    <p class="help" style="margin:10px 0 0;">提示：切換上方「連線模式」為自建即可即時預覽本卡，<strong>需按下「儲存連線設定」並維持自建模式</strong>，設定才會套用到會議。</p>
-  </div>
-
   <!-- 連線模式設定 -->
   <div class="card">
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('link', 18) ?>連線模式設定</h1>
@@ -231,6 +166,71 @@ render_topbar($me, $ip);
         sel.addEventListener('change', upd); upd();
       })();
     </script>
+  </div>
+
+  <!-- 會議室自訂（僅自建 Jitsi Meet 模式；依連線模式下拉即時顯示） -->
+  <?php $mc = Settings::getMeetingCustom(); ?>
+  <div class="card js-card-selfhosted"<?= $jaas['mode']==='selfhosted' ? '' : ' style="display:none;"' ?>>
+    <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('video', 18) ?>會議室自訂</h1>
+    <p class="subtitle" style="margin:6px 0 18px;">自建 Jitsi Meet 模式專用：自訂會議室左上 logo、進入預設值與工具列功能。設定會在進入會議時帶入 Jitsi。</p>
+    <form method="POST" action="/save-settings">
+      <?= Auth::csrfField() ?>
+      <input type="hidden" name="section" value="meeting_custom">
+
+      <div class="field">
+        <label>會議室左上 logo</label>
+        <label style="font-weight:400;display:block;margin:4px 0;"><input type="radio" name="logo_mode" value="site" <?= $mc['logo_mode']==='site'?'checked':'' ?>> 沿用本系統 jt-vc-portal 的站台 logo（即「系統設定 → 站台設定」上傳的那個）</label>
+        <label style="font-weight:400;display:block;margin:4px 0;"><input type="radio" name="logo_mode" value="custom" <?= $mc['logo_mode']==='custom'?'checked':'' ?>> 自訂 logo 網址</label>
+        <label style="font-weight:400;display:block;margin:4px 0;"><input type="radio" name="logo_mode" value="none" <?= $mc['logo_mode']==='none'?'checked':'' ?>> 不顯示 logo</label>
+      </div>
+      <div class="field" id="fieldLogoUrl"><label>自訂 logo 網址</label>
+        <input type="url" name="logo_url" value="<?= htmlspecialchars($mc['logo_url']) ?>" placeholder="https://example.com/logo.png">
+        <div class="help">選「自訂 logo 網址」時生效，需為公開可存取的圖片網址。</div>
+      </div>
+      <div class="field" id="fieldLogoLink"><label>logo 點擊連結</label>
+        <input type="url" name="logo_link" value="<?= htmlspecialchars($mc['logo_link']) ?>" placeholder="https://example.com">
+        <div class="help">點按會議室 logo 時開啟的網址；留空則用本系統對外網址。</div>
+      </div>
+      <script>
+        (function(){
+          var radios = document.querySelectorAll('input[name="logo_mode"]');
+          var fUrl = document.getElementById('fieldLogoUrl');
+          var fLink = document.getElementById('fieldLogoLink');
+          function upd(){
+            var m = (document.querySelector('input[name="logo_mode"]:checked') || {}).value;
+            if (fUrl)  fUrl.style.display  = (m === 'custom') ? '' : 'none';   // 僅「自訂網址」顯示
+            if (fLink) fLink.style.display = (m === 'none')   ? 'none' : '';   // 「不顯示 logo」時連結也隱藏
+          }
+          radios.forEach(function(r){ r.addEventListener('change', upd); });
+          upd();
+        })();
+      </script>
+
+      <div class="field">
+        <label>進入預設值</label>
+        <label style="font-weight:400;display:block;margin:4px 0;"><input type="checkbox" name="mute_audio" value="1" <?= $mc['mute_audio']?'checked':'' ?>> 進入時靜音麥克風</label>
+        <label style="font-weight:400;display:block;margin:4px 0;"><input type="checkbox" name="mute_video" value="1" <?= $mc['mute_video']?'checked':'' ?>> 進入時關閉鏡頭</label>
+      </div>
+      <div class="field"><label>畫質上限</label>
+        <select name="resolution" style="width:160px;">
+          <option value="720" <?= $mc['resolution']===720?'selected':'' ?>>720p（HD）</option>
+          <option value="1080" <?= $mc['resolution']===1080?'selected':'' ?>>1080p（Full HD）</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>工具列功能</label>
+        <div class="help" style="margin:0 0 8px;">勾選要在會議室工具列開放的功能。基本功能（麥克風、鏡頭、掛斷、全螢幕、設定等）一律保留。</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;">
+          <?php foreach (Settings::MEETING_TOGGLE_BUTTONS as $key => $label): ?>
+            <label style="font-weight:400;"><input type="checkbox" name="tb[<?= htmlspecialchars($key) ?>]" value="1" <?= !empty($mc['toolbar'][$key])?'checked':'' ?>> <?= htmlspecialchars($label) ?></label>
+          <?php endforeach; ?>
+        </div>
+      </div>
+
+      <button class="btn btn-primary"><?= icon('check') ?>儲存會議室自訂</button>
+    </form>
+    <p class="help" style="margin:10px 0 0;">提示：切換上方「連線模式」為自建即可即時預覽本卡，<strong>需按下「儲存連線設定」並維持自建模式</strong>，設定才會套用到會議。</p>
   </div>
 
   <!-- 8x8 用量 webhook（僅 JaaS 模式；依連線模式下拉即時顯示） -->
