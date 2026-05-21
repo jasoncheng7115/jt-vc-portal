@@ -58,6 +58,7 @@ $body_class = 'in-meeting theme-' . $theme . (Settings::isDark($theme) ? ' is-da
   </div>
 
   <div id="flash" class="copy-flash"><?= icon('check', 14) ?>已複製邀請連結</div>
+  <div id="recToast" class="copy-flash"></div>
 
 <script>
 window.addEventListener('load', () => {
@@ -104,6 +105,25 @@ window.addEventListener('load', () => {
   };
   const api = new JitsiMeetExternalAPI(<?= json_encode(Jaas::apiDomain()) ?>, options);
   api.addEventListener('readyToClose', () => { window.location.href = '/leave'; });
+
+  // 錄影狀態提示（緩解 Jitsi 前端「停止後選單標籤不刷新」的小毛病，給明確回饋）
+  let _recOn = null;
+  const showRecToast = (msg) => {
+    const t = document.getElementById('recToast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(window.__rt);
+    window.__rt = setTimeout(() => t.classList.remove('show'), 2600);
+  };
+  api.addEventListener('recordingStatusChanged', (e) => {
+    if (!e) return;
+    if (e.mode && e.mode !== 'file') return;   // 只管檔案錄影(Jibri)，忽略直播/逐字稿
+    const on = !!e.on;
+    if (_recOn === on) return;                  // 去重
+    _recOn = on;
+    showRecToast(on ? '錄影已開始' : '錄影已停止');
+  });
 <?php if ($lobby_on || $mui['default_view'] === 'tile'): ?>
   let _localId = null;
 <?php if ($lobby_on): ?>
