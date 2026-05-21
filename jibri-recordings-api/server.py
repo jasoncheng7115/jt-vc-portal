@@ -95,6 +95,7 @@ def scan():
         if not os.path.isdir(d):
             continue
         mp4 = next((f for f in sorted(os.listdir(d)) if f.lower().endswith(".mp4")), None)
+        has_meta = os.path.isfile(os.path.join(d, "metadata.json"))
         if not mp4:
             # 無 mp4：會議異常結束殘留（只剩 metadata 或 .part）
             st = os.stat(d)
@@ -103,12 +104,14 @@ def scan():
             continue
         st = os.stat(os.path.join(d, mp4))
         age = now - st.st_mtime
-        if age < RECORDING_GRACE:
-            status = "recording"
-        elif st.st_size < MIN_OK_SIZE:
-            status = "incomplete"
+        # Jibri 會在「停止錄影並 finalize」後才寫 metadata.json；它一旦存在就代表已結束。
+        # 不能只靠 mtime（剛停的檔 mtime 也很新，會誤判為錄製中）。
+        if has_meta:
+            status = "incomplete" if st.st_size < MIN_OK_SIZE else "ok"
+        elif age < RECORDING_GRACE:
+            status = "recording"      # 還在寫、尚未 finalize（無 metadata.json）
         else:
-            status = "ok"
+            status = "incomplete"     # 無 metadata 又久未變動 → 中斷殘留
         out.append({"id": rid, "room": _room_of(d, mp4), "file": mp4,
                     "size": st.st_size, "mtime": int(st.st_mtime), "status": status})
     out.sort(key=lambda x: x["mtime"], reverse=True)
