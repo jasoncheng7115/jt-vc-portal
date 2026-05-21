@@ -15,12 +15,12 @@ if (empty($_SESSION['2fa_uid'])) {
 $error = $_SESSION['2fa_error'] ?? '';
 unset($_SESSION['2fa_error']);
 
-render_head('兩步驟驗證');
+render_head('雙因素認證');
 render_topbar(false);
 ?>
 <main class="container narrow">
   <div class="card">
-    <h1><?= icon('lock', 18) ?>兩步驟驗證</h1>
+    <h1><?= icon('lock', 18) ?>雙因素認證</h1>
     <p class="subtitle">請輸入驗證器 App（Google Authenticator / Authy）顯示的 6 位數驗證碼。</p>
 
     <?php if ($error): ?>

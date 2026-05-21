@@ -99,7 +99,7 @@
       <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div><h3>Email 邀請</h3><p>填與會者 email，寄送含 <code>.ics</code> 行事曆的邀請信，可自訂主旨 / 內文範本。</p></div>
       <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/></svg></div><h3>來賓流程</h3><p>來賓需自填名稱才進場；非開放時段顯示等候 / 倒數 / 已結束頁。</p></div>
       <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><circle cx="12" cy="16" r="1"/></svg></div><h3>大廳模式</h3><p>建立會議室可選；主持人進場自動開啟，來賓需經主持人逐一允許才能進入。</p></div>
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><h3>多帳號 / 角色 / 2FA</h3><p>admin 看全部、host 只看自己建的；支援 TOTP 兩步驟驗證。</p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><h3>多帳號 / 角色 / 2FA</h3><p>admin 看全部、host 只看自己建的；支援 TOTP 雙因素認證。</p></div>
       <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M9 11h6M9 15h4"/></svg></div><h3>完整稽核 + SIEM</h3><p>登入、建室、邀請、設定變更全記錄，可即時外拋 syslog / CEF / GELF。</p></div>
       <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 1 0-18c4.97 0 9 3.58 9 8 0 2.5-2 4-4 4h-2a2 2 0 0 0-1.5 3.3A1.5 1.5 0 0 1 12 21Z"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="9.5" cy="7.5" r="1"/><circle cx="14.5" cy="7.5" r="1"/><circle cx="16.5" cy="11.5" r="1"/></svg></div><h3>外觀客製</h3><p>60 種 Jitsi 介面語言、22 種主題、站台名稱 / logo、登入頁路徑偽裝。</p></div>
       <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="14" width="3" height="3"/></svg></div><h3>會議統計</h3><p>會議時長排行、尖峰同時人數與參與者進出時間軸；JaaS 模式另接 USAGE webhook 統計 MAU。</p></div>
@@ -204,7 +204,7 @@
       </div>
       <div class="sc-row">
         <figure class="shot sc-shot"><div class="frame"><img src="images/05-accounts.png" alt="帳號管理" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">05</span><h3>帳號管理</h3><p>支援多個主持人帳號與角色：admin 可看全部會議室與管理頁，host 只看自己建立的。每個帳號可設定顯示名稱、Email、啟用 TOTP 兩步驟驗證，並可隨時編輯或停用。</p></div>
+        <div class="sc-text"><span class="num">05</span><h3>帳號管理</h3><p>支援多個主持人帳號與角色：admin 可看全部會議室與管理頁，host 只看自己建立的。每個帳號可設定顯示名稱、Email、啟用 TOTP 雙因素認證，並可隨時編輯或停用。</p></div>
       </div>
       <div class="sc-row">
         <figure class="shot sc-shot"><div class="frame"><img src="images/06-settings.png" alt="系統設定" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
@@ -282,9 +282,9 @@ docker run -d --restart unless-stopped -p 58189:58189 \
 
     <h3 style="margin-top:24px">方法三：從 Release 載入預建映像</h3>
 <pre><span class="c"># 不想自己 build，直接下載 Release 打包映像（linux/amd64）</span>
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.6.0/jt-vc-portal-1.6.0-docker-amd64.tar.gz
-sha256sum -c jt-vc-portal-1.6.0-docker-amd64.tar.gz.sha256   <span class="c"># 驗證完整性</span>
-docker load &lt; jt-vc-portal-1.6.0-docker-amd64.tar.gz        <span class="c"># 載入為 jt-vc-portal:latest</span>
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.6.1/jt-vc-portal-1.6.1-docker-amd64.tar.gz
+sha256sum -c jt-vc-portal-1.6.1-docker-amd64.tar.gz.sha256   <span class="c"># 驗證完整性</span>
+docker load &lt; jt-vc-portal-1.6.1-docker-amd64.tar.gz        <span class="c"># 載入為 jt-vc-portal:latest</span>
 
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
 chown 33:33 /opt/jt-vc-portal/data

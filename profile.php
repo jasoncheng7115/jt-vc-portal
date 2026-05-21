@@ -66,7 +66,7 @@ render_topbar($me, $ip);
   </div>
 
   <div class="card">
-    <div class="section-title" style="margin-top:0;">兩步驟驗證（2FA / TOTP）</div>
+    <div class="section-title" style="margin-top:0;">雙因素認證（2FA / TOTP）</div>
     <?php if (!empty($me['totp_enabled'])): ?>
       <div class="alert alert-success"><?= icon('check') ?><span>2FA 已啟用。登入時需輸入驗證器的 6 位數碼。</span></div>
       <form method="POST" action="/twofa-setup">
