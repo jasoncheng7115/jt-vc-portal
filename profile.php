@@ -54,12 +54,12 @@ render_topbar($me, $ip);
         <input type="password" id="cur" name="current_password" required autocomplete="current-password">
       </div>
       <div class="field">
-        <label for="np">新密碼（至少 8 字）</label>
-        <input type="password" id="np" name="new_password" required minlength="8" autocomplete="new-password">
+        <label for="np">新密碼（至少 10 字）</label>
+        <input type="password" id="np" name="new_password" required minlength="10" autocomplete="new-password">
       </div>
       <div class="field">
         <label for="np2">確認新密碼</label>
-        <input type="password" id="np2" name="new_password2" required minlength="8" autocomplete="new-password">
+        <input type="password" id="np2" name="new_password2" required minlength="10" autocomplete="new-password">
       </div>
       <button type="submit" class="btn btn-primary"><?= icon('lock') ?>更新密碼</button>
     </form>
@@ -93,7 +93,7 @@ render_topbar($me, $ip);
         <button type="submit" class="btn btn-primary"><?= icon('check') ?>啟用 2FA</button>
         <a class="btn btn-ghost" href="/profile">取消</a>
       </form>
-      <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
       <script>
         window.addEventListener('DOMContentLoaded', () => {
           if (window.QRCode) new QRCode(document.getElementById('totpQr'), {

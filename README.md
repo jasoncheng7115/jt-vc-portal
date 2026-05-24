@@ -114,13 +114,15 @@ systemctl reload apache2
 ```
 
 > 正式環境建議改用 `*:443` + Let's Encrypt 憑證，或在前面加反向代理處理 HTTPS。
-> 若以反向代理轉發，請保留 `X-Real-IP` header（fail2ban / 稽核取真實來源 IP 用）。
+> 若以反向代理轉發，請保留 `X-Real-IP` header（fail2ban / 稽核取真實來源 IP 用），並設定 `JTVC_TRUSTED_PROXIES`（見下方「公開上線資安重點」）。
 
 設定重點（`config.php`）：
 
 - `DATA_DIR`：持久化資料目錄（預設 `/var/jaas-data`）。
 - `JWT_PRIVATE_KEY_PATH`：JaaS RS256 私鑰路徑（預設 `keys/private.key` 對應 docroot）。
 - 初始管理員：可用環境變數 `JTVC_ADMIN_USERNAME` / `JTVC_ADMIN_EMAIL` / `JTVC_ADMIN_PASSWORD`；未提供則首次啟動自動產生隨機密碼，寫入 `DATA_DIR/INITIAL_ADMIN_PASSWORD.txt`（登入後請刪除）。
+- 反向代理信任：`JTVC_TRUSTED_PROXIES`（逗號分隔 IP/CIDR）。設定後只採信來自這些來源的 `X-Real-IP` / `X-Forwarded-*`，避免來源 IP 偽造繞過 fail2ban；留空＝相容模式（盲信標頭，須搭配容器埠隔離）。詳見「公開上線資安重點」。
+- Session 逾時：`JTVC_SESSION_IDLE`（閒置秒數，預設 1800）、`JTVC_SESSION_ABSOLUTE`（絕對秒數，預設 43200）。
 
 PHP 安全強化（建議於 `php.ini` 或 conf.d）：`display_errors=Off`、`expose_php=Off`、`session.cookie_httponly=1`、`session.cookie_samesite=Lax`、`session.use_strict_mode=1`。
 
@@ -148,11 +150,12 @@ chown 33:33 /opt/jt-vc-portal/data
 # JaaS 模式：放入 8x8 私鑰
 cp /path/to/private.key /opt/jt-vc-portal/keys/private.key
 
-# 啟動
+# 啟動（-p 綁 127.0.0.1：只讓本機反向代理可達，不對外直接暴露容器埠）
 docker run -d --restart unless-stopped \
-  -p 58189:58189 \
+  -p 127.0.0.1:58189:58189 \
   -e JTVC_ADMIN_EMAIL="admin@example.com" \
   -e JTVC_ADMIN_PASSWORD="請設定強密碼" \
+  -e JTVC_TRUSTED_PROXIES="127.0.0.1,172.16.0.0/12" \
   -v /opt/jt-vc-portal/keys/:/var/www/html/keys \
   -v /opt/jt-vc-portal/data/:/var/jaas-data \
   --name jt-vc-portal jt-vc-portal
@@ -173,7 +176,12 @@ server {
 }
 ```
 
-> 系統以 `X-Real-IP` 取得真實來源 IP（fail2ban / 稽核用），請確保反向代理有帶此 header。
+> **公開上線資安重點（務必做）**
+> 系統以 `X-Real-IP`（其次 `X-Forwarded-For`）取得真實來源 IP，供 fail2ban 鎖定與稽核使用。為避免攻擊者偽造此 header 繞過 fail2ban：
+> - 設 `JTVC_TRUSTED_PROXIES`（逗號分隔 IP/CIDR，支援 IPv4/IPv6）。**只有**來自清單的來源才採信 `X-Real-IP` / `X-Forwarded-*`；其餘一律以實際連線 IP（`REMOTE_ADDR`）為準。
+> - 容器埠以 `-p 127.0.0.1:58189:58189` 綁本機或用防火牆限制，**只讓反向代理連得到**。
+> - 兩者至少做一項、建議都做。**若 `JTVC_TRUSTED_PROXIES` 留空＝沿用相容模式（盲信標頭）**：在「埠有隔離」時無妨，但若容器埠對外可直連，攻擊者即可偽造來源 IP 繞過 fail2ban、污染稽核記錄。
+> - 經 Cloudflare 時，請讓反代由 `CF-Connecting-IP` 帶入 `X-Real-IP`。
 
 ---
 
@@ -206,9 +214,10 @@ cp /path/to/private.key /opt/jt-vc-portal/keys/private.key   # JaaS 模式才需
 
 # 5) 啟動（執行參數與方式二相同）
 docker run -d --restart unless-stopped \
-  -p 58189:58189 \
+  -p 127.0.0.1:58189:58189 \
   -e JTVC_ADMIN_EMAIL="admin@example.com" \
   -e JTVC_ADMIN_PASSWORD="請設定強密碼" \
+  -e JTVC_TRUSTED_PROXIES="127.0.0.1,172.16.0.0/12" \
   -v /opt/jt-vc-portal/keys/:/var/www/html/keys \
   -v /opt/jt-vc-portal/data/:/var/jaas-data \
   --name jt-vc-portal jt-vc-portal:latest
@@ -266,7 +275,8 @@ docker build --pull -t jt-vc-portal .
 # 3) 換掉容器（資料 / 私鑰在掛載卷，不受影響）
 docker stop jt-vc-portal && docker rm jt-vc-portal
 docker run -d --restart unless-stopped \
-  -p 58189:58189 \
+  -p 127.0.0.1:58189:58189 \
+  -e JTVC_TRUSTED_PROXIES="127.0.0.1,172.16.0.0/12" \
   -v /opt/jt-vc-portal/keys/:/var/www/html/keys \
   -v /opt/jt-vc-portal/data/:/var/jaas-data \
   --name jt-vc-portal jt-vc-portal
@@ -275,7 +285,7 @@ docker run -d --restart unless-stopped \
 docker ps --filter name=jt-vc-portal
 ```
 
-> 初始管理員的環境變數（`JTVC_ADMIN_*`）僅首次建立帳號時用；更新時可省略。
+> 初始管理員的環境變數（`JTVC_ADMIN_*`）僅首次建立帳號時用，更新時可省略；但 `JTVC_TRUSTED_PROXIES`（及選用的 `JTVC_SESSION_*`）是每次執行都生效的設定，**每次 `docker run` 都要帶上**。
 > 版本號顯示於登入後 topbar 左上、站台名稱旁（點擊可前往本專案 GitHub），可用以確認已更新到新版。
 
 ### 方法三：Release 映像更新
@@ -293,7 +303,8 @@ docker load < jt-vc-portal-<新版本>-docker-amd64.tar.gz
 # 3) 換掉容器（資料 / 私鑰在掛載卷，不受影響）
 docker stop jt-vc-portal && docker rm jt-vc-portal
 docker run -d --restart unless-stopped \
-  -p 58189:58189 \
+  -p 127.0.0.1:58189:58189 \
+  -e JTVC_TRUSTED_PROXIES="127.0.0.1,172.16.0.0/12" \
   -v /opt/jt-vc-portal/keys/:/var/www/html/keys \
   -v /opt/jt-vc-portal/data/:/var/jaas-data \
   --name jt-vc-portal jt-vc-portal:latest

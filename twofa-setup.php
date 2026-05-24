@@ -20,8 +20,10 @@ if ($action === 'enable') {
   $secret = $_SESSION['pending_totp'] ?? '';
   $code = (string)($_POST['code'] ?? '');
   if ($secret === '') $back('profile_err', '設定逾時，請重新啟用 2FA。');
-  if (!Totp::verify($secret, $code)) $back('profile_err', '驗證碼錯誤，請確認時間同步後再試。');
-  Users::update($me['id'], ['totp_secret' => $secret, 'totp_enabled' => true]);
+  $ctr = Totp::verifyCounter($secret, $code);
+  if ($ctr === 0) $back('profile_err', '驗證碼錯誤，請確認時間同步後再試。');
+  // 記下啟用時用掉的 counter，避免同一組碼在首次登入時被重放。
+  Users::update($me['id'], ['totp_secret' => $secret, 'totp_enabled' => true, 'totp_last_counter' => $ctr]);
   unset($_SESSION['pending_totp']);
   Audit::log('2fa_enable', '啟用自己的雙因素認證');
   $back('profile_msg', '2FA 已啟用。');
@@ -30,7 +32,7 @@ if ($action === 'enable') {
 if ($action === 'disable') {
   $pw = (string)($_POST['password'] ?? '');
   if (!Users::verifyPassword($me, $pw)) $back('profile_err', '密碼不正確，未停用 2FA。');
-  Users::update($me['id'], ['totp_secret' => null, 'totp_enabled' => false]);
+  Users::update($me['id'], ['totp_secret' => null, 'totp_enabled' => false, 'totp_last_counter' => 0]);
   Audit::log('2fa_disable', '停用自己的雙因素認證');
   $back('profile_msg', '2FA 已停用。');
 }

@@ -13,6 +13,14 @@ function site_brand(): array {
 }
 
 function render_head(string $title): void {
+  // 內容安全政策（A03 縱深防禦）。會議內嵌頁（meeting/guest 進場）自建 <head>、不經此函式，
+  // 故不影響 Jitsi 外嵌。允許 jsdelivr（qrcode / flatpickr / chart.js）；inline 因現有頁面需要而保留。
+  if (!headers_sent()) {
+    header("Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; "
+         . "frame-ancestors 'self'; form-action 'self'; img-src 'self' data:; font-src 'self' data:; "
+         . "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+         . "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self'");
+  }
   $theme = Settings::getTheme();
   $body_class = 'theme-' . $theme . (Settings::isDark($theme) ? ' is-dark' : '');
   $brand = site_brand();

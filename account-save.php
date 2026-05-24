@@ -25,7 +25,7 @@ if ($id === '') {
   $password = (string)($_POST['password'] ?? '');
   $role     = $_POST['role'] ?? 'host';
   if ($username === '' || !Mailer::isValidEmail($email)) $back('acc_err', '帳號名稱或 Email 格式不正確。');
-  if (strlen($password) < 8) $back('acc_err', '密碼至少需 8 字。');
+  if (strlen($password) < 10) $back('acc_err', '密碼至少需 10 字。');
   if (Users::findByLogin($email) || Users::findByLogin($username)) $back('acc_err', '帳號或 Email 已存在。');
   Users::create(['username' => $username, 'display_name' => $display, 'email' => $email, 'password' => $password, 'role' => $role]);
   Audit::log('account_create', "帳號 {$username}（{$email}，{$role}）");
@@ -62,7 +62,7 @@ if (array_key_exists('email', $_POST)) {
   $fields['email'] = $email;
 }
 if ($password !== '') {
-  if (strlen($password) < 8) $back('acc_err', '密碼至少需 8 字。');
+  if (strlen($password) < 10) $back('acc_err', '密碼至少需 10 字。');
   $fields['password'] = $password;
 }
 Users::update($id, $fields);

@@ -33,9 +33,14 @@ if (RateLimit::isLocked($ip)) {
   $fail('因多次登入失敗，此來源已被暫時鎖定，請稍後再試。');
 }
 
-// 2) 驗證帳密
+// 2) 驗證帳密（帳號不存在時也做一次假雜湊，使回應時間一致，避免使用者列舉）
 $user = Users::findByLogin($login);
-$ok = $user && empty($user['disabled']) && Users::verifyPassword($user, $password);
+if ($user && empty($user['disabled'])) {
+  $ok = Users::verifyPassword($user, $password);
+} else {
+  Users::fakeVerify($password);
+  $ok = false;
+}
 
 if (!$ok) {
   $st = RateLimit::fail($ip);

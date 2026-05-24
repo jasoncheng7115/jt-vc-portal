@@ -27,7 +27,7 @@ $np   = (string)($_POST['new_password'] ?? '');
 $np2  = (string)($_POST['new_password2'] ?? '');
 
 if (!Users::verifyPassword($me, $cur)) $back('profile_err', '目前密碼不正確。');
-if (strlen($np) < 8) $back('profile_err', '新密碼至少需 8 字。');
+if (strlen($np) < 10) $back('profile_err', '新密碼至少需 10 字。');
 if ($np !== $np2) $back('profile_err', '兩次輸入的新密碼不一致。');
 
 Users::update($me['id'], ['password' => $np]);

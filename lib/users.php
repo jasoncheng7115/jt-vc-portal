@@ -103,7 +103,7 @@ class Users {
     $found = null;
     foreach ($users as &$u) {
       if (($u['id'] ?? '') !== $id) continue;
-      foreach (['username', 'display_name', 'email', 'role', 'totp_secret', 'totp_enabled', 'disabled'] as $k) {
+      foreach (['username', 'display_name', 'email', 'role', 'totp_secret', 'totp_enabled', 'totp_last_counter', 'disabled'] as $k) {
         if (array_key_exists($k, $fields)) $u[$k] = $fields[$k];
       }
       if (!empty($fields['password'])) {
@@ -129,6 +129,15 @@ class Users {
 
   public static function verifyPassword(array $user, string $password): bool {
     return password_verify($password, $user['password_hash'] ?? '');
+  }
+
+  /**
+   * 對「不存在的帳號」做一次假雜湊比對，讓登入耗時與真實帳號相近，
+   * 避免以回應時間判斷帳號是否存在（使用者列舉，A07）。
+   */
+  public static function fakeVerify(string $password): void {
+    // 固定的合法 bcrypt 雜湊（cost 10；對應某固定字串，永不會被使用者猜中），僅用於消耗等量運算時間。
+    password_verify($password, '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi');
   }
 
   public static function adminCount(): int {

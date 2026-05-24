@@ -29,22 +29,56 @@ class Auth {
     self::$started = true;
   }
 
-  /** 是否經由 HTTPS（反向代理會帶 X-Forwarded-Proto 或至少 X-Real-IP）。 */
-  public static function isHttps(): bool {
-    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') return true;
-    if (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https') return true;
-    // 反向代理（production）會帶 X-Real-IP 且一律 HTTPS；本機直連（curl 測試）則沒有
-    return !empty($_SERVER['HTTP_X_REAL_IP']);
+  /**
+   * 是否應採信反向代理標頭（X-Real-IP / X-Forwarded-*）。
+   * 僅當 REMOTE_ADDR 落在 TRUSTED_PROXIES 時為 true；TRUSTED_PROXIES 留空＝沿用舊行為（一律採信）。
+   */
+  private static function trustProxyHeaders(): bool {
+    $list = trim((string)(defined('TRUSTED_PROXIES') ? TRUSTED_PROXIES : ''));
+    if ($list === '') return true; // 未設定信任清單 → 向後相容（需搭配網路隔離）
+    $remote = $_SERVER['REMOTE_ADDR'] ?? '';
+    foreach (preg_split('/\s*,\s*/', $list, -1, PREG_SPLIT_NO_EMPTY) as $cidr) {
+      if (self::ipInCidr($remote, $cidr)) return true;
+    }
+    return false;
   }
 
-  /** 真實來源 IP：信任反向代理 X-Real-IP，其次 X-Forwarded-For 首段，最後 REMOTE_ADDR。 */
-  public static function clientIp(): string {
-    if (!empty($_SERVER['HTTP_X_REAL_IP'])) {
-      return trim($_SERVER['HTTP_X_REAL_IP']);
+  /** 判斷 IP 是否落在 CIDR（或單一 IP）內，支援 IPv4 / IPv6。 */
+  private static function ipInCidr(string $ip, string $cidr): bool {
+    if ($ip === '') return false;
+    if (strpos($cidr, '/') === false) return @inet_pton($ip) !== false && inet_pton($ip) === inet_pton($cidr);
+    [$subnet, $bits] = explode('/', $cidr, 2);
+    $ipBin = @inet_pton($ip); $subBin = @inet_pton($subnet);
+    if ($ipBin === false || $subBin === false || strlen($ipBin) !== strlen($subBin)) return false;
+    $bits = (int)$bits;
+    $bytes = intdiv($bits, 8); $rem = $bits % 8;
+    if ($bytes > 0 && substr($ipBin, 0, $bytes) !== substr($subBin, 0, $bytes)) return false;
+    if ($rem === 0) return true;
+    $mask = chr(0xFF << (8 - $rem) & 0xFF);
+    return (ord($ipBin[$bytes]) & ord($mask)) === (ord($subBin[$bytes]) & ord($mask));
+  }
+
+  /** 是否經由 HTTPS（反向代理會帶 X-Forwarded-Proto）。 */
+  public static function isHttps(): bool {
+    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') return true;
+    if (self::trustProxyHeaders()) {
+      if (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https') return true;
+      // 反向代理（production）會帶 X-Real-IP 且一律 HTTPS；本機直連（curl 測試）則沒有
+      if (!empty($_SERVER['HTTP_X_REAL_IP'])) return true;
     }
-    if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-      $parts = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-      return trim($parts[0]);
+    return false;
+  }
+
+  /** 真實來源 IP：可信反向代理才採信 X-Real-IP / X-Forwarded-For 首段，否則用 REMOTE_ADDR。 */
+  public static function clientIp(): string {
+    if (self::trustProxyHeaders()) {
+      if (!empty($_SERVER['HTTP_X_REAL_IP'])) {
+        return trim($_SERVER['HTTP_X_REAL_IP']);
+      }
+      if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $parts = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+        return trim($parts[0]);
+      }
     }
     return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
   }
@@ -59,6 +93,7 @@ class Auth {
     $_SESSION['role']         = $user['role'];
     $_SESSION['login_ip'] = self::clientIp();
     $_SESSION['login_at'] = time();
+    $_SESSION['last_seen'] = time();
     unset($_SESSION['2fa_uid'], $_SESSION['login_error']);
   }
 
@@ -75,7 +110,17 @@ class Auth {
 
   public static function check(): bool {
     self::start();
-    return !empty($_SESSION['uid']);
+    if (empty($_SESSION['uid'])) return false;
+    // Session 逾時（A07）：閒置或絕對逾時即登出。
+    $now = time();
+    $absStart = (int)($_SESSION['login_at'] ?? $now);
+    $idleRef  = (int)($_SESSION['last_seen'] ?? $now);
+    if (($now - $absStart) > SESSION_ABSOLUTE_SECONDS || ($now - $idleRef) > SESSION_IDLE_SECONDS) {
+      self::logout();
+      return false;
+    }
+    $_SESSION['last_seen'] = $now;   // 有活動 → 續期閒置計時
+    return true;
   }
 
   /** 回傳目前登入使用者（即時讀 users.json，確保 role / disabled 最新）。 */

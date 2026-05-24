@@ -19,7 +19,7 @@ class Mailer {
       'enabled'    => !empty($c['enabled']),
       'host'       => $c['host'] ?? '',
       'port'       => (int)($c['port'] ?? 587),
-      'security'   => in_array($c['security'] ?? 'starttls', ['none','starttls','tls'], true) ? $c['security'] : 'starttls',
+      'security'   => in_array($c['security'] ?? 'starttls', ['none','starttls','tls'], true) ? ($c['security'] ?? 'starttls') : 'starttls',
       'username'   => $c['username'] ?? '',
       'password'   => $c['password'] ?? '',
       'from_email' => $c['from_email'] ?? '',

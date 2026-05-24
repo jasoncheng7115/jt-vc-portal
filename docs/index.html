@@ -275,9 +275,10 @@ mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
 chown 33:33 /opt/jt-vc-portal/data
 cp /path/to/private.key /opt/jt-vc-portal/keys/private.key   <span class="c"># JaaS 模式</span>
 
-docker run -d --restart unless-stopped -p 58189:58189 \
+docker run -d --restart unless-stopped -p 127.0.0.1:58189:58189 \
   -e JTVC_ADMIN_EMAIL="admin@example.com" \
   -e JTVC_ADMIN_PASSWORD="請設定強密碼" \
+  -e JTVC_TRUSTED_PROXIES="127.0.0.1,172.16.0.0/12" \
   -v /opt/jt-vc-portal/keys/:/var/www/html/keys \
   -v /opt/jt-vc-portal/data/:/var/jaas-data \
   --name jt-vc-portal jt-vc-portal</pre>
@@ -292,9 +293,10 @@ mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
 chown 33:33 /opt/jt-vc-portal/data
 cp /path/to/private.key /opt/jt-vc-portal/keys/private.key   <span class="c"># JaaS 模式才需要</span>
 
-docker run -d --restart unless-stopped -p 58189:58189 \
+docker run -d --restart unless-stopped -p 127.0.0.1:58189:58189 \
   -e JTVC_ADMIN_EMAIL="admin@example.com" \
   -e JTVC_ADMIN_PASSWORD="請設定強密碼" \
+  -e JTVC_TRUSTED_PROXIES="127.0.0.1,172.16.0.0/12" \
   -v /opt/jt-vc-portal/keys/:/var/www/html/keys \
   -v /opt/jt-vc-portal/data/:/var/jaas-data \
   --name jt-vc-portal jt-vc-portal:latest</pre>
@@ -317,7 +319,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }</pre>
-    <div class="note">系統以 <code>X-Real-IP</code> 取得真實來源 IP（fail2ban 鎖定與稽核用），請務必讓反向代理帶上此 header。完整 Apache 站台設定範例請見 <a href="https://github.com/jasoncheng7115/jt-vc-portal#readme" target="_blank" rel="noopener">GitHub README</a>。</div>
+    <div class="note">系統以 <code>X-Real-IP</code> 取得真實來源 IP（fail2ban 鎖定與稽核用），請務必讓反向代理帶上此 header。<strong>公開上線資安重點：</strong>設定 <code>JTVC_TRUSTED_PROXIES</code>（逗號分隔 IP/CIDR）只採信可信代理的來源標頭，並以 <code>-p 127.0.0.1:58189:58189</code> 或防火牆限制容器埠只讓反代可達——否則攻擊者可偽造 <code>X-Real-IP</code> 繞過 fail2ban、污染稽核。留空＝相容模式（盲信標頭，須搭配埠隔離）。經 Cloudflare 時讓反代由 <code>CF-Connecting-IP</code> 帶入 <code>X-Real-IP</code>。完整 Apache 站台設定範例請見 <a href="https://github.com/jasoncheng7115/jt-vc-portal#readme" target="_blank" rel="noopener">GitHub README</a>。</div>
 
     <h3 style="margin-top:28px">更新 / 升級</h3>
     <p class="section-sub" style="margin-bottom:14px;max-width:none">所有設定與資料（帳號、會議室、稽核、用量等）都存在 <code>DATA_DIR</code> 或掛載卷，<strong>更新不會遺失</strong>，JSON 結構會自動相容升級。更新前仍建議先備份資料目錄與 <code>keys/</code>。</p>

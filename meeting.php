@@ -31,7 +31,7 @@ $body_class = 'in-meeting theme-' . $theme . (Settings::isDark($theme) ? ' is-da
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
   <link rel="stylesheet" href="/assets/style.css?v=<?= @filemtime(__DIR__ . '/assets/style.css') ?>">
   <script src="<?= htmlspecialchars(Jaas::scriptUrl()) ?>" async></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
 </head>
 <body class="<?= htmlspecialchars($body_class) ?>">
   <div class="meeting-shell">

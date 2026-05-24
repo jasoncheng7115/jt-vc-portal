@@ -185,9 +185,9 @@ class Settings {
     foreach (array_keys(self::MEETING_TOGGLE_BUTTONS) as $k) {
       $toolbar[$k] = $configured ? !empty($d['toolbar'][$k]) : true;
     }
-    $mode = in_array($d['logo_mode'] ?? 'site', ['site','custom','none'], true) ? $d['logo_mode'] : 'site';
+    $mode = in_array($d['logo_mode'] ?? 'site', ['site','custom','none'], true) ? ($d['logo_mode'] ?? 'site') : 'site';
     $res  = (int)($d['resolution'] ?? 1080);
-    $view = in_array($d['default_view'] ?? 'speaker', ['speaker','tile'], true) ? $d['default_view'] : 'speaker';
+    $view = in_array($d['default_view'] ?? 'speaker', ['speaker','tile'], true) ? ($d['default_view'] ?? 'speaker') : 'speaker';
     return [
       'logo_mode'  => $mode,
       'logo_url'   => (string)($d['logo_url'] ?? ''),
@@ -205,9 +205,9 @@ class Settings {
     $d = self::load();
     $toolbar = [];
     foreach (array_keys(self::MEETING_TOGGLE_BUTTONS) as $k) $toolbar[$k] = !empty($v['toolbar'][$k]);
-    $mode = in_array($v['logo_mode'] ?? 'site', ['site','custom','none'], true) ? $v['logo_mode'] : 'site';
+    $mode = in_array($v['logo_mode'] ?? 'site', ['site','custom','none'], true) ? ($v['logo_mode'] ?? 'site') : 'site';
     $res  = (int)($v['resolution'] ?? 1080);
-    $view = in_array($v['default_view'] ?? 'speaker', ['speaker','tile'], true) ? $v['default_view'] : 'speaker';
+    $view = in_array($v['default_view'] ?? 'speaker', ['speaker','tile'], true) ? ($v['default_view'] ?? 'speaker') : 'speaker';
     $d['meeting_custom'] = [
       'logo_mode'  => $mode,
       'logo_url'   => trim((string)($v['logo_url'] ?? '')),

@@ -7,8 +7,8 @@ RUN apt-get update \
  && apt-get -y --purge autoremove \
  && rm -rf /var/lib/apt/lists/*
 
-# 啟用 rewrite 模組
-RUN a2enmod rewrite
+# 啟用 rewrite + headers 模組（headers 為 .htaccess 安全標頭 X-Frame-Options / nosniff / Referrer-Policy 所需）
+RUN a2enmod rewrite headers
 
 # 換 port: 80 -> 58189
 RUN sed -i 's/80/58189/g' /etc/apache2/ports.conf /etc/apache2/sites-available/000-default.conf

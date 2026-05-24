@@ -36,15 +36,20 @@ if (RateLimit::isLocked($ip)) {
   exit;
 }
 
-if (!Totp::verify($user['totp_secret'], $code)) {
+$ctr = Totp::verifyCounter($user['totp_secret'], $code);
+$lastCtr = (int)($user['totp_last_counter'] ?? 0);
+// 碼錯誤，或該碼（含同窗鄰近碼）已用過 → 拒絕（重放保護）。
+if ($ctr === 0 || $ctr <= $lastCtr) {
   RateLimit::fail($ip);
-  Audit::log('login_2fa_fail', "帳號：{$user['username']}", ['actor' => $user['username'], 'actor_name' => $user['display_name'] ?? '', 'role' => $user['role'] ?? '', 'result' => 'fail']);
-  $_SESSION['2fa_error'] = '驗證碼錯誤，請再試一次。';
+  $reason = ($ctr !== 0 && $ctr <= $lastCtr) ? '（驗證碼已使用）' : '';
+  Audit::log('login_2fa_fail', "帳號：{$user['username']}{$reason}", ['actor' => $user['username'], 'actor_name' => $user['display_name'] ?? '', 'role' => $user['role'] ?? '', 'result' => 'fail']);
+  $_SESSION['2fa_error'] = '驗證碼錯誤或已使用，請等待下一組碼再試。';
   header('Location: /twofa');
   exit;
 }
 
-// 通過
+// 通過 → 記下已用 counter，避免有效窗內重放
+Users::update($uid, ['totp_last_counter' => $ctr]);
 RateLimit::reset($ip);
 Auth::login($user);
 Audit::log('login', '密碼 + 2FA 登入');

@@ -23,8 +23,8 @@ class LogShip {
       'enabled'  => !empty($c['enabled']),
       'host'     => $c['host'] ?? '',
       'port'     => (int)($c['port'] ?? 514),
-      'protocol' => in_array($c['protocol'] ?? 'udp', ['udp', 'tcp'], true) ? $c['protocol'] : 'udp',
-      'format'   => in_array($c['format'] ?? 'syslog', ['syslog', 'cef', 'gelf'], true) ? $c['format'] : 'syslog',
+      'protocol' => in_array($c['protocol'] ?? 'udp', ['udp', 'tcp'], true) ? ($c['protocol'] ?? 'udp') : 'udp',
+      'format'   => in_array($c['format'] ?? 'syslog', ['syslog', 'cef', 'gelf'], true) ? ($c['format'] ?? 'syslog') : 'syslog',
       'facility' => (int)($c['facility'] ?? 16),
     ];
   }
@@ -37,6 +37,11 @@ class LogShip {
     $cfg = $cfgOverride ?? self::config();
     if (empty($cfg['enabled']) && $cfgOverride === null) return [false, 'disabled'];
     if (empty($cfg['host'])) return [false, 'no host'];
+
+    // 防日誌注入（A09）：剝除所有字串欄位的 CR/LF/NUL，避免攻擊者藉換行偽造或插入記錄。
+    foreach ($event as $k => $v) {
+      if (is_string($v)) $event[$k] = str_replace(["\r", "\n", "\0"], ' ', $v);
+    }
 
     switch ($cfg['format']) {
       case 'cef':  $payload = self::formatCef($event, $cfg);  break;

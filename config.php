@@ -1,7 +1,7 @@
 <?php
 // === 版本 ===
 // 每次有更新都要推進版本號（patch++ / 功能 minor++）。
-define('APP_VERSION', '1.6.1');
+define('APP_VERSION', '1.6.2');
 define('APP_GITHUB_URL', 'https://github.com/jasoncheng7115/jt-vc-portal');
 
 // === JaaS (8x8) 連線設定：改由管理介面設定，存於 settings.json，不再寫死 ===
@@ -29,6 +29,19 @@ define('ROOM_TTL_SECONDS', 86400); // 24 hours
 define('BOOTSTRAP_ADMIN_USERNAME', getenv('JTVC_ADMIN_USERNAME') ?: 'jtvc-admin');
 define('BOOTSTRAP_ADMIN_EMAIL', getenv('JTVC_ADMIN_EMAIL') ?: 'admin@localhost');
 define('BOOTSTRAP_ADMIN_PASSWORD', getenv('JTVC_ADMIN_PASSWORD') ?: '');
+
+// === 反向代理信任清單（A01/A07）===
+// 逗號分隔的 IP / CIDR；只有當 REMOTE_ADDR 落在此清單時，才採信 X-Real-IP /
+// X-Forwarded-For / X-Forwarded-Proto 標頭（否則用 REMOTE_ADDR，避免來源 IP 偽造
+// 繞過 fail2ban 或污染稽核）。留空＝沿用舊行為（盲信標頭）——務必同時做網路隔離，
+// 讓容器埠只有反向代理可達。範例：JTVC_TRUSTED_PROXIES=127.0.0.1,172.16.0.0/12
+define('TRUSTED_PROXIES', getenv('JTVC_TRUSTED_PROXIES') ?: '');
+
+// === Session 逾時（A07）===
+// 閒置逾時：超過此秒數無活動即登出（預設 30 分鐘）。
+define('SESSION_IDLE_SECONDS', (int)(getenv('JTVC_SESSION_IDLE') ?: 1800));
+// 絕對逾時：登入後超過此秒數一律重新登入（預設 12 小時）。
+define('SESSION_ABSOLUTE_SECONDS', (int)(getenv('JTVC_SESSION_ABSOLUTE') ?: 43200));
 
 // === 主持人顯示名稱 ===
 define('HOST_DISPLAY_NAME', 'Jason');

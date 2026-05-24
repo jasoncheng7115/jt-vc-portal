@@ -70,8 +70,8 @@ render_topbar($me, $ip);
                   <option value="1" <?= !empty($u['disabled'])?'selected':'' ?>>停用</option>
                 </select>
               </div>
-              <div class="field"><label>重設密碼（留空不改）</label>
-                <input type="password" name="password" placeholder="新密碼" autocomplete="new-password">
+              <div class="field"><label>重設密碼（留空不改，至少 10 字）</label>
+                <input type="password" name="password" placeholder="新密碼" minlength="10" autocomplete="new-password">
               </div>
               <button class="btn btn-secondary"><?= icon('check',14) ?>儲存</button>
             </form>
@@ -99,8 +99,8 @@ render_topbar($me, $ip);
         <div class="field"></div>
       </div>
       <div class="field-row">
-        <div class="field"><label for="npw">密碼（至少 8 字）</label>
-          <input type="password" id="npw" name="password" required minlength="8" autocomplete="new-password"></div>
+        <div class="field"><label for="npw">密碼（至少 10 字）</label>
+          <input type="password" id="npw" name="password" required minlength="10" autocomplete="new-password"></div>
         <div class="field"><label for="nr">角色</label>
           <select id="nr" name="role"><option value="host">主持人</option><option value="admin">管理員</option></select></div>
       </div>

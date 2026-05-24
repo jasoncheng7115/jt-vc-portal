@@ -17,13 +17,21 @@ class Totp {
 
   /** 驗證 code，允許前後 $window 個時間窗（時鐘漂移容忍）。 */
   public static function verify(string $secret, string $code, int $window = 1): bool {
+    return self::verifyCounter($secret, $code, $window) !== 0;
+  }
+
+  /**
+   * 驗證並回傳「命中的時間計數」（counter），失敗回 0。供重放保護用：
+   * 呼叫端可記錄上次使用的 counter，拒絕 <= 該值的碼（同一碼在有效窗內無法重用）。
+   */
+  public static function verifyCounter(string $secret, string $code, int $window = 1): int {
     $code = preg_replace('/\D/', '', $code);
-    if (strlen($code) !== self::DIGITS) return false;
+    if (strlen($code) !== self::DIGITS) return 0;
     $t = (int) floor(time() / self::PERIOD);
     for ($i = -$window; $i <= $window; $i++) {
-      if (hash_equals(self::at($secret, $t + $i), $code)) return true;
+      if (hash_equals(self::at($secret, $t + $i), $code)) return $t + $i;
     }
-    return false;
+    return 0;
   }
 
   /** 取得某個時間計數的 code。 */
