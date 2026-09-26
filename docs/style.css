@@ -42,13 +42,14 @@ body.lang-zh .btn.zh,body.lang-en .btn.en,body.lang-ja .btn.ja{display:inline-fl
 .nav .links{margin-left:auto;display:flex;gap:20px;align-items:center;flex-wrap:wrap}
 .nav .links a{color:var(--muted);font-size:14px;font-weight:500}
 .nav .links a:hover{color:var(--accent);text-decoration:none}
-.nav .links .gh{background:var(--text);color:#fff;padding:7px 15px;border-radius:8px}
+/* GitHub 按鈕與語言切換按鈕同高（34px）、同圓角、同字級，並排對齊 */
+.nav .links .gh{display:inline-flex;align-items:center;box-sizing:border-box;height:34px;padding:0 15px;border:1px solid var(--text);border-radius:8px;background:var(--text);color:#fff;font-size:13px;font-weight:600;line-height:1}
 .nav .links .gh:hover{background:#000;text-decoration:none}
 @media(max-width:780px){.nav .links a:not(.gh){display:none}}
 
 /* 語言切換（自訂下拉，仿 jt-ipam .langsw） */
 .langsw{position:relative;display:inline-flex;align-items:center}
-.langsw > button{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border-strong);border-radius:8px;background:#fff;color:var(--text);font-family:inherit;font-size:13px;font-weight:600;padding:6px 11px;cursor:pointer;line-height:1.3;white-space:nowrap}
+.langsw > button{display:inline-flex;align-items:center;gap:7px;box-sizing:border-box;height:34px;border:1px solid var(--border-strong);border-radius:8px;background:#fff;color:var(--text);font-family:inherit;font-size:13px;font-weight:600;padding:0 11px;cursor:pointer;line-height:1;white-space:nowrap}
 .langsw > button:hover{border-color:var(--accent)}
 .langsw > button:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,58,237,.14)}
 .langsw .chev{width:7px;height:7px;flex:none;border-right:1.6px solid var(--muted);border-bottom:1.6px solid var(--muted);transform:translateY(-2px) rotate(45deg);transition:transform .15s}
