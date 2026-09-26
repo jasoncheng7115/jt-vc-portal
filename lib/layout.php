@@ -53,7 +53,7 @@ function render_head(string $title): void {
   $brand = site_brand();
 ?>
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="<?= I18n::htmlLang() ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -67,6 +67,18 @@ function render_head(string $title): void {
 </head>
 <body class="<?= htmlspecialchars($body_class) ?>">
 <?php }
+
+/** 語言切換連結（顯示「另一個」語言；供未登入頁 / 來賓頁的頂列使用）。 */
+function lang_switch_html(string $cls = 'btn btn-ghost btn-sm'): string {
+  $cur = I18n::lang();
+  $out = '';
+  foreach (I18n::NAMES as $code => $name) {
+    if ($code === $cur) continue;
+    $out .= '<a class="' . htmlspecialchars($cls) . ' lang-switch" href="' . htmlspecialchars(I18n::switchUrl($code)) . '" hreflang="' . htmlspecialchars($code) . '" lang="' . htmlspecialchars($code) . '">'
+          . icon('globe', 14) . htmlspecialchars($name) . '</a>';
+  }
+  return $out;
+}
 
 /**
  * $user：登入使用者 array（null = 未登入）。$ip：來源 IP（顯示用）。
@@ -85,17 +97,17 @@ function render_topbar($user = null, ?string $ip = null): void {
       <img class="brand-logo" src="<?= htmlspecialchars($brand['logo_src']) ?>" alt="<?= htmlspecialchars($brand['brand_name']) ?>" width="32" height="32">
       <span class="brand-text"><?= htmlspecialchars($brand['brand_name']) ?></span>
     </a>
-    <?php if ($logged_in): ?><a class="topbar-version" href="<?= htmlspecialchars(defined('APP_GITHUB_URL') ? APP_GITHUB_URL : '#') ?>" target="_blank" rel="noopener noreferrer" title="系統版本 · 前往 GitHub">v<?= htmlspecialchars(defined('APP_VERSION') ? APP_VERSION : '') ?></a><?php endif; ?>
+    <?php if ($logged_in): ?><a class="topbar-version" href="<?= htmlspecialchars(defined('APP_GITHUB_URL') ? APP_GITHUB_URL : '#') ?>" target="_blank" rel="noopener noreferrer" title="<?= th('系統版本 · 前往 GitHub') ?>">v<?= htmlspecialchars(defined('APP_VERSION') ? APP_VERSION : '') ?></a><?php endif; ?>
   </div>
   <div class="topbar-actions">
     <?php if ($logged_in): ?>
-      <a class="btn btn-ghost" href="/dashboard"><?= icon('dashboard') ?>儀表板</a>
+      <a class="btn btn-ghost" href="/dashboard"><?= icon('dashboard') ?><?= th('儀表板') ?></a>
       <?php if ($name !== ''): ?>
         <div class="topbar-menu">
           <button type="button" class="topbar-user" id="topbarUserBtn" aria-haspopup="true" aria-expanded="false">
             <span class="topbar-avatar"><?= icon('user', 16) ?></span>
             <span class="topbar-user-name"><?= htmlspecialchars($name) ?></span>
-            <?php if ($role === 'admin'): ?><span class="badge badge-accent" style="margin-left:2px;">管理員</span><?php endif; ?>
+            <?php if ($role === 'admin'): ?><span class="badge badge-accent" style="margin-left:2px;"><?= th('管理員') ?></span><?php endif; ?>
             <?= icon('arrow-right', 14) ?>
           </button>
           <div class="topbar-dropdown" id="topbarDropdown" role="menu">
@@ -104,11 +116,17 @@ function render_topbar($user = null, ?string $ip = null): void {
               <?php if ($display !== '' && $display !== $name): ?><div class="dropdown-sub">@<?= htmlspecialchars($name) ?></div><?php endif; ?>
               <?php if ($ip): ?><div class="dropdown-sub"><?= htmlspecialchars($ip) ?></div><?php endif; ?>
             </div>
-            <a class="dropdown-item" href="/profile" role="menuitem"><?= icon('user', 16) ?>個人設定 / 2FA</a>
+            <a class="dropdown-item" href="/profile" role="menuitem"><?= icon('user', 16) ?><?= th('個人設定 / 2FA') ?></a>
+            <div class="dropdown-sep"></div>
+            <?php foreach (I18n::NAMES as $lc => $ln): ?>
+              <a class="dropdown-item<?= I18n::lang() === $lc ? ' active' : '' ?>" href="<?= htmlspecialchars(I18n::switchUrl($lc)) ?>" role="menuitem" lang="<?= htmlspecialchars($lc) ?>"><?= icon(I18n::lang() === $lc ? 'check' : 'globe', 16) ?><?= htmlspecialchars($ln) ?></a>
+            <?php endforeach; ?>
           </div>
         </div>
       <?php endif; ?>
-      <a class="btn btn-secondary" href="/logout"><?= icon('log-out') ?>登出</a>
+      <a class="btn btn-secondary" href="/logout"><?= icon('log-out') ?><?= th('登出') ?></a>
+    <?php else: ?>
+      <?= lang_switch_html() ?>
     <?php endif; ?>
   </div>
 </header>
@@ -122,17 +140,17 @@ function admin_nav(string $active = ''): string {
   if (Auth::isAdmin()) {
     $jaas = Settings::getJaas()['mode'];
     $tabs = [
-      'dashboard' => ['/dashboard', 'video',     '會議室管理'],
-      'accounts'  => ['/accounts',  'user',      '帳號管理'],
-      'audit'     => ['/audit-log', 'clock',     '稽核記錄'],
+      'dashboard' => ['/dashboard', 'video',     t('會議室管理')],
+      'accounts'  => ['/accounts',  'user',      t('帳號管理')],
+      'audit'     => ['/audit-log', 'clock',     t('稽核記錄')],
     ];
-    $tabs['usage'] = ['/usage', 'chart', $jaas === 'jaas' ? '用量統計' : '會議統計'];
-    if (Settings::hasJibri()) $tabs['recordings'] = ['/recordings', 'video', '錄影記錄'];
-    $tabs['settings'] = ['/settings', 'dashboard', '系統設定'];
+    $tabs['usage'] = ['/usage', 'chart', $jaas === 'jaas' ? t('用量統計') : t('會議統計')];
+    if (Settings::hasJibri()) $tabs['recordings'] = ['/recordings', 'video', t('錄影記錄')];
+    $tabs['settings'] = ['/settings', 'dashboard', t('系統設定')];
   } else {
     // 主持人：只有會議室管理 +（有 Jibri 時）自己會議的錄影記錄
-    $tabs = ['dashboard' => ['/dashboard', 'video', '會議室管理']];
-    if (Settings::hasJibri()) $tabs['recordings'] = ['/recordings', 'video', '錄影記錄'];
+    $tabs = ['dashboard' => ['/dashboard', 'video', t('會議室管理')]];
+    if (Settings::hasJibri()) $tabs['recordings'] = ['/recordings', 'video', t('錄影記錄')];
   }
 
   $html = '<div class="nav-row">';
@@ -146,19 +164,19 @@ function admin_nav(string $active = ''): string {
 
 function render_foot(): void { ?>
 <script <?= nonce_attr() ?>>
-/* 把每張卡片的 h1 標題轉成「整條標題列 + 可點選收合」。 */
+/* Turn each card's h1 title into a full-width, clickable collapse header. */
 (function () {
   var CHEV = '<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
   document.querySelectorAll('.card').forEach(function (card) {
     var h = card.firstElementChild;
-    if (!h || h.tagName !== 'H1') return;          // 只處理「首個子元素是 h1」的卡片
+    if (!h || h.tagName !== 'H1') return;          // only cards whose first child is an h1
     card.classList.add('collapsible');
 
     var header = document.createElement('div');
     header.className = 'card-header';
     var span = document.createElement('span');
     span.className = 'card-header-title';
-    span.innerHTML = h.innerHTML;          // 保留標題內的 icon
+    span.innerHTML = h.innerHTML;          // keep the icon inside the title
     header.appendChild(span);
     var chevWrap = document.createElement('span');
     chevWrap.innerHTML = CHEV;
@@ -176,7 +194,7 @@ function render_foot(): void { ?>
   });
 })();
 
-/* 右上帳號選單：點頭像 / 名稱展開，點外面或 Esc 收合。 */
+/* Top-right account menu: click avatar / name to open; click outside or Esc to close. */
 (function () {
   var btn = document.getElementById('topbarUserBtn');
   var menu = document.getElementById('topbarDropdown');
@@ -193,7 +211,7 @@ function render_foot(): void { ?>
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
 })();
 
-/* 表格欄位標題點擊排序（排序目前顯示的列；分頁表格僅排本頁）。 */
+/* Click a table column header to sort (sorts visible rows; paginated tables sort the current page only). */
 (function () {
   function num(v) { v = String(v).replace(/[, ]/g, ''); return /^-?\d+(\.\d+)?$/.test(v) ? parseFloat(v) : null; }
   document.querySelectorAll('table.table').forEach(function (table) {
@@ -206,7 +224,7 @@ function render_foot(): void { ?>
       th.addEventListener('click', function () {
         var tbody = table.tBodies[0];
         if (!tbody) return;
-        // 把每個主列與其後緊接的明細列（.row-detail）配對，排序後一起搬動，避免拆散。
+        // Pair each main row with its following detail row (.row-detail) and move them together so they stay adjacent.
         var pairs = [];
         Array.prototype.forEach.call(tbody.rows, function (r) {
           if (r.classList.contains('row-detail')) return;
@@ -230,7 +248,7 @@ function render_foot(): void { ?>
   });
 })();
 
-/* 自訂確認對話框：取代瀏覽器原生 confirm()。表單加 data-confirm="訊息" 即攔截。 */
+/* Custom confirm dialog replacing the native confirm(). Forms with data-confirm="message" are intercepted. */
 (function () {
   var pending = null;
   function m() { return document.getElementById('confirmModal'); }
@@ -240,7 +258,7 @@ function render_foot(): void { ?>
     if (!form || form.nodeName !== 'FORM' || !form.getAttribute('data-confirm')) return;
     var msg = form.getAttribute('data-confirm');
     var x = m();
-    if (!x) { if (!window.confirm(msg)) e.preventDefault(); return; }   // 後援
+    if (!x) { if (!window.confirm(msg)) e.preventDefault(); return; }   // fallback
     e.preventDefault();
     pending = form;
     x.querySelector('.confirm-msg').textContent = msg;
@@ -248,7 +266,7 @@ function render_foot(): void { ?>
   }, true);
   document.addEventListener('click', function (e) {
     var x = m(); if (!x || !x.classList.contains('open')) return;
-    if (e.target.closest('#confirmOk')) { var f = pending; close(); if (f) f.submit(); }   // .submit() 不再觸發 submit 事件
+    if (e.target.closest('#confirmOk')) { var f = pending; close(); if (f) f.submit(); }   // .submit() does not fire the submit event again
     else if (e.target.closest('#confirmCancel') || e.target === x) close();
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
@@ -256,11 +274,11 @@ function render_foot(): void { ?>
 </script>
 <div class="modal-backdrop" id="confirmModal">
   <div class="modal" role="dialog" aria-modal="true" style="max-width:420px;">
-    <h2>請確認</h2>
+    <h2><?= th('請確認') ?></h2>
     <p class="confirm-msg modal-sub" style="margin:8px 0 0;"></p>
     <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" id="confirmCancel"><?= icon('x',14) ?>取消</button>
-      <button type="button" class="btn btn-primary" id="confirmOk"><?= icon('check',14) ?>確定</button>
+      <button type="button" class="btn btn-secondary" id="confirmCancel"><?= icon('x',14) ?><?= th('取消') ?></button>
+      <button type="button" class="btn btn-primary" id="confirmOk"><?= icon('check',14) ?><?= th('確定') ?></button>
     </div>
   </div>
 </div>
@@ -303,6 +321,7 @@ function icon(string $name, int $size = 18): string {
       'edit'        => '<path d="M4 20h4L18.5 9.5l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/>',
       'download'    => '<path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M5 21h14"/>',
       'upload'      => '<path d="M12 21V9"/><path d="M7 13l5-5 5 5"/><path d="M5 4h14"/>',
+      'globe'       => '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18"/><path d="M12 3a14 14 0 0 0 0 18"/>',
       'trash'       => '<path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/>',
     ];
   }

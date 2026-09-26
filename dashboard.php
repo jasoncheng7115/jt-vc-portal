@@ -59,34 +59,36 @@ $mail_flash = $_GET['mail'] ?? '';
 
 function fmt_when(int $ts): string {
   $diff = time() - $ts;
-  if ($diff < 60) return $diff . ' 秒前';
-  if ($diff < 3600) return floor($diff / 60) . ' 分鐘前';
-  if ($diff < 86400) return floor($diff / 3600) . ' 小時前';
-  return floor($diff / 86400) . ' 天前';
+  if ($diff < 60) return t('{n} 秒前', ['n' => $diff]);
+  if ($diff < 3600) return t('{n} 分鐘前', ['n' => floor($diff / 60)]);
+  if ($diff < 86400) return t('{n} 小時前', ['n' => floor($diff / 3600)]);
+  return t('{n} 天前', ['n' => floor($diff / 86400)]);
 }
 function fmt_range(?int $s, ?int $e): string {
   if ($s === null) return '';
   $sameday = $e !== null && date('Y-m-d', $s) === date('Y-m-d', $e);
   $left  = date('m/d H:i', $s);
-  $right = $e === null ? '不限' : ($sameday ? date('H:i', $e) : date('m/d H:i', $e));
-  return $left . ' ～ ' . $right;
+  $right = $e === null ? t('不限') : ($sameday ? date('H:i', $e) : date('m/d H:i', $e));
+  return t('{start} ～ {end}', ['start' => $left, 'end' => $right]);
 }
 function fmt_dur_s(int $s): string {
-  if ($s < 60) return $s . ' 秒';
+  if ($s < 60) return t('{n} 秒', ['n' => $s]);
   $m = intdiv($s, 60);
-  if ($m < 60) return $m . ' 分';
+  if ($m < 60) return t('{n} 分', ['n' => $m]);
   $h = intdiv($m, 60); $mm = $m % 60;
-  return $h . ' 時' . ($mm ? ' ' . $mm . ' 分' : '');
+  return $mm ? t('{h} 時 {m} 分', ['h' => $h, 'm' => $mm]) : t('{h} 時', ['h' => $h]);
 }
 function mail_flash_text(string $m): string {
-  if ($m === 'smtp_off') return '（SMTP 未啟用，邀請信未寄出，僅建立連結）';
+  if ($m === 'smtp_off') return t('（SMTP 未啟用，邀請信未寄出，僅建立連結）');
   if (preg_match('/sent_(\d+)_fail_(\d+)/', $m, $x)) {
-    return "（邀請信：成功 {$x[1]} 封" . ($x[2] > 0 ? "、失敗 {$x[2]} 封" : '') . '）';
+    return $x[2] > 0
+      ? t('（邀請信：成功 {ok} 封、失敗 {fail} 封）', ['ok' => $x[1], 'fail' => $x[2]])
+      : t('（邀請信：成功 {ok} 封）', ['ok' => $x[1]]);
   }
   return '';
 }
 
-render_head('儀表板');
+render_head(t('儀表板'));
 render_topbar($me, $ip);
 ?>
 <main class="container">
@@ -103,16 +105,16 @@ render_topbar($me, $ip);
   <div class="created-panel">
     <div class="panel-qr"><div id="createdQr"></div></div>
     <div class="panel-body">
-      <div class="panel-title"><?= icon('check') ?> 會議室連結已建立 <?= htmlspecialchars(mail_flash_text($mail_flash)) ?></div>
+      <div class="panel-title"><?= icon('check') ?> <?= th('會議室連結已建立') ?> <?= htmlspecialchars(mail_flash_text($mail_flash)) ?></div>
       <div class="muted" style="font-size:13px;margin-bottom:6px;">
-        會議室 <strong style="font-family:var(--mono);color:var(--text);"><?= htmlspecialchars($created) ?></strong>
-        <?php if ($created_data['starts_at']): ?> · 開放時段 <?= htmlspecialchars(fmt_range($created_data['starts_at'], $created_data['ends_at'])) ?><?php endif; ?>
-        <?php if (!empty($created_data['lobby'])): ?> · <span style="color:var(--text);"><?= icon('lock', 12) ?>大廳模式</span><?php endif; ?>
+        <?= th('會議室') ?> <strong style="font-family:var(--mono);color:var(--text);"><?= htmlspecialchars($created) ?></strong>
+        <?php if ($created_data['starts_at']): ?> · <?= th('開放時段 {range}', ['range' => fmt_range($created_data['starts_at'], $created_data['ends_at'])]) ?><?php endif; ?>
+        <?php if (!empty($created_data['lobby'])): ?> · <span style="color:var(--text);"><?= icon('lock', 12) ?><?= th('大廳模式') ?></span><?php endif; ?>
       </div>
       <div class="panel-link"><?= htmlspecialchars($invite_url) ?></div>
       <div class="panel-actions">
-        <button type="button" class="btn btn-primary btn-sm" data-copy="<?= htmlspecialchars($invite_url) ?>"><?= icon('copy', 14) ?>複製邀請連結</button>
-        <?= enter_room_form($created, icon('play', 14) . '立即主持', 'btn btn-secondary btn-sm') ?>
+        <button type="button" class="btn btn-primary btn-sm" data-copy="<?= htmlspecialchars($invite_url) ?>"><?= icon('copy', 14) ?><?= th('複製邀請連結') ?></button>
+        <?= enter_room_form($created, icon('play', 14) . th('立即主持'), 'btn btn-secondary btn-sm') ?>
       </div>
     </div>
     <div></div>
@@ -128,8 +130,8 @@ render_topbar($me, $ip);
   <?php endif; ?>
 
   <div class="card">
-    <h1><?= icon('video', 18) ?>建立 / 進入會議室</h1>
-    <p class="subtitle">輸入會議室名稱即可開始，或從下方近期清單快速進入。可選擇先建立連結但暫不進入會議。</p>
+    <h1><?= icon('video', 18) ?><?= th('建立 / 進入會議室') ?></h1>
+    <p class="subtitle"><?= th('輸入會議室名稱即可開始，或從下方近期清單快速進入。可選擇先建立連結但暫不進入會議。') ?></p>
 
     <?php if ($error): ?>
       <div class="alert alert-error"><?= icon('warning') ?><span><?= htmlspecialchars($error) ?></span></div>
@@ -138,40 +140,40 @@ render_topbar($me, $ip);
     <form method="POST" action="/start">
       <?= Auth::csrfField() ?>
       <div class="field">
-        <label for="room">會議室名稱</label>
+        <label for="room"><?= th('會議室名稱') ?></label>
         <div class="link-row">
           <input type="text" id="room" name="room" required autofocus
-                 placeholder="例如：weekly-sync"
-                 pattern="[A-Za-z0-9_\-]+" title="僅限英文、數字、- 與 _"
+                 placeholder="<?= th('例如：weekly-sync') ?>"
+                 pattern="[A-Za-z0-9_\-]+" title="<?= th('僅限英文、數字、- 與 _') ?>"
                  value="<?= htmlspecialchars($form_room) ?>">
-          <button type="button" class="btn btn-secondary" id="randomRoom" title="亂數產生會議室名稱"><?= icon('refresh',14) ?>亂數</button>
+          <button type="button" class="btn btn-secondary" id="randomRoom" title="<?= th('亂數產生會議室名稱') ?>"><?= icon('refresh',14) ?><?= th('亂數') ?></button>
         </div>
-        <div class="help">僅限英文、數字、<span class="kbd">-</span>、<span class="kbd">_</span>；空格自動轉 <span class="kbd">-</span>，中文等其他字元會自動移除（Jitsi 會議室不支援非 ASCII 名稱）。</div>
+        <div class="help"><?= t('僅限英文、數字、{dash}、{us}；空格自動轉 {dash}，中文等其他字元會自動移除（Jitsi 會議室不支援非 ASCII 名稱）。', ['dash' => '<span class="kbd">-</span>', 'us' => '<span class="kbd">_</span>']) ?></div>
       </div>
 
       <div class="schedule-block">
       <label class="schedule-head" for="scheduleChk">
         <input type="checkbox" id="scheduleChk"<?= $schedule_open ? ' checked' : '' ?>>
         <span class="lobby-text">
-          <span class="lobby-title"><?= icon('calendar', 14) ?>限定開放時段 / 寄送邀請</span>
-          <span class="help" style="margin:0;">未勾選 = 來賓需等主持人開啟；勾選後可設定開放時段並寄送邀請信。</span>
+          <span class="lobby-title"><?= icon('calendar', 14) ?><?= th('限定開放時段 / 寄送邀請') ?></span>
+          <span class="help" style="margin:0;"><?= th('未勾選 = 來賓需等主持人開啟；勾選後可設定開放時段並寄送邀請信。') ?></span>
         </span>
       </label>
       <div id="scheduleBody" class="schedule-body"<?= $schedule_open ? '' : ' hidden' ?>>
         <div class="field-row">
           <div class="field" style="margin-bottom:0;">
-            <label for="starts_at">開始時間</label>
-            <input type="text" id="starts_at" name="starts_at" autocomplete="off" placeholder="點選選擇日期時間" value="<?= htmlspecialchars($form_starts_at) ?>">
+            <label for="starts_at"><?= th('開始時間') ?></label>
+            <input type="text" id="starts_at" name="starts_at" autocomplete="off" placeholder="<?= th('點選選擇日期時間') ?>" value="<?= htmlspecialchars($form_starts_at) ?>">
           </div>
           <div class="field" style="margin-bottom:0;">
-            <label for="ends_at">結束時間</label>
-            <input type="text" id="ends_at" name="ends_at" autocomplete="off" placeholder="點選選擇日期時間" value="<?= htmlspecialchars($form_ends_at) ?>">
+            <label for="ends_at"><?= th('結束時間') ?></label>
+            <input type="text" id="ends_at" name="ends_at" autocomplete="off" placeholder="<?= th('點選選擇日期時間') ?>" value="<?= htmlspecialchars($form_ends_at) ?>">
           </div>
         </div>
         <div class="field" style="margin:14px 0 0;">
-          <label for="attendees">與會者 Email（選填，可多筆，換行或逗號分隔）</label>
+          <label for="attendees"><?= th('與會者 Email（選填，可多筆，換行或逗號分隔）') ?></label>
           <textarea id="attendees" name="attendees" placeholder="alice@example.com, bob@example.com"><?= htmlspecialchars($form_attendees) ?></textarea>
-          <div class="help">填寫後系統會寄出含行事曆（.ics）的邀請信，對方可一鍵加入行事曆（需先於系統設定啟用 SMTP）。</div>
+          <div class="help"><?= th('填寫後系統會寄出含行事曆（.ics）的邀請信，對方可一鍵加入行事曆（需先於系統設定啟用 SMTP）。') ?></div>
         </div>
       </div>
       </div>
@@ -179,22 +181,22 @@ render_topbar($me, $ip);
       <label class="lobby-toggle">
         <input type="checkbox" name="lobby" value="1"<?= $form_lobby ? ' checked' : '' ?>>
         <span class="lobby-text">
-          <span class="lobby-title"><?= icon('lock', 14) ?>啟用大廳模式</span>
-          <span class="help" style="margin:0;">主持人進入後自動開啟；之後每位來賓需經主持人允許才能進入會議室。</span>
+          <span class="lobby-title"><?= icon('lock', 14) ?><?= th('啟用大廳模式') ?></span>
+          <span class="help" style="margin:0;"><?= th('主持人進入後自動開啟；之後每位來賓需經主持人允許才能進入會議室。') ?></span>
         </span>
       </label>
 
       <div class="btn-group">
-        <button type="submit" name="mode" value="host" class="btn btn-primary"><?= icon('play') ?>開始主持會議</button>
-        <button type="submit" name="mode" value="create" class="btn btn-secondary"><?= icon('link') ?>建立會議室連結</button>
+        <button type="submit" name="mode" value="host" class="btn btn-primary"><?= icon('play') ?><?= th('開始主持會議') ?></button>
+        <button type="submit" name="mode" value="create" class="btn btn-secondary"><?= icon('link') ?><?= th('建立會議室連結') ?></button>
       </div>
     </form>
   </div>
 
   <div class="card">
-    <h1><?= icon('clock', 18) ?>近期會議室 <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400;font-size:13px;">· 近期 / 即將開始<?= $is_admin ? '（全部主持人）' : '' ?></span></h1>
+    <h1><?= icon('clock', 18) ?><?= th('近期會議室') ?> <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400;font-size:13px;">· <?= th('近期 / 即將開始') ?><?= $is_admin ? th('（全部主持人）') : '' ?></span></h1>
     <?php if (empty($rooms)): ?>
-      <div class="empty">尚無近期會議室。建立後將會出現在這裡。</div>
+      <div class="empty"><?= th('尚無近期會議室。建立後將會出現在這裡。') ?></div>
     <?php else: ?>
       <ul class="room-list">
         <?php foreach ($rooms as $name => $r):
@@ -203,20 +205,20 @@ render_topbar($me, $ip);
           $hj = Rooms::isHostPresent($r, $now);
           $host_was = !empty($r['host_joined']) && !$hj;
           $s = $r['starts_at']; $e = $r['ends_at'];
-          if ($hj) $badge = '<span class="badge badge-success">'.icon('check',11).'主持人在線上</span>';
-          elseif ($host_was) $badge = '<span class="badge badge-muted">主持人離線</span>';
-          elseif ($s !== null && $now < $s) $badge = '<span class="badge badge-accent">'.icon('clock',11).'預約中</span>';
-          elseif ($s !== null && $e !== null && $now > $e) $badge = '<span class="badge badge-muted">已結束</span>';
-          elseif ($s !== null) $badge = '<span class="badge badge-warning">開放中</span>';
-          else $badge = '<span class="badge">待主持人</span>';
+          if ($hj) $badge = '<span class="badge badge-success">'.icon('check',11).th('主持人在線上').'</span>';
+          elseif ($host_was) $badge = '<span class="badge badge-muted">'.th('主持人離線').'</span>';
+          elseif ($s !== null && $now < $s) $badge = '<span class="badge badge-accent">'.icon('clock',11).th('預約中').'</span>';
+          elseif ($s !== null && $e !== null && $now > $e) $badge = '<span class="badge badge-muted">'.th('已結束').'</span>';
+          elseif ($s !== null) $badge = '<span class="badge badge-warning">'.th('開放中').'</span>';
+          else $badge = '<span class="badge">'.th('待主持人').'</span>';
         ?>
           <li>
             <div class="room-main">
               <span class="room-name"><?= htmlspecialchars($name) ?></span>
               <div class="room-meta">
                 <?= $badge ?>
-                <?php if (!empty($r['lobby'])): ?><span class="badge badge-accent"><?= icon('lock',11) ?>大廳模式</span><?php endif; ?>
-                <span>建立於 <?= fmt_when($r['created_at']) ?></span>
+                <?php if (!empty($r['lobby'])): ?><span class="badge badge-accent"><?= icon('lock',11) ?><?= th('大廳模式') ?></span><?php endif; ?>
+                <span><?= th('建立於 {when}', ['when' => fmt_when($r['created_at'])]) ?></span>
                 <?php if ($is_admin && !empty($r['owner_name'])): ?><span><?= icon('user',11) ?> <?= htmlspecialchars($r['owner_name']) ?></span><?php endif; ?>
                 <?php
                   $agg = $meet_agg[$name] ?? null;
@@ -225,19 +227,19 @@ render_topbar($me, $ip);
                   $open_secs = (int)($agg['dur'] ?? 0) + ($ongoing ? max(0, $now - (int)$r['host_joined_at']) : 0);
                 ?>
                 <?php if ($first_enter !== null): ?>
-                  <span><?= icon('play',11) ?> 進入 <?= date('m/d H:i', $first_enter) ?></span>
-                  <span><?= icon('clock',11) ?> 開了 <?= htmlspecialchars(fmt_dur_s($open_secs)) ?><?= $ongoing ? '（進行中）' : '' ?></span>
+                  <span><?= icon('play',11) ?> <?= th('進入 {time}', ['time' => date('m/d H:i', $first_enter)]) ?></span>
+                  <span><?= icon('clock',11) ?> <?= th('開了 {dur}', ['dur' => fmt_dur_s($open_secs)]) ?><?= $ongoing ? th('（進行中）') : '' ?></span>
                 <?php else: ?>
-                  <span class="muted"><?= icon('info',11) ?> 尚未進入</span>
+                  <span class="muted"><?= icon('info',11) ?> <?= th('尚未進入') ?></span>
                 <?php endif; ?>
                 <?php if ($s !== null): ?><span><?= icon('calendar', 11) ?> <?= htmlspecialchars(fmt_range($s, $e)) ?></span><?php endif; ?>
-                <?php if (!empty($r['attendees'])): ?><span><?= icon('user',11) ?> <?= count($r['attendees']) ?> 位受邀</span><?php endif; ?>
+                <?php if (!empty($r['attendees'])): ?><span><?= icon('user',11) ?> <?= th('{n} 位受邀', ['n' => count($r['attendees'])]) ?></span><?php endif; ?>
               </div>
             </div>
             <div class="room-actions">
-              <button type="button" class="btn btn-secondary btn-sm" data-copy="<?= htmlspecialchars($invite) ?>" title="複製邀請連結"><?= icon('copy', 14) ?>複製</button>
-              <button type="button" class="btn btn-secondary btn-sm" data-qr="<?= htmlspecialchars($invite) ?>" data-room="<?= htmlspecialchars($name) ?>" title="顯示 QR Code"><?= icon('qr', 14) ?>QR</button>
-              <?= enter_room_form($name, icon('arrow-right', 14) . '進入', 'btn btn-secondary btn-sm') ?>
+              <button type="button" class="btn btn-secondary btn-sm" data-copy="<?= htmlspecialchars($invite) ?>" title="<?= th('複製邀請連結') ?>"><?= icon('copy', 14) ?><?= th('複製') ?></button>
+              <button type="button" class="btn btn-secondary btn-sm" data-qr="<?= htmlspecialchars($invite) ?>" data-room="<?= htmlspecialchars($name) ?>" title="<?= th('顯示 QR Code') ?>"><?= icon('qr', 14) ?>QR</button>
+              <?= enter_room_form($name, icon('arrow-right', 14) . th('進入'), 'btn btn-secondary btn-sm') ?>
             </div>
           </li>
         <?php endforeach; ?>
@@ -246,15 +248,15 @@ render_topbar($me, $ip);
   </div>
 </main>
 
-<!-- QR Code 彈窗 -->
+<!-- QR Code modal -->
 <div class="modal-backdrop" id="qrModal">
   <div class="modal">
-    <h2>會議室 QR Code</h2>
-    <p class="modal-sub">會議室：<strong id="qrRoom"></strong></p>
+    <h2><?= th('會議室 QR Code') ?></h2>
+    <p class="modal-sub"><?= th('會議室：') ?><strong id="qrRoom"></strong></p>
     <div class="qr" id="qrBox"></div>
     <div class="link-row">
       <input type="text" id="qrLink" readonly>
-      <button type="button" class="btn btn-primary" id="qrCopyLink"><?= icon('copy',14) ?>複製連結</button>
+      <button type="button" class="btn btn-primary" id="qrCopyLink"><?= icon('copy',14) ?><?= th('複製連結') ?></button>
     </div>
     <div class="modal-footer">
       <form method="POST" action="/start" style="display:inline;" id="qrEnterForm">
@@ -262,15 +264,15 @@ render_topbar($me, $ip);
         <input type="hidden" name="room" id="qrEnterRoom" value="">
         <input type="hidden" name="mode" value="host">
         <input type="hidden" name="enter" value="1">
-        <button type="submit" class="btn btn-primary"><?= icon('arrow-right',14) ?>進入會議室</button>
+        <button type="submit" class="btn btn-primary"><?= icon('arrow-right',14) ?><?= th('進入會議室') ?></button>
       </form>
-      <button type="button" class="btn btn-secondary" id="qrDownload"><?= icon('download') ?>下載圖片</button>
-      <button type="button" class="btn btn-secondary" id="qrClose"><?= icon('x',14) ?>關閉</button>
+      <button type="button" class="btn btn-secondary" id="qrDownload"><?= icon('download') ?><?= th('下載圖片') ?></button>
+      <button type="button" class="btn btn-secondary" id="qrClose"><?= icon('x',14) ?><?= th('關閉') ?></button>
     </div>
   </div>
 </div>
 
-<div id="flash" class="copy-flash"><?= icon('check', 14) ?>已複製</div>
+<div id="flash" class="copy-flash"><?= icon('check', 14) ?><?= th('已複製') ?></div>
 <script <?= nonce_attr() ?>>
 function dashFlash(msg){
   const f = document.getElementById('flash');
@@ -288,15 +290,15 @@ async function dashCopy(text){
   }
 }
 
-// 複製按鈕（房間列 / 建立面板）
+// copy buttons (room list / created panel)
 document.addEventListener('click', async (e) => {
   const btn = e.target.closest('[data-copy]');
   if (!btn) return;
   await dashCopy(btn.getAttribute('data-copy'));
-  dashFlash('已複製邀請連結');
+  dashFlash(<?= json_encode(t('已複製邀請連結')) ?>);
 });
 
-// QR Code 彈窗
+// QR Code modal
 (function(){
   const modal = document.getElementById('qrModal');
   const box = document.getElementById('qrBox');
@@ -318,7 +320,7 @@ document.addEventListener('click', async (e) => {
   });
   document.getElementById('qrClose').onclick = close;
   modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
-  document.getElementById('qrCopyLink').onclick = async () => { await dashCopy(linkInput.value); dashFlash('已複製連結'); };
+  document.getElementById('qrCopyLink').onclick = async () => { await dashCopy(linkInput.value); dashFlash(<?= json_encode(t('已複製連結')) ?>); };
   document.getElementById('qrDownload').onclick = () => {
     const img = box.querySelector('img') || box.querySelector('canvas');
     if (!img) return;
@@ -329,7 +331,7 @@ document.addEventListener('click', async (e) => {
   };
 })();
 
-// 會議室名稱即時轉換：空白→-、移除非 ASCII（Jitsi 不支援中文等會議室名稱）
+// live room-name conversion: whitespace -> '-', strip non-ASCII (Jitsi rejects non-ASCII room names)
 (function(){
   const input = document.getElementById('room');
   if (!input) return;
@@ -343,7 +345,7 @@ document.addEventListener('click', async (e) => {
   });
 })();
 
-// 亂數產生會議室名稱（形容詞-名詞-數字，好讀好分享）
+// random room name (adjective-noun-number, easy to read and share)
 (function(){
   const btn = document.getElementById('randomRoom');
   if (!btn) return;
@@ -358,11 +360,11 @@ document.addEventListener('click', async (e) => {
   });
 })();
 
-// flatpickr 日期時間選擇器（比原生好用）
+// flatpickr date/time picker (nicer than the native one)
 (function(){
   if (!window.flatpickr) return;
   const common = { enableTime: true, time_24hr: true, dateFormat: 'Y-m-d H:i', minuteIncrement: 5, allowInput: true,
-                   locale: (flatpickr.l10ns && flatpickr.l10ns.zh_tw) ? 'zh_tw' : 'default' };
+                   locale: (<?= json_encode(I18n::lang() === 'zh-TW') ?> && flatpickr.l10ns && flatpickr.l10ns.zh_tw) ? 'zh_tw' : 'default' };
   const fpEnd = flatpickr('#ends_at', common);
   flatpickr('#starts_at', Object.assign({}, common, {
     onChange: function(sel){
@@ -375,7 +377,7 @@ document.addEventListener('click', async (e) => {
   }));
 })();
 
-// 限定開放時段：勾選才展開設定；取消勾選則收合並清空（避免殘值送出）
+// scheduled window: expand only when checked; unchecking collapses and clears (avoid submitting stale values)
 (function(){
   const chk = document.getElementById('scheduleChk');
   const body = document.getElementById('scheduleBody');

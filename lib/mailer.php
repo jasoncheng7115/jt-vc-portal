@@ -23,14 +23,32 @@ class Mailer {
       'username'   => $c['username'] ?? '',
       'password'   => $c['password'] ?? '',
       'from_email' => $c['from_email'] ?? '',
-      'from_name'  => $c['from_name'] ?? 'JT 視訊會議',
-      'subject_tpl'=> $c['subject_tpl'] ?? self::DEFAULT_SUBJECT_TPL,
-      'body_tpl'   => $c['body_tpl'] ?? self::DEFAULT_BODY_TPL,
+      'from_name'  => (trim((string)($c['from_name'] ?? '')) === '' || I18n::isDefaultBrand((string)$c['from_name'])) ? t('JT 視訊會議') : $c['from_name'],
+      // 未自訂（空白或等於任一語言的預設範本）→ 依目前介面語言套用預設
+      'subject_tpl'=> self::isDefaultTpl($c['subject_tpl'] ?? '', 'subject') ? self::defaultSubject() : $c['subject_tpl'],
+      'body_tpl'   => self::isDefaultTpl($c['body_tpl'] ?? '', 'body') ? self::defaultBody() : $c['body_tpl'],
     ];
   }
 
-  const DEFAULT_SUBJECT_TPL = '會議邀請：{room}';
-  const DEFAULT_BODY_TPL = "您好，\n\n您受邀參加線上視訊會議「{room}」。\n{time}\n加入連結：{invite_url}\n\n（附件為行事曆邀請，開啟後可自動加入您的行事曆。）\n\n— {site_name}";
+  /** 舊版存進 settings.json 的中文預設範本（相容判斷用）。 */
+  const DEFAULT_SUBJECT_TPL = '會議邀請：{room}';  // i18n-ignore（舊版相容；翻譯同 defaultSubject() 鍵）
+  const DEFAULT_BODY_TPL = "您好，\n\n您受邀參加線上視訊會議「{room}」。\n{time}\n加入連結：{invite_url}\n\n（附件為行事曆邀請，開啟後可自動加入您的行事曆。）\n\n— {site_name}";  // i18n-ignore（舊版相容）
+
+  /** 目前語言的預設主旨範本。 */
+  public static function defaultSubject(): string { return t('會議邀請：{room}'); }
+  /** 目前語言的預設內文範本。 */
+  public static function defaultBody(): string {
+    return t("您好，\n\n您受邀參加線上視訊會議「{room}」。\n{time}\n加入連結：{invite_url}\n\n（附件為行事曆邀請，開啟後可自動加入您的行事曆。）\n\n— {site_name}");
+  }
+  /** 是否為（任一語言的）預設範本或空白。 */
+  public static function isDefaultTpl(string $v, string $kind): bool {
+    if (trim($v) === '') return true;
+    foreach (I18n::SUPPORTED as $l) {
+      $d = $kind === 'subject' ? I18n::t(self::DEFAULT_SUBJECT_TPL, [], $l) : I18n::t(self::DEFAULT_BODY_TPL, [], $l);
+      if (str_replace("\r", '', $v) === $d) return true;
+    }
+    return false;
+  }
 
   /** 套用範本：以 {key} 取代 $vars 對應值。 */
   public static function renderTemplate(string $tpl, array $vars): string {
@@ -61,7 +79,7 @@ class Mailer {
     $to = self::clean(trim($opts['to'] ?? ''));
     if (!self::isValidEmail($to)) return [false, 'invalid recipient'];
 
-    $subject = self::clean($opts['subject'] ?? '會議邀請');
+    $subject = self::clean($opts['subject'] ?? t('會議邀請'));
     $fromEmail = self::clean($cfg['from_email']);
     $fromName  = self::clean($cfg['from_name']);
     $bodyText  = $opts['bodyText'] ?? '';

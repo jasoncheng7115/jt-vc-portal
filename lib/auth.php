@@ -27,6 +27,8 @@ class Auth {
     session_name('JTSESS');
     session_start();
     self::$started = true;
+    // 登入者的介面語言偏好（Auth::login / 切換語言時寫入）；?lang= 參數仍優先
+    if (!empty($_SESSION['lang']) && I18n::normalize($_GET['lang'] ?? null) === null) I18n::set($_SESSION['lang']);
   }
 
   /**
@@ -94,6 +96,10 @@ class Auth {
     $_SESSION['login_ip'] = self::clientIp();
     $_SESSION['login_at'] = time();
     $_SESSION['last_seen'] = time();
+    // 套用個人語言偏好（未設定＝沿用 cookie / 瀏覽器判斷）
+    $ul = I18n::normalize($user['lang'] ?? null);
+    if ($ul !== null) { $_SESSION['lang'] = $ul; I18n::set($ul); I18n::remember($ul); }
+    else unset($_SESSION['lang']);
     unset($_SESSION['2fa_uid'], $_SESSION['login_error']);
   }
 
@@ -175,9 +181,9 @@ class Auth {
     if (empty($_SESSION['csrf']) || !is_string($sent) || !hash_equals($_SESSION['csrf'], $sent)) {
       http_response_code(403);
       header('Content-Type: text/html; charset=utf-8');
-      echo '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8"><title>403</title></head>'
+      echo '<!DOCTYPE html><html lang="' . I18n::htmlLang() . '"><head><meta charset="UTF-8"><title>403</title></head>'
          . '<body style="font-family:sans-serif;text-align:center;margin-top:80px;color:#555;">'
-         . '<h1>403</h1><p>請求無效或已過期，請重新整理頁面後再試一次。</p></body></html>';
+         . '<h1>403</h1><p>' . th('請求無效或已過期，請重新整理頁面後再試一次。') . '</p></body></html>';
       exit;
     }
   }
@@ -193,14 +199,14 @@ class Auth {
       render_topbar(false);
       echo '<main class="container narrow"><div class="card" style="text-align:center;padding:48px 24px;">'
          . '<div style="font-size:64px;font-weight:700;line-height:1;">404</div>'
-         . '<p class="subtitle" style="margin-top:12px;">找不到頁面。</p>'
-         . '<a class="btn btn-secondary btn-sm" href="/" style="margin-top:18px;display:inline-flex;">' . icon('home', 14) . '回首頁</a>'
+         . '<p class="subtitle" style="margin-top:12px;">' . th('找不到頁面。') . '</p>'
+         . '<a class="btn btn-secondary btn-sm" href="/" style="margin-top:18px;display:inline-flex;">' . icon('home', 14) . th('回首頁') . '</a>'
          . '</div></main>';
       render_foot();
     } else {
-      echo '<!DOCTYPE html><html lang="zh-TW"><head><meta charset="UTF-8">'
+      echo '<!DOCTYPE html><html lang="' . I18n::htmlLang() . '"><head><meta charset="UTF-8">'
          . '<title>404</title></head><body style="font-family:sans-serif;text-align:center;'
-         . 'margin-top:80px;color:#555;"><h1>404</h1><p>找不到頁面。</p></body></html>';
+         . 'margin-top:80px;color:#555;"><h1>404</h1><p>' . th('找不到頁面。') . '</p></body></html>';
     }
     exit;
   }

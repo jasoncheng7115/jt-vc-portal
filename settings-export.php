@@ -25,7 +25,7 @@ if ($site['logo_mime'] !== '' && is_file($logoPath)) {
   }
 }
 
-Audit::log('settings_export', '匯出系統設定');
+Audit::log('settings_export', t('匯出系統設定'));
 
 $fname = 'jt-vc-portal-settings-' . date('Ymd-His') . '.json';
 header('Content-Type: application/json; charset=utf-8');

@@ -50,10 +50,10 @@ function rec_bytes($n): string {
 }
 function rec_status_badge(string $s): string {
   $map = [
-    'ok'         => ['badge-success', '正常'],
-    'recording'  => ['badge-accent',  '錄製中'],
-    'incomplete' => ['badge-warning', '未完成'],
-    'orphan'     => ['badge-warning', '殘留'],
+    'ok'         => ['badge-success', t('正常')],
+    'recording'  => ['badge-accent',  t('錄製中')],
+    'incomplete' => ['badge-warning', t('未完成')],
+    'orphan'     => ['badge-warning', t('殘留')],
   ];
   [$cls, $txt] = $map[$s] ?? ['badge-muted', $s];
   return '<span class="badge ' . $cls . '">' . htmlspecialchars($txt) . '</span>';
@@ -65,7 +65,7 @@ function rec_dur($s): string {
   return $h > 0 ? sprintf('%d:%02d:%02d', $h, $m, $sec) : sprintf('%d:%02d', $m, $sec);
 }
 
-render_head('錄影記錄');
+render_head(t('錄影記錄'));
 render_topbar($me, $ip);
 ?>
 <main class="container">
@@ -75,22 +75,22 @@ render_topbar($me, $ip);
   <?php if ($err): ?><div class="alert alert-error"><?= icon('warning') ?><span><?= htmlspecialchars($err) ?></span></div><?php endif; ?>
 
   <div class="card">
-    <h1><?= icon('video', 18) ?>錄影記錄</h1>
-    <p class="subtitle"><?= $is_admin ? '調閱自建 Jibri 主機上的會議錄影，可線上播放、下載與刪除。' : '調閱您主持的會議錄影，可線上播放與下載。' ?></p>
+    <h1><?= icon('video', 18) ?><?= th('錄影記錄') ?></h1>
+    <p class="subtitle"><?= $is_admin ? th('調閱自建 Jibri 主機上的會議錄影，可線上播放、下載與刪除。') : th('調閱您主持的會議錄影，可線上播放與下載。') ?></p>
 
     <?php if (!$configured): ?>
       <?php if ($is_admin): ?>
       <div class="alert alert-info" style="align-items:flex-start;">
         <?= icon('warning') ?>
-        <span>尚未設定 Jibri 錄影服務。請至 <a href="/settings">系統設定 → 錄製設定</a> 填入服務 URL 與 token。</span>
+        <span><?= t('尚未設定 Jibri 錄影服務。請至 {link} 填入服務 URL 與 token。', ['link' => '<a href="/settings">' . th('系統設定 → 錄製設定') . '</a>']) ?></span>
       </div>
       <?php else: ?>
-      <div class="alert alert-info"><?= icon('warning') ?><span>錄影服務尚未啟用。</span></div>
+      <div class="alert alert-info"><?= icon('warning') ?><span><?= th('錄影服務尚未啟用。') ?></span></div>
       <?php endif; ?>
     <?php elseif ($is_admin && $stats === null): ?>
       <div class="alert alert-error" style="align-items:flex-start;">
         <?= icon('warning') ?>
-        <span>無法連線到 Jibri 錄影服務，請確認服務狀態、URL 與 token，以及來源 IP 允許清單。</span>
+        <span><?= th('無法連線到 Jibri 錄影服務，請確認服務狀態、URL 與 token，以及來源 IP 允許清單。') ?></span>
       </div>
     <?php else: ?>
       <?php if ($is_admin && $stats !== null):
@@ -100,32 +100,32 @@ render_topbar($me, $ip);
       ?>
       <div style="margin:6px 0 4px;">
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:6px;">
-          <span style="display:inline-flex;align-items:center;gap:5px;"><?= icon('chart', 14) ?>錄影主機容量</span>
-          <span class="mono"><?= rec_bytes($disk['used']) ?> / <?= rec_bytes($disk['total']) ?>（已用 <?= $usedPct ?>%）</span>
+          <span style="display:inline-flex;align-items:center;gap:5px;"><?= icon('chart', 14) ?><?= th('錄影主機容量') ?></span>
+          <span class="mono"><?= th('{used} / {total}（已用 {pct}%）', ['used' => rec_bytes($disk['used']), 'total' => rec_bytes($disk['total']), 'pct' => $usedPct]) ?></span>
         </div>
         <div class="usage-bar"><div class="usage-fill <?= $lvl ?>" style="width:<?= $usedPct ?>%"></div></div>
         <div class="mono" style="font-size:12px;color:var(--text-muted);margin-top:6px;">
-          可用 <?= rec_bytes($disk['free']) ?>　·　錄影 <?= (int)$rec['count'] ?> 筆（<?= rec_bytes($rec['size']) ?>）
+          <?= th('可用 {free}　·　錄影 {count} 筆（{size}）', ['free' => rec_bytes($disk['free']), 'count' => (int)$rec['count'], 'size' => rec_bytes($rec['size'])]) ?>
         </div>
       </div>
 
-      <form method="POST" action="/recordings-action" style="margin:14px 0 4px;" data-confirm="依目前保留政策立即清理？此動作會刪除符合條件的錄影。">
+      <form method="POST" action="/recordings-action" style="margin:14px 0 4px;" data-confirm="<?= th('依目前保留政策立即清理？此動作會刪除符合條件的錄影。') ?>">
         <?= Auth::csrfField() ?>
         <input type="hidden" name="action" value="cleanup">
-        <button class="btn btn-secondary btn-sm"><?= icon('trash', 14) ?>依保留政策立即清理</button>
-        <span class="help" style="margin-left:8px;">保留政策於 <a href="/settings">系統設定 → 錄製設定</a> 調整。</span>
+        <button class="btn btn-secondary btn-sm"><?= icon('trash', 14) ?><?= th('依保留政策立即清理') ?></button>
+        <span class="help" style="margin-left:8px;"><?= t('保留政策於 {link} 調整。', ['link' => '<a href="/settings">' . th('系統設定 → 錄製設定') . '</a>']) ?></span>
       </form>
       <?php endif; ?>
 
       <?php if (empty($list)): ?>
-        <div class="empty">目前沒有錄影檔。</div>
+        <div class="empty"><?= th('目前沒有錄影檔。') ?></div>
       <?php else: ?>
       <div class="field" style="max-width:280px;margin:14px 0 8px;">
-        <input type="text" id="recSearch" placeholder="搜尋會議室 / 主持人 / 參與者…" autocomplete="off">
+        <input type="text" id="recSearch" placeholder="<?= th('搜尋會議室 / 主持人 / 參與者…') ?>" autocomplete="off">
       </div>
-      <p class="muted" style="font-size:12px;margin:0 0 8px;">點任一列（操作鍵除外）可展開該場參與者。</p>
+      <p class="muted" style="font-size:12px;margin:0 0 8px;"><?= th('點任一列（操作鍵除外）可展開該場參與者。') ?></p>
       <table class="table audit-table">
-        <thead><tr><th class="caret-col no-sort"></th><th>會議室</th><th>主持人</th><th>時間</th><th>長度</th><th>大小</th><th>狀態</th><th style="text-align:right;">操作</th></tr></thead>
+        <thead><tr><th class="caret-col no-sort"></th><th><?= th('會議室') ?></th><th><?= th('主持人') ?></th><th><?= th('時間') ?></th><th><?= th('長度') ?></th><th><?= th('大小') ?></th><th><?= th('狀態') ?></th><th style="text-align:right;"><?= th('操作') ?></th></tr></thead>
         <tbody>
         <?php foreach ($list as $r):
           $rid = (string)$r['id']; $st = (string)($r['status'] ?? 'ok');
@@ -136,9 +136,9 @@ render_topbar($me, $ip);
           // 可搜尋字串：會議室 + 主持人 + 所有參與者名稱（小寫）
           $search_str = (string)($r['room'] ?? '') . ' ' . $host . ' ' . implode(' ', array_map(fn($p) => (string)($p['name'] ?? ''), $parts));
         ?>
-          <tr class="rec-row row-main" data-search="<?= htmlspecialchars(mb_strtolower($search_str)) ?>" title="點擊展開參與者">
+          <tr class="rec-row row-main" data-search="<?= htmlspecialchars(mb_strtolower($search_str)) ?>" title="<?= th('點擊展開參與者') ?>">
             <td class="caret-col"><svg class="caret" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></td>
-            <td><strong><?= htmlspecialchars($r['room'] ?: '（未知）') ?></strong></td>
+            <td><strong><?= htmlspecialchars($r['room'] ?: t('（未知）')) ?></strong></td>
             <td><?= $host !== '' ? htmlspecialchars($host) : '<span class="muted">—</span>' ?></td>
             <td class="mono" style="white-space:nowrap;"><?= htmlspecialchars(date('Y-m-d H:i:s', (int)$r['mtime'])) ?></td>
             <td class="mono"><?= htmlspecialchars(rec_dur($r['duration'] ?? 0)) ?></td>
@@ -146,15 +146,15 @@ render_topbar($me, $ip);
             <td><?= rec_status_badge($st) ?></td>
             <td style="text-align:right;white-space:nowrap;">
               <?php if ($playable): ?>
-                <button type="button" class="btn btn-secondary btn-sm js-play" data-id="<?= htmlspecialchars($rid) ?>" data-room="<?= htmlspecialchars($r['room']) ?>"><?= icon('play', 14) ?>播放</button>
-                <a class="btn btn-secondary btn-sm" href="/recordings-file?id=<?= rawurlencode($rid) ?>&dl=1"><?= icon('download', 14) ?>下載</a>
+                <button type="button" class="btn btn-secondary btn-sm js-play" data-id="<?= htmlspecialchars($rid) ?>" data-room="<?= htmlspecialchars($r['room']) ?>"><?= icon('play', 14) ?><?= th('播放') ?></button>
+                <a class="btn btn-secondary btn-sm" href="/recordings-file?id=<?= rawurlencode($rid) ?>&dl=1"><?= icon('download', 14) ?><?= th('下載') ?></a>
               <?php endif; ?>
               <?php if ($is_admin): ?>
-              <form method="POST" action="/recordings-action" style="display:inline;" data-confirm="確定刪除此錄影？此動作無法復原。">
+              <form method="POST" action="/recordings-action" style="display:inline;" data-confirm="<?= th('確定刪除此錄影？此動作無法復原。') ?>">
                 <?= Auth::csrfField() ?>
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="id" value="<?= htmlspecialchars($rid) ?>">
-                <button class="btn btn-ghost btn-sm"><?= icon('trash', 14) ?>刪除</button>
+                <button class="btn btn-ghost btn-sm"><?= icon('trash', 14) ?><?= th('刪除') ?></button>
               </form>
               <?php endif; ?>
             </td>
@@ -163,11 +163,11 @@ render_topbar($me, $ip);
             <td colspan="8">
               <?php if (!empty($parts)): ?>
               <table class="table" style="margin:0;">
-                <thead><tr><th>參與者</th><th>進入</th><th>離開</th><th>停留</th></tr></thead>
+                <thead><tr><th><?= th('參與者') ?></th><th><?= th('進入') ?></th><th><?= th('離開') ?></th><th><?= th('停留') ?></th></tr></thead>
                 <tbody>
                 <?php foreach ($parts as $p): $pin = (int)($p['in'] ?? 0); $pout = (int)($p['out'] ?? $pin); ?>
                   <tr>
-                    <td><?= htmlspecialchars((string)($p['name'] ?? '')) ?: '（未具名）' ?></td>
+                    <td><?= htmlspecialchars((string)($p['name'] ?? '')) ?: th('（未具名）') ?></td>
                     <td class="mono"><?= date('H:i:s', $pin) ?></td>
                     <td class="mono"><?= date('H:i:s', $pout) ?></td>
                     <td class="mono"><?= htmlspecialchars(rec_dur(max(0, $pout - $pin))) ?></td>
@@ -176,7 +176,7 @@ render_topbar($me, $ip);
                 </tbody>
               </table>
               <?php else: ?>
-                <span class="muted" style="font-size:13px;">無對應的參與者記錄（此場可能在參與者統計功能上線前錄製，或主持人未在場回報）。</span>
+                <span class="muted" style="font-size:13px;"><?= th('無對應的參與者記錄（此場可能在參與者統計功能上線前錄製，或主持人未在場回報）。') ?></span>
               <?php endif; ?>
             </td>
           </tr>
@@ -189,10 +189,10 @@ render_topbar($me, $ip);
 
   <div class="modal-backdrop" id="playModal">
     <div class="modal" role="dialog" aria-modal="true" style="max-width:880px;width:92vw;">
-      <h2 id="playTitle">播放錄影</h2>
+      <h2 id="playTitle"><?= th('播放錄影') ?></h2>
       <video id="playVideo" controls preload="metadata" style="width:100%;border-radius:10px;background:#000;max-height:70vh;"></video>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" id="closePlay"><?= icon('x', 14) ?>關閉</button>
+        <button type="button" class="btn btn-secondary" id="closePlay"><?= icon('x', 14) ?><?= th('關閉') ?></button>
       </div>
     </div>
   </div>
@@ -205,7 +205,7 @@ render_topbar($me, $ip);
   function close() { modal.classList.remove('open'); video.pause(); video.removeAttribute('src'); video.load(); }
   document.querySelectorAll('.js-play').forEach(function (b) {
     b.addEventListener('click', function () {
-      title.textContent = '播放錄影 · ' + (b.dataset.room || '');
+      title.textContent = <?= json_encode(t('播放錄影 · ')) ?> + (b.dataset.room || '');
       video.src = '/recordings-file?id=' + encodeURIComponent(b.dataset.id);
       modal.classList.add('open');
     });
@@ -213,7 +213,7 @@ render_topbar($me, $ip);
   document.getElementById('closePlay').addEventListener('click', close);
   modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
 
-  // 點列展開參與者（避開操作鍵 / 連結 / 表單）
+  <?php /* 點列展開參與者（避開操作鍵 / 連結 / 表單） */ ?>
   document.querySelectorAll('tr.rec-row.row-main').forEach(function (row) {
     row.addEventListener('click', function (e) {
       if (e.target.closest('button, a, form, input')) return;
@@ -229,7 +229,7 @@ render_topbar($me, $ip);
       document.querySelectorAll('tr.rec-row').forEach(function (row) {
         var show = (!q || (row.dataset.search || '').indexOf(q) !== -1);
         row.style.display = show ? '' : 'none';
-        var d = row.nextElementSibling;   // 連帶處理該列的明細
+        var d = row.nextElementSibling;   <?php /* 連帶處理該列的明細 */ ?>
         if (d && d.classList.contains('row-detail')) { if (!show) { d.hidden = true; row.classList.remove('open'); } d.style.display = show ? '' : 'none'; }
       });
     });

@@ -119,7 +119,8 @@ class Settings {
   /** 錄製者（無名稱與會者）顯示名稱，取代 Jitsi 預設「Fellow Jitster」；預設「會議錄影」。 */
   public static function getRecorderName(): string {
     $v = trim((string)(self::load()['recorder_name'] ?? ''));
-    return $v !== '' ? $v : '會議錄影';
+    if (I18n::isDefaultRecorder($v)) $v = '';   // 預設值（任一語言）→ 依目前語言顯示
+    return $v !== '' ? $v : t('會議錄影');
   }
 
   public static function setRecorderName(string $name): void {
@@ -186,20 +187,30 @@ class Settings {
   // === 會議室自訂（僅自建 Jitsi Meet 模式套用）===
   /** 一律保留、不開放關閉的工具列按鈕。 */
   const MEETING_BASE_BUTTONS = ['camera','microphone','toggle-camera','hangup','fullscreen','videoquality','profile','settings','filmstrip','highlight','help','shortcuts','mute-everyone','mute-video-everyone'];
-  /** 可逐項開關的工具列功能（button key => 中文標籤）。 */
+  /** 可逐項開關的工具列功能（button key 清單；標籤見 toggleButtonLabels()）。 */
   const MEETING_TOGGLE_BUTTONS = [
-    'chat' => '聊天', 'desktop' => '螢幕分享', 'raisehand' => '舉手', 'recording' => '錄影',
-    'select-background' => '虛擬背景', 'sharedvideo' => '分享影片', 'shareaudio' => '分享音訊',
-    'etherpad' => '共享文件', 'tileview' => '並排檢視', 'stats' => '連線統計',
-    'participants-pane' => '參與者面板', 'security' => '安全選項',
+    'chat', 'desktop', 'raisehand', 'recording',
+    'select-background', 'sharedvideo', 'shareaudio',
+    'etherpad', 'tileview', 'stats',
+    'participants-pane', 'security',
   ];
+
+  /** 工具列功能顯示標籤（button key => 目前語言標籤）。 */
+  public static function toggleButtonLabels(): array {
+    return [
+      'chat' => t('聊天'), 'desktop' => t('螢幕分享'), 'raisehand' => t('舉手'), 'recording' => t('錄影'),
+      'select-background' => t('虛擬背景'), 'sharedvideo' => t('分享影片'), 'shareaudio' => t('分享音訊'),
+      'etherpad' => t('共享文件'), 'tileview' => t('並排檢視'), 'stats' => t('連線統計'),
+      'participants-pane' => t('參與者面板'), 'security' => t('安全選項'),
+    ];
+  }
 
   /** 讀取會議室自訂設定（正規化＋預設；未設過時功能全開、進入靜音）。 */
   public static function getMeetingCustom(): array {
     $d = self::load()['meeting_custom'] ?? [];
     $configured = isset($d['toolbar']) && is_array($d['toolbar']);
     $toolbar = [];
-    foreach (array_keys(self::MEETING_TOGGLE_BUTTONS) as $k) {
+    foreach (self::MEETING_TOGGLE_BUTTONS as $k) {
       $toolbar[$k] = $configured ? !empty($d['toolbar'][$k]) : true;
     }
     $mode = in_array($d['logo_mode'] ?? 'site', ['site','custom','none'], true) ? ($d['logo_mode'] ?? 'site') : 'site';
@@ -221,7 +232,7 @@ class Settings {
   public static function setMeetingCustom(array $v): void {
     $d = self::loadForUpdate();
     $toolbar = [];
-    foreach (array_keys(self::MEETING_TOGGLE_BUTTONS) as $k) $toolbar[$k] = !empty($v['toolbar'][$k]);
+    foreach (self::MEETING_TOGGLE_BUTTONS as $k) $toolbar[$k] = !empty($v['toolbar'][$k]);
     $mode = in_array($v['logo_mode'] ?? 'site', ['site','custom','none'], true) ? ($v['logo_mode'] ?? 'site') : 'site';
     $res  = (int)($v['resolution'] ?? 1080);
     $view = in_array($v['default_view'] ?? 'speaker', ['speaker','tile'], true) ? ($v['default_view'] ?? 'speaker') : 'speaker';
@@ -242,7 +253,7 @@ class Settings {
   /** 解析實際要套用到會議的 UI 設定（JaaS 用既有預設；自建用 meeting_custom）。 */
   public static function resolveMeetingUi(): array {
     $site = (defined('SITE_URL') && SITE_URL !== '') ? SITE_URL : '';
-    $allToggles = array_keys(self::MEETING_TOGGLE_BUTTONS);
+    $allToggles = self::MEETING_TOGGLE_BUTTONS;
     if (self::getJaas()['mode'] !== 'selfhosted') {
       return [
         'logo_url'   => $site !== '' ? $site . '/logo' : '',
@@ -273,11 +284,11 @@ class Settings {
   /** 會議室預設 UI 語言（Jitsi 語言碼，現行用連字號式 zh-TW），預設繁體中文。 */
   const MEETING_LANGS = [
     // 常用優先
-    'zh-TW' => '繁體中文',
-    'zh-CN' => '简体中文',
+    'zh-TW' => '繁體中文',  // i18n-ignore
+    'zh-CN' => '简体中文',  // i18n-ignore
     'en'    => 'English',
-    'ja'    => '日本語',
-    'ko'    => '한국어',
+    'ja'    => '日本語',  // i18n-ignore
+    'ko'    => '한국어',  // i18n-ignore
     // 其餘 Jitsi Meet 支援語言（依語言碼排序）
     'af'    => 'Afrikaans',
     'ar'    => 'العربية',
@@ -335,12 +346,21 @@ class Settings {
     'uk'    => 'Українська',
     'vi'    => 'Tiếng Việt',
   ];
+  /** 「跟隨介面語言」選項值（新安裝預設）。 */
+  const MEETING_LANG_UI = 'ui';
+
+  /** 實際套用到 Jitsi 的語言碼（設定為 ui 時依目前介面語言）。 */
   public static function getMeetingLang(): string {
-    $l = self::load()['meeting_lang'] ?? 'zh-TW';
-    return array_key_exists($l, self::MEETING_LANGS) ? $l : 'zh-TW';
+    $l = self::getMeetingLangSetting();
+    return $l === self::MEETING_LANG_UI ? I18n::jitsiLang() : $l;
+  }
+  /** 設定頁用：原始設定值（ui 或語言碼）。 */
+  public static function getMeetingLangSetting(): string {
+    $l = self::load()['meeting_lang'] ?? self::MEETING_LANG_UI;
+    return ($l === self::MEETING_LANG_UI || array_key_exists($l, self::MEETING_LANGS)) ? $l : self::MEETING_LANG_UI;
   }
   public static function setMeetingLang(string $lang): void {
-    if (!array_key_exists($lang, self::MEETING_LANGS)) $lang = 'zh-TW';
+    if ($lang !== self::MEETING_LANG_UI && !array_key_exists($lang, self::MEETING_LANGS)) $lang = self::MEETING_LANG_UI;
     $d = self::loadForUpdate();
     $d['meeting_lang'] = $lang;
     self::save($d);
@@ -398,8 +418,9 @@ class Settings {
   public static function getSite(): array {
     $c = self::load()['site'] ?? [];
     $name = trim($c['brand_name'] ?? '');
+    if (I18n::isDefaultBrand($name)) $name = '';   // 預設名稱（任一語言）→ 依目前語言顯示
     return [
-      'brand_name' => $name !== '' ? $name : 'JT 視訊會議',
+      'brand_name' => $name !== '' ? $name : t('JT 視訊會議'),
       'logo_mime'  => $c['logo_mime'] ?? '',          // 空 = 用預設 logo
       'logo_v'     => (int)($c['logo_v'] ?? 0),        // 版本號（cache busting）
     ];
@@ -475,32 +496,32 @@ class Settings {
   public static function themeOptions(): array {
     return [
       // 純色系
-      'plain'     => ['name' => '純白',        'desc' => '最簡潔，零視覺干擾'],
-      'soft'      => ['name' => '柔灰',        'desc' => '淺灰底凸顯卡片層次'],
-      'paper'     => ['name' => '米紙',        'desc' => '溫暖米色，文件感'],
-      'mint'      => ['name' => '薄荷',        'desc' => '清新淡綠'],
-      'sky'       => ['name' => '天藍',        'desc' => '清爽淡藍'],
-      'rose'      => ['name' => '玫瑰',        'desc' => '柔和淡粉'],
+      'plain'     => ['name' => t('純白'),        'desc' => t('最簡潔，零視覺干擾')],
+      'soft'      => ['name' => t('柔灰'),        'desc' => t('淺灰底凸顯卡片層次')],
+      'paper'     => ['name' => t('米紙'),        'desc' => t('溫暖米色，文件感')],
+      'mint'      => ['name' => t('薄荷'),        'desc' => t('清新淡綠')],
+      'sky'       => ['name' => t('天藍'),        'desc' => t('清爽淡藍')],
+      'rose'      => ['name' => t('玫瑰'),        'desc' => t('柔和淡粉')],
       // 紋理
-      'grid'      => ['name' => '點陣',        'desc' => '工程師風淡點陣'],
-      'watermark' => ['name' => '浮水印',      'desc' => '空曠頁淡淡 logo 浮水印'],
+      'grid'      => ['name' => t('點陣'),        'desc' => t('工程師風淡點陣')],
+      'watermark' => ['name' => t('浮水印'),      'desc' => t('空曠頁淡淡 logo 浮水印')],
       // 光暈漸層
-      'glow'      => ['name' => '光暈',        'desc' => '白底加品牌色漸層'],
-      'aurora'    => ['name' => '極光',        'desc' => '紫藍粉多色光暈'],
-      'sunset'    => ['name' => '夕陽',        'desc' => '暖橘紅漸層'],
-      'mesh'      => ['name' => '彩雲（預設）','desc' => '流行多色 mesh gradient'],
-      'layered'   => ['name' => '混搭',        'desc' => '柔灰 + 光暈 + 浮水印'],
-      'hologram'  => ['name' => '全像',        'desc' => '彩虹流光科幻感'],
+      'glow'      => ['name' => t('光暈'),        'desc' => t('白底加品牌色漸層')],
+      'aurora'    => ['name' => t('極光'),        'desc' => t('紫藍粉多色光暈')],
+      'sunset'    => ['name' => t('夕陽'),        'desc' => t('暖橘紅漸層')],
+      'mesh'      => ['name' => t('彩雲（預設）'),'desc' => t('流行多色 mesh gradient')],
+      'layered'   => ['name' => t('混搭'),        'desc' => t('柔灰 + 光暈 + 浮水印')],
+      'hologram'  => ['name' => t('全像'),        'desc' => t('彩虹流光科幻感')],
       // 工程感
-      'blueprint' => ['name' => '藍圖',        'desc' => '工程藍方格底'],
+      'blueprint' => ['name' => t('藍圖'),        'desc' => t('工程藍方格底')],
       // 深色 / 科技
-      'dark'      => ['name' => '深邃',        'desc' => '純黑底白卡飄浮'],
-      'midnight'  => ['name' => '夜空',        'desc' => '深藍底點點繁星'],
-      'matrix'    => ['name' => 'Matrix',     'desc' => '黑底螢光綠數位雨'],
-      'terminal'  => ['name' => '終端',        'desc' => '純黑終端機掃描線'],
-      'synthwave' => ['name' => 'Synthwave',  'desc' => '80s 紫粉透視格線'],
-      'cyber'     => ['name' => '電馭',        'desc' => '青粉霓虹龐克'],
-      'neon'      => ['name' => '霓虹',        'desc' => '深紫底粉藍光球'],
+      'dark'      => ['name' => t('深邃'),        'desc' => t('純黑底白卡飄浮')],
+      'midnight'  => ['name' => t('夜空'),        'desc' => t('深藍底點點繁星')],
+      'matrix'    => ['name' => 'Matrix',     'desc' => t('黑底螢光綠數位雨')],
+      'terminal'  => ['name' => t('終端'),        'desc' => t('純黑終端機掃描線')],
+      'synthwave' => ['name' => 'Synthwave',  'desc' => t('80s 紫粉透視格線')],
+      'cyber'     => ['name' => t('電馭'),        'desc' => t('青粉霓虹龐克')],
+      'neon'      => ['name' => t('霓虹'),        'desc' => t('深紫底粉藍光球')],
     ];
   }
 }

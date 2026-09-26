@@ -22,32 +22,36 @@ $section = $_POST['section'] ?? '';
 $action  = $_POST['action'] ?? 'save';
 
 if ($section === 'meeting') {
-  Settings::setMeetingLang($_POST['meeting_lang'] ?? 'zh-TW');
+  Settings::setMeetingLang($_POST['meeting_lang'] ?? Settings::MEETING_LANG_UI);
   Settings::setMeetingRetentionDays((int)($_POST['meeting_retention_days'] ?? 365));
   Settings::setGuestPollSeconds((int)($_POST['guest_poll_seconds'] ?? 30));
-  Audit::log('settings_update', '會議室介面：語言 ' . (Settings::MEETING_LANGS[Settings::getMeetingLang()] ?? '') . '、記錄保留 ' . Settings::getMeetingRetentionDays() . ' 天、等候檢查 ' . Settings::getGuestPollSeconds() . ' 秒');
-  $back('set_msg', '會議室設定已更新。');
+  Audit::log('settings_update', t('會議室介面：語言 {lang}、記錄保留 {days} 天、等候檢查 {secs} 秒', [
+    'lang' => Settings::MEETING_LANGS[Settings::getMeetingLang()] ?? '',
+    'days' => Settings::getMeetingRetentionDays(),
+    'secs' => Settings::getGuestPollSeconds(),
+  ]));
+  $back('set_msg', t('會議室設定已更新。'));
 }
 
 if ($section === 'recording') {
   Settings::setRecorderName($_POST['recorder_name'] ?? '');
-  Audit::log('settings_update', '錄製設定：錄製者顯示名稱「' . Settings::getRecorderName() . '」');
-  $back('set_msg', '錄製設定已更新。');
+  Audit::log('settings_update', t('錄製設定：錄製者顯示名稱「{name}」', ['name' => Settings::getRecorderName()]));
+  $back('set_msg', t('錄製設定已更新。'));
 }
 
 if ($section === 'jibri') {
   $jurl = trim($_POST['jibri_url'] ?? '');
   Settings::setJibri($jurl, $_POST['jibri_token'] ?? '');
-  Audit::log('settings_update', 'Jibri 錄影服務設定更新（' . (Settings::getJibri()['url'] ?: '未設定') . '）');
-  if ($jurl === '') $back('set_msg', 'Jibri 錄影服務設定已清除。');
-  if (!Settings::hasJibri()) $back('set_err', '已儲存服務 URL，但尚未設定 Token，請填入 Token 才能啟用。');
+  Audit::log('settings_update', t('Jibri 錄影服務設定更新（{url}）', ['url' => Settings::getJibri()['url'] ?: t('未設定')]));
+  if ($jurl === '') $back('set_msg', t('Jibri 錄影服務設定已清除。'));
+  if (!Settings::hasJibri()) $back('set_err', t('已儲存服務 URL，但尚未設定 Token，請填入 Token 才能啟用。'));
   $ok = Recordings::ping();
   $back($ok ? 'set_msg' : 'set_err',
-        $ok ? 'Jibri 錄影服務已連線。' : 'Jibri 服務設定已儲存，但目前無法連線，請確認 URL、Token 與來源 IP 允許清單。');
+        $ok ? t('Jibri 錄影服務已連線。') : t('Jibri 服務設定已儲存，但目前無法連線，請確認 URL、Token 與來源 IP 允許清單。'));
 }
 
 if ($section === 'recording_retention') {
-  if (!Settings::hasJibri()) $back('set_err', '尚未設定 Jibri 錄影服務。');
+  if (!Settings::hasJibri()) $back('set_err', t('尚未設定 Jibri 錄影服務。'));
   $conf = [
     'time_enabled'     => !empty($_POST['time_enabled']),
     'time_days'        => (int)($_POST['time_days'] ?? 30),
@@ -58,13 +62,17 @@ if ($section === 'recording_retention') {
     'orphan_age_hours' => (int)($_POST['orphan_age_hours'] ?? 24),
   ];
   $saved = Recordings::setConfig($conf);
-  if ($saved === null) $back('set_err', '保留政策儲存失敗（Jibri 服務無法連線）。');
-  Audit::log('settings_update', '錄影保留政策更新：時間清理 ' . ($conf['time_enabled'] ? '開（' . $conf['time_days'] . '天）' : '關') . '、容量清理 ' . ($conf['cap_enabled'] ? '開' : '關') . '、殘留清理 ' . ($conf['orphan_auto'] ? '開' : '關'));
-  $back('set_msg', '錄影保留政策已更新。');
+  if ($saved === null) $back('set_err', t('保留政策儲存失敗（Jibri 服務無法連線）。'));
+  Audit::log('settings_update', t('錄影保留政策更新：時間清理 {time}、容量清理 {cap}、殘留清理 {orphan}', [
+    'time'   => $conf['time_enabled'] ? t('開（{days}天）', ['days' => $conf['time_days']]) : t('關'),
+    'cap'    => $conf['cap_enabled'] ? t('開') : t('關'),
+    'orphan' => $conf['orphan_auto'] ? t('開') : t('關'),
+  ]));
+  $back('set_msg', t('錄影保留政策已更新。'));
 }
 
 if ($section === 'meeting_custom') {
-  if (Settings::getJaas()['mode'] !== 'selfhosted') $back('set_err', '會議室自訂僅適用於自建 Jitsi Meet 模式。');
+  if (Settings::getJaas()['mode'] !== 'selfhosted') $back('set_err', t('會議室自訂僅適用於自建 Jitsi Meet 模式。'));
   $tb = is_array($_POST['tb'] ?? null) ? $_POST['tb'] : [];
   $cur_mc = Settings::getMeetingCustom();   // logo 已移到 Jitsi 伺服器設定，沿用既有值不從表單讀
   Settings::setMeetingCustom([
@@ -78,22 +86,22 @@ if ($section === 'meeting_custom') {
     'bw_save_off' => !empty($_POST['bw_save_off']),
     'toolbar'    => $tb,
   ]);
-  Audit::log('settings_update', '會議室自訂（自建 Jitsi Meet）');
-  $back('set_msg', '會議室自訂已更新。');
+  Audit::log('settings_update', t('會議室自訂（自建 Jitsi Meet）'));
+  $back('set_msg', t('會議室自訂已更新。'));
 }
 
 if ($section === 'login_path') {
   $p = trim((string)($_POST['login_path'] ?? ''), '/');
   if ($p === '') $p = Settings::DEFAULT_LOGIN_PATH;
-  if (!Settings::validLoginPath($p)) $back('set_err', '登入路徑格式不合法（僅允許英數與 . _ -，長度 1–64）。');
+  if (!Settings::validLoginPath($p)) $back('set_err', t('登入路徑格式不合法（僅允許英數與 . _ -，長度 1–64）。'));
   // 避免與既有頁面 / 實體檔衝突而讓登入頁無法到達（jt-login 本身是登入處理器，允許）。
   if ($p !== 'jt-login' && file_exists(__DIR__ . '/' . $p . '.php')) {
-    $back('set_err', '此路徑與既有頁面衝突，請換一個。');
+    $back('set_err', t('此路徑與既有頁面衝突，請換一個。'));
   }
   Settings::setLoginPath($p);
   // 基於安全不在稽核 / SIEM 記錄實際路徑值。
-  Audit::log('settings_update', '登入路徑已變更（為安全不記錄實際值）');
-  $back('set_msg', '登入路徑已更新，請改用新路徑登入；忘記時可用 CLI 還原。');
+  Audit::log('settings_update', t('登入路徑已變更（為安全不記錄實際值）'));
+  $back('set_msg', t('登入路徑已更新，請改用新路徑登入；忘記時可用 CLI 還原。'));
 }
 
 if ($section === 'jaas') {
@@ -117,8 +125,8 @@ if ($section === 'jaas') {
   if ($newSecret !== '') $cur['sh_secret'] = $newSecret;
   $cur['sh_sub']    = trim($_POST['sh_sub'] ?? '');
   Settings::setSection('jaas', $cur);
-  Audit::log('settings_update', '連線模式設定（' . $mode . '）');
-  $back('set_msg', '連線設定已更新。');
+  Audit::log('settings_update', t('連線模式設定（{mode}）', ['mode' => $mode]));
+  $back('set_msg', t('連線設定已更新。'));
 }
 
 if ($section === 'plan') {
@@ -126,15 +134,15 @@ if ($section === 'plan') {
   if (isset($_POST['billing_start_day'])) {
     Settings::setBillingStartDay((int)$_POST['billing_start_day']);
   }
-  Audit::log('settings_update', '方案上限 / 計費週期');
-  $back('set_msg', '方案設定已更新。');
+  Audit::log('settings_update', t('方案上限 / 計費週期'));
+  $back('set_msg', t('方案設定已更新。'));
 }
 
 if ($section === 'usage_baseline') {
   $val = max(0, (int)($_POST['current_value'] ?? 0));
   Usage::setCurrentValue($val);
-  Audit::log('usage_baseline', "校正本期用量為 {$val}");
-  $back('set_msg', '本期用量已校正。');
+  Audit::log('usage_baseline', t('校正本期用量為 {value}', ['value' => $val]));
+  $back('set_msg', t('本期用量已校正。'));
 }
 
 if ($section === 'smtp') {
@@ -148,25 +156,26 @@ if ($section === 'smtp') {
     'password'   => !empty($_POST['password_clear']) ? ''
                     : ((string)($_POST['password'] ?? '') !== '' ? (string)$_POST['password'] : (Mailer::config()['password'] ?? '')),
     'from_email' => trim($_POST['from_email'] ?? ''),
-    'from_name'  => trim($_POST['from_name'] ?? 'JT 視訊會議'),
-    'subject_tpl'=> trim($_POST['subject_tpl'] ?? '') ?: Mailer::DEFAULT_SUBJECT_TPL,
-    'body_tpl'   => ($_POST['body_tpl'] ?? '') !== '' ? (string)$_POST['body_tpl'] : Mailer::DEFAULT_BODY_TPL,
+    'from_name'  => trim((string)($_POST['from_name'] ?? '')),   // 空白＝依寄件者語言用預設名稱
+    // 預設範本存空字串（寄信時依寄件者介面語言套用預設）；只有真正自訂才保存內容
+    'subject_tpl'=> Mailer::isDefaultTpl(trim($_POST['subject_tpl'] ?? ''), 'subject') ? '' : trim($_POST['subject_tpl']),
+    'body_tpl'   => Mailer::isDefaultTpl((string)($_POST['body_tpl'] ?? ''), 'body') ? '' : (string)$_POST['body_tpl'],
   ];
   Settings::setSection('smtp', $cfg);
-  Audit::log('settings_update', 'SMTP 寄信（' . ($cfg['enabled'] ? '啟用' : '停用') . '）');
+  Audit::log('settings_update', $cfg['enabled'] ? t('SMTP 寄信（啟用）') : t('SMTP 寄信（停用）'));
 
   if ($action === 'test') {
     $to = trim($_POST['test_to'] ?? '');
-    if (!Mailer::isValidEmail($to)) $back('set_err', '請填寫有效的測試收件人。設定已儲存。');
+    if (!Mailer::isValidEmail($to)) $back('set_err', t('請填寫有效的測試收件人。設定已儲存。'));
     [$ok, $e] = Mailer::sendInvite([
       'to' => $to,
-      'subject' => 'JT 視訊會議 — SMTP 測試',
-      'bodyText' => "這是一封測試信，若您收到代表 SMTP 設定正確。\n\n— JT 視訊會議",
+      'subject' => t('JT 視訊會議 — SMTP 測試'),
+      'bodyText' => t("這是一封測試信，若您收到代表 SMTP 設定正確。\n\n— JT 視訊會議"),
       'icsContent' => '',
     ], $cfg);
-    $ok ? $back('set_msg', "測試信已寄出至 {$to}。") : $back('set_err', "測試寄信失敗：{$e}（設定已儲存）");
+    $ok ? $back('set_msg', t('測試信已寄出至 {to}。', ['to' => $to])) : $back('set_err', t('測試寄信失敗：{error}（設定已儲存）', ['error' => $e]));
   }
-  $back('set_msg', 'SMTP 設定已儲存。');
+  $back('set_msg', t('SMTP 設定已儲存。'));
 }
 
 if ($section === 'logship') {
@@ -179,7 +188,9 @@ if ($section === 'logship') {
     'facility' => (int)($_POST['facility'] ?? 16),
   ];
   Settings::setSection('logship', $cfg);
-  Audit::log('settings_update', '登入記錄外拋（' . ($cfg['enabled'] ? '啟用 ' . $cfg['format'] . '/' . $cfg['protocol'] : '停用') . '）');
+  Audit::log('settings_update', $cfg['enabled']
+    ? t('登入記錄外拋（啟用 {format}/{protocol}）', ['format' => $cfg['format'], 'protocol' => $cfg['protocol']])
+    : t('登入記錄外拋（停用）'));
 
   if ($action === 'test') {
     [$ok, $e] = LogShip::send([
@@ -187,9 +198,9 @@ if ($section === 'logship') {
       'ip' => Auth::clientIp(), 'severity' => 'info',
       'message' => 'jaas-auth logship test event',
     ], $cfg);
-    $ok ? $back('set_msg', '測試事件已送出。') : $back('set_err', "測試送出失敗：{$e}（設定已儲存）");
+    $ok ? $back('set_msg', t('測試事件已送出。')) : $back('set_err', t('測試送出失敗：{error}（設定已儲存）', ['error' => $e]));
   }
-  $back('set_msg', '外拋設定已儲存。');
+  $back('set_msg', t('外拋設定已儲存。'));
 }
 
-$back('set_err', '未知的設定區塊。');
+$back('set_err', t('未知的設定區塊。'));

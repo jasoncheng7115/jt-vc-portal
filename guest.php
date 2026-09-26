@@ -10,13 +10,13 @@ Auth::start();
 $room = $_SESSION['room'] ?? null;
 
 if (empty($_SESSION['invited']) || !$room) {
-  render_head('需要邀請連結');
+  render_head(t('需要邀請連結'));
   render_topbar(false);
   ?>
   <main class="container narrow">
     <div class="card" style="text-align:center;">
-      <h1>需要邀請連結</h1>
-      <p class="subtitle">請使用主持人提供的邀請連結進入會議室。</p>
+      <h1><?= th('需要邀請連結') ?></h1>
+      <p class="subtitle"><?= th('請使用主持人提供的邀請連結進入會議室。') ?></p>
     </div>
   </main>
   <?php
@@ -54,18 +54,18 @@ if ($eval['allow']) {
   if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['guest_name'])) {
     $n = guest_clean_name((string)$_POST['guest_name']);
     if ($n === '') {
-      $name_err = '請輸入您的名稱。';
+      $name_err = t('請輸入您的名稱。');
     } else {
       $_SESSION['guest_name'] = $n;
       $_SESSION['guest_jwt'] = build_guest_jwt($room, $n, $_SESSION['guest_id'] ?? 'guest'); // 自建無 JWT 模式可能為 ''
       $_SESSION['guest_ready'] = true;
-      Audit::log('guest_join', "會議室「{$room}」", ['actor' => $n, 'actor_name' => $n, 'role' => 'guest']);
+      Audit::log('guest_join', t('會議室「{room}」', ['room' => $room]), ['actor' => $n, 'actor_name' => $n, 'role' => 'guest']);
     }
   }
 
   // 尚未輸入名字 → 顯示輸入頁（用 guest_ready 判斷，jwt 在自建模式可能合法為空）
   if (empty($_SESSION['guest_ready'])) {
-    render_head('輸入名稱');
+    render_head(t('輸入名稱'));
     ?>
     <div class="page">
       <header class="topbar">
@@ -77,19 +77,19 @@ if ($eval['allow']) {
       <main class="center-stage">
         <div class="stage-card" style="max-width:420px;">
           <div class="room-tag"><?= icon('door-out', 12) ?><?= htmlspecialchars($room) ?></div>
-          <h1>請輸入您的名稱</h1>
-          <p class="muted" style="margin:6px 0 18px;">這個名稱會顯示給會議室裡的其他人。</p>
+          <h1><?= th('請輸入您的名稱') ?></h1>
+          <p class="muted" style="margin:6px 0 18px;"><?= th('這個名稱會顯示給會議室裡的其他人。') ?></p>
           <?php if ($name_err): ?>
             <div class="alert alert-error" style="text-align:left;"><?= icon('warning') ?><span><?= htmlspecialchars($name_err) ?></span></div>
           <?php endif; ?>
           <form method="POST" action="/guest">
             <div class="field" style="text-align:left;">
-              <label for="guest_name">您的名稱</label>
+              <label for="guest_name"><?= th('您的名稱') ?></label>
               <input type="text" id="guest_name" name="guest_name" required autofocus
-                     maxlength="40" placeholder="請輸入您的名稱"
+                     maxlength="40" placeholder="<?= th('請輸入您的名稱') ?>"
                      value="">
             </div>
-            <button type="submit" class="btn btn-primary btn-block"><?= icon('arrow-right') ?>加入會議</button>
+            <button type="submit" class="btn btn-primary btn-block"><?= icon('arrow-right') ?><?= th('加入會議') ?></button>
           </form>
         </div>
       </main>
@@ -105,11 +105,11 @@ if ($eval['allow']) {
   send_meeting_csp();   // 會議頁 CSP（iframe 只允許 Jitsi 網域）
   ?>
 <!DOCTYPE html>
-<html lang="zh-TW" class="in-meeting">
+<html lang="<?= I18n::htmlLang() ?>" class="in-meeting">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?= htmlspecialchars($room) ?> · 來賓加入</title>
+  <title><?= th('{room} · 來賓加入', ['room' => $room]) ?></title>
   <link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
@@ -133,14 +133,14 @@ window.addEventListener('load', () => {
     configOverwrite: {
       defaultLanguage: <?= json_encode(Settings::getMeetingLang()) ?>,
       disableDeepLinking: true,
-<?php if (Settings::getJaas()['mode'] === 'selfhosted'): ?>      hiddenDomain: 'hidden.meet.jitsi',   // 隱藏 Jibri 錄製者（其登入網域）於與會者清單
+<?php if (Settings::getJaas()['mode'] === 'selfhosted'): ?>      hiddenDomain: 'hidden.meet.jitsi',   // hide the Jibri recorder (its login domain) from the participant list
 <?php endif; ?>
       videoQuality: {
         codecPreferenceOrder: ['VP9', 'H264', 'VP8', 'AV1'],
         mobileCodecPreferenceOrder: ['VP9', 'H264', 'VP8', 'AV1'],
-        enableAdaptiveMode: <?= $mui['bw_save_off'] ? 'false' : 'true' ?>   // 會議室自訂「關閉視訊省頻寬」勾選時為 false
+        enableAdaptiveMode: <?= $mui['bw_save_off'] ? 'false' : 'true' ?>   // false when the room option "disable video bandwidth saving" is checked
       },
-<?php if ($mui['bw_save_off']): ?>      channelLastN: -1,   // 接收所有人視訊、不因 lastN 關閉（與省頻寬一起停用）
+<?php if ($mui['bw_save_off']): ?>      channelLastN: -1,   // receive everyone's video, never dropped by lastN (disabled together with bandwidth saving)
 <?php endif; ?>      enableLobby: true,
       prejoinPageEnabled: false,
       prejoinConfig: { enabled: false },
@@ -167,7 +167,7 @@ window.addEventListener('load', () => {
   api.addEventListener('readyToClose', () => { window.location.href = '/leave'; });
 <?php if ($mui['default_view'] === 'tile'): ?>
   api.addEventListener('videoConferenceJoined', () => {
-    try { api.executeCommand('setTileView', true); } catch (e) {}   // 預設畫廊檢視
+    try { api.executeCommand('setTileView', true); } catch (e) {}   // default to tile view
   });
 <?php endif; ?>
 });
@@ -184,7 +184,7 @@ $starts_at = $eval['starts_at'];
 $ends_at   = $eval['ends_at'];
 $poll = Settings::getGuestPollSeconds();
 
-render_head($status === 'countdown' ? '會議即將開始' : ($status === 'expired' ? '會議已結束' : '等候主持人'));
+render_head($status === 'countdown' ? t('會議即將開始') : ($status === 'expired' ? t('會議已結束') : t('等候主持人')));
 ?>
 <div class="page">
   <header class="topbar">
@@ -201,20 +201,20 @@ render_head($status === 'countdown' ? '會議即將開始' : ($status === 'expir
         <div class="icon-circle icon-circle-muted" style="margin-bottom:18px;">
           <?= icon('clock', 30) ?>
         </div>
-        <h1>會議已結束</h1>
-        <p class="muted" style="margin:6px 0 0;">這個會議室的開放時段已過。若需協助請聯絡主持人。</p>
+        <h1><?= th('會議已結束') ?></h1>
+        <p class="muted" style="margin:6px 0 0;"><?= th('這個會議室的開放時段已過。若需協助請聯絡主持人。') ?></p>
         <?php if ($ends_at): ?>
-          <p class="stage-note"><?= icon('calendar',14) ?> 結束於 <?= date('Y-m-d H:i', $ends_at) ?></p>
+          <p class="stage-note"><?= icon('calendar',14) ?> <?= th('結束於 {time}', ['time' => date('Y-m-d H:i', $ends_at)]) ?></p>
         <?php endif; ?>
         <div class="stage-actions">
-          <button type="button" class="btn btn-secondary" id="retryNow"><?= icon('refresh', 14) ?>再試一次</button>
+          <button type="button" class="btn btn-secondary" id="retryNow"><?= icon('refresh', 14) ?><?= th('再試一次') ?></button>
         </div>
 
       <?php elseif ($status === 'countdown'): ?>
-        <h1>會議即將開始</h1>
-        <p class="muted" style="margin:6px 0 0;">會議將於下方時間開放進入。</p>
+        <h1><?= th('會議即將開始') ?></h1>
+        <p class="muted" style="margin:6px 0 0;"><?= th('會議將於下方時間開放進入。') ?></p>
         <div class="countdown" id="cd">
-          <?php foreach (['cd-d'=>'天','cd-h'=>'時','cd-m'=>'分','cd-s'=>'秒'] as $cid=>$lbl): ?>
+          <?php foreach (['cd-d'=>t('天'),'cd-h'=>t('時'),'cd-m'=>t('分'),'cd-s'=>t('秒')] as $cid=>$lbl): ?>
             <div class="cell">
               <div class="flip" id="<?= $cid ?>" data-val="--">
                 <div class="flip-top"><span>--</span></div>
@@ -222,22 +222,22 @@ render_head($status === 'countdown' ? '會議即將開始' : ($status === 'expir
                 <div class="flip-fold"><span>--</span></div>
                 <div class="flip-unfold"><span>--</span></div>
               </div>
-              <span class="unit"><?= $lbl ?></span>
+              <span class="unit"><?= htmlspecialchars($lbl) ?></span>
             </div>
           <?php endforeach; ?>
         </div>
-        <p class="stage-note"><?= icon('calendar',14) ?> 開放時間 <?= date('Y-m-d H:i', $starts_at) ?><?= $ends_at ? ' ～ ' . date(date('Y-m-d', $starts_at)===date('Y-m-d', $ends_at)?'H:i':'Y-m-d H:i', $ends_at) : '' ?></p>
-        <p class="stage-note"><?= icon('info',14) ?> 若主持人提前進入，您將自動加入會議</p>
+        <p class="stage-note"><?= icon('calendar',14) ?> <?= $ends_at ? th('開放時間 {start} ～ {end}', ['start' => date('Y-m-d H:i', $starts_at), 'end' => date(date('Y-m-d', $starts_at)===date('Y-m-d', $ends_at)?'H:i':'Y-m-d H:i', $ends_at)]) : th('開放時間 {start}', ['start' => date('Y-m-d H:i', $starts_at)]) ?></p>
+        <p class="stage-note"><?= icon('info',14) ?> <?= th('若主持人提前進入，您將自動加入會議') ?></p>
         <div class="stage-actions">
-          <button type="button" class="btn btn-secondary" id="retryNow"><?= icon('refresh', 14) ?>立即重試</button>
+          <button type="button" class="btn btn-secondary" id="retryNow"><?= icon('refresh', 14) ?><?= th('立即重試') ?></button>
         </div>
 
       <?php else: /* wait_host */ ?>
         <div class="spinner"></div>
-        <h1>等候主持人開啟會議室</h1>
-        <p class="muted" style="margin:6px 0 0;">系統將每 <?= (int)$poll ?> 秒自動檢查，主持人進入後您會自動加入。</p>
+        <h1><?= th('等候主持人開啟會議室') ?></h1>
+        <p class="muted" style="margin:6px 0 0;"><?= th('系統將每 {n} 秒自動檢查，主持人進入後您會自動加入。', ['n' => (int)$poll]) ?></p>
         <div class="stage-actions">
-          <button type="button" class="btn btn-secondary" id="retryNow"><?= icon('refresh', 14) ?>立即重試</button>
+          <button type="button" class="btn btn-secondary" id="retryNow"><?= icon('refresh', 14) ?><?= th('立即重試') ?></button>
         </div>
       <?php endif; ?>
     </div>
@@ -264,17 +264,17 @@ render_head($status === 'countdown' ? '會議即將開始' : ($status === 'expir
     flip.querySelector('.flip-fold span').textContent   = oldVal;
     flip.querySelector('.flip-unfold span').textContent = newVal;
     flip.classList.remove('flipping');
-    void flip.offsetWidth; // force reflow 重置動畫
+    void flip.offsetWidth; // force reflow to restart the animation
     flip.classList.add('flipping');
-    // 在 fold 動畫剛結束、unfold 即將從 90deg 邊緣旋下的瞬間，
-    // 把上下兩個 static 都換成新值。
-    // 此時 unfold 是邊緣朝向螢幕（看不見），下方 static 也是新值，
-    // 之後 unfold 翻平的整段過程兩者一致，不會看到舊值穿幫。
+    // Right when the fold animation ends and unfold is about to rotate down from its 90deg edge,
+    // swap both static halves to the new value.
+    // At that moment unfold is edge-on (invisible) and the lower static already shows the new value,
+    // so the rest of the unfold stays consistent and the old value never flashes through.
     setTimeout(() => {
       flip.querySelector('.flip-top span').textContent = newVal;
       flip.querySelector('.flip-bottom span').textContent = newVal;
     }, 400);
-    // unfold 動畫完整 0.8s 後解除狀態
+    // clear the state after the full 0.8s unfold animation
     setTimeout(() => { flip.classList.remove('flipping'); }, 850);
   }
   function renderCountdown() {
@@ -301,13 +301,13 @@ render_head($status === 'countdown' ? '會議即將開始' : ($status === 'expir
       serverNow = d.server_time;
       localBase = Date.now();
       if (d.allow) { location.reload(); return; }
-      // 狀態切換（例如從 countdown → expired）→ 重整顯示對應頁
+      // status changed (e.g. countdown -> expired) -> reload to show the matching page
       const expected = <?= json_encode($status) ?>;
       if (d.status !== expected) { location.reload(); return; }
       if (d.starts_at !== startsAt || d.ends_at !== endsAt) {
         startsAt = d.starts_at; endsAt = d.ends_at;
       }
-    } catch (e) { /* 安靜失敗，下次再試 */ }
+    } catch (e) { /* fail silently; retry next time */ }
   }
   setInterval(poll, POLL_MS);
 

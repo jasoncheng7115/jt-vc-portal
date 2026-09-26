@@ -48,11 +48,11 @@ class Users {
       'role'     => 'admin',
     ]);
     if ($generated) {
-      $note = "初始管理員帳號已建立\n"
+      $note = t('初始管理員帳號已建立') . "\n"
             . "username: " . BOOTSTRAP_ADMIN_USERNAME . "\n"
             . "email:    " . BOOTSTRAP_ADMIN_EMAIL . "\n"
             . "password: " . $password . "\n\n"
-            . "請立即登入並到 /profile 變更密碼，然後刪除本檔。\n";
+            . t('請立即登入並到 /profile 變更密碼，然後刪除本檔。') . "\n";
       @file_put_contents(DATA_DIR . '/INITIAL_ADMIN_PASSWORD.txt', $note);
     }
   }

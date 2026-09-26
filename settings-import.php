@@ -15,25 +15,25 @@ $back = function (string $key, string $msg) {
 };
 
 if (empty($_FILES['settings_file']['tmp_name']) || !is_uploaded_file($_FILES['settings_file']['tmp_name'])) {
-  $back('set_err', '請選擇要匯入的設定檔。');
+  $back('set_err', t('請選擇要匯入的設定檔。'));
 }
 if (($_FILES['settings_file']['error'] ?? 1) !== UPLOAD_ERR_OK) {
-  $back('set_err', '設定檔上傳失敗。');
+  $back('set_err', t('設定檔上傳失敗。'));
 }
 if ($_FILES['settings_file']['size'] > 8 * 1024 * 1024) {
-  $back('set_err', '設定檔請小於 8MB。');
+  $back('set_err', t('設定檔請小於 8MB。'));
 }
 
 $raw  = @file_get_contents($_FILES['settings_file']['tmp_name']);
 $json = json_decode((string)$raw, true);
 if (!is_array($json)) {
-  $back('set_err', '設定檔格式錯誤（非有效 JSON）。');
+  $back('set_err', t('設定檔格式錯誤（非有效 JSON）。'));
 }
 
 // 接受兩種格式：① 含 _type 包裝的匯出檔（建議）；② 純 settings 物件
 if (isset($json['_type'])) {
   if ($json['_type'] !== 'jt-vc-portal-settings' || !isset($json['settings']) || !is_array($json['settings'])) {
-    $back('set_err', '這不是 jt-vc-portal 的設定匯出檔。');
+    $back('set_err', t('這不是 jt-vc-portal 的設定匯出檔。'));
   }
   $settings = $json['settings'];
   $logo = (isset($json['logo']) && is_array($json['logo'])) ? $json['logo'] : null;
@@ -56,5 +56,5 @@ if ($logo !== null && !empty($logo['data_b64']) && !empty($logo['mime'])) {
   }
 }
 
-Audit::log('settings_import', '匯入系統設定');
-$back('set_msg', '系統設定已匯入並套用。');
+Audit::log('settings_import', t('匯入系統設定'));
+$back('set_msg', t('系統設定已匯入並套用。'));

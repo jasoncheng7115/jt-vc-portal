@@ -12,11 +12,11 @@ class ICal {
     $now     = self::fmt(time());
     $start   = self::fmt($opts['start'] ?? time());
     $end     = self::fmt($opts['end'] ?? (($opts['start'] ?? time()) + 3600));
-    $summary = self::esc($opts['summary'] ?? '會議邀請');
+    $summary = self::esc($opts['summary'] ?? t('會議邀請'));
     $desc    = self::esc($opts['description'] ?? '');
     $loc     = self::esc($opts['location'] ?? '');
     $orgEmail = $opts['organizerEmail'] ?? 'no-reply@localhost';
-    $orgName  = self::esc($opts['organizerName'] ?? 'JT 視訊會議');
+    $orgName  = self::esc($opts['organizerName'] ?? t('JT 視訊會議'));
 
     $lines = [
       'BEGIN:VCALENDAR',

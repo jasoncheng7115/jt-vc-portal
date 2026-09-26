@@ -10,7 +10,7 @@ Auth::csrfCheck();
 
 $theme = $_POST['theme'] ?? '';
 if (Settings::setTheme($theme)) {
-  Audit::log('theme_update', "切換主題：{$theme}");
+  Audit::log('theme_update', t('切換主題：{theme}', ['theme' => $theme]));
 }
 
 header('Location: /settings#theme');

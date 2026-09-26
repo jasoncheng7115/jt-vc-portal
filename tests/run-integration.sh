@@ -45,6 +45,7 @@ N=$(printf '%s' "$R" | grep -i '^Content-Security-Policy' | grep -o "nonce-[A-Za
 has "頁面 script 帶與標頭相同的 nonce" "$R" "nonce=\"$N\""
 chk "lib/ 拒絕存取" "$(code $B/lib/store.php)" 403
 chk "*.json 拒絕存取" "$(code $B/settings.json)" 403
+chk "lang/ 字典目錄拒絕存取" "$(code $B/lang/en/auth.php)" 403
 
 echo "== 登入路徑不外洩"
 chk "GET /verify → 404" "$(code $B/verify)" 404
@@ -103,7 +104,7 @@ echo "== 帳號層鎖定（不同 IP 各 1 次，共 10 次）"
 V="$JAR/victim"
 for i in $(seq 1 10); do login $V hostb wrong-password-$i 10.9.0.$i >/dev/null; done
 login $V hostb Itest-HostB-Pass-1 10.9.1.1 >/dev/null
-has "正確密碼也被帳號層鎖定擋下" "$(curl -s -b $V $B/jt-login)" "暫時鎖定"
+has "正確密碼也被帳號層鎖定擋下" "$(curl -s -b $V $B/jt-login)" "temporarily locked"
 chk "admin 不受 hostb 鎖定影響" "$(login "$JAR/a2" jtvc-admin "$ADMIN_PW" 10.9.2.1)" "$B/dashboard"
 
 echo "== 來賓"
@@ -111,6 +112,37 @@ G="$JAR/guest"
 chk "邀請連結 → /guest" "$(loc -c $G -b $G $B/room/itest-room)" "$B/guest"
 has "等候主持人頁" "$(curl -s -b $G $B/guest)" "spinner"
 has "未持邀請查 room-status 得 unknown" "$(curl -s "$B/room-status?room=itest-room")" '"status":"unknown"'
+
+echo "== 多語系"
+CJK='[一-鿿]'
+nocjk() { # name body（排除語言名稱「繁體中文」與 JSON \u 跳脫）
+  local b; b=$(printf '%s' "$2" | sed 's/繁體中文//g; s/简体中文//g; s/日本語//g; s/한국어//g')
+  if printf '%s' "$b" | grep -qP '[\x{4e00}-\x{9fff}]'; then echo "  FAIL $1 (含中文: $(printf '%s' "$b" | grep -oP '.{0,20}[\x{4e00}-\x{9fff}]+.{0,10}' | head -2 | tr '\n' ' '))"; FAIL=$((FAIL+1)); else echo "  ok   $1"; PASS=$((PASS+1)); fi; }
+EN="Accept-Language: en-US,en;q=0.9"
+ZH="Accept-Language: zh-TW,zh;q=0.9"
+nocjk "英文瀏覽器：首頁無中文" "$(curl -s -H "$EN" $B/)"
+nocjk "英文瀏覽器：登入頁無中文" "$(curl -s -H "$EN" $B/jt-login)"
+nocjk "英文瀏覽器：404 頁無中文" "$(curl -s -H "$EN" $B/no-such-page-xyz)"
+has "中文瀏覽器：登入頁為中文" "$(curl -s -H "$ZH" $B/jt-login)" "主持人登入"
+has "html lang=en" "$(curl -s -H "$EN" $B/)" '<html lang="en"'
+has "html lang=zh-Hant-TW" "$(curl -s -H "$ZH" $B/)" '<html lang="zh-Hant-TW"'
+has "?lang=zh-TW 覆寫英文瀏覽器" "$(curl -s -H "$EN" "$B/?lang=zh-TW")" '<html lang="zh-Hant-TW"'
+L="$JAR/lang"
+curl -s -o /dev/null -c $L -b $L "$B/set-lang?l=en&r=/"
+has "切換語言寫入 cookie" "$(cat $L)" "jtvc_lang"
+has "cookie 優先於瀏覽器語言" "$(curl -s -b $L -H "$ZH" $B/)" '<html lang="en"'
+chk "/lang 拒絕外部轉址（//evil）" "$(loc "$B/set-lang?l=en&r=//evil.example.com/")" "$B/"
+chk "/lang 拒絕絕對網址" "$(loc "$B/set-lang?l=en&r=https://evil.example.com/")" "$B/"
+chk "/lang 站內路徑正常導回" "$(loc "$B/set-lang?l=en&r=/jt-login")" "$B/jt-login"
+# 登入後英文逐頁巡查（admin）
+curl -s -o /dev/null -b $A -c $A "$B/set-lang?l=en&r=/"
+for pg in dashboard accounts audit-log usage settings profile; do nocjk "英文：/$pg 無中文" "$(curl -s -b $A $B/$pg)"; done
+has "登入者語言存到個人設定" "$(docker exec $NAME cat /var/jaas-data/users.json)" '"lang": "en"'
+curl -s -o /dev/null -b $A -c $A "$B/set-lang?l=zh-TW&r=/"
+has "切回中文：儀表板為中文" "$(curl -s -b $A $B/dashboard)" "會議室管理"
+GE="$JAR/guest-en"
+curl -s -o /dev/null -c $GE -b $GE -H "$EN" $B/room/itest-room
+nocjk "英文來賓等候頁無中文" "$(curl -s -b $GE -H "$EN" $B/guest)"
 
 echo
 echo "$PASS passed, $FAIL failed"

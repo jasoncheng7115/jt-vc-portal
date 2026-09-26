@@ -1,7 +1,7 @@
 <?php
 // === 版本 ===
 // 每次有更新都要推進版本號（patch++ / 功能 minor++）。
-define('APP_VERSION', '1.6.3');
+define('APP_VERSION', '1.7.0');
 define('APP_GITHUB_URL', 'https://github.com/jasoncheng7115/jt-vc-portal');
 
 // === CSP 預設（A05 縱深防禦）===
@@ -10,6 +10,9 @@ define('APP_GITHUB_URL', 'https://github.com/jasoncheng7115/jt-vc-portal');
 if (PHP_SAPI !== 'cli' && !headers_sent()) {
   header("Content-Security-Policy: default-src 'none'; style-src-attr 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
 }
+
+// === 多語系（最先載入，後續任何輸出都可用 t()）===
+require_once __DIR__ . '/lib/i18n.php';
 
 // === JaaS (8x8) 連線設定：改由管理介面設定，存於 settings.json，不再寫死 ===
 require_once __DIR__ . '/lib/settings.php';

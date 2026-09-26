@@ -22,11 +22,11 @@ $body_class = 'in-meeting theme-' . $theme . (Settings::isDark($theme) ? ' is-da
 send_meeting_csp();   // 會議頁 CSP（iframe 只允許 Jitsi 網域）
 ?>
 <!DOCTYPE html>
-<html lang="zh-TW" class="in-meeting">
+<html lang="<?= I18n::htmlLang() ?>" class="in-meeting">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?= htmlspecialchars($room) ?> · 主持會議</title>
+  <title><?= th('{room} · 主持會議', ['room' => $room]) ?></title>
   <link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
@@ -40,26 +40,26 @@ send_meeting_csp();   // 會議頁 CSP（iframe 只允許 Jitsi 網域）
     <div id="jaas-container"></div>
   </div>
 
-  <button class="share-fab" id="shareBtn" title="分享邀請連結" aria-label="分享邀請連結">
+  <button class="share-fab" id="shareBtn" title="<?= th('分享邀請連結') ?>" aria-label="<?= th('分享邀請連結') ?>">
     <?= icon('share', 22) ?>
   </button>
 
   <div class="modal-backdrop" id="shareModal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
-      <h2 id="shareTitle">邀請來賓加入</h2>
-      <p class="modal-sub">會議室：<strong><?= htmlspecialchars($room) ?></strong></p>
+      <h2 id="shareTitle"><?= th('邀請來賓加入') ?></h2>
+      <p class="modal-sub"><?= th('會議室：') ?><strong><?= htmlspecialchars($room) ?></strong></p>
       <div class="qr" id="qrcode"></div>
       <div class="link-row">
         <input type="text" id="inviteLink" readonly value="<?= htmlspecialchars($invite_url) ?>">
-        <button type="button" class="btn btn-primary" id="copyLink"><?= icon('copy', 14) ?>複製</button>
+        <button type="button" class="btn btn-primary" id="copyLink"><?= icon('copy', 14) ?><?= th('複製') ?></button>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" id="closeShare"><?= icon('x', 14) ?>關閉</button>
+        <button type="button" class="btn btn-secondary" id="closeShare"><?= icon('x', 14) ?><?= th('關閉') ?></button>
       </div>
     </div>
   </div>
 
-  <div id="flash" class="copy-flash"><?= icon('check', 14) ?>已複製邀請連結</div>
+  <div id="flash" class="copy-flash"><?= icon('check', 14) ?><?= th('已複製邀請連結') ?></div>
   <div id="recToast" class="copy-flash"></div>
 
 <script <?= nonce_attr() ?>>
@@ -76,14 +76,14 @@ window.addEventListener('load', () => {
     configOverwrite: {
       defaultLanguage: <?= json_encode(Settings::getMeetingLang()) ?>,
       disableDeepLinking: true,
-<?php if (Settings::getJaas()['mode'] === 'selfhosted'): ?>      hiddenDomain: 'hidden.meet.jitsi',   // 隱藏 Jibri 錄製者（其登入網域）於與會者清單
+<?php if (Settings::getJaas()['mode'] === 'selfhosted'): ?>      hiddenDomain: 'hidden.meet.jitsi',   // hide the Jibri recorder (its login domain) from the participant list
 <?php endif; ?>
       videoQuality: {
         codecPreferenceOrder: ['VP9', 'H264', 'VP8', 'AV1'],
         mobileCodecPreferenceOrder: ['VP9', 'H264', 'VP8', 'AV1'],
-        enableAdaptiveMode: <?= $mui['bw_save_off'] ? 'false' : 'true' ?>   // 會議室自訂「關閉視訊省頻寬」勾選時為 false
+        enableAdaptiveMode: <?= $mui['bw_save_off'] ? 'false' : 'true' ?>   // false when the room option "disable video bandwidth saving" is checked
       },
-<?php if ($mui['bw_save_off']): ?>      channelLastN: -1,   // 接收所有人視訊、不因 lastN 關閉（與省頻寬一起停用）
+<?php if ($mui['bw_save_off']): ?>      channelLastN: -1,   // receive everyone's video, never dropped by lastN (disabled together with bandwidth saving)
 <?php endif; ?>      enableLobby: true,
       startWithAudioMuted: <?= $mui['mute_audio'] ? 'true' : 'false' ?>,
       startWithVideoMuted: <?= $mui['mute_video'] ? 'true' : 'false' ?>,
@@ -91,7 +91,7 @@ window.addEventListener('load', () => {
       fileRecordingsEnabled: true,
       fileRecordingsServiceEnabled: true,
       recordingService: { enabled: true, sharingEnabled: false },
-      // 停用即時逐字稿與直播串流（避免額外計費）
+      // disable live transcription and live streaming (avoid extra charges)
       transcribingEnabled: false,
       transcription: { enabled: false, autoCaptionOnRecord: false },
       liveStreamingEnabled: false,
@@ -109,7 +109,7 @@ window.addEventListener('load', () => {
   const api = new JitsiMeetExternalAPI(<?= json_encode(Jaas::apiDomain()) ?>, options);
   api.addEventListener('readyToClose', () => { window.location.href = '/leave'; });
 
-  // 錄影狀態提示（緩解 Jitsi 前端「停止後選單標籤不刷新」的小毛病，給明確回饋）
+  // Recording status toast (works around Jitsi's menu label not refreshing after stop; gives clear feedback)
   let _recOn = null;
   const showRecToast = (msg) => {
     const t = document.getElementById('recToast');
@@ -121,17 +121,17 @@ window.addEventListener('load', () => {
   };
   api.addEventListener('recordingStatusChanged', (e) => {
     if (!e) return;
-    if (e.mode && e.mode !== 'file') return;   // 只管檔案錄影(Jibri)，忽略直播/逐字稿
+    if (e.mode && e.mode !== 'file') return;   // file recording (Jibri) only; ignore streaming/transcription
     const on = !!e.on;
-    if (_recOn === on) return;                  // 去重
+    if (_recOn === on) return;                  // de-duplicate
     _recOn = on;
-    showRecToast(on ? '錄影已開始' : '錄影已停止');
+    showRecToast(on ? <?= json_encode(t('錄影已開始')) ?> : <?= json_encode(t('錄影已停止')) ?>);
   });
 <?php if ($lobby_on || $mui['default_view'] === 'tile'): ?>
   let _localId = null;
 <?php if ($lobby_on): ?>
-  // 大廳只有 moderator 能開；toggleLobby(true) 是「設為開」(冪等)，重複呼叫安全。
-  // moderator 角色在進場後才授予(可能數秒)，故持續重試直到角色確認或逾時。
+  // Only a moderator can enable the lobby; toggleLobby(true) means "set on" (idempotent), safe to repeat.
+  // The moderator role is granted after joining (may take seconds), so keep retrying until confirmed or timed out.
   const enableLobby = () => { try { api.executeCommand('toggleLobby', true); } catch (e) {} };
   let _lobbyTimer = null;
   const startLobbyAuto = () => {
@@ -148,25 +148,25 @@ window.addEventListener('load', () => {
   api.addEventListener('videoConferenceJoined', (e) => {
     _localId = e && e.id;
 <?php if ($mui['default_view'] === 'tile'): ?>
-    try { api.executeCommand('setTileView', true); } catch (e) {}   // 預設畫廊檢視
+    try { api.executeCommand('setTileView', true); } catch (e) {}   // default to tile view
 <?php endif; ?>
 <?php if ($lobby_on): ?>
-    startLobbyAuto();   // 持續重試開大廳，直到取得 moderator 後生效
+    startLobbyAuto();   // keep retrying to enable the lobby until moderator is granted
 <?php endif; ?>
   });
 <?php endif; ?>
 
-  // === 與會者名冊（供「尖峰同時人數 / 參與者時間軸」統計）===
-  // 隱藏的錄製者(hiddenDomain)不會觸發 participantJoined，故不會被計入。
+  // === Participant roster (for peak concurrency / participant timeline stats) ===
+  // The hidden recorder (hiddenDomain) does not fire participantJoined, so it is not counted.
   const roster = {};            // id -> {name, in, out}
   const nowSec = () => Math.floor(Date.now() / 1000);
   const rosterArr = () => Object.keys(roster).map((k) => roster[k]);
-  api.addEventListener('videoConferenceJoined', (e) => { if (e && e.id) roster[e.id] = { name: e.displayName || '我', in: nowSec(), out: null }; });
+  api.addEventListener('videoConferenceJoined', (e) => { if (e && e.id) roster[e.id] = { name: e.displayName || <?= json_encode(t('我')) ?>, in: nowSec(), out: null }; });
   api.addEventListener('participantJoined', (e) => { if (e && e.id) roster[e.id] = { name: e.displayName || '', in: nowSec(), out: null }; });
   api.addEventListener('participantLeft', (e) => { if (e && e.id && roster[e.id]) roster[e.id].out = nowSec(); });
   api.addEventListener('displayNameChange', (e) => { if (e && e.id && roster[e.id]) roster[e.id].name = e.displayname || e.displayName || roster[e.id].name; });
 
-  // === 主持人心跳：每 15 秒回報，遠端據此判斷主持人是否還在（並夾帶名冊快照）===
+  // === Host heartbeat: report every 15 s so the server knows the host is present (with a roster snapshot) ===
   const csrf = <?= json_encode(Auth::csrfToken()) ?>;
   const heartbeatUrl = '/host-heartbeat?room=' + encodeURIComponent(room);
   const beat = () => {
@@ -179,7 +179,7 @@ window.addEventListener('load', () => {
   beat();
   setInterval(beat, 15000);
 
-  // === 關閉分頁 / 切離時用 beacon 通知離開（即使 readyToClose 沒有觸發） ===
+  // === Notify leave via beacon on tab close / navigation (even if readyToClose did not fire) ===
   const leaveUrl = '/host-left';
   const sendLeft = () => {
     const fd = new FormData();

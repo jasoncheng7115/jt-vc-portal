@@ -15,24 +15,24 @@ require_once __DIR__ . '/lib/settings.php';
 $cmd = $argv[1] ?? 'show';
 
 if ($cmd === 'show') {
-  fwrite(STDOUT, '目前登入路徑：/' . Settings::getLoginPath() . "\n");
+  fwrite(STDOUT, t('目前登入路徑：{path}', ['path' => '/' . Settings::getLoginPath()]) . "\n");
   exit(0);
 }
 if ($cmd === 'reset') {
   Settings::setLoginPath(Settings::DEFAULT_LOGIN_PATH);
-  fwrite(STDOUT, '已還原登入路徑為 /' . Settings::DEFAULT_LOGIN_PATH . "\n");
+  fwrite(STDOUT, t('已還原登入路徑為 {path}', ['path' => '/' . Settings::DEFAULT_LOGIN_PATH]) . "\n");
   exit(0);
 }
 if ($cmd === 'set') {
   $p = $argv[2] ?? '';
   if (!Settings::validLoginPath($p)) {
-    fwrite(STDERR, "路徑格式不合法（僅允許英數與 . _ -，長度 1–64）。\n");
+    fwrite(STDERR, t('路徑格式不合法（僅允許英數與 . _ -，長度 1–64）。') . "\n");
     exit(1);
   }
   Settings::setLoginPath($p);
-  fwrite(STDOUT, '已設定登入路徑為 /' . Settings::getLoginPath() . "\n");
+  fwrite(STDOUT, t('已設定登入路徑為 {path}', ['path' => '/' . Settings::getLoginPath()]) . "\n");
   exit(0);
 }
 
-fwrite(STDERR, "用法：php login-path.php [show|reset|set <path>]\n");
+fwrite(STDERR, t('用法：php login-path.php [show|reset|set <path>]') . "\n");
 exit(1);

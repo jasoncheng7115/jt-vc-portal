@@ -41,7 +41,7 @@ class Usage {
   public static function currentPeriodLabel(): string {
     $start = strtotime(self::currentPeriod());
     $end = strtotime('+1 month', $start);
-    return date('Y/m/d', $start) . ' ～ ' . date('Y/m/d', $end);
+    return t('{start} ～ {end}', ['start' => date('Y/m/d', $start), 'end' => date('Y/m/d', $end)]);
   }
 
   /** 本期顯示用量 = baseline + 追蹤到的 unique 裝置數。 */

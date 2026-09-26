@@ -1619,3 +1619,9 @@ body.is-dark .flip { color: #fff; }
   .created-panel .panel-qr { justify-self: center; }
   .flip { --h: 78px; width: 78px; font-size: 56px; }
 }
+
+/* 帳號選單分隔線 / 目前語言（i18n） */
+.dropdown-sep { height: 1px; margin: 6px 0; background: var(--border, rgba(0,0,0,0.08)); }
+.dropdown-item.active { font-weight: 600; }
+body.is-dark .dropdown-sep { background: rgba(255,255,255,0.12); }
+.lang-switch { white-space: nowrap; }

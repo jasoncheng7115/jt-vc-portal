@@ -10,14 +10,14 @@ $raw_room = $_GET['room'] ?? '';
 $room = Rooms::sanitize($raw_room);
 
 if ($room === '') {
-  render_head('連結錯誤');
+  render_head(t('連結錯誤'));
   render_topbar(false);
   ?>
   <main class="container narrow">
     <div class="card" style="text-align:center;">
       <div class="icon-circle icon-circle-danger"><?= icon('warning', 28) ?></div>
-      <h1>邀請連結錯誤</h1>
-      <p class="subtitle">這個邀請連結似乎不完整，請向主持人重新索取。</p>
+      <h1><?= th('邀請連結錯誤') ?></h1>
+      <p class="subtitle"><?= th('這個邀請連結似乎不完整，請向主持人重新索取。') ?></p>
     </div>
   </main>
   <?php

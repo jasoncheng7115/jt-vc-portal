@@ -37,7 +37,7 @@ $fail = function (string $msg) use ($form_input) {
 };
 
 if ($room === '') {
-  $fail('請輸入有效的會議室名稱（僅限英文、數字、- 與 _；中文等非 ASCII 字元不支援）。');
+  $fail(t('請輸入有效的會議室名稱（僅限英文、數字、- 與 _；中文等非 ASCII 字元不支援）。'));
 }
 
 $mode = $_POST['mode'] ?? 'host';
@@ -47,7 +47,7 @@ $has_schedule = !$entering && (isset($_POST['starts_at']) || isset($_POST['ends_
 $starts_at = Rooms::parseDateTimeLocal($_POST['starts_at'] ?? null);
 $ends_at   = Rooms::parseDateTimeLocal($_POST['ends_at']   ?? null);
 if ($starts_at !== null && $ends_at !== null && $ends_at <= $starts_at) {
-  $fail('結束時間必須晚於開始時間。');
+  $fail(t('結束時間必須晚於開始時間。'));
 }
 
 // 解析與會者 email（換行 / 逗號 / 空白分隔）
@@ -63,7 +63,7 @@ if (!empty($_POST['attendees'])) {
   $attendees = array_values(array_unique($attendees));
 }
 if (!empty($bad_emails)) {
-  $fail('以下 email 格式不正確：' . htmlspecialchars(implode(', ', array_slice($bad_emails, 0, 5))));
+  $fail(t('以下 email 格式不正確：{emails}', ['emails' => htmlspecialchars(implode(', ', array_slice($bad_emails, 0, 5)))]));
 }
 
 $existing = Rooms::get($room);
@@ -71,17 +71,17 @@ $existing = Rooms::get($room);
 // 建立表單輸入「已存在」的房名 → 一律擋下，要求改名；
 // 從近期清單「進入」（enter=1）則必須是既有會議室。
 if (!$entering && $existing) {
-  $fail('此會議室名稱已存在，請改用其他名稱（可按「亂數」產生）。');
+  $fail(t('此會議室名稱已存在，請改用其他名稱（可按「亂數」產生）。'));
 }
 if ($entering && !$existing) {
-  $fail('找不到此會議室，可能已過期被清除。');
+  $fail(t('找不到此會議室，可能已過期被清除。'));
 }
 if ($entering) $mode = 'host';
 
 // 進入他人擁有的會議室 → 擋
 if ($existing && !empty($existing['owner'])
     && $existing['owner'] !== $me['id'] && ($me['role'] ?? '') !== 'admin') {
-  $fail('此會議室名稱已被其他主持人使用，請換一個名稱。');
+  $fail(t('此會議室名稱已被其他主持人使用，請換一個名稱。'));
 }
 
 $opts = [
@@ -106,12 +106,12 @@ $mail_result = null;
 if (!empty($attendees)) {
   $mail_result = send_invites($room, $attendees, $starts_at, $ends_at, $me);
   if (strpos((string)$mail_result, 'sent_') === 0) {
-    Audit::log('invite_sent', "會議室「{$room}」寄給 " . count($attendees) . " 位：" . implode(', ', $attendees));
+    Audit::log('invite_sent', t('會議室「{room}」寄給 {n} 位：{emails}', ['room' => $room, 'n' => count($attendees), 'emails' => implode(', ', $attendees)]));
   }
 }
 
 if ($mode === 'create') {
-  Audit::log('room_create', "會議室「{$room}」" . ($starts_at ? '（已設排程）' : '') . (!empty($_POST['lobby']) ? '（大廳模式）' : ''));
+  Audit::log('room_create', t('會議室「{room}」', ['room' => $room]) . ($starts_at ? t('（已設排程）') : '') . (!empty($_POST['lobby']) ? t('（大廳模式）') : ''));
   $q = '/dashboard?created=' . rawurlencode($room);
   if ($mail_result !== null) $q .= '&mail=' . rawurlencode($mail_result);
   header('Location: ' . $q);
@@ -127,7 +127,7 @@ $jwt = Jaas::makeJwt($room, [
 ], ['recording' => true] + Jaas::FEATURES_OFF, Jaas::HOST_JWT_TTL);
 $_SESSION['jwt'] = $jwt;
 $_SESSION['room'] = $room;
-Audit::log('room_enter', "會議室「{$room}」");
+Audit::log('room_enter', t('會議室「{room}」', ['room' => $room]));
 header('Location: /meeting');
 exit;
 
@@ -140,7 +140,7 @@ function send_invites(string $room, array $attendees, ?int $starts_at, ?int $end
   $start = $starts_at ?? time();
   $end   = $ends_at ?? ($start + 3600);
   $time_str = $starts_at
-    ? ('會議時間：' . date('Y-m-d H:i', $start) . ' ～ ' . date('H:i', $end))
+    ? t('會議時間：{start} ～ {end}', ['start' => date('Y-m-d H:i', $start), 'end' => date('H:i', $end)])
     : '';
   $site_name = Settings::getSite()['brand_name'];
   $host_name = ($me['display_name'] ?? '') ?: ($me['username'] ?? '');
@@ -159,7 +159,7 @@ function send_invites(string $room, array $attendees, ?int $starts_at, ?int $end
     $ics = ICal::buildRequest([
       'uid'            => $uid,
       'summary'        => $subject,
-      'description'    => "請於會議時間點此連結加入：\n" . $invite_url,
+      'description'    => t("請於會議時間點此連結加入：\n{url}", ['url' => $invite_url]),
       'location'       => $invite_url,
       'organizerEmail' => $cfg['from_email'],
       'organizerName'  => $cfg['from_name'],

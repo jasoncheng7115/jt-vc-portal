@@ -12,10 +12,10 @@ $f = [
 ];
 $rows    = Audit::searchAll($f);
 $labels  = Audit::labels();
-$roleMap = ['admin' => '管理者', 'host' => '主持人', 'guest' => '來賓'];
-$resMap  = ['ok' => '成功', 'fail' => '失敗', 'warn' => '警示'];
+$roleMap = ['admin' => t('管理者'), 'host' => t('主持人'), 'guest' => t('來賓')];
+$resMap  = ['ok' => t('成功'), 'fail' => t('失敗'), 'warn' => t('警示')];
 
-Audit::log('audit_export', '匯出稽核記錄 CSV（' . count($rows) . ' 筆）');
+Audit::log('audit_export', t('匯出稽核記錄 CSV（{n} 筆）', ['n' => count($rows)]));
 
 header('Content-Type: text/csv; charset=utf-8');
 header('Content-Disposition: attachment; filename="audit-log-' . date('Ymd-His') . '.csv"');
@@ -30,7 +30,7 @@ $safe = function ($v): string {
 
 $out = fopen('php://output', 'w');
 fwrite($out, "\xEF\xBB\xBF"); // UTF-8 BOM，讓 Excel 正確顯示中文
-fputcsv($out, ['時間', '行為', '帳號', '角色', '顯示名稱', '詳情', '結果', '來源 IP', 'User-Agent']);
+fputcsv($out, [t('時間'), t('行為'), t('帳號'), t('角色'), t('顯示名稱'), t('詳情'), t('結果'), t('來源 IP'), 'User-Agent']);
 foreach ($rows as $e) {
   $ts = $e['ts'] ?? strtotime($e['time'] ?? 'now');
   fputcsv($out, [

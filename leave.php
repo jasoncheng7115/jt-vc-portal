@@ -17,7 +17,7 @@ if ($was_logged_in && $leaving_room && empty($_SESSION['invited'])) {
 // 清除會議相關 session，但保留登入狀態（方便主持人接著開下一場）
 unset($_SESSION['jwt'], $_SESSION['room'], $_SESSION['invited']);
 
-render_head('已離開會議');
+render_head(t('已離開會議'));
 render_topbar($me ?: false, $me ? Auth::clientIp() : null);
 ?>
 <main class="container narrow">
@@ -25,12 +25,12 @@ render_topbar($me ?: false, $me ? Auth::clientIp() : null);
     <div class="icon-circle icon-circle-success">
       <?= icon('check', 28) ?>
     </div>
-    <h1>已離開會議</h1>
-    <p class="subtitle">感謝您的參與。</p>
+    <h1><?= th('已離開會議') ?></h1>
+    <p class="subtitle"><?= th('感謝您的參與。') ?></p>
     <?php if ($was_logged_in): ?>
-      <a class="btn btn-primary" href="/dashboard"><?= icon('dashboard') ?>回儀表板</a>
+      <a class="btn btn-primary" href="/dashboard"><?= icon('dashboard') ?><?= th('回儀表板') ?></a>
     <?php else: ?>
-      <p class="muted" style="font-size:13px;">若需要重新加入，請使用原本的邀請連結。</p>
+      <p class="muted" style="font-size:13px;"><?= th('若需要重新加入，請使用原本的邀請連結。') ?></p>
     <?php endif; ?>
   </div>
 </main>

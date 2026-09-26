@@ -6,7 +6,7 @@
 
 This document tracks planned features for jt-vc-portal. For features already released, see [README.md](README.md); this roadmap only lists items that are "not yet started or in progress". The order does not indicate priority, and the actual schedule will be adjusted according to demand.
 
-> Current stable version: **v1.6.3**.
+> Current stable version: **v1.7.0**.
 
 ---
 
@@ -32,13 +32,12 @@ Integrate with [jt-live-whisper](https://github.com/jasoncheng7115/jt-live-whisp
 - Integrated with "recording retrieval": transcripts / summaries are stored alongside the corresponding recording, and hosts can access the results of the meetings they hosted.
 - Reuses the existing permission model (hosts can only access their own sessions) and retention policies.
 
-### 3. Multi-language portal interface
+### 3. More portal interface languages
 
-Allow the admin interface itself (not the meeting room) to support multiple languages, with users able to switch the display language.
+v1.7.0 ships Traditional Chinese / English (locale resources, browser-language detection, per-user preference). Next:
 
-- The admin interface is currently in Traditional Chinese; the plan is to extract UI strings into locale resources to support switching between languages.
-- Provide a per-user language preference (remembering each user's choice) and a site-wide default language setting.
-- Separate from the existing "meeting room interface language (60 Jitsi languages)": this item covers localization of the portal's admin interface itself.
+- Add more interface languages (e.g. Simplified Chinese, Japanese): add a `lang/<code>/*.php` dictionary and extend `I18n::SUPPORTED`.
+- A site-wide default language setting (used when the browser language cannot be matched).
 
 ---
 
@@ -51,7 +50,10 @@ Allow the admin interface itself (not the meeting room) to support multiple lang
 
 ## Completed (highlights)
 
-The following features were released in v1.4–v1.6; see the README and the setup guides for details:
+The following features were released in v1.4–v1.7; see the README, CHANGELOG and the setup guides for details:
+
+- **v1.7.0**: bilingual portal interface (Traditional Chinese / English, detected from the browser, switchable from the account menu or profile; Jitsi meeting language can follow the interface; default email templates follow the language).
+- **v1.7.0**: security hardening (atomic locked writes, host heartbeat ownership + CSRF, per-account lockout, nonce CSP, bundled Jitsi API with SRI, …), full test checklist and ZAP release gate.
 
 - Self-hosted Jibri recording retrieval (online playback / download / deletion, host storage capacity, retention policies, hosts can access their own sessions).
 - Meeting participant statistics (peak concurrent participants + join/leave timeline), meeting duration ranking Top 25.

@@ -16,7 +16,7 @@ if (($me['role'] ?? '') !== 'admin') {
   if (!$rec || !Recordings::canAccess($rec, $me)) Auth::notFound();
 }
 
-if ($dl) Audit::log('recording_download', '下載錄影 ' . $id);
+if ($dl) Audit::log('recording_download', t('下載錄影 {id}', ['id' => $id]));
 
 while (ob_get_level() > 0) ob_end_clean();   // 關閉輸出緩衝，邊收邊送
 Recordings::streamFile($id, $dl);

@@ -8,6 +8,7 @@ CGIPassAuth On
 # 拒絕直接存取敏感目錄與檔案
 RewriteRule ^lib/ - [F,L]
 RewriteRule ^keys/ - [F,L]
+RewriteRule ^lang/ - [F,L]
 RewriteRule \.(key|pem|pk|pub|json)$ - [F,L]
 
 # 漂亮網址：/room/<名稱> → invite.php?room=<名稱>（舊 /invite?room= 仍相容）
