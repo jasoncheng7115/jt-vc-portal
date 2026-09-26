@@ -14,11 +14,12 @@ if (empty($_SESSION['jwt']) || empty($_SESSION['room'])) {
 
 $jwt = $_SESSION['jwt'];
 $room = $_SESSION['room'];
-$lobby_on = !empty(Rooms::get($room)['lobby']);   // 大廳模式：主持人進場後自動開啟
+$lobby_on = !empty(Rooms::get($room)['lobby'] ?? false);   // 大廳模式：主持人進場後自動開啟
 $mui = Settings::resolveMeetingUi();               // 會議室自訂（logo / 進入預設 / 工具列）
 $invite_url = SITE_URL . '/room/' . rawurlencode($room);
 $theme = Settings::getTheme();
 $body_class = 'in-meeting theme-' . $theme . (Settings::isDark($theme) ? ' is-dark' : '');
+send_meeting_csp();   // 會議頁 CSP（iframe 只允許 Jitsi 網域）
 ?>
 <!DOCTYPE html>
 <html lang="zh-TW" class="in-meeting">
@@ -26,12 +27,13 @@ $body_class = 'in-meeting theme-' . $theme . (Settings::isDark($theme) ? ' is-da
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= htmlspecialchars($room) ?> · 主持會議</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
   <link rel="stylesheet" href="/assets/style.css?v=<?= @filemtime(__DIR__ . '/assets/style.css') ?>">
-  <script src="<?= htmlspecialchars(Jaas::scriptUrl()) ?>" async></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
+  <script <?= nonce_attr() ?> src="<?= htmlspecialchars(Jaas::scriptUrl()) ?>" integrity="<?= htmlspecialchars(Jaas::scriptSri()) ?>"></script>
+  <script <?= nonce_attr() ?> src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
 </head>
 <body class="<?= htmlspecialchars($body_class) ?>">
   <div class="meeting-shell">
@@ -60,7 +62,7 @@ $body_class = 'in-meeting theme-' . $theme . (Settings::isDark($theme) ? ' is-da
   <div id="flash" class="copy-flash"><?= icon('check', 14) ?>已複製邀請連結</div>
   <div id="recToast" class="copy-flash"></div>
 
-<script>
+<script <?= nonce_attr() ?>>
 window.addEventListener('load', () => {
   const inviteUrl = <?= json_encode($invite_url) ?>;
   const room = <?= json_encode($room) ?>;
@@ -165,11 +167,12 @@ window.addEventListener('load', () => {
   api.addEventListener('displayNameChange', (e) => { if (e && e.id && roster[e.id]) roster[e.id].name = e.displayname || e.displayName || roster[e.id].name; });
 
   // === 主持人心跳：每 15 秒回報，遠端據此判斷主持人是否還在（並夾帶名冊快照）===
+  const csrf = <?= json_encode(Auth::csrfToken()) ?>;
   const heartbeatUrl = '/host-heartbeat?room=' + encodeURIComponent(room);
   const beat = () => {
     fetch(heartbeatUrl, {
-      method: 'POST', cache: 'no-store', keepalive: true,
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', cache: 'no-store', keepalive: true, credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
       body: JSON.stringify({ roster: rosterArr() })
     }).catch(() => {});
   };
@@ -177,10 +180,13 @@ window.addEventListener('load', () => {
   setInterval(beat, 15000);
 
   // === 關閉分頁 / 切離時用 beacon 通知離開（即使 readyToClose 沒有觸發） ===
-  const leaveUrl = '/host-left?room=' + encodeURIComponent(room);
+  const leaveUrl = '/host-left';
   const sendLeft = () => {
-    if (navigator.sendBeacon) navigator.sendBeacon(leaveUrl);
-    else fetch(leaveUrl, { method: 'POST', cache: 'no-store', keepalive: true }).catch(() => {});
+    const fd = new FormData();
+    fd.append('room', room);
+    fd.append('_csrf', csrf);
+    if (navigator.sendBeacon) navigator.sendBeacon(leaveUrl, fd);
+    else fetch(leaveUrl, { method: 'POST', body: fd, cache: 'no-store', keepalive: true, credentials: 'same-origin' }).catch(() => {});
   };
   window.addEventListener('pagehide', sendLeft);
   window.addEventListener('beforeunload', sendLeft);

@@ -7,18 +7,17 @@
  */
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/settings.php';
+require_once __DIR__ . '/store.php';
 
 class Usage {
   const FILE = DATA_DIR . '/usage.json';
 
   public static function load(): array {
-    if (!file_exists(self::FILE)) return [];
-    $d = json_decode(@file_get_contents(self::FILE), true);
-    return is_array($d) ? $d : [];
+    return Store::read(self::FILE, []);
   }
 
   public static function save(array $data): void {
-    @file_put_contents(self::FILE, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    Store::write(self::FILE, $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
   }
 
   /** 某時間點所屬計費週期的起始日（YYYY-MM-DD），依設定的每月起始日。 */
@@ -60,11 +59,12 @@ class Usage {
   /** 手動把「本期目前用量」校正成 $value（baseline = value - 已追蹤數）。 */
   public static function setCurrentValue(int $value): void {
     $p = self::currentPeriod();
-    $d = self::load();
-    if (!isset($d[$p])) $d[$p] = ['device_ids' => [], 'idempotency_keys' => [], 'last_event_at' => 0];
-    $tracked = count($d[$p]['device_ids']);
-    $d[$p]['baseline'] = max(0, $value - $tracked);
-    self::save($d);
+    Store::update(self::FILE, function (array $d) use ($p, $value) {
+      if (!isset($d[$p])) $d[$p] = ['device_ids' => [], 'idempotency_keys' => [], 'last_event_at' => 0];
+      $tracked = count($d[$p]['device_ids'] ?? []);
+      $d[$p]['baseline'] = max(0, $value - $tracked);
+      return $d;
+    }, []);
   }
 
   /** 處理一筆 USAGE 事件 payload。 */
@@ -74,25 +74,26 @@ class Usage {
     if (!is_numeric($ts_ms)) return ['ok' => false, 'reason' => 'no timestamp'];
     $period = self::periodFor((int)intdiv((int)$ts_ms, 1000));
 
-    $d = self::load();
-    if (!isset($d[$period])) $d[$period] = ['device_ids' => [], 'idempotency_keys' => [], 'last_event_at' => 0];
-
-    if ($key !== '' && in_array($key, $d[$period]['idempotency_keys'] ?? [], true)) {
-      return ['ok' => true, 'duplicate' => true, 'added' => 0, 'period' => $period];
-    }
-
-    $added = 0;
-    foreach (($payload['data'] ?? []) as $item) {
-      $id = $item['deviceId'] ?? null;
-      if (!$id) continue;
-      if (!in_array($id, $d[$period]['device_ids'], true)) {
-        $d[$period]['device_ids'][] = $id;
-        $added++;
+    $dup = false; $added = 0;
+    Store::update(self::FILE, function (array $d) use ($period, $key, $payload, &$dup, &$added) {
+      if (!isset($d[$period])) $d[$period] = ['device_ids' => [], 'idempotency_keys' => [], 'last_event_at' => 0];
+      if ($key !== '' && in_array($key, $d[$period]['idempotency_keys'] ?? [], true)) {
+        $dup = true;
+        return null;
       }
-    }
-    if ($key !== '') $d[$period]['idempotency_keys'][] = $key;
-    $d[$period]['last_event_at'] = time();
-    self::save($d);
+      foreach (($payload['data'] ?? []) as $item) {
+        $id = is_array($item) ? ($item['deviceId'] ?? null) : null;
+        if (!$id || !is_scalar($id)) continue;
+        if (!in_array($id, $d[$period]['device_ids'] ?? [], true)) {
+          $d[$period]['device_ids'][] = $id;
+          $added++;
+        }
+      }
+      if ($key !== '') $d[$period]['idempotency_keys'][] = $key;
+      $d[$period]['last_event_at'] = time();
+      return $d;
+    }, []);
+    if ($dup) return ['ok' => true, 'duplicate' => true, 'added' => 0, 'period' => $period];
 
     return ['ok' => true, 'duplicate' => false, 'added' => $added, 'period' => $period];
   }

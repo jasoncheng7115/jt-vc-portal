@@ -7,9 +7,9 @@ require_once __DIR__ . '/lib/layout.php';
 Auth::start();
 
 // 必須先通過密碼驗證（verify.php 設了 2fa_uid）
+// 必須先通過密碼驗證；否則 404（不轉址，避免洩漏登入路徑）
 if (empty($_SESSION['2fa_uid'])) {
-  header('Location: ' . Settings::loginUrl());
-  exit;
+  Auth::notFound();
 }
 
 $error = $_SESSION['2fa_error'] ?? '';

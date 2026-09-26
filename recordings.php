@@ -197,7 +197,7 @@ render_topbar($me, $ip);
     </div>
   </div>
 </main>
-<script>
+<script <?= nonce_attr() ?>>
 (function () {
   var modal = document.getElementById('playModal');
   var video = document.getElementById('playVideo');

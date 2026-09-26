@@ -168,10 +168,10 @@ class Auth {
     return '<input type="hidden" name="_csrf" value="' . htmlspecialchars(self::csrfToken()) . '">';
   }
 
-  /** 驗證 POST 的 CSRF token；不符即擋下。放在每個 POST 處理端最前面。 */
+  /** 驗證 POST 的 CSRF token（表單欄位 _csrf 或 X-CSRF-Token 標頭）；不符即擋下。放在每個 POST 處理端最前面。 */
   public static function csrfCheck(): void {
     self::start();
-    $sent = $_POST['_csrf'] ?? '';
+    $sent = $_POST['_csrf'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
     if (empty($_SESSION['csrf']) || !is_string($sent) || !hash_equals($_SESSION['csrf'], $sent)) {
       http_response_code(403);
       header('Content-Type: text/html; charset=utf-8');

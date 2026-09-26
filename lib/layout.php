@@ -12,14 +12,41 @@ function site_brand(): array {
   return $s;
 }
 
+/** 本請求的 CSP nonce（每個 script / style 元素都要帶 nonce 屬性，見 nonce_attr()）。 */
+function csp_nonce(): string {
+  static $n = null;
+  if ($n === null) $n = rtrim(strtr(base64_encode(random_bytes(18)), '+/', '-_'), '=');
+  return $n;
+}
+
+/** nonce 屬性字串（直接嵌進標籤）。 */
+function nonce_attr(): string {
+  return 'nonce="' . csp_nonce() . '"';
+}
+
+/** 會議內嵌頁（meeting / guest 進場）的 CSP：腳本只允許本站 + nonce（Jitsi API 已內附）、iframe 只允許 Jitsi 網域。 */
+function send_meeting_csp(): void {
+  if (headers_sent()) return;
+  $n = csp_nonce();
+  $frame = Jaas::frameOrigin();
+  header("Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; "
+       . "frame-ancestors 'self'; form-action 'self'; img-src 'self' data:; font-src 'self' data:; "
+       . "frame-src {$frame}; child-src {$frame}; "
+       . "style-src 'self' 'nonce-{$n}'; style-src-elem 'self' 'nonce-{$n}'; style-src-attr 'unsafe-inline'; "
+       . "script-src 'self' 'nonce-{$n}' https://cdn.jsdelivr.net; script-src-attr 'none'; connect-src 'self'");
+}
+
 function render_head(string $title): void {
-  // 內容安全政策（A03 縱深防禦）。會議內嵌頁（meeting/guest 進場）自建 <head>、不經此函式，
-  // 故不影響 Jitsi 外嵌。允許 jsdelivr（qrcode / flatpickr / chart.js）；inline 因現有頁面需要而保留。
+  // 內容安全政策（A05 / 縱深防禦）。script 與 style 元素一律以 nonce 放行（不再用 'unsafe-inline'）；
+  // 僅 style="" 屬性允許 inline（style-src-attr），因版面與 qrcodejs 產生的元素需要。
+  // 會議內嵌頁（meeting/guest 進場）自建 <head>、不經此函式。
   if (!headers_sent()) {
+    $n = csp_nonce();
     header("Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; "
          . "frame-ancestors 'self'; form-action 'self'; img-src 'self' data:; font-src 'self' data:; "
-         . "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-         . "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self'");
+         . "style-src 'self' 'nonce-{$n}' https://cdn.jsdelivr.net; style-src-elem 'self' 'nonce-{$n}' https://cdn.jsdelivr.net; "
+         . "style-src-attr 'unsafe-inline'; "
+         . "script-src 'self' 'nonce-{$n}' https://cdn.jsdelivr.net; script-src-attr 'none'; connect-src 'self'");
   }
   $theme = Settings::getTheme();
   $body_class = 'theme-' . $theme . (Settings::isDark($theme) ? ' is-dark' : '');
@@ -32,6 +59,7 @@ function render_head(string $title): void {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="referrer" content="no-referrer">
   <title><?= htmlspecialchars($title) ?> · <?= htmlspecialchars($brand['brand_name']) ?></title>
+  <link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
@@ -117,7 +145,7 @@ function admin_nav(string $active = ''): string {
 }
 
 function render_foot(): void { ?>
-<script>
+<script <?= nonce_attr() ?>>
 /* 把每張卡片的 h1 標題轉成「整條標題列 + 可點選收合」。 */
 (function () {
   var CHEV = '<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';

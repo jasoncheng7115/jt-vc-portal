@@ -5,19 +5,18 @@ require_once __DIR__ . '/lib/rooms.php';
 
 header('Cache-Control: no-store');
 
-Auth::start();
-if (!Auth::check()) {
-  http_response_code(403);
-  exit;
-}
-$room = Rooms::sanitize($_POST['room'] ?? $_GET['room'] ?? '');
-if ($room === '') {
-  http_response_code(400);
-  exit;
-}
+// 僅接受 POST + CSRF（X-CSRF-Token 標頭），且只能回報「自己可主持」的會議室（A01）
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); exit; }
+$me = Auth::user();
+if (!$me) { http_response_code(403); exit; }
+Auth::csrfCheck();
+$room = Rooms::sanitize((string)($_GET['room'] ?? $_POST['room'] ?? ''));
+if ($room === '') { http_response_code(400); exit; }
+if (!Rooms::canHost(Rooms::get($room), $me)) { http_response_code(403); exit; }
+
 // 可選：JSON body 帶與會者名冊快照 { roster: [{name,in,out}] }
 $roster = null;
-$raw = file_get_contents('php://input');
+$raw = file_get_contents('php://input', false, null, 0, 262144);   // 上限 256KB
 if (is_string($raw) && $raw !== '') {
   $j = json_decode($raw, true);
   if (is_array($j) && isset($j['roster']) && is_array($j['roster'])) $roster = $j['roster'];

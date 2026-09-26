@@ -3,8 +3,12 @@
  * 站台設定（持久化於 /var/jaas-data/settings.json）。
  * 目前僅儲存 theme，但結構可擴充其他設定。
  */
+require_once __DIR__ . '/store.php';
+
 class Settings {
   const FILE = '/var/jaas-data/settings.json';
+  /** 讀改寫鎖（lockForUpdate 取得、save 釋放），避免並發設定互相覆蓋。 */
+  private static $lk = null;
   const VALID_THEMES = [
     'plain', 'soft', 'paper', 'mint', 'sky', 'rose',
     'grid', 'watermark',
@@ -16,13 +20,26 @@ class Settings {
   const DEFAULT_THEME = 'mesh';
 
   public static function load(): array {
-    if (!file_exists(self::FILE)) return [];
-    $d = json_decode(@file_get_contents(self::FILE), true);
-    return is_array($d) ? $d : [];
+    return Store::read(self::FILE, []);
   }
 
+  /** 取得排他鎖後讀取（之後必須呼叫 save() 或 unlock()）。 */
+  private static function loadForUpdate(): array {
+    if (self::$lk === null) {
+      $lk = @fopen(self::FILE . '.lock', 'c');
+      if ($lk) { @flock($lk, LOCK_EX); self::$lk = $lk; }
+    }
+    return self::load();
+  }
+
+  private static function unlock(): void {
+    if (self::$lk !== null) { @flock(self::$lk, LOCK_UN); @fclose(self::$lk); self::$lk = null; }
+  }
+
+  /** 原子寫入並釋放讀改寫鎖。 */
   public static function save(array $data): void {
-    @file_put_contents(self::FILE, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    Store::write(self::FILE, $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    self::unlock();
   }
 
   public static function getTheme(): string {
@@ -32,7 +49,7 @@ class Settings {
 
   public static function setTheme(string $theme): bool {
     if (!in_array($theme, self::VALID_THEMES, true)) return false;
-    $d = self::load();
+    $d = self::loadForUpdate();
     $d['theme'] = $theme;
     self::save($d);
     return true;
@@ -44,7 +61,7 @@ class Settings {
 
   /** 取回 webhook 簽章用 secret；不存在則自動產生並持久化。 */
   public static function getWebhookSecret(): string {
-    $d = self::load();
+    $d = self::loadForUpdate();
     if (empty($d['webhook_secret'])) {
       $d['webhook_secret'] = bin2hex(random_bytes(24)); // 48 hex chars
       self::save($d);
@@ -58,7 +75,7 @@ class Settings {
   }
 
   public static function setPlanLimit(int $limit): void {
-    $d = self::load();
+    $d = self::loadForUpdate();
     $d['plan_mau_limit'] = max(1, $limit);
     self::save($d);
   }
@@ -70,7 +87,7 @@ class Settings {
   }
 
   public static function setBillingStartDay(int $day): void {
-    $d = self::load();
+    $d = self::loadForUpdate();
     $d['billing_start_day'] = max(1, min(28, $day));
     self::save($d);
   }
@@ -82,7 +99,7 @@ class Settings {
   }
 
   public static function setMeetingRetentionDays(int $days): void {
-    $d = self::load();
+    $d = self::loadForUpdate();
     $d['meeting_retention_days'] = max(7, min(3650, $days));
     self::save($d);
   }
@@ -94,7 +111,7 @@ class Settings {
   }
 
   public static function setGuestPollSeconds(int $s): void {
-    $d = self::load();
+    $d = self::loadForUpdate();
     $d['guest_poll_seconds'] = max(10, min(600, $s));
     self::save($d);
   }
@@ -106,7 +123,7 @@ class Settings {
   }
 
   public static function setRecorderName(string $name): void {
-    $d = self::load();
+    $d = self::loadForUpdate();
     $d['recorder_name'] = mb_substr(trim($name), 0, 40);
     self::save($d);
   }
@@ -123,7 +140,7 @@ class Settings {
 
   /** 儲存服務設定；token 留空表示沿用既有（前端以遮罩顯示，不必每次重輸）。URL 留空＝整組清除。 */
   public static function setJibri(string $url, string $token): void {
-    $d = self::load();
+    $d = self::loadForUpdate();
     $url = rtrim(trim($url), '/');
     if ($url === '') {
       unset($d['jibri_url'], $d['jibri_token']);   // 清除整組設定
@@ -156,7 +173,7 @@ class Settings {
     $p = trim($p, '/');
     if ($p === '') $p = self::DEFAULT_LOGIN_PATH;
     if (!self::validLoginPath($p)) return false;
-    $d = self::load();
+    $d = self::loadForUpdate();
     $d['login_path'] = $p;
     self::save($d);
     return true;
@@ -202,7 +219,7 @@ class Settings {
   }
 
   public static function setMeetingCustom(array $v): void {
-    $d = self::load();
+    $d = self::loadForUpdate();
     $toolbar = [];
     foreach (array_keys(self::MEETING_TOGGLE_BUTTONS) as $k) $toolbar[$k] = !empty($v['toolbar'][$k]);
     $mode = in_array($v['logo_mode'] ?? 'site', ['site','custom','none'], true) ? ($v['logo_mode'] ?? 'site') : 'site';
@@ -324,14 +341,14 @@ class Settings {
   }
   public static function setMeetingLang(string $lang): void {
     if (!array_key_exists($lang, self::MEETING_LANGS)) $lang = 'zh-TW';
-    $d = self::load();
+    $d = self::loadForUpdate();
     $d['meeting_lang'] = $lang;
     self::save($d);
   }
 
   /** 整段覆寫某個設定區塊（如 smtp、logship）。 */
   public static function setSection(string $key, array $value): void {
-    $d = self::load();
+    $d = self::loadForUpdate();
     $d[$key] = $value;
     self::save($d);
   }
@@ -364,7 +381,7 @@ class Settings {
 
   /** 匯入：只併入白名單內的鍵（present 才覆寫），並驗證型別，其餘保留原值。 */
   public static function importData(array $incoming): void {
-    $d = self::load();
+    $d = self::loadForUpdate();
     foreach (self::EXPORTABLE_KEYS as $k) {
       if (!array_key_exists($k, $incoming)) continue;
       $v = $incoming[$k];
@@ -414,7 +431,7 @@ class Settings {
 
   /** 升級後一次性把舊版連線設定寫回新結構（冪等；無 jaas 或已是新版則不動）。 */
   public static function migrate(): void {
-    $d = self::load();
+    $d = self::loadForUpdate();
     if (!isset($d['jaas']) || !is_array($d['jaas'])) return;
     if ((int)($d['jaas']['_v'] ?? 1) >= self::JAAS_SCHEMA_VERSION) return;
     $d['jaas'] = self::migrateJaas($d['jaas']);
@@ -466,7 +483,7 @@ class Settings {
       'rose'      => ['name' => '玫瑰',        'desc' => '柔和淡粉'],
       // 紋理
       'grid'      => ['name' => '點陣',        'desc' => '工程師風淡點陣'],
-      'watermark' => ['name' => '浮水印',      'desc' => '空曠頁淡淡 JT logo'],
+      'watermark' => ['name' => '浮水印',      'desc' => '空曠頁淡淡 logo 浮水印'],
       // 光暈漸層
       'glow'      => ['name' => '光暈',        'desc' => '白底加品牌色漸層'],
       'aurora'    => ['name' => '極光',        'desc' => '紫藍粉多色光暈'],

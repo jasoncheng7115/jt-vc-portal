@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="jt-vc-portal">
+  <defs>
+    <linearGradient id="jtvcBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#06b6d4"/>
+      <stop offset="0.55" stop-color="#6d4aea"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <!-- 圓角漸層底（Pages 品牌色：青 → 紫） -->
+  <rect width="64" height="64" rx="14" fill="url(#jtvcBg)"/>
+  <!-- 攝影機機身 -->
+  <rect x="9" y="19" width="32" height="26" rx="7" fill="#ffffff"/>
+  <!-- 鏡頭 -->
+  <path d="M43 28.5 L53.5 22.5 Q55 21.7 55 23.4 V40.6 Q55 42.3 53.5 41.5 L43 35.5 Z" fill="#ffffff"/>
+  <!-- 機身內的「進入」箭頭：會議入口閘道 -->
+  <path d="M20 26.5 L31 32 L20 37.5 Z" fill="#7c3aed" stroke="#7c3aed" stroke-width="2.4" stroke-linejoin="round"/>
+  <!-- 在線指示燈（主持人在線） -->
+  <circle cx="45" cy="17" r="5.2" fill="#22c55e" stroke="#ffffff" stroke-width="2.4"/>
+</svg>

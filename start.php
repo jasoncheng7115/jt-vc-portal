@@ -9,19 +9,23 @@ require_once __DIR__ . '/lib/audit.php';
 
 $me = Auth::requireLogin();
 
-// 表單(POST)需 CSRF；儀表板的 GET 連結（進入/立即主持）為同站點選，不帶 token
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  Auth::csrfCheck();
+// 一律 POST + CSRF（A01）：建立表單與儀表板的「進入 / 立即主持」按鈕都是 POST 表單。
+// GET 不做任何狀態變更，直接回儀表板（避免跨站連結讓已登入主持人建房或被標記進場）。
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+  header('Location: /dashboard');
+  exit;
 }
+Auth::csrfCheck();
 
-$raw_room = $_POST['room'] ?? $_GET['room'] ?? '';
+$raw_room = $_POST['room'] ?? '';
+$entering = !empty($_POST['enter']);   // 從清單「進入」既有會議室
 $room = Rooms::sanitize($raw_room);
 
 // 保留輸入，validation 失敗時帶回
 $form_input = [
-  'room'      => (string)($_POST['room']      ?? $_GET['room']      ?? ''),
-  'starts_at' => (string)($_POST['starts_at'] ?? $_GET['starts_at'] ?? ''),
-  'ends_at'   => (string)($_POST['ends_at']   ?? $_GET['ends_at']   ?? ''),
+  'room'      => (string)($_POST['room']      ?? ''),
+  'starts_at' => (string)($_POST['starts_at'] ?? ''),
+  'ends_at'   => (string)($_POST['ends_at']   ?? ''),
   'attendees' => (string)($_POST['attendees'] ?? ''),
   'lobby'     => !empty($_POST['lobby']) ? '1' : '',
 ];
@@ -36,10 +40,10 @@ if ($room === '') {
   $fail('請輸入有效的會議室名稱（僅限英文、數字、- 與 _；中文等非 ASCII 字元不支援）。');
 }
 
-$mode = $_POST['mode'] ?? $_GET['mode'] ?? 'host';
+$mode = $_POST['mode'] ?? 'host';
 if (!in_array($mode, ['host', 'create'], true)) $mode = 'host';
 
-$has_schedule = isset($_POST['starts_at']) || isset($_POST['ends_at']);
+$has_schedule = !$entering && (isset($_POST['starts_at']) || isset($_POST['ends_at']));
 $starts_at = Rooms::parseDateTimeLocal($_POST['starts_at'] ?? null);
 $ends_at   = Rooms::parseDateTimeLocal($_POST['ends_at']   ?? null);
 if ($starts_at !== null && $ends_at !== null && $ends_at <= $starts_at) {
@@ -64,11 +68,15 @@ if (!empty($bad_emails)) {
 
 $existing = Rooms::get($room);
 
-// 透過建立表單(POST)輸入「已存在」的房名 → 一律擋下，要求改名
-// （從近期清單點「進入」是 GET 連結，不受此限，仍可進入既有會議室）
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $existing) {
+// 建立表單輸入「已存在」的房名 → 一律擋下，要求改名；
+// 從近期清單「進入」（enter=1）則必須是既有會議室。
+if (!$entering && $existing) {
   $fail('此會議室名稱已存在，請改用其他名稱（可按「亂數」產生）。');
 }
+if ($entering && !$existing) {
+  $fail('找不到此會議室，可能已過期被清除。');
+}
+if ($entering) $mode = 'host';
 
 // 進入他人擁有的會議室 → 擋
 if ($existing && !empty($existing['owner'])
@@ -85,10 +93,11 @@ $opts = [
   'owner_name'      => $me['username'] ?? $me['email'],
   'attendees'       => $attendees,
 ];
-// 只有「建立 / 設定表單」(POST，含大廳勾選欄位) 才更新 lobby；
-// 從清單點「進入」(GET) 不帶此欄位，須保留原值，否則會把先前勾的大廳清掉。
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// 只有「建立表單」才更新 lobby / 與會者；從清單「進入」須保留原值，否則會把先前的設定清掉。
+if (!$entering) {
   $opts['lobby'] = !empty($_POST['lobby']);
+} else {
+  unset($opts['attendees']);
 }
 Rooms::upsert($room, $opts);
 
@@ -115,7 +124,7 @@ $jwt = Jaas::makeJwt($room, [
   'email'     => $me['email'],
   'id'        => $me['email'],
   'moderator' => true,
-], ['recording' => true, 'livestreaming' => false, 'transcription' => false, 'outbound-call' => false]);
+], ['recording' => true] + Jaas::FEATURES_OFF, Jaas::HOST_JWT_TTL);
 $_SESSION['jwt'] = $jwt;
 $_SESSION['room'] = $room;
 Audit::log('room_enter', "會議室「{$room}」");

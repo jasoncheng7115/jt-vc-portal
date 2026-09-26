@@ -9,20 +9,27 @@ require_once __DIR__ . '/rooms.php';
 class Recordings {
   public static function configured(): bool { return Settings::hasJibri(); }
 
-  /** 該錄影所屬會議的主持人 user id：先看房間現存擁有者，再依時間對應 meetings.jsonl。 */
+  /**
+   * 該錄影所屬會議的主持人 user id。
+   *   1) 先依 meetings.jsonl 以「房名 + 錄影結束時間落在該場 session 內」對應（最精準）。
+   *   2) 對不到時，才看房間「目前」擁有者，且錄影必須發生在這個房間建立之後——
+   *      房名過期後可被他人重新建立，不能讓新擁有者調閱舊場次的錄影（A01）。
+   */
   public static function ownerOf(array $rec): string {
     $room = (string)($rec['room'] ?? '');
     if ($room === '') return '';
-    $r = Rooms::get($room);
-    if (!empty($r['owner'])) return (string)$r['owner'];
-    $end = (int)($rec['mtime'] ?? 0);
+    $end   = (int)($rec['mtime'] ?? 0);
+    $start = $end - max(0, (int)($rec['duration'] ?? 0));
     $best = null; $bd = PHP_INT_MAX;
     foreach (Rooms::meetingSessions(0, time() + 86400) as $s) {
       if ((string)($s['room'] ?? '') !== $room) continue;
       $ss = (int)($s['start'] ?? 0); $se = (int)($s['end'] ?? 0);
       if ($end >= $ss - 120 && $end <= $se + 300) { $d = abs($se - $end); if ($d < $bd) { $bd = $d; $best = $s; } }
     }
-    return $best ? (string)($best['owner'] ?? '') : '';
+    if ($best) return (string)($best['owner'] ?? '');
+    $r = Rooms::get($room);
+    if (!empty($r['owner']) && $start >= (int)($r['created_at'] ?? PHP_INT_MAX) - 60) return (string)$r['owner'];
+    return '';
   }
 
   /** 管理者看全部；主持人只能存取自己主持的會議錄影。 */

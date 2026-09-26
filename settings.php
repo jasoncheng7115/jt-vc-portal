@@ -52,7 +52,7 @@ render_topbar($me, $ip);
         </div>
         <div class="help">建議正方形 PNG，小於 2MB。留空則不更動。</div>
       </div>
-      <script>
+      <script <?= nonce_attr() ?>>
         (function(){
           var inp = document.getElementById('logoInput');
           if (!inp) return;
@@ -175,14 +175,14 @@ render_topbar($me, $ip);
           </select>
         </div>
         <div class="field"><label>JWT 共享密鑰（HS256，須與 prosody 的 app_secret 一致）</label>
-          <input type="password" name="sh_secret" value="<?= htmlspecialchars($jaas['sh_secret']) ?>" autocomplete="new-password" placeholder="自建 Jitsi Meet 的 app_secret"></div>
+          <input type="password" name="sh_secret" value="" autocomplete="new-password" placeholder="<?= $jaas['sh_secret'] !== '' ? '已設定（留空不變更）' : '自建 Jitsi Meet 的 app_secret' ?>"></div>
         <div class="field"><label>JWT sub（留空預設送 *）</label>
           <input type="text" name="sh_sub" value="<?= htmlspecialchars($jaas['sh_sub']) ?>" placeholder="通常為 * 或租戶名"></div>
       </div>
 
       <button class="btn btn-primary"><?= icon('check') ?>儲存連線設定</button>
     </form>
-    <script>
+    <script <?= nonce_attr() ?>>
       (function(){
         var sel = document.getElementById('jaasMode');
         function upd(){
@@ -402,7 +402,8 @@ render_topbar($me, $ip);
       </div>
       <div class="field-row">
         <div class="field"><label>帳號（留空表示不認證）</label><input type="text" name="username" value="<?= htmlspecialchars($smtp['username']) ?>" autocomplete="off"></div>
-        <div class="field"><label>密碼</label><input type="password" name="password" value="<?= htmlspecialchars($smtp['password']) ?>" autocomplete="new-password"></div>
+        <div class="field"><label>密碼</label><input type="password" name="password" value="" autocomplete="new-password" placeholder="<?= $smtp['password'] !== '' ? '已設定（留空不變更）' : '' ?>">
+          <?php if ($smtp['password'] !== ''): ?><label style="font-weight:400;font-size:12px;"><input type="checkbox" name="password_clear" value="1"> 清除已儲存的密碼</label><?php endif; ?></div>
       </div>
       <div class="field"><label>寄件人 Email</label><input type="email" name="from_email" value="<?= htmlspecialchars($smtp['from_email']) ?>" placeholder="no-reply@example.com"></div>
 
@@ -482,7 +483,7 @@ render_topbar($me, $ip);
         </label>
       <?php endforeach; ?>
     </form>
-    <script>
+    <script <?= nonce_attr() ?>>
       document.querySelectorAll('#themeForm input[name=theme]').forEach(el => {
         el.addEventListener('change', () => document.getElementById('themeForm').submit());
       });
@@ -517,7 +518,7 @@ render_topbar($me, $ip);
       </div>
       <button class="btn btn-primary"><?= icon('check') ?>匯入設定</button>
     </form>
-    <script>
+    <script <?= nonce_attr() ?>>
       (function(){
         var inp = document.getElementById('impInput');
         if (!inp) return;
@@ -531,7 +532,7 @@ render_topbar($me, $ip);
 </main>
 
 <div id="flash" class="copy-flash"><?= icon('check', 14) ?>已複製</div>
-<script>
+<script <?= nonce_attr() ?>>
 document.addEventListener('click', async (e) => {
   const btn = e.target.closest('[data-copy]'); if (!btn) return;
   try { await navigator.clipboard.writeText(btn.getAttribute('data-copy')); } catch(_) {}

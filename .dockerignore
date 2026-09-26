@@ -30,3 +30,10 @@ release/
 docs/
 README.md
 LICENSE
+
+# === 測試 / 文件 / 其他主機用程式：不進 image ===
+tests/
+tools/
+*.md
+jibri-recordings-api/
+zap-reports/

@@ -22,7 +22,7 @@ $section = $_POST['section'] ?? '';
 $action  = $_POST['action'] ?? 'save';
 
 if ($section === 'meeting') {
-  Settings::setMeetingLang($_POST['meeting_lang'] ?? 'zhTW');
+  Settings::setMeetingLang($_POST['meeting_lang'] ?? 'zh-TW');
   Settings::setMeetingRetentionDays((int)($_POST['meeting_retention_days'] ?? 365));
   Settings::setGuestPollSeconds((int)($_POST['guest_poll_seconds'] ?? 30));
   Audit::log('settings_update', '會議室介面：語言 ' . (Settings::MEETING_LANGS[Settings::getMeetingLang()] ?? '') . '、記錄保留 ' . Settings::getMeetingRetentionDays() . ' 天、等候檢查 ' . Settings::getGuestPollSeconds() . ' 秒');
@@ -112,7 +112,9 @@ if ($section === 'jaas') {
   $cur['sh_domain'] = trim($_POST['sh_domain'] ?? '');
   $cur['sh_app_id'] = trim($_POST['sh_app_id'] ?? '');
   $cur['sh_auth']   = $shAuth;
-  $cur['sh_secret'] = (string)($_POST['sh_secret'] ?? '');
+  // 共享密鑰不回填到頁面；留空＝沿用既有值
+  $newSecret = (string)($_POST['sh_secret'] ?? '');
+  if ($newSecret !== '') $cur['sh_secret'] = $newSecret;
   $cur['sh_sub']    = trim($_POST['sh_sub'] ?? '');
   Settings::setSection('jaas', $cur);
   Audit::log('settings_update', '連線模式設定（' . $mode . '）');
@@ -142,7 +144,9 @@ if ($section === 'smtp') {
     'port'       => (int)($_POST['port'] ?? 587),
     'security'   => $_POST['security'] ?? 'starttls',
     'username'   => trim($_POST['username'] ?? ''),
-    'password'   => (string)($_POST['password'] ?? ''),
+    // 密碼不回填到頁面；留空＝沿用既有值，勾「清除」才清掉
+    'password'   => !empty($_POST['password_clear']) ? ''
+                    : ((string)($_POST['password'] ?? '') !== '' ? (string)$_POST['password'] : (Mailer::config()['password'] ?? '')),
     'from_email' => trim($_POST['from_email'] ?? ''),
     'from_name'  => trim($_POST['from_name'] ?? 'JT 視訊會議'),
     'subject_tpl'=> trim($_POST['subject_tpl'] ?? '') ?: Mailer::DEFAULT_SUBJECT_TPL,

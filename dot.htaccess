@@ -39,4 +39,8 @@ ErrorDocument 503 /error
   Header set X-Content-Type-Options "nosniff"
   Header set X-Frame-Options "SAMEORIGIN"
   Header set Referrer-Policy "no-referrer"
+  # SVG 可內含 script：靜態 SVG 一律禁止執行任何腳本（僅比對 .svg，不影響 PHP 頁面自己的 CSP）
+  <FilesMatch "\.svg$">
+    Header set Content-Security-Policy "default-src 'none'"
+  </FilesMatch>
 </IfModule>

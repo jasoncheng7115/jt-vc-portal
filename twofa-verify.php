@@ -9,9 +9,9 @@ require_once __DIR__ . '/lib/settings.php';
 
 Auth::start();
 
+// 非 POST 或未通過密碼階段 → 404（不轉址，避免洩漏登入路徑）
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['2fa_uid'])) {
-  header('Location: ' . Settings::loginUrl());
-  exit;
+  Auth::notFound();
 }
 Auth::csrfCheck();
 
@@ -41,6 +41,7 @@ $lastCtr = (int)($user['totp_last_counter'] ?? 0);
 // 碼錯誤，或該碼（含同窗鄰近碼）已用過 → 拒絕（重放保護）。
 if ($ctr === 0 || $ctr <= $lastCtr) {
   RateLimit::fail($ip);
+  RateLimit::failAccount($login);
   $reason = ($ctr !== 0 && $ctr <= $lastCtr) ? '（驗證碼已使用）' : '';
   Audit::log('login_2fa_fail', "帳號：{$user['username']}{$reason}", ['actor' => $user['username'], 'actor_name' => $user['display_name'] ?? '', 'role' => $user['role'] ?? '', 'result' => 'fail']);
   $_SESSION['2fa_error'] = '驗證碼錯誤或已使用，請等待下一組碼再試。';
@@ -51,6 +52,7 @@ if ($ctr === 0 || $ctr <= $lastCtr) {
 // 通過 → 記下已用 counter，避免有效窗內重放
 Users::update($uid, ['totp_last_counter' => $ctr]);
 RateLimit::reset($ip);
+RateLimit::resetAccount($login);
 Auth::login($user);
 Audit::log('login', '密碼 + 2FA 登入');
 header('Location: /dashboard');

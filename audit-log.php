@@ -34,7 +34,7 @@ render_topbar($me, $ip);
 ?>
 <main class="container">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" integrity="sha384-RkASv+6KfBMW9eknReJIJ6b3UnjKOKC5bOUaNgIY778NFbQ8MtWq9Lr/khUgqtTt" crossorigin="anonymous">
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js" integrity="sha384-5JqMv4L/Xa0hfvtF06qboNdhvuYXUku9ZrhZh3bSk8VXF0A/RuSLHpLsSV9Zqhl6" crossorigin="anonymous"></script>
+  <script <?= nonce_attr() ?> src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js" integrity="sha384-5JqMv4L/Xa0hfvtF06qboNdhvuYXUku9ZrhZh3bSk8VXF0A/RuSLHpLsSV9Zqhl6" crossorigin="anonymous"></script>
 
   <?= admin_nav('audit') ?>
   <div class="card">
@@ -123,7 +123,7 @@ render_topbar($me, $ip);
     <?php endif; ?>
   </div>
 </main>
-<style>
+<style <?= nonce_attr() ?>>
   .audit-table .caret-col{width:28px;text-align:center;padding-left:4px;padding-right:4px;}
   .audit-table .row-main{cursor:pointer;}
   .audit-table .row-main .caret{transition:transform .15s;opacity:.6;vertical-align:middle;}
@@ -135,7 +135,7 @@ render_topbar($me, $ip);
   .audit-detail dd{margin:0;word-break:break-all;}
   .audit-detail dd.ua{line-height:1.5;}
 </style>
-<script>
+<script <?= nonce_attr() ?>>
   if (window.flatpickr) {
     flatpickr('#from', { dateFormat: 'Y-m-d', allowInput: true });
     flatpickr('#to',   { dateFormat: 'Y-m-d', allowInput: true });

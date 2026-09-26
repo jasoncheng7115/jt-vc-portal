@@ -10,9 +10,9 @@ require_once __DIR__ . '/lib/settings.php';
 Auth::start();
 Users::bootstrap();
 
+// 非 POST 一律 404（不轉址到登入頁，避免洩漏偽裝後的登入路徑）
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-  header('Location: ' . Settings::loginUrl());
-  exit;
+  Auth::notFound();
 }
 Auth::csrfCheck();
 
@@ -33,6 +33,13 @@ if (RateLimit::isLocked($ip)) {
   $fail('因多次登入失敗，此來源已被暫時鎖定，請稍後再試。');
 }
 
+// 1b) 帳號層鎖定（防分散 IP 暴力破解；不論帳號存在與否行為一致）
+if (RateLimit::isAccountLocked($login)) {
+  RateLimit::fail($ip);
+  Audit::log('login_locked', "嘗試帳號：{$login}（帳號層鎖定）", ['actor' => $login, 'result' => 'warn']);
+  $fail('此帳號因多次登入失敗已暫時鎖定，請稍後再試。');
+}
+
 // 2) 驗證帳密（帳號不存在時也做一次假雜湊，使回應時間一致，避免使用者列舉）
 $user = Users::findByLogin($login);
 if ($user && empty($user['disabled'])) {
@@ -44,6 +51,7 @@ if ($user && empty($user['disabled'])) {
 
 if (!$ok) {
   $st = RateLimit::fail($ip);
+  RateLimit::failAccount($login);
   Audit::log('login_fail', "嘗試帳號：{$login}", ['actor' => $login, 'result' => 'fail']);
   if ($st['locked']) {
     $fail('登入失敗次數過多，此來源已被鎖定，請於 ' . date('H:i', $st['until']) . ' 後再試。');
@@ -62,6 +70,7 @@ if (!empty($user['totp_enabled']) && !empty($user['totp_secret'])) {
 
 // 4) 直接登入成功
 RateLimit::reset($ip);
+RateLimit::resetAccount($login);
 Auth::login($user);
 Audit::log('login', '密碼登入');
 header('Location: /dashboard');

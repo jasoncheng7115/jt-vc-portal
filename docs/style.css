@@ -22,6 +22,13 @@ section{padding:84px 0}
 .kicker{font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin:0 0 12px;display:inline-block}
 h2{font-size:33px;letter-spacing:-.025em;margin:0 0 10px;line-height:1.2}
 .section-sub{color:var(--muted);margin:0 0 40px;font-size:16px;max-width:620px}
+/* 雙語切換：只顯示目前語言的節點（body.lang-zh / body.lang-en 由 index.html 開頭 inline script 設定） */
+.zh,.en{display:none}
+body.lang-zh .zh,body.lang-en .en{display:initial}
+body.lang-zh div.zh,body.lang-zh p.zh,body.lang-zh pre.zh,
+body.lang-en div.en,body.lang-en p.en,body.lang-en pre.en{display:block}
+body.lang-zh .btn.zh,body.lang-en .btn.en{display:inline-flex}
+
 .kbd,code{font-family:var(--mono);font-size:.9em;background:var(--bg-muted);padding:2px 6px;border-radius:5px;border:1px solid var(--border)}
 
 /* nav */
@@ -35,6 +42,21 @@ h2{font-size:33px;letter-spacing:-.025em;margin:0 0 10px;line-height:1.2}
 .nav .links .gh{background:var(--text);color:#fff;padding:7px 15px;border-radius:8px}
 .nav .links .gh:hover{background:#000;text-decoration:none}
 @media(max-width:780px){.nav .links a:not(.gh){display:none}}
+
+/* 語言切換（自訂下拉，仿 jt-ipam .langsw） */
+.langsw{position:relative;display:inline-flex;align-items:center}
+.langsw > button{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border-strong);border-radius:8px;background:#fff;color:var(--text);font-family:inherit;font-size:13px;font-weight:600;padding:6px 11px;cursor:pointer;line-height:1.3;white-space:nowrap}
+.langsw > button:hover{border-color:var(--accent)}
+.langsw > button:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,58,237,.14)}
+.langsw .chev{width:7px;height:7px;flex:none;border-right:1.6px solid var(--muted);border-bottom:1.6px solid var(--muted);transform:translateY(-2px) rotate(45deg);transition:transform .15s}
+.langsw > button[aria-expanded="true"] .chev{transform:translateY(1px) rotate(-135deg)}
+.langsw ul{position:absolute;top:calc(100% + 6px);right:0;z-index:60;margin:0;padding:5px;list-style:none;min-width:140px;background:#fff;border:1px solid var(--border-strong);border-radius:12px;box-shadow:0 10px 28px rgba(15,23,42,.13)}
+.langsw ul[hidden]{display:none}
+.langsw li{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:13.5px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.langsw li:hover{background:var(--bg-muted);color:var(--text)}
+.langsw li[aria-selected="true"]{color:var(--accent);font-weight:700}
+.langsw li .tick{width:14px;flex:none;text-align:center;opacity:0}
+.langsw li[aria-selected="true"] .tick{opacity:1}
 
 /* buttons */
 .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:10px;font-weight:600;font-size:15px;border:1px solid transparent;cursor:pointer;transition:.16s}
@@ -82,6 +104,7 @@ h2{font-size:33px;letter-spacing:-.025em;margin:0 0 10px;line-height:1.2}
     #fbfbfe}
 .shot .frame.empty::after{content:"畫面即將補上";color:var(--soft);font-size:13px;font-weight:500;letter-spacing:.02em;padding-top:62px;text-align:center;
   background:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='46'%20height='46'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23bcc3d0'%20stroke-width='1.3'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Crect%20x='3'%20y='3'%20width='18'%20height='18'%20rx='2.5'/%3E%3Ccircle%20cx='8.5'%20cy='8.5'%20r='1.6'/%3E%3Cpath%20d='m21%2015-5-5L5%2021'/%3E%3C/svg%3E") no-repeat top center}
+body.lang-en .shot .frame.empty::after{content:"Screenshot coming soon"}
 .shot figcaption{display:inline-block;color:var(--text);font-size:13px;font-weight:500;margin:14px auto 0;padding:6px 14px;text-align:center;background:rgba(255,255,255,.7);border:1px solid var(--border);border-radius:999px;backdrop-filter:blur(6px)}
 .hero-shot{text-align:center}
 .hero-shot{position:relative;max-width:880px;margin:48px auto 0}
@@ -121,7 +144,7 @@ h2{font-size:33px;letter-spacing:-.025em;margin:0 0 10px;line-height:1.2}
 .sec .row{display:flex;gap:14px;align-items:center;min-height:84px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow-sm)}
 .sec .tag{flex-shrink:0;display:inline-flex;align-items:center;font-family:var(--mono);font-size:14px;font-weight:700;color:#fff;background:var(--grad);border-radius:8px;padding:7px 11px}
 .sec .row div b{display:block;font-size:14px;margin-bottom:2px}
-.sec .row div span{color:var(--muted);font-size:13px}
+.sec .row div > span{color:var(--muted);font-size:13px}
 
 /* screenshots showcase — 一列一張圖 + 側邊說明，左右交錯 */
 .showcase{display:flex;flex-direction:column;gap:64px}

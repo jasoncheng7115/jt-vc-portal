@@ -32,11 +32,12 @@ function guest_clean_name(string $s): string {
 }
 /** 用來賓自填名字簽發 JWT（依模式 JaaS/自建）。 */
 function build_guest_jwt(string $room, string $name, string $gid): string {
+  // 來賓：明確關閉所有加購 / 計費功能（不能只靠隱藏工具列，來賓可從頁面取出 JWT 直連）
   return Jaas::makeJwt($room, [
     'name'      => $name,
     'id'        => $gid . '@guest',
     'moderator' => false,
-  ]);
+  ], Jaas::FEATURES_OFF, Jaas::GUEST_JWT_TTL);
 }
 
 $data = Rooms::get($room);
@@ -101,6 +102,7 @@ if ($eval['allow']) {
   $jwt = $_SESSION['guest_jwt'];
   $theme = Settings::getTheme();
   $body_class = 'in-meeting theme-' . $theme . (Settings::isDark($theme) ? ' is-dark' : '');
+  send_meeting_csp();   // 會議頁 CSP（iframe 只允許 Jitsi 網域）
   ?>
 <!DOCTYPE html>
 <html lang="zh-TW" class="in-meeting">
@@ -108,17 +110,18 @@ if ($eval['allow']) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= htmlspecialchars($room) ?> · 來賓加入</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
   <link rel="stylesheet" href="/assets/style.css?v=<?= @filemtime(__DIR__ . '/assets/style.css') ?>">
-  <script src="<?= htmlspecialchars(Jaas::scriptUrl()) ?>" async></script>
+  <script <?= nonce_attr() ?> src="<?= htmlspecialchars(Jaas::scriptUrl()) ?>" integrity="<?= htmlspecialchars(Jaas::scriptSri()) ?>"></script>
 </head>
 <body class="<?= htmlspecialchars($body_class) ?>">
   <div class="meeting-shell">
     <div id="jaas-container"></div>
   </div>
 <?php $mui = Settings::resolveMeetingUi(); ?>
-<script>
+<script <?= nonce_attr() ?>>
 window.addEventListener('load', () => {
   const options = {
     roomName: <?= json_encode(Jaas::roomName($room)) ?>,
@@ -241,7 +244,7 @@ render_head($status === 'countdown' ? '會議即將開始' : ($status === 'expir
   </main>
 </div>
 
-<script>
+<script <?= nonce_attr() ?>>
   const ROOM = <?= json_encode($room) ?>;
   const STATUS = <?= json_encode($status) ?>;
   const POLL_MS = <?= (int)$poll * 1000 ?>;

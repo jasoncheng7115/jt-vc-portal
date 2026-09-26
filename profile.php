@@ -93,8 +93,8 @@ render_topbar($me, $ip);
         <button type="submit" class="btn btn-primary"><?= icon('check') ?>啟用 2FA</button>
         <a class="btn btn-ghost" href="/profile">取消</a>
       </form>
-      <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
-      <script>
+      <script <?= nonce_attr() ?> src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
+      <script <?= nonce_attr() ?>>
         window.addEventListener('DOMContentLoaded', () => {
           if (window.QRCode) new QRCode(document.getElementById('totpQr'), {
             text: <?= json_encode($otpauth) ?>, width: 180, height: 180,

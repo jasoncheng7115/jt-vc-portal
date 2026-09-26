@@ -17,8 +17,13 @@ class Users {
     return $d['users'] ?? [];
   }
 
-  private static function saveAll(array $users): void {
-    Store::write(self::FILE, ['users' => array_values($users)]);
+  /** 在檔案鎖內讀改寫使用者清單；$fn(array &$users) 回傳 false 表示不寫回。 */
+  private static function mutate(callable $fn): void {
+    Store::update(self::FILE, function (array $d) use ($fn) {
+      $users = $d['users'] ?? [];
+      if ($fn($users) === false) return null;
+      return ['users' => array_values($users)];
+    }, ['users' => []]);
   }
 
   /**
@@ -79,7 +84,6 @@ class Users {
   }
 
   public static function create(array $data): array {
-    $users = self::all();
     $username = trim($data['username'] ?? '');
     $user = [
       'id'            => 'u_' . bin2hex(random_bytes(8)),
@@ -93,38 +97,40 @@ class Users {
       'disabled'      => false,
       'created_at'    => time(),
     ];
-    $users[] = $user;
-    self::saveAll($users);
+    self::mutate(function (array &$users) use ($user) { $users[] = $user; return true; });
     return $user;
   }
 
   public static function update(string $id, array $fields): ?array {
-    $users = self::all();
     $found = null;
-    foreach ($users as &$u) {
-      if (($u['id'] ?? '') !== $id) continue;
-      foreach (['username', 'display_name', 'email', 'role', 'totp_secret', 'totp_enabled', 'totp_last_counter', 'disabled'] as $k) {
-        if (array_key_exists($k, $fields)) $u[$k] = $fields[$k];
+    self::mutate(function (array &$users) use ($id, $fields, &$found) {
+      foreach ($users as &$u) {
+        if (($u['id'] ?? '') !== $id) continue;
+        foreach (['username', 'display_name', 'email', 'role', 'totp_secret', 'totp_enabled', 'totp_last_counter', 'disabled', 'lang'] as $k) {
+          if (array_key_exists($k, $fields)) $u[$k] = $fields[$k];
+        }
+        if (!empty($fields['password'])) {
+          $u['password_hash'] = password_hash($fields['password'], PASSWORD_DEFAULT);
+        }
+        if (isset($u['role']) && !in_array($u['role'], self::ROLES, true)) $u['role'] = 'host';
+        $found = $u;
+        break;
       }
-      if (!empty($fields['password'])) {
-        $u['password_hash'] = password_hash($fields['password'], PASSWORD_DEFAULT);
-      }
-      if (isset($u['role']) && !in_array($u['role'], self::ROLES, true)) $u['role'] = 'host';
-      $found = $u;
-      break;
-    }
-    unset($u);
-    if ($found) self::saveAll($users);
+      unset($u);
+      return $found !== null;
+    });
     return $found;
   }
 
   public static function delete(string $id): bool {
-    $users = self::all();
-    $n = count($users);
-    $users = array_filter($users, fn($u) => ($u['id'] ?? '') !== $id);
-    if (count($users) === $n) return false;
-    self::saveAll($users);
-    return true;
+    $ok = false;
+    self::mutate(function (array &$users) use ($id, &$ok) {
+      $n = count($users);
+      $users = array_values(array_filter($users, fn($u) => ($u['id'] ?? '') !== $id));
+      $ok = count($users) !== $n;
+      return $ok;
+    });
+    return $ok;
   }
 
   public static function verifyPassword(array $user, string $password): bool {

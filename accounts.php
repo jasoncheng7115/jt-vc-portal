@@ -108,7 +108,7 @@ render_topbar($me, $ip);
     </form>
   </div>
 </main>
-<script>
+<script <?= nonce_attr() ?>>
   document.querySelectorAll('[data-edit]').forEach(function(btn){
     btn.addEventListener('click', function(){
       var id = btn.getAttribute('data-edit');

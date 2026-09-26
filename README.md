@@ -1,12 +1,16 @@
-# jt-vc-portal v1.6.1 — 會議管理系統
+<p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-> 搭配 Jitsi Meet 基底的會議入口系統，**雙模式**支援 [8x8 JaaS](https://jaas.8x8.vc/)[^8x8]（雲端託管）與 **[自建 Jitsi Meet](https://github.com/jitsi/jitsi-meet)**。
-> 主持人登入後即可建立會議室、產生邀請連結（含 QR / `.ics` 行事曆邀請），來賓經由邀請連結加入。
-> 內建多帳號 / 角色 / 2FA、完整稽核記錄與 SIEM 外拋、fail2ban、預約時段等企業功能。
+# jt-vc-portal v1.6.3 — Meeting Management System
 
-[^8x8]: **8x8** 自 2018 年起為 Jitsi / Jitsi Meet 的開發與維護公司；**8x8 JaaS（Jitsi as a Service）** 即其官方雲端託管的 Jitsi 服務。
+> 繁體中文: [README_zh-TW.md](README_zh-TW.md)
 
-**介紹頁 / Demo：** <https://jasoncheng7115.github.io/jt-vc-portal/>
+> A meeting portal built on Jitsi Meet with **dual-mode** support for [8x8 JaaS](https://jaas.8x8.vc/)[^8x8] (cloud-hosted) and **[self-hosted Jitsi Meet](https://github.com/jitsi/jitsi-meet)**.
+> After signing in, hosts can create meeting rooms and generate invite links (with QR codes / `.ics` calendar invitations); guests join through the invite link.
+> Built-in enterprise features include multiple accounts / roles / 2FA, a complete audit log with SIEM forwarding, fail2ban-style lockout, scheduled time slots, and more.
+
+[^8x8]: **8x8** has been the company developing and maintaining Jitsi / Jitsi Meet since 2018; **8x8 JaaS (Jitsi as a Service)** is its official cloud-hosted Jitsi service.
+
+**Project page / Demo:** <https://jasoncheng7115.github.io/jt-vc-portal/>
 
 ![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
 ![PHP](https://img.shields.io/badge/PHP-8.4-777BB4.svg)
@@ -16,20 +20,20 @@
 
 ---
 
-## 功能特色
+## Features
 
-- **雙連線模式**：8x8 JaaS（雲端託管，RS256 + kid）或自建 Jitsi Meet（HS256 或免 JWT），於管理介面一鍵切換，不動程式碼。
-- **會議室管理**：建立 / 進入會議室、亂數命名、近期清單、一鍵複製邀請、QR Code 彈窗。
-- **預約時段**：可設定開放時段；時段未到顯示翻頁時鐘倒數，主持人提前進入即自動放行。
-- **來賓流程**：來賓必填顯示名稱才進場；非開放時段顯示等候 / 倒數 / 已結束頁。
-- **大廳模式**：建立會議室時可選；主持人進場自動開啟，來賓需經主持人逐一允許才能進入會議室。
-- **Email 邀請**：填寫與會者 email，寄送含 `.ics`（METHOD:REQUEST）的邀請信，可一鍵加入行事曆。
-- **多帳號 / 角色 / 2FA**：admin 看全部、host 只看自己建立的會議室；支援 TOTP 雙因素認證。
-- **稽核與安全**：完整行為稽核記錄（登入、建室、邀請、設定變更…）+ 即時外拋 syslog / CEF / GELF；fail2ban 登入鎖定；CSRF；遵循 OWASP Top 10:2025。
-- **錄影調閱**（自建 Jibri）：串接 Jibri 主機的錄影服務，線上列表 / 播放 / 下載 / 刪除、主機容量、保留政策（時間 / 容量 / 殘留，預設停用）；主持人可調閱自己主持會議的錄影。
-- **可自訂外觀**：60 種 Jitsi 介面語言、22 種主題、可換站台名稱與 logo、登入頁路徑偽裝。
-- **會議統計**：會議時長排行、尖峰同時人數與參與者進出時間軸；JaaS 模式另可接 USAGE webhook 統計 MAU。
-- **零外部 PHP 套件**：核心全部手寫，無 composer 相依（前端僅用 CDN 的 qrcodejs / flatpickr）。
+- **Dual connection modes**: 8x8 JaaS (cloud-hosted, RS256 + kid) or self-hosted Jitsi Meet (HS256 or no JWT), switchable with one click in the admin UI — no code changes required.
+- **Meeting room management**: create / enter rooms, random room names, recent-rooms list, one-click invite copying, QR code pop-up.
+- **Scheduled time slots**: set an open time window; before it starts, guests see a flip-clock countdown, and the room opens automatically if the host joins early.
+- **Guest flow**: guests must enter a display name before joining; outside the open window they see a waiting / countdown / ended page.
+- **Lobby mode**: optional when creating a room; it is enabled automatically when the host joins, and guests must be admitted one by one by the host.
+- **Email invitations**: enter attendee email addresses to send invitations with an `.ics` attachment (METHOD:REQUEST) that can be added to a calendar in one click.
+- **Multiple accounts / roles / 2FA**: admins see all rooms, hosts see only the rooms they created; TOTP two-factor authentication supported.
+- **Auditing and security**: complete audit log of user actions (sign-ins, room creation, invitations, settings changes…) + real-time forwarding via syslog / CEF / GELF; fail2ban-style login lockout; CSRF protection; follows OWASP Top 10:2025.
+- **Recording retrieval** (self-hosted Jibri): connects to a recording service on the Jibri host for online listing / playback / download / deletion, host storage capacity, and retention policies (age / capacity / leftovers, disabled by default); hosts can access recordings of the meetings they hosted.
+- **Customizable appearance**: 60 Jitsi UI languages, 22 themes, customizable site name and logo, and a disguisable login page path.
+- **Meeting statistics**: meeting duration ranking, peak concurrent participants and participant join/leave timelines; in JaaS mode, MAU can also be tracked via the USAGE webhook.
+- **Zero external PHP packages**: the core is entirely hand-written with no composer dependencies (the front end only uses qrcodejs / flatpickr from a CDN).
 
 ---
 
@@ -40,16 +44,16 @@
 <br>
 <br>
 
-## 系統需求
+## Requirements
 
-| 項目 | 最低 | 建議 |
+| Item | Minimum | Recommended |
 |---|---|---|
 | PHP | 8.2 | **8.4** |
-| Web 伺服器 | Apache + `mod_rewrite`（`AllowOverride All`） | 同左 |
-| PHP 擴充 | `openssl`、`fileinfo`、`json`、`mbstring` | 同左 |
-| 其他 | 可寫入的資料目錄；JaaS 模式需 8x8 私鑰 | Docker 24+ |
+| Web server | Apache + `mod_rewrite` (`AllowOverride All`) | Same |
+| PHP extensions | `openssl`, `fileinfo`, `json`, `mbstring` | Same |
+| Other | A writable data directory; the 8x8 private key for JaaS mode | Docker 24+ |
 
-> 自建 Jitsi Meet 模式另需一台可用的 Jitsi Meet 伺服器（詳見「連線模式」）。
+> Self-hosted Jitsi Meet mode additionally requires a working Jitsi Meet server (see "Connection modes").
 
 ---
 
@@ -60,30 +64,30 @@
 <br>
 <br>
 
-## 安裝方式一：直接安裝（Apache + PHP）
+## Installation option 1: Direct install (Apache + PHP)
 
 ```bash
-# 1) 取得程式
+# 1) Get the code
 git clone https://github.com/jasoncheng7115/jt-vc-portal.git
 cd jt-vc-portal
 
-# 2) 啟用 Apache 模組與 .htaccess（Debian/Ubuntu 範例）
+# 2) Enable the Apache module and .htaccess (Debian/Ubuntu example)
 a2enmod rewrite
-# 確認站台設定為 AllowOverride All，DocumentRoot 指向本資料夾
+# Make sure the site config uses AllowOverride All and DocumentRoot points to this folder
 
-# 3) 啟用 .htaccess（本專案以 dot.htaccess 收錄，避免誤觸）
+# 3) Enable .htaccess (shipped as dot.htaccess in this project to avoid accidental activation)
 cp dot.htaccess .htaccess
 
-# 4) 建立持久化資料目錄（預設 /var/jaas-data，可於 config.php 的 DATA_DIR 調整）
+# 4) Create the persistent data directory (default /var/jaas-data; adjustable via DATA_DIR in config.php)
 sudo mkdir -p /var/jaas-data
 sudo chown www-data:www-data /var/jaas-data
 
-# 5)（JaaS 模式才需要）放置 8x8 私鑰
+# 5) (JaaS mode only) Place the 8x8 private key
 sudo mkdir -p keys
 sudo cp /path/to/your/private.key keys/private.key
 ```
 
-Apache 站台設定範例（`/etc/apache2/sites-available/jt-vc-portal.conf`）：
+Example Apache site config (`/etc/apache2/sites-available/jt-vc-portal.conf`):
 
 ```apache
 <VirtualHost *:80>
@@ -92,11 +96,11 @@ Apache 站台設定範例（`/etc/apache2/sites-available/jt-vc-portal.conf`）�
 
     <Directory /var/www/jt-vc-portal>
         Options -Indexes +FollowSymLinks
-        AllowOverride All          # 必須，.htaccess 才會生效
+        AllowOverride All          # Required for .htaccess to take effect
         Require all granted
     </Directory>
 
-    # 隱藏伺服器版本
+    # Hide the server version
     ServerTokens Prod
     ServerSignature Off
 
@@ -105,7 +109,7 @@ Apache 站台設定範例（`/etc/apache2/sites-available/jt-vc-portal.conf`）�
 </VirtualHost>
 ```
 
-啟用站台與必要模組：
+Enable the site and the required modules:
 
 ```bash
 a2enmod rewrite headers
@@ -113,18 +117,18 @@ a2ensite jt-vc-portal
 systemctl reload apache2
 ```
 
-> 正式環境建議改用 `*:443` + Let's Encrypt 憑證，或在前面加反向代理處理 HTTPS。
-> 若以反向代理轉發，請保留 `X-Real-IP` header（fail2ban / 稽核取真實來源 IP 用），並設定 `JTVC_TRUSTED_PROXIES`（見下方「公開上線資安重點」）。
+> For production, use `*:443` with a Let's Encrypt certificate, or put a reverse proxy in front to handle HTTPS.
+> If you forward through a reverse proxy, preserve the `X-Real-IP` header (used by the fail2ban-style lockout and the audit log to get the real source IP), and set `JTVC_TRUSTED_PROXIES` (see "Security essentials for public deployment" below).
 
-設定重點（`config.php`）：
+Key settings (`config.php`):
 
-- `DATA_DIR`：持久化資料目錄（預設 `/var/jaas-data`）。
-- `JWT_PRIVATE_KEY_PATH`：JaaS RS256 私鑰路徑（預設 `keys/private.key` 對應 docroot）。
-- 初始管理員：可用環境變數 `JTVC_ADMIN_USERNAME` / `JTVC_ADMIN_EMAIL` / `JTVC_ADMIN_PASSWORD`；未提供則首次啟動自動產生隨機密碼，寫入 `DATA_DIR/INITIAL_ADMIN_PASSWORD.txt`（登入後請刪除）。
-- 反向代理信任：`JTVC_TRUSTED_PROXIES`（逗號分隔 IP/CIDR）。設定後只採信來自這些來源的 `X-Real-IP` / `X-Forwarded-*`，避免來源 IP 偽造繞過 fail2ban；留空＝相容模式（盲信標頭，須搭配容器埠隔離）。詳見「公開上線資安重點」。
-- Session 逾時：`JTVC_SESSION_IDLE`（閒置秒數，預設 1800）、`JTVC_SESSION_ABSOLUTE`（絕對秒數，預設 43200）。
+- `DATA_DIR`: persistent data directory (default `/var/jaas-data`).
+- `JWT_PRIVATE_KEY_PATH`: path to the JaaS RS256 private key (default `keys/private.key`, relative to the docroot).
+- Initial administrator: can be set via the environment variables `JTVC_ADMIN_USERNAME` / `JTVC_ADMIN_EMAIL` / `JTVC_ADMIN_PASSWORD`; if not provided, a random password is generated on first start and written to `DATA_DIR/INITIAL_ADMIN_PASSWORD.txt` (delete it after signing in).
+- Reverse proxy trust: `JTVC_TRUSTED_PROXIES` (comma-separated IPs/CIDRs). Once set, `X-Real-IP` / `X-Forwarded-*` are trusted only when coming from these sources, preventing source-IP spoofing to bypass the fail2ban-style lockout; leaving it empty = compatibility mode (headers are trusted blindly, must be combined with container port isolation). See "Security essentials for public deployment".
+- Session timeouts: `JTVC_SESSION_IDLE` (idle seconds, default 1800), `JTVC_SESSION_ABSOLUTE` (absolute seconds, default 43200).
 
-PHP 安全強化（建議於 `php.ini` 或 conf.d）：`display_errors=Off`、`expose_php=Off`、`session.cookie_httponly=1`、`session.cookie_samesite=Lax`、`session.use_strict_mode=1`。
+PHP hardening (recommended in `php.ini` or conf.d): `display_errors=Off`, `expose_php=Off`, `session.cookie_httponly=1`, `session.cookie_samesite=Lax`, `session.use_strict_mode=1`.
 
 ---
 
@@ -135,33 +139,33 @@ PHP 安全強化（建議於 `php.ini` 或 conf.d）：`display_errors=Off`、`e
 <br>
 <br>
 
-## 安裝方式二：Docker 打包部署
+## Installation option 2: Docker deployment
 
 ```bash
 git clone https://github.com/jasoncheng7115/jt-vc-portal.git
 cd jt-vc-portal
 
-# 建置（建議加 --pull 取得最新 base image）
+# Build (--pull recommended to get the latest base image)
 docker build --pull -t jt-vc-portal .
 
-# 主機端準備持久化目錄（www-data UID 預設 33）
+# Prepare persistent directories on the host (www-data UID defaults to 33)
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
 chown 33:33 /opt/jt-vc-portal/data
-# JaaS 模式：放入 8x8 私鑰
+# JaaS mode: place the 8x8 private key
 cp /path/to/private.key /opt/jt-vc-portal/keys/private.key
 
-# 啟動（-p 綁 127.0.0.1：只讓本機反向代理可達，不對外直接暴露容器埠）
+# Run (-p binds to 127.0.0.1: only the local reverse proxy can reach it; the container port is not exposed directly)
 docker run -d --restart unless-stopped \
   -p 127.0.0.1:58189:58189 \
   -e JTVC_ADMIN_EMAIL="admin@example.com" \
-  -e JTVC_ADMIN_PASSWORD="請設定強密碼" \
+  -e JTVC_ADMIN_PASSWORD="CHANGE_ME_strong_password" \
   -e JTVC_TRUSTED_PROXIES="127.0.0.1,172.16.0.0/12" \
   -v /opt/jt-vc-portal/keys/:/var/www/html/keys \
   -v /opt/jt-vc-portal/data/:/var/jaas-data \
   --name jt-vc-portal jt-vc-portal
 ```
 
-容器對外為 `:58189`，建議前面再以 nginx / Apache 反向代理加上 HTTPS：
+The container listens on `:58189`; it is recommended to put an nginx / Apache reverse proxy in front to add HTTPS:
 
 ```nginx
 server {
@@ -176,12 +180,12 @@ server {
 }
 ```
 
-> **公開上線資安重點（務必做）**
-> 系統以 `X-Real-IP`（其次 `X-Forwarded-For`）取得真實來源 IP，供 fail2ban 鎖定與稽核使用。為避免攻擊者偽造此 header 繞過 fail2ban：
-> - 設 `JTVC_TRUSTED_PROXIES`（逗號分隔 IP/CIDR，支援 IPv4/IPv6）。**只有**來自清單的來源才採信 `X-Real-IP` / `X-Forwarded-*`；其餘一律以實際連線 IP（`REMOTE_ADDR`）為準。
-> - 容器埠以 `-p 127.0.0.1:58189:58189` 綁本機或用防火牆限制，**只讓反向代理連得到**。
-> - 兩者至少做一項、建議都做。**若 `JTVC_TRUSTED_PROXIES` 留空＝沿用相容模式（盲信標頭）**：在「埠有隔離」時無妨，但若容器埠對外可直連，攻擊者即可偽造來源 IP 繞過 fail2ban、污染稽核記錄。
-> - 經 Cloudflare 時，請讓反代由 `CF-Connecting-IP` 帶入 `X-Real-IP`。
+> **Security essentials for public deployment (must do)**
+> The system uses `X-Real-IP` (then `X-Forwarded-For`) to determine the real source IP for the fail2ban-style lockout and the audit log. To prevent attackers from forging this header to bypass the lockout:
+> - Set `JTVC_TRUSTED_PROXIES` (comma-separated IPs/CIDRs, IPv4/IPv6 supported). **Only** sources on this list have their `X-Real-IP` / `X-Forwarded-*` trusted; everything else uses the actual connection IP (`REMOTE_ADDR`).
+> - Bind the container port to localhost with `-p 127.0.0.1:58189:58189`, or restrict it with a firewall, so that **only the reverse proxy can reach it**.
+> - Do at least one of these; doing both is recommended. **If `JTVC_TRUSTED_PROXIES` is left empty = compatibility mode (headers trusted blindly)**: this is fine when the port is isolated, but if the container port is directly reachable from outside, an attacker can forge the source IP to bypass the fail2ban-style lockout and pollute the audit log.
+> - When behind Cloudflare, have the reverse proxy populate `X-Real-IP` from `CF-Connecting-IP`.
 
 ---
 
@@ -192,40 +196,40 @@ server {
 <br>
 <br>
 
-## 安裝方式三：從 GitHub Release 載入預建映像
+## Installation option 3: Load the prebuilt image from GitHub Releases
 
-不想自己 build？可直接下載 [Release](https://github.com/jasoncheng7115/jt-vc-portal/releases) 附的打包映像（`linux/amd64`），`docker load` 後即可執行。
+Don't want to build it yourself? Download the packaged image (`linux/amd64`) attached to the [Release](https://github.com/jasoncheng7115/jt-vc-portal/releases), then `docker load` it and run.
 
 ```bash
-# 1) 從 Release 頁下載映像與校驗檔（請改用最新版本號）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.6.1/jt-vc-portal-1.6.1-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.6.1/jt-vc-portal-1.6.1-docker-amd64.tar.gz.sha256
+# 1) Download the image and checksum file from the Release page (use the latest version number)
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.6.3/jt-vc-portal-1.6.3-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.6.3/jt-vc-portal-1.6.3-docker-amd64.tar.gz.sha256
 
-# 2) 驗證完整性（應顯示 OK）
-sha256sum -c jt-vc-portal-1.6.1-docker-amd64.tar.gz.sha256
+# 2) Verify integrity (should print OK)
+sha256sum -c jt-vc-portal-1.6.3-docker-amd64.tar.gz.sha256
 
-# 3) 載入映像（會建立 jt-vc-portal:1.6.1 與 :latest 標籤）
-docker load < jt-vc-portal-1.6.1-docker-amd64.tar.gz
+# 3) Load the image (creates the jt-vc-portal:1.6.3 and :latest tags)
+docker load < jt-vc-portal-1.6.3-docker-amd64.tar.gz
 
-# 4) 主機端準備持久化目錄（www-data UID 預設 33）
+# 4) Prepare persistent directories on the host (www-data UID defaults to 33)
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
 chown 33:33 /opt/jt-vc-portal/data
-cp /path/to/private.key /opt/jt-vc-portal/keys/private.key   # JaaS 模式才需要
+cp /path/to/private.key /opt/jt-vc-portal/keys/private.key   # JaaS mode only
 
-# 5) 啟動（執行參數與方式二相同）
+# 5) Run (same parameters as option 2)
 docker run -d --restart unless-stopped \
   -p 127.0.0.1:58189:58189 \
   -e JTVC_ADMIN_EMAIL="admin@example.com" \
-  -e JTVC_ADMIN_PASSWORD="請設定強密碼" \
+  -e JTVC_ADMIN_PASSWORD="CHANGE_ME_strong_password" \
   -e JTVC_TRUSTED_PROXIES="127.0.0.1,172.16.0.0/12" \
   -v /opt/jt-vc-portal/keys/:/var/www/html/keys \
   -v /opt/jt-vc-portal/data/:/var/jaas-data \
   --name jt-vc-portal jt-vc-portal:latest
 ```
 
-> 映像僅含程式本體，**不含任何金鑰或設定**；8x8 私鑰於執行階段由 `keys/` 掛載卷提供。
-> 僅提供 `linux/amd64`；其他架構（如 arm64）請用[方式二](#安裝方式二docker-打包部署)自行 build。
-> HTTPS 反向代理設定同方式二。
+> The image contains only the application itself — **no keys or settings**; the 8x8 private key is provided at runtime through the `keys/` mounted volume.
+> Only `linux/amd64` is provided; for other architectures (e.g. arm64), build it yourself using [option 2](#installation-option-2-docker-deployment).
+> HTTPS reverse proxy setup is the same as option 2.
 
 ---
 
@@ -236,43 +240,43 @@ docker run -d --restart unless-stopped \
 <br>
 <br>
 
-## 更新 / 升級
+## Updating / Upgrading
 
-> 所有設定與資料（帳號、會議室、稽核記錄、用量等）都存在 `DATA_DIR`（直接安裝）或掛載卷（Docker），**更新不會遺失**；JSON 結構會自動相容升級。建議更新前仍先備份資料目錄與 `keys/`。
+> All settings and data (accounts, rooms, audit log, usage, etc.) are stored in `DATA_DIR` (direct install) or the mounted volume (Docker), so **updates do not lose data**; JSON structures are upgraded automatically and compatibly. It is still recommended to back up the data directory and `keys/` before updating.
 
-### 方法一：直接安裝更新
+### Method 1: Updating a direct install
 
 ```bash
-cd /var/www/jt-vc-portal        # 你的安裝目錄
+cd /var/www/jt-vc-portal        # your installation directory
 
-# 1) 備份（建議）
+# 1) Back up (recommended)
 sudo cp -a /var/jaas-data /var/jaas-data.bak-$(date +%Y%m%d)
 
-# 2) 拉取最新程式
+# 2) Pull the latest code
 git pull
 
-# 3) 若 .htaccess 有更新，重新套用
+# 3) If .htaccess was updated, re-apply it
 cp dot.htaccess .htaccess
 
-# 4) 重新載入（清 opcache）
+# 4) Reload (clears opcache)
 sudo systemctl reload apache2
 ```
 
-完成後登入確認 topbar 左上（站台名稱旁）版本號已更新。
+Afterwards, sign in and confirm the version number at the top left of the topbar (next to the site name) has been updated.
 
-### 方法二：Docker 更新
+### Method 2: Updating Docker
 
 ```bash
 cd /path/to/jt-vc-portal
 
-# 1) 備份資料卷（建議）
+# 1) Back up the data volume (recommended)
 cp -a /opt/jt-vc-portal/data /opt/jt-vc-portal/data.bak-$(date +%Y%m%d)
 
-# 2) 取得最新程式並重建映像（--pull 連 base image 一起更新）
+# 2) Get the latest code and rebuild the image (--pull also updates the base image)
 git pull
 docker build --pull -t jt-vc-portal .
 
-# 3) 換掉容器（資料 / 私鑰在掛載卷，不受影響）
+# 3) Replace the container (data / private key live in mounted volumes and are unaffected)
 docker stop jt-vc-portal && docker rm jt-vc-portal
 docker run -d --restart unless-stopped \
   -p 127.0.0.1:58189:58189 \
@@ -281,26 +285,26 @@ docker run -d --restart unless-stopped \
   -v /opt/jt-vc-portal/data/:/var/jaas-data \
   --name jt-vc-portal jt-vc-portal
 
-# 4) 確認
+# 4) Verify
 docker ps --filter name=jt-vc-portal
 ```
 
-> 初始管理員的環境變數（`JTVC_ADMIN_*`）僅首次建立帳號時用，更新時可省略；但 `JTVC_TRUSTED_PROXIES`（及選用的 `JTVC_SESSION_*`）是每次執行都生效的設定，**每次 `docker run` 都要帶上**。
-> 版本號顯示於登入後 topbar 左上、站台名稱旁（點擊可前往本專案 GitHub），可用以確認已更新到新版。
+> The initial administrator environment variables (`JTVC_ADMIN_*`) are only used when the account is first created and can be omitted when updating; however, `JTVC_TRUSTED_PROXIES` (and the optional `JTVC_SESSION_*`) take effect on every run, so **pass them with every `docker run`**.
+> The version number is shown at the top left of the topbar after signing in, next to the site name (click it to open this project's GitHub page); use it to confirm you are on the new version.
 
-### 方法三：Release 映像更新
+### Method 3: Updating from a Release image
 
 ```bash
-# 1) 備份資料卷（建議）
+# 1) Back up the data volume (recommended)
 cp -a /opt/jt-vc-portal/data /opt/jt-vc-portal/data.bak-$(date +%Y%m%d)
 
-# 2) 下載新版映像、驗證、載入
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/latest/download/jt-vc-portal-<新版本>-docker-amd64.tar.gz.sha256
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/latest/download/jt-vc-portal-<新版本>-docker-amd64.tar.gz
-sha256sum -c jt-vc-portal-<新版本>-docker-amd64.tar.gz.sha256
-docker load < jt-vc-portal-<新版本>-docker-amd64.tar.gz
+# 2) Download the new image, verify, and load it
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/latest/download/jt-vc-portal-<new-version>-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/latest/download/jt-vc-portal-<new-version>-docker-amd64.tar.gz
+sha256sum -c jt-vc-portal-<new-version>-docker-amd64.tar.gz.sha256
+docker load < jt-vc-portal-<new-version>-docker-amd64.tar.gz
 
-# 3) 換掉容器（資料 / 私鑰在掛載卷，不受影響）
+# 3) Replace the container (data / private key live in mounted volumes and are unaffected)
 docker stop jt-vc-portal && docker rm jt-vc-portal
 docker run -d --restart unless-stopped \
   -p 127.0.0.1:58189:58189 \
@@ -319,37 +323,37 @@ docker run -d --restart unless-stopped \
 <br>
 <br>
 
-## 首次設定
+## Initial setup
 
-1. 開啟站台 → `/jt-login` 以初始管理員登入（密碼見上方）。
-2. 進入 **系統設定**：
-   - **連線模式**：選 8x8 JaaS 或自建 Jitsi Meet，填入對應參數。
-   - **站台設定**：站台名稱、logo。
-   - **登入頁路徑**（選填）：把登入入口改成祕密路徑（見下方）。
-   - **會議室介面**：預設 UI 語言（預設繁體中文）。
-   - **錄製設定**（選填）：錄製者顯示名稱、串接自建 Jibri 錄影調閱服務與保留政策。
-   - **SMTP**（選填）：寄送 `.ics` 邀請信。
-   - **登入記錄外拋**（選填）：syslog / CEF / GELF。
-3. 到 **個人設定** 變更密碼並啟用 2FA。
-4. 回儀表板即可建立會議室。
+1. Open the site → sign in at `/jt-login` as the initial administrator (password: see above).
+2. Go to **System Settings**:
+   - **Connection mode**: choose 8x8 JaaS or self-hosted Jitsi Meet and fill in the corresponding parameters.
+   - **Site settings**: site name and logo.
+   - **Login page path** (optional): change the login entry point to a secret path (see below).
+   - **Meeting room interface**: default UI language (Traditional Chinese by default).
+   - **Recording settings** (optional): recorder display name, connection to the self-hosted Jibri recording retrieval service, and retention policies.
+   - **SMTP** (optional): send `.ics` invitation emails.
+   - **Login log forwarding** (optional): syslog / CEF / GELF.
+3. Go to **Profile** to change your password and enable 2FA.
+4. Return to the dashboard to create meeting rooms.
 
-### 連線模式
+### Connection modes
 
-| | 8x8 JaaS | 自建 Jitsi Meet |
+| | 8x8 JaaS | Self-hosted Jitsi Meet |
 |---|---|---|
-| 網域 | `8x8.vc` | 你的 Jitsi 網域 |
-| 必填 | App ID、Key ID(kid)、RS256 私鑰 | 服務網域；（選）JWT app_id + HS256 密鑰 |
-| 計費 | 免費 Dev 方案（25 MAU/月），超過依 8x8 方案計費 | 自行維運 |
+| Domain | `8x8.vc` | Your Jitsi domain |
+| Required | App ID, Key ID (kid), RS256 private key | Service domain; (optional) JWT app_id + HS256 secret |
+| Billing | Free Dev plan (25 MAU/month); usage beyond that is billed per the 8x8 plan | Self-operated |
 
-自建 Jitsi Meet 若採 JWT，需在 prosody 啟用 token 驗證，且 app_id / app_secret 與本系統一致。
+If self-hosted Jitsi Meet uses JWT, token authentication must be enabled in prosody, and app_id / app_secret must match this system.
 
-> **完整自建整合步驟**（從官方 Docker 版 Jitsi Meet 一路設定到與本系統搭配）見 **[JITSI-MEET-SETUP.md](JITSI-MEET-SETUP.md)**。
+> **Full self-hosted integration steps** (from the official Docker-based Jitsi Meet all the way to working with this system): see **[JITSI-MEET-SETUP.md](JITSI-MEET-SETUP.md)**.
 
-> **重要 — 行動裝置存取限制（採 JWT 時）**
-> 啟用 JWT 驗證後（**8x8 JaaS 一律需要**；自建 Jitsi Meet 設 `ENABLE_AUTH=1` 時），會議室只接受 jt-vc-portal 簽發的 token。
-> **官方 Jitsi Meet 行動 App（iOS / Android）將無法直接加入**——它不經過本入口、取不到 token，會被拒絕。
-> 行動裝置使用者請改用**手機瀏覽器**開啟邀請連結，透過本入口加入（會內嵌會議，體驗一致）。
-> 自建若採「免 JWT 匿名模式」（`ENABLE_AUTH=0`）則行動 App 可直接加入，但任何人知道會議室名稱即可進入，**安全性較低**。
+> **Important — mobile device access limitation (when using JWT)**
+> Once JWT authentication is enabled (**always required for 8x8 JaaS**; for self-hosted Jitsi Meet when `ENABLE_AUTH=1`), meeting rooms only accept tokens issued by jt-vc-portal.
+> **The official Jitsi Meet mobile apps (iOS / Android) cannot join directly** — they do not go through this portal, cannot obtain a token, and will be rejected.
+> Mobile users should instead open the invite link in their **mobile browser** and join through this portal (the meeting is embedded, so the experience is the same).
+> If a self-hosted deployment uses "anonymous mode without JWT" (`ENABLE_AUTH=0`), the mobile apps can join directly, but anyone who knows the room name can enter, which is **less secure**.
 
 ---
 
@@ -360,21 +364,21 @@ docker run -d --restart unless-stopped \
 <br>
 <br>
 
-## 登入頁路徑偽裝
+## Login page path disguise
 
-預設登入入口為 `/jt-login`。可於 **系統設定 → 登入頁路徑** 改成只有你知道的祕密路徑（僅允許英數與 `. _ -`，長度 1–64），降低被自動掃描 / 暴力嘗試的機會。
+The default login entry point is `/jt-login`. In **System Settings → Login page path** you can change it to a secret path only you know (only letters, digits and `. _ -` allowed, length 1–64), reducing exposure to automated scans / brute-force attempts.
 
-- 改掉後，原本的 `/jt-login` 與任何未對應的路徑都會直接回 **404**；只有設定的路徑會顯示登入頁。
-- 變更不會把實際路徑寫進稽核 / SIEM（避免外洩）。
-- **務必記住新路徑。** 若忘記或被鎖死，從伺服器端用 CLI 還原：
+- After the change, the original `/jt-login` and any unmapped path return **404** directly; only the configured path shows the login page.
+- The change does not write the actual path to the audit log / SIEM (to avoid leaking it).
+- **Be sure to remember the new path.** If you forget it or get locked out, restore it from the server side via the CLI:
 
 ```bash
-# Docker 部署
-docker exec -u www-data jaas-auth php /var/www/html/login-path.php show     # 顯示目前路徑
-docker exec -u www-data jaas-auth php /var/www/html/login-path.php reset    # 還原為 /jt-login
-docker exec -u www-data jaas-auth php /var/www/html/login-path.php set xxx  # 直接指定新路徑
+# Docker deployment
+docker exec -u www-data jaas-auth php /var/www/html/login-path.php show     # show the current path
+docker exec -u www-data jaas-auth php /var/www/html/login-path.php reset    # restore to /jt-login
+docker exec -u www-data jaas-auth php /var/www/html/login-path.php set xxx  # set a new path directly
 
-# 直接安裝（Apache + PHP）：在專案根目錄執行
+# Direct install (Apache + PHP): run in the project root directory
 sudo -u www-data php login-path.php reset
 ```
 
@@ -387,39 +391,14 @@ sudo -u www-data php login-path.php reset
 <br>
 <br>
 
-## 錄影調閱（自建 Jibri）
+## Recording retrieval (self-hosted Jibri)
 
-自建 Jitsi Meet + Jibri 錄影時，可在 Jibri 主機上跑隨附的 `jibri-recordings-api`（純 Python 標準庫服務），讓 portal 線上**列表 / 播放 / 下載 / 刪除**錄影，並顯示**錄影主機容量**。
+When recording with self-hosted Jitsi Meet + Jibri, you can run the bundled `jibri-recordings-api` (a pure Python standard-library service) on the Jibri host, letting the portal **list / play / download / delete** recordings online and display the **recording host's storage capacity**.
 
-- 服務只接受本 portal 來源 IP + Bearer token；portal 端再強制管理者登入後代理。
-- 於 **系統設定 → 錄製設定 → Jibri 錄影服務** 填入服務 URL 與 token，偵測到後導覽列即出現「錄影記錄」。
-- **保留政策**（預設全部停用）：依時間（保留 N 天）、依容量（保留可用空間 / 錄影總量上限，由舊到新刪）、自動清理殘留 / 未完成錄影。錄製中的檔案永不清理。
-- 服務安裝與 systemd 設定見 **[JIBRI-SETUP.md](JIBRI-SETUP.md)**。
-
----
-
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-
-## 安全性
-
-遵循 OWASP Top 10:2025，逐項對應：
-
-- **A01 存取控制**：未授權頁面回 404、會議室依擁有者隔離、CSRF token。
-- **A02 安全設定**：關閉錯誤顯示與版本洩漏、安全標頭、敏感路徑拒絕存取。
-- **A03 供應鏈**：零外部 PHP 套件；前端 CDN 資源加 SRI 完整性驗證；映像建置時套用最新 OS 安全更新。
-- **A04 加密**：bcrypt 密碼、JWT 簽章、webhook HMAC、安全 session cookie。
-- **A05 注入**：輸出跳脫、輸入清洗、Email header injection 防護。
-- **A06 安全設計**：閘道式架構、預設安全（來賓須具名、主持人在線上才放行）、角色最小權限。
-- **A07 認證**：TOTP 2FA、fail2ban 登入鎖定（依真實來源 IP）、可選的登入頁路徑偽裝。
-- **A08 資料完整性**：webhook 以 HMAC 簽章驗證來源，並用 idempotency key 去除重複事件。
-- **A09 記錄與告警**：完整稽核記錄 + 即時 SIEM 外拋。
-- **A10 例外處理**：失敗安全降級——讀取失敗回預設、寄信 / 外拋失敗不阻斷主流程、錯誤不外洩。
-- 私鑰、設定與執行資料皆存於掛載卷，**不進版控**（見 `.gitignore`）。
+- The service only accepts requests from this portal's source IP + a Bearer token; the portal in turn requires an administrator sign-in before proxying.
+- Enter the service URL and token under **System Settings → Recording settings → Jibri recording service**; once detected, a "Recordings" tab appears in the navigation bar.
+- **Retention policies** (all disabled by default): by age (keep N days), by capacity (keep a minimum of free space / cap total recording size, deleting oldest first), and automatic cleanup of leftover / incomplete recordings. Files still being recorded are never cleaned up.
+- For service installation and systemd configuration, see **[JIBRI-SETUP.md](JIBRI-SETUP.md)**.
 
 ---
 
@@ -430,9 +409,24 @@ sudo -u www-data php login-path.php reset
 <br>
 <br>
 
-## 授權
+## Security
 
-本專案以 [Apache License 2.0](LICENSE) 釋出。
+Follows OWASP Top 10:2025, item by item:
+
+- **A01 Access control**: unauthorized pages return 404, rooms are isolated by owner (including host heartbeat / leave and recording access), every state change is POST + CSRF token.
+- **A02 Security configuration**: error display and version disclosure disabled, security headers, access to sensitive paths denied.
+- **A03 Supply chain**: zero external PHP packages; front-end CDN resources use SRI integrity checks; the Jitsi IFrame API (`external_api.js`) is bundled and pinned with SRI instead of being loaded live from a third party; the latest OS security updates are applied when the image is built.
+- **A04 Cryptography**: bcrypt passwords, JWT signing, webhook HMAC, secure session cookies.
+- **A05 Injection**: output escaping, input sanitization, email header injection protection, nonce-based Content Security Policy (no inline-script allowance) on every page including the meeting pages.
+- **A06 Secure design**: gateway architecture, secure by default (guests must give a name, entry only while the host is online), least-privilege roles.
+- **A07 Authentication**: TOTP 2FA, fail2ban-style login lockout by real source IP **plus per-account lockout** against distributed guessing, session idle / absolute timeouts, optional login page path disguise (no redirect leaks it).
+- **A08 Data integrity**: atomic, locked writes for all data files (no lost updates under concurrency); webhooks are verified by HMAC signature, and duplicate events are removed via idempotency keys.
+- **A09 Logging and alerting**: complete audit log + real-time SIEM forwarding.
+- **A10 Exception handling**: fail-safe degradation — read failures fall back to defaults, email / forwarding failures do not block the main flow, errors are not leaked.
+- Private keys, settings and runtime data are all stored in mounted volumes and **never enter version control** (see `.gitignore`).
+- Every release must pass unit, integration, browser e2e tests and an OWASP ZAP scan with **zero High / Medium alerts** — see [TEST_CHECKLIST.md](TEST_CHECKLIST.md).
+
+---
 
 <br>
 <br>
@@ -441,9 +435,9 @@ sudo -u www-data php login-path.php reset
 <br>
 <br>
 
-## 免責聲明
+## License
 
-本軟體依「現狀」提供，不附任何明示或默示之擔保。使用者須自行負責部署環境之安全性與合規性（含第三方服務如 8x8 JaaS 之條款與費用）。作者不對任何因使用本軟體所生之直接或間接損失負責。
+This project is released under the [Apache License 2.0](LICENSE).
 
 <br>
 <br>
@@ -452,8 +446,19 @@ sudo -u www-data php login-path.php reset
 <br>
 <br>
 
-## 作者 / 連結
+## Disclaimer
 
-- 作者：Jason Cheng（[jasoncheng7115](https://github.com/jasoncheng7115)）
-- 專案：<https://github.com/jasoncheng7115/jt-vc-portal>
-- 問題回報：透過 GitHub Issues
+This software is provided "as is", without warranty of any kind, express or implied. Users are solely responsible for the security and compliance of their deployment environment (including the terms and fees of third-party services such as 8x8 JaaS). The author shall not be liable for any direct or indirect damages arising from the use of this software.
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+## Author / Links
+
+- Author: Jason Cheng ([jasoncheng7115](https://github.com/jasoncheng7115))
+- Project: <https://github.com/jasoncheng7115/jt-vc-portal>
+- Bug reports: via GitHub Issues

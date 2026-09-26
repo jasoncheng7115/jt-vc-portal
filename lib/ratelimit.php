@@ -18,6 +18,12 @@ class RateLimit {
   const ESCALATE_AFTER    = 3;      // 連續鎖 3 次升級
   const ESCALATED_SECONDS = 86400;  // 升級鎖 24 小時
 
+  // 帳號層鎖定（防分散 IP 暴力破解同一帳號）：15 分鐘內 10 次失敗 → 該帳號鎖 15 分鐘。
+  // 不論帳號是否存在都計數（以登入字串雜湊為 key），回應一致，避免藉此列舉帳號。
+  const ACCT_MAX_FAILS = 10;
+  const ACCT_WINDOW    = 900;
+  const ACCT_LOCK      = 900;
+
   private static function load(): array { return Store::read(self::FILE, []); }
   private static function save(array $d): void { Store::write(self::FILE, $d); }
 
@@ -46,34 +52,73 @@ class RateLimit {
   /** 記一次失敗，必要時鎖定。回傳更新後 status。 */
   public static function fail(string $ip): array {
     $now = time();
-    $d = self::load();
-    $r = $d[$ip] ?? ['fails' => 0, 'first_at' => $now, 'locked_until' => null, 'lock_count' => 0];
-
-    // 視窗過期 → 重新計算
-    if (($now - ($r['first_at'] ?? 0)) > self::FAIL_WINDOW && empty($r['locked_until'])) {
-      $r['fails'] = 0;
-      $r['first_at'] = $now;
-    }
-    $r['fails'] = (int)($r['fails'] ?? 0) + 1;
-
-    if ($r['fails'] >= self::MAX_FAILS) {
-      $r['lock_count'] = (int)($r['lock_count'] ?? 0) + 1;
-      $dur = $r['lock_count'] >= self::ESCALATE_AFTER ? self::ESCALATED_SECONDS : self::LOCK_SECONDS;
-      $r['locked_until'] = $now + $dur;
-      $r['fails'] = 0;
-      $r['first_at'] = $now;
-    }
-    $d[$ip] = $r;
-    self::save($d);
+    Store::update(self::FILE, function (array $d) use ($ip, $now) {
+      $r = $d[$ip] ?? ['fails' => 0, 'first_at' => $now, 'locked_until' => null, 'lock_count' => 0];
+      // 鎖定已過期 → 清除鎖定狀態（保留 lock_count 供升級判斷）
+      if (!empty($r['locked_until']) && $r['locked_until'] <= $now) {
+        $r['locked_until'] = null;
+        $r['fails'] = 0;
+        $r['first_at'] = $now;
+      }
+      // 視窗過期 → 重新計算
+      if (($now - ($r['first_at'] ?? 0)) > self::FAIL_WINDOW && empty($r['locked_until'])) {
+        $r['fails'] = 0;
+        $r['first_at'] = $now;
+      }
+      $r['fails'] = (int)($r['fails'] ?? 0) + 1;
+      if ($r['fails'] >= self::MAX_FAILS) {
+        $r['lock_count'] = (int)($r['lock_count'] ?? 0) + 1;
+        $dur = $r['lock_count'] >= self::ESCALATE_AFTER ? self::ESCALATED_SECONDS : self::LOCK_SECONDS;
+        $r['locked_until'] = $now + $dur;
+        $r['fails'] = 0;
+        $r['first_at'] = $now;
+      }
+      $d[$ip] = $r;
+      return $d;
+    }, []);
     return self::status($ip);
   }
 
   /** 成功登入 → 清除該 IP 記錄。 */
   public static function reset(string $ip): void {
-    $d = self::load();
-    if (isset($d[$ip])) {
+    Store::update(self::FILE, function (array $d) use ($ip) {
+      if (!isset($d[$ip])) return null;
       unset($d[$ip]);
-      self::save($d);
-    }
+      return $d;
+    }, []);
+  }
+
+  private static function acctKey(string $login): string {
+    return 'acct:' . hash('sha256', strtolower(trim($login)));
+  }
+
+  /** 該登入帳號（字串）是否被帳號層鎖定。 */
+  public static function isAccountLocked(string $login): bool {
+    $r = self::load()[self::acctKey($login)] ?? null;
+    return $r && !empty($r['locked_until']) && $r['locked_until'] > time();
+  }
+
+  /** 記一次帳號層失敗。 */
+  public static function failAccount(string $login): void {
+    $k = self::acctKey($login);
+    $now = time();
+    Store::update(self::FILE, function (array $d) use ($k, $now) {
+      $r = $d[$k] ?? ['fails' => 0, 'first_at' => $now, 'locked_until' => null];
+      if (!empty($r['locked_until']) && $r['locked_until'] <= $now) $r = ['fails' => 0, 'first_at' => $now, 'locked_until' => null];
+      if (($now - ($r['first_at'] ?? 0)) > self::ACCT_WINDOW) { $r['fails'] = 0; $r['first_at'] = $now; }
+      $r['fails'] = (int)($r['fails'] ?? 0) + 1;
+      if ($r['fails'] >= self::ACCT_MAX_FAILS) {
+        $r['locked_until'] = $now + self::ACCT_LOCK;
+        $r['fails'] = 0;
+        $r['first_at'] = $now;
+      }
+      $d[$k] = $r;
+      return $d;
+    }, []);
+  }
+
+  /** 成功登入 → 清除帳號層計數。 */
+  public static function resetAccount(string $login): void {
+    self::reset(self::acctKey($login));
   }
 }

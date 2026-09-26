@@ -6,6 +6,14 @@ require_once __DIR__ . '/lib/rooms.php';
 require_once __DIR__ . '/lib/settings.php';
 
 $me = Auth::requireLogin();
+
+/** 「進入 / 立即主持」按鈕：以 POST + CSRF 送出（A01：避免跨站 GET 觸發主持人進場）。 */
+function enter_room_form(string $room, string $labelHtml, string $cls): string {
+  return '<form method="POST" action="/start" style="display:inline;">' . Auth::csrfField()
+       . '<input type="hidden" name="room" value="' . htmlspecialchars($room) . '">'
+       . '<input type="hidden" name="mode" value="host"><input type="hidden" name="enter" value="1">'
+       . '<button type="submit" class="' . htmlspecialchars($cls) . '">' . $labelHtml . '</button></form>';
+}
 $ip = Auth::clientIp();
 $is_admin = ($me['role'] ?? '') === 'admin';
 $jaas_mode = Settings::getJaas()['mode'];   // jaas | selfhosted（自建不顯示 8x8 用量）
@@ -82,10 +90,10 @@ render_head('儀表板');
 render_topbar($me, $ip);
 ?>
 <main class="container">
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
+  <script <?= nonce_attr() ?> src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" integrity="sha384-RkASv+6KfBMW9eknReJIJ6b3UnjKOKC5bOUaNgIY778NFbQ8MtWq9Lr/khUgqtTt" crossorigin="anonymous">
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js" integrity="sha384-5JqMv4L/Xa0hfvtF06qboNdhvuYXUku9ZrhZh3bSk8VXF0A/RuSLHpLsSV9Zqhl6" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/zh-tw.js" integrity="sha384-mjJeOdHLBw1XvGBUqn+UxU0xEtQSbR1nG/0o9getG2BM2o6lfJvCwTjPwyvzKrOY" crossorigin="anonymous"></script>
+  <script <?= nonce_attr() ?> src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js" integrity="sha384-5JqMv4L/Xa0hfvtF06qboNdhvuYXUku9ZrhZh3bSk8VXF0A/RuSLHpLsSV9Zqhl6" crossorigin="anonymous"></script>
+  <script <?= nonce_attr() ?> src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/zh-tw.js" integrity="sha384-mjJeOdHLBw1XvGBUqn+UxU0xEtQSbR1nG/0o9getG2BM2o6lfJvCwTjPwyvzKrOY" crossorigin="anonymous"></script>
 
   <?php if ($is_admin || Settings::hasJibri()): ?><?= admin_nav('dashboard') ?><?php endif; ?>
 
@@ -104,12 +112,12 @@ render_topbar($me, $ip);
       <div class="panel-link"><?= htmlspecialchars($invite_url) ?></div>
       <div class="panel-actions">
         <button type="button" class="btn btn-primary btn-sm" data-copy="<?= htmlspecialchars($invite_url) ?>"><?= icon('copy', 14) ?>複製邀請連結</button>
-        <a class="btn btn-secondary btn-sm" href="/start?room=<?= rawurlencode($created) ?>&mode=host"><?= icon('play', 14) ?>立即主持</a>
+        <?= enter_room_form($created, icon('play', 14) . '立即主持', 'btn btn-secondary btn-sm') ?>
       </div>
     </div>
     <div></div>
   </div>
-  <script>
+  <script <?= nonce_attr() ?>>
     window.addEventListener('DOMContentLoaded', () => {
       if (window.QRCode) new QRCode(document.getElementById('createdQr'), {
         text: <?= json_encode($invite_url) ?>, width: 96, height: 96,
@@ -229,7 +237,7 @@ render_topbar($me, $ip);
             <div class="room-actions">
               <button type="button" class="btn btn-secondary btn-sm" data-copy="<?= htmlspecialchars($invite) ?>" title="複製邀請連結"><?= icon('copy', 14) ?>複製</button>
               <button type="button" class="btn btn-secondary btn-sm" data-qr="<?= htmlspecialchars($invite) ?>" data-room="<?= htmlspecialchars($name) ?>" title="顯示 QR Code"><?= icon('qr', 14) ?>QR</button>
-              <a class="btn btn-secondary btn-sm" href="/start?room=<?= rawurlencode($name) ?>&mode=host"><?= icon('arrow-right', 14) ?>進入</a>
+              <?= enter_room_form($name, icon('arrow-right', 14) . '進入', 'btn btn-secondary btn-sm') ?>
             </div>
           </li>
         <?php endforeach; ?>
@@ -249,7 +257,13 @@ render_topbar($me, $ip);
       <button type="button" class="btn btn-primary" id="qrCopyLink"><?= icon('copy',14) ?>複製連結</button>
     </div>
     <div class="modal-footer">
-      <a class="btn btn-primary" id="qrEnter" href="#"><?= icon('arrow-right',14) ?>進入會議室</a>
+      <form method="POST" action="/start" style="display:inline;" id="qrEnterForm">
+        <?= Auth::csrfField() ?>
+        <input type="hidden" name="room" id="qrEnterRoom" value="">
+        <input type="hidden" name="mode" value="host">
+        <input type="hidden" name="enter" value="1">
+        <button type="submit" class="btn btn-primary"><?= icon('arrow-right',14) ?>進入會議室</button>
+      </form>
       <button type="button" class="btn btn-secondary" id="qrDownload"><?= icon('download') ?>下載圖片</button>
       <button type="button" class="btn btn-secondary" id="qrClose"><?= icon('x',14) ?>關閉</button>
     </div>
@@ -257,7 +271,7 @@ render_topbar($me, $ip);
 </div>
 
 <div id="flash" class="copy-flash"><?= icon('check', 14) ?>已複製</div>
-<script>
+<script <?= nonce_attr() ?>>
 function dashFlash(msg){
   const f = document.getElementById('flash');
   if (msg) f.lastChild.textContent = msg;
@@ -291,7 +305,7 @@ document.addEventListener('click', async (e) => {
   function open(url, room){
     linkInput.value = url;
     document.getElementById('qrRoom').textContent = room;
-    document.getElementById('qrEnter').href = '/start?room=' + encodeURIComponent(room) + '&mode=host';
+    document.getElementById('qrEnterRoom').value = room;
     box.innerHTML = '';
     qr = new QRCode(box, { text: url, width: 220, height: 220, colorDark:'#18181b', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.M });
     modal.classList.add('open');

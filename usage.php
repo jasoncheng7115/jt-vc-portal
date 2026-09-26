@@ -104,7 +104,7 @@ render_head($is_jaas ? '用量統計' : '會議統計');
 render_topbar($me, $ip);
 ?>
 <main class="container">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
+  <script <?= nonce_attr() ?> src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
 
   <?= admin_nav('usage') ?>
 
@@ -276,7 +276,7 @@ render_topbar($me, $ip);
     <?php endif; ?>
   </div>
 
-<script>
+<script <?= nonce_attr() ?>>
 (function () {
   // 參與者明細：點列展開（與稽核記錄相同樣式）
   document.querySelectorAll('#js-attendee-card .row-main, .card .row-main').forEach(function (row) {
@@ -288,7 +288,7 @@ render_topbar($me, $ip);
 })();
 </script>
 
-<script>
+<script <?= nonce_attr() ?>>
 (function () {
   if (!window.Chart) return;
   const grid = getComputedStyle(document.body).getPropertyValue('color');

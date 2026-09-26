@@ -1,38 +1,40 @@
-# 自建 Jitsi Meet × jt-vc-portal 整合設定
+# Self-Hosted Jitsi Meet × jt-vc-portal Integration Setup
 
-> **作者**：Jason Cheng　·　GitHub [@jasoncheng7115](https://github.com/jasoncheng7115)　·　專案 [jt-vc-portal](https://github.com/jasoncheng7115/jt-vc-portal)
+> 繁體中文: [JITSI-MEET-SETUP_zh-TW.md](JITSI-MEET-SETUP_zh-TW.md)
 
-本文說明如何把一套**官方 Docker 版 Jitsi Meet**，設定成可與 jt-vc-portal「認證入口」搭配使用。
+> **Author**: Jason Cheng　·　GitHub [@jasoncheng7115](https://github.com/jasoncheng7115)　·　Project [jt-vc-portal](https://github.com/jasoncheng7115/jt-vc-portal)
 
-> 適用版本：[docker-jitsi-meet](https://github.com/jitsi/docker-jitsi-meet) **`stable-10888`**（2026-03-30 發佈）。其他穩定版步驟相同，只需替換版本號。
+This document explains how to configure an **official Docker-based Jitsi Meet** deployment so it works together with the jt-vc-portal "authentication gateway".
 
----
-
-## 目錄
-
-**基礎概念**
-
-- [架構概念](#架構概念)
-- [前置需求](#前置需求)
-- [連接埠與 NAT 設定（含媒體後援 / TURN）](#連接埠與-nat-設定)
-
-**安裝步驟**
-
-- [一、取得官方 docker-jitsi-meet](#一取得官方-docker-jitsi-meet)
-- [二、基本對外設定（`.env`）](#二基本對外設定編輯-env)
-- [三、啟用 JWT 驗證（建議）](#三啟用-jwt-驗證建議)
-- [四、啟動 Jitsi](#四啟動-jitsi)
-- [五、jt-vc-portal 端設定](#五jt-vc-portal-端設定)
-
-**進階 / 維運**
-
-- [六、疑難排解](#六疑難排解)
-- [七、錄影（Jibri）](#七錄影jibri選用)
-- [八、品牌 logo 與隱藏錄製者](#八品牌-logo-與隱藏錄製者伺服器-configjs)
-- [九、升級 Jitsi](#九升級-jitsi)
+> Applies to: [docker-jitsi-meet](https://github.com/jitsi/docker-jitsi-meet) **`stable-10888`** (released 2026-03-30). The steps are the same for other stable releases; just substitute the version number.
 
 ---
 
+## Table of Contents
+
+**Concepts**
+
+- [Architecture Overview](#architecture-overview)
+- [Prerequisites](#prerequisites)
+- [Ports and NAT Configuration (incl. Media Fallback / TURN)](#ports-and-nat-configuration)
+
+**Installation**
+
+- [1. Get the Official docker-jitsi-meet](#1-get-the-official-docker-jitsi-meet)
+- [2. Basic External Settings (`.env`)](#2-basic-external-settings-edit-env)
+- [3. Enable JWT Authentication (Recommended)](#3-enable-jwt-authentication-recommended)
+- [4. Start Jitsi](#4-start-jitsi)
+- [5. jt-vc-portal Settings](#5-jt-vc-portal-settings)
+
+**Advanced / Operations**
+
+- [6. Troubleshooting](#6-troubleshooting)
+- [7. Recording (Jibri)](#7-recording-jibri-optional)
+- [8. Branding Logo and Hidden Recorder](#8-branding-logo-and-hidden-recorder-server-configjs)
+- [9. Upgrading Jitsi](#9-upgrading-jitsi)
+
+---
+
 <br>
 <br>
 <br>
@@ -40,35 +42,19 @@
 <br>
 <br>
 
-## 架構概念
+## Architecture Overview
 
 ```
-使用者 ──▶ jt-vc-portal（vc.example.com）──── 內嵌 IFrame ────▶ 自建 Jitsi Meet（meet.example.com）
-            ‧登入 / 角色 / 大廳 / 稽核                              ‧實際音視訊會議
-            ‧簽發 JWT（HS256，選用）                               ‧媒體由瀏覽器直連此網域
+User ──▶ jt-vc-portal (vc.example.com) ──── embedded IFrame ────▶ Self-hosted Jitsi Meet (meet.example.com)
+          ‧Login / roles / lobby / audit                            ‧The actual audio/video meeting
+          ‧Issues JWT (HS256, optional)                             ‧Browsers connect directly to this domain for media
 ```
 
-- **jt-vc-portal**：負責入口（登入、權限、預約、大廳、稽核），並用 IFrame API 內嵌 Jitsi。
-- **Jitsi Meet**：負責會議本身。瀏覽器會直接連到 `meet.example.com` 載入 `external_api.js` 與媒體。
-- 驗證有兩種：**免 JWT（開放）** 或 **HS256 JWT（建議）**——只有 jt-vc-portal 簽發的 token 能進會議室。
+- **jt-vc-portal**: handles the entry point (login, permissions, scheduling, lobby, auditing) and embeds Jitsi using the IFrame API.
+- **Jitsi Meet**: handles the meeting itself. Browsers connect directly to `meet.example.com` to load `external_api.js` and to exchange media.
+- Two authentication options: **no JWT (open)** or **HS256 JWT (recommended)** — only tokens issued by jt-vc-portal can enter a meeting room.
 
-> **維運邊界（自建 vs JaaS）**：本文的連接埠、NAT、媒體穿牆 / TURN（含 `turns/443`）等**只在自建模式需要你自己處理**。改用 **8x8 JaaS** 時，媒體與穿牆全由 8x8 雲端負責，你不必開這些埠或架 coturn——jt-vc-portal 在 JaaS 模式只做認證（簽 JWT），媒體不經過你的主機。
-
----
-
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-
-## 前置需求
-
-- 一台對外可連、有 DNS 的主機，例 `meet.example.com`（需與 jt-vc-portal 不同網域或子網域）。
-- 對外開放：`443/tcp`（網頁 / 信令）、`10000/udp`（JVB 媒體）。
-- 有效 HTTPS 憑證（可用 Jitsi 內建 Let's Encrypt）。
-- 已安裝 Docker 與 Docker Compose。
+> **Operational boundary (self-hosted vs. JaaS)**: The ports, NAT, media traversal / TURN (including `turns/443`) described here are **only something you have to handle yourself in self-hosted mode**. When using **8x8 JaaS**, media and NAT traversal are handled entirely by the 8x8 cloud, so you don't need to open these ports or run coturn — in JaaS mode jt-vc-portal only does authentication (signs JWTs), and media never passes through your host.
 
 ---
 
@@ -79,97 +65,113 @@
 <br>
 <br>
 
-## 連接埠與 NAT 設定
+## Prerequisites
 
-### 需開放的連接埠
+- A publicly reachable host with DNS, e.g. `meet.example.com` (must be a different domain or subdomain from jt-vc-portal).
+- Open to the outside: `443/tcp` (web / signaling), `10000/udp` (JVB media).
+- A valid HTTPS certificate (Jitsi's built-in Let's Encrypt can be used).
+- Docker and Docker Compose installed.
 
-| 埠 | 協定 | 用途 | 必要性 |
+---
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+## Ports and NAT Configuration
+
+### Ports to open
+
+| Port | Protocol | Purpose | Required? |
 |---|---|---|---|
-| 443 | TCP | HTTPS 網頁 + 會議信令（BOSH / WebSocket） | 必須 |
-| 80 | TCP | HTTP→HTTPS 轉址 + Let's Encrypt 簽發憑證 | 用內建 LE 時必須 |
-| 10000 | UDP | JVB 媒體（音視訊 RTP），**主要媒體通道** | 必須 |
-| 4443 | TCP | JVB 媒體 TCP 後援（使用者環境擋 UDP 時用） | 選用 |
+| 443 | TCP | HTTPS web + meeting signaling (BOSH / WebSocket) | Required |
+| 80 | TCP | HTTP→HTTPS redirect + Let's Encrypt certificate issuance | Required when using built-in LE |
+| 10000 | UDP | JVB media (audio/video RTP), **main media channel** | Required |
+| 4443 | TCP | JVB media TCP fallback (for users whose network blocks UDP) | Optional |
 
-- 媒體幾乎都走 **UDP/10000**；少數網路擋 UDP 時才靠 **TCP/4443** 後援，建議兩個都開以求穩定。
-- 防火牆 / 雲端 Security Group 需放行上述 **inbound**。
-- 信令（join、聊天）走 443/TCP；媒體（聲音畫面）走 10000/UDP——兩者缺一都會「進得去但黑畫面 / 沒聲音」。
+- Media almost always goes over **UDP/10000**; only in the few networks that block UDP does it rely on the **TCP/4443** fallback. Opening both is recommended for stability.
+- Your firewall / cloud Security Group must allow the above as **inbound**.
+- Signaling (join, chat) uses 443/TCP; media (audio and video) uses 10000/UDP — missing either one results in "can join, but black screen / no audio".
 
-> **注意（與舊版不同）**：現代 Jitsi（含 `stable-10888`）的 JVB 採「**單一 UDP 埠 10000**」多工，所有與會者媒體都共用這一個埠——**不需要**再開「10000–20000 一整段範圍」。那是多年前舊版（`org.ice4j.ice.harvest.MIN/MAX_PORT` 動態埠範圍）的做法，docker 版單埠模式已淘汰。只要放行 `UDP 10000`（+ 選用 `TCP 4443`）即可。
+> **Note (different from older versions)**: Modern Jitsi (including `stable-10888`) JVB multiplexes on a **single UDP port 10000** — all participants' media share this one port. You **no longer need** to open "a whole 10000–20000 range". That was the approach of old versions many years ago (dynamic port range via `org.ice4j.ice.harvest.MIN/MAX_PORT`), and it is obsolete in the docker single-port mode. Just allow `UDP 10000` (+ optionally `TCP 4443`).
 
-### 位於 NAT / 防火牆後（主機是私有 IP）
+### Behind NAT / firewall (host has a private IP)
 
-JVB 預設會把「自己看到的 IP」告訴瀏覽器；若主機是私有 IP（NAT 後），來賓會拿到私有 IP 而連不到媒體。必須讓 JVB **對外宣告公網 IP**。
+By default JVB tells browsers "the IP it sees for itself"; if the host has a private IP (behind NAT), guests receive the private IP and cannot reach the media. You must make JVB **advertise its public IP**.
 
-**(1) 編輯 `.env`**，讓 JVB 宣告公網 IP（多個以逗號分隔；同時列公網 + 私有 IP，可讓外網與內網都連得到）：
+**(1) Edit `.env`** so JVB advertises the public IP (comma-separate multiple values; listing both the public and the private host IP lets both external and internal clients connect):
 
 ```ini
-JVB_ADVERTISE_IPS=<公網IP>,<主機私有IP>
+JVB_ADVERTISE_IPS=<public-IP>,<host-private-IP>
 ```
 
-**(2) 路由器 / 防火牆做 port forward 到 Jitsi 主機：**
+**(2) Port-forward on the router / firewall to the Jitsi host:**
 
-- `UDP 10000` → 主機:10000（**最關鍵**）
-- `TCP 443` → 主機:443
-- `TCP 80` → 主機:80（Let's Encrypt 簽發 / 續約期間）
-- （選）`TCP 4443` → 主機:4443
+- `UDP 10000` → host:10000 (**most important**)
+- `TCP 443` → host:443
+- `TCP 80` → host:80 (during Let's Encrypt issuance / renewal)
+- (optional) `TCP 4443` → host:4443
 
-**(3) 雲端主機**（GCP / AWS / Azure 等）：在 VPC 防火牆 / Security Group 放行 `UDP 10000`、`TCP 443`、`TCP 80`（、`TCP 4443`），並把對外公網 IP 填入 `JVB_ADVERTISE_IPS`。
+**(3) Cloud hosts** (GCP / AWS / Azure, etc.): allow `UDP 10000`, `TCP 443`, `TCP 80` (and `TCP 4443`) in the VPC firewall / Security Group, and put the public IP into `JVB_ADVERTISE_IPS`.
 
-> **最常見故障**：能進會議室但黑畫面 / 沒聲音 → 八成是 `UDP 10000` 未放行 / 未轉發，或 `JVB_ADVERTISE_IPS` 沒設成公網 IP。
+> **Most common failure**: can enter the meeting room but black screen / no audio → in 80% of cases `UDP 10000` is not allowed / not forwarded, or `JVB_ADVERTISE_IPS` is not set to the public IP.
 
-### 媒體傳輸的自動後援（UDP 10000 →（選用 TCP 4443）→ TURN，含 turns/443）
+### Automatic media transport fallback (UDP 10000 → (optional TCP 4443) → TURN, incl. turns/443)
 
-來賓的影音媒體由瀏覽器的 **ICE** 機制**自動**「從最快到最能穿牆」依序嘗試，挑第一個通且優先序最高的通道——**你不需要寫任何判斷邏輯，只要把通道準備好**：
+The browser's **ICE** mechanism **automatically** tries guests' audio/video media paths in order "from fastest to best at traversing firewalls", picking the first working channel with the highest priority — **you don't need to write any decision logic, you just need to have the channels ready**:
 
-| 順位 | 通道 | 適用情境 | 難度 |
+| Priority | Channel | Scenario | Difficulty |
 |---|---|---|---|
-| 1 | **UDP 10000** → JVB 直連 | 一般網路（品質最佳） | 預設即有 |
-| 2 | **TCP 4443** → JVB 直連 | 擋 UDP、放行任意對外 TCP | 選用 / legacy |
-| 3 | **TURN**：`turn`(udp/tcp 3478) +`turns`(tls 443) → 經 coturn 轉送 | 擋 UDP、甚至**只**放行 443 | 需另架 coturn |
+| 1 | **UDP 10000** → direct to JVB | Normal networks (best quality) | Available by default |
+| 2 | **TCP 4443** → direct to JVB | UDP blocked, arbitrary outbound TCP allowed | Optional / legacy |
+| 3 | **TURN**: `turn` (udp/tcp 3478) + `turns` (tls 443) → relayed via coturn | UDP blocked, or even **only** 443 allowed | Requires a separate coturn |
 
-> 大多數使用者光靠 **第 1 層 UDP 10000** 就能用。只有「來賓端網路很嚴格」才需要後援；其中 **TURN（第 3 層）一個元件就同時涵蓋「UDP 不通」與「只剩 443」**，所以建議直接做 TURN，不必再弄第 2 層。
+> Most users work fine with **layer 1 UDP 10000** alone. A fallback is only needed when "the guest's network is very strict"; and **TURN (layer 3) is a single component that covers both "UDP unavailable" and "only 443 left"**, so it's recommended to go straight to TURN and skip layer 2.
 >
-> 效能取捨：越往後越能穿牆、但越慢。`turns/443` 是 TCP + 中繼 + 多一層 TLS，延遲最高、coturn 會成集中瓶頸，只當「最後保命」用——能走 UDP 10000 就別靠它（Google Meet 亦同：優先 UDP，UDP 全擋才退 TCP/443，官方明言 TCP 會降品質）。
+> Performance trade-off: the further down the list, the better it traverses firewalls, but the slower it gets. `turns/443` is TCP + relay + an extra TLS layer, with the highest latency, and coturn becomes a central bottleneck — use it only as "the last lifeline"; don't rely on it when UDP 10000 works (Google Meet does the same: prefers UDP, falls back to TCP/443 only when UDP is fully blocked, and officially states that TCP degrades quality).
 
-#### 第 1 層：UDP 10000（預設、品質最佳）
+#### Layer 1: UDP 10000 (default, best quality)
 
-即前述：放行 `UDP 10000`、設好 `JVB_ADVERTISE_IPS` 即可。
+As described above: allow `UDP 10000` and set `JVB_ADVERTISE_IPS`.
 
-#### 第 2 層：TCP 4443（JVB 直連，選用 / legacy）
+#### Layer 2: TCP 4443 (direct to JVB, optional / legacy)
 
-現代 Jitsi **預設停用** JVB 內建 TCP harvester，官方已改用 TURN 統一處理後援；`stable-10888` 的 docker `.env` **沒有**對應開關。要硬開需以 custom config 疊加重啟 TCP harvester 並開放 `TCP 4443`——**多數情境不需要，直接做第 3 層 TURN 即可**。
+Modern Jitsi **disables** JVB's built-in TCP harvester **by default**; upstream now uses TURN to handle fallback uniformly, and the `stable-10888` docker `.env` has **no** corresponding switch. Forcing it on requires overlaying a custom config to re-enable the TCP harvester and opening `TCP 4443` — **not needed in most scenarios; just go straight to layer 3 TURN**.
 
-#### 第 3 層：TURN（coturn，含 turns/443）
+#### Layer 3: TURN (coturn, incl. turns/443)
 
-原理：架一台 **TURN 伺服器（coturn）**，同時提供 `turn`（udp/tcp 3478）與 `turns`（TLS 443）。ICE 會自動「先試 UDP relay、再 TCP relay、最後 turns/443」，逐級退到能通為止；coturn 收到後再以 UDP 把媒體轉給 JVB。`docker-jitsi-meet` **不內建 coturn**，但用官方 Docker image 很好起。
+How it works: run a **TURN server (coturn)** that provides both `turn` (udp/tcp 3478) and `turns` (TLS 443). ICE automatically "tries UDP relay first, then TCP relay, and finally turns/443", stepping down until something works; coturn then relays the media to JVB over UDP. `docker-jitsi-meet` **does not include coturn**, but it's easy to start with the official Docker image.
 
-**(1) coturn 設定** `coturn/turnserver.conf`：
+**(1) coturn configuration** `coturn/turnserver.conf`:
 
 ```ini
 listening-port=3478
-tls-listening-port=5349           # 拓撲 A 可直接設 443（見下）
+tls-listening-port=5349           # Topology A can set 443 directly (see below)
 fingerprint
 use-auth-secret
-static-auth-secret=<一段長亂數，與 prosody 共用>
+static-auth-secret=<long random string, shared with prosody>
 realm=meet.example.com
 cert=/etc/coturn/certs/turn.crt
 pkey=/etc/coturn/certs/turn.key
 min-port=49152
 max-port=65535
-external-ip=<本機公網IP>
+external-ip=<this-host-public-IP>
 no-multicast-peers
 no-cli
 ```
 
-**(2) 用 Docker 起 coturn**（官方 image `coturn/coturn`）。coturn 需要一大段 UDP relay 埠，用 **host 網路**最省事；附一個 compose 檔，與 Jitsi 的 compose 並存：
+**(2) Start coturn with Docker** (official image `coturn/coturn`). coturn needs a large range of UDP relay ports, so **host networking** is the easiest; here is a compose file that sits alongside Jitsi's compose:
 
 ```yaml
 # docker-compose.coturn.yml
 services:
   coturn:
-    image: coturn/coturn:4.6          # 建議釘版本，勿用 latest
+    image: coturn/coturn:4.6          # pin a version; don't use latest
     restart: unless-stopped
-    network_mode: host                # relay 埠很多，host 網路最簡單
+    network_mode: host                # many relay ports; host networking is simplest
     volumes:
       - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
       - ./coturn/certs:/etc/coturn/certs:ro
@@ -180,16 +182,16 @@ services:
 docker compose -f docker-compose.coturn.yml up -d
 ```
 
-**(3) 443 怎麼擺——看拓撲二選一：**
+**(3) Where to put 443 — pick one of two topologies:**
 
-- **拓撲 A（簡單，建議）：coturn 有自己的主機名 + IP**（另一台小主機，或同機第二個公網 IP）。turnserver.conf 直接 `tls-listening-port=443`，coturn 自己獨佔 443，**完全不需要 nginx 分流**。DNS 把 `turn.meet.example.com` 指到該 IP 即可。
-- **拓撲 B（與 Jitsi 共用同一個 IP 的 443）**：才需要在最前緣用 nginx `stream` + `ssl_preread` 依 **SNI** 分流（不終結 TLS、原樣轉走）：
+- **Topology A (simple, recommended): coturn has its own hostname + IP** (a separate small host, or a second public IP on the same machine). Set `tls-listening-port=443` directly in turnserver.conf; coturn owns 443 by itself and **no nginx splitting is needed at all**. Just point DNS `turn.meet.example.com` at that IP.
+- **Topology B (sharing the same IP's 443 with Jitsi)**: only then do you need nginx `stream` + `ssl_preread` at the front edge to split traffic by **SNI** (without terminating TLS, passing it through as-is):
 
 ```nginx
 stream {
   map $ssl_preread_server_name $upstream {
     turn.meet.example.com  127.0.0.1:5349;   # TURN/TLS → coturn
-    default                127.0.0.1:8443;    # 其餘 → Jitsi web 容器
+    default                127.0.0.1:8443;    # everything else → Jitsi web container
   }
   server {
     listen 443;
@@ -200,20 +202,20 @@ stream {
 }
 ```
 
-> 拓撲 B 因 nginx 占用 443，Jitsi web 容器要改別的埠（`.env` 設 `HTTPS_PORT=8443`）由它反代；`turn.meet.example.com` 與 `meet.example.com` 都指到這台。
+> In Topology B, since nginx occupies 443, the Jitsi web container must move to another port (set `HTTPS_PORT=8443` in `.env`) and be reverse-proxied by nginx; both `turn.meet.example.com` and `meet.example.com` point to this host.
 
-**(4) 讓 prosody 把 TURN 廣告給瀏覽器**（XEP-0215 `external_services`），瀏覽器才知道有 TURN 可用。docker 版以 prosody 設定疊加，內容相當於：
+**(4) Have prosody advertise TURN to browsers** (XEP-0215 `external_services`) so browsers know TURN is available. In the docker version this is done by overlaying prosody config, equivalent to:
 
 ```lua
 external_services = {
-  { type = "turn",  host = "turn.meet.example.com", port = 3478, transport = "udp", secret = "<同 coturn static-auth-secret>" };
-  { type = "turns", host = "turn.meet.example.com", port = 443,  transport = "tcp", secret = "<同 coturn static-auth-secret>" };
+  { type = "turn",  host = "turn.meet.example.com", port = 3478, transport = "udp", secret = "<same as coturn static-auth-secret>" };
+  { type = "turns", host = "turn.meet.example.com", port = 443,  transport = "tcp", secret = "<same as coturn static-auth-secret>" };
 };
 ```
 
-**(5) 驗證**：開 `https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/`，填 `turns:turn.meet.example.com:443?transport=tcp` 應出現 `relay` 候選；再把測試端網路限制到只剩 443，確認會議仍可通（畫面 / 聲音正常）。
+**(5) Verify**: open `https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/`, enter `turns:turn.meet.example.com:443?transport=tcp`, and a `relay` candidate should appear; then restrict the test client's network to only 443 and confirm the meeting still works (video / audio OK).
 
-> 這層牽涉憑證、（拓撲 B 的）SNI 分流、coturn 與 prosody 密鑰一致，環境差異大。若需要，我可以依你的實際拓撲（同機 / 分機、憑證來源）另寫一份逐步版。
+> This layer involves certificates, SNI splitting (for Topology B), and keeping coturn and prosody secrets consistent, so environments vary a lot. If needed, I can write a separate step-by-step version for your actual topology (same host / separate host, certificate source).
 
 ---
 
@@ -224,7 +226,7 @@ external_services = {
 <br>
 <br>
 
-## 一、取得官方 docker-jitsi-meet
+## 1. Get the Official docker-jitsi-meet
 
 ```bash
 git clone https://github.com/jitsi/docker-jitsi-meet.git
@@ -232,12 +234,12 @@ cd docker-jitsi-meet
 git checkout stable-10888
 
 cp env.example .env
-./gen-passwords.sh         # 產生各內部元件的隨機密碼（寫回 .env）
+./gen-passwords.sh         # generate random passwords for the internal components (written back to .env)
 
 mkdir -p ~/.jitsi-meet-cfg/{web,transcripts,prosody/config,prosody/prosody-plugins-custom,jicofo,jvb,jigasi,jibri}
 ```
 
-> `.env` 內的 `JITSI_IMAGE_VERSION` 應為 `stable-10888`（與 checkout 的 tag 一致），確保拉到對應映像。
+> `JITSI_IMAGE_VERSION` in `.env` should be `stable-10888` (matching the checked-out tag) so the corresponding images are pulled.
 
 ---
 
@@ -248,50 +250,50 @@ mkdir -p ~/.jitsi-meet-cfg/{web,transcripts,prosody/config,prosody/prosody-plugi
 <br>
 <br>
 
-## 二、基本對外設定（編輯 `.env`）
+## 2. Basic External Settings (Edit `.env`)
 
 ```ini
-# 對外網址（= jt-vc-portal「服務網域」要填的位址）
+# Public URL (= the address to enter as the "Service domain" in jt-vc-portal)
 PUBLIC_URL=https://meet.example.com
 
-# Let's Encrypt 自動憑證
+# Let's Encrypt automatic certificate
 ENABLE_LETSENCRYPT=1
 LETSENCRYPT_DOMAIN=meet.example.com
 LETSENCRYPT_EMAIL=you@example.com
 
-# 對外埠
+# External ports
 HTTP_PORT=80
 HTTPS_PORT=443
 JVB_PORT=10000
 
 TZ=Asia/Taipei
 
-# 大廳：讓 jt-vc-portal 的「大廳模式」(toggleLobby) 能生效
+# Lobby: lets jt-vc-portal's "lobby mode" (toggleLobby) take effect
 ENABLE_LOBBY=1
 ```
 
-### TLS 憑證選項（擇一）
+### TLS certificate options (choose one)
 
-**(A) Let's Encrypt 自動憑證**（上面範例即是）：`ENABLE_LETSENCRYPT=1` + `LETSENCRYPT_DOMAIN` + `LETSENCRYPT_EMAIL`，容器會自動申請與續約。需 `TCP 80` 對外可達。
+**(A) Let's Encrypt automatic certificate** (the example above): `ENABLE_LETSENCRYPT=1` + `LETSENCRYPT_DOMAIN` + `LETSENCRYPT_EMAIL`; the container requests and renews the certificate automatically. Requires `TCP 80` to be reachable from outside.
 
-**(B) 自有 SSL 憑證**（你已有憑證 / 公司 CA / 萬用憑證）：關閉 Let's Encrypt，把憑證放進 web 容器的 keys 目錄即可——
+**(B) Your own SSL certificate** (you already have a certificate / corporate CA / wildcard certificate): disable Let's Encrypt and put the certificate into the web container's keys directory —
 
 ```ini
 ENABLE_LETSENCRYPT=0
 ```
 
 ```bash
-# 憑證放到 web 設定卷的 keys/（CONFIG 預設 ~/.jitsi-meet-cfg）
+# Put the certificate into keys/ of the web config volume (CONFIG defaults to ~/.jitsi-meet-cfg)
 mkdir -p ~/.jitsi-meet-cfg/web/keys
-cp your-fullchain.pem ~/.jitsi-meet-cfg/web/keys/cert.crt   # 含中繼鏈的完整憑證
-cp your-private.key   ~/.jitsi-meet-cfg/web/keys/cert.key   # 對應私鑰
-# 重新啟動讓 web 容器套用
+cp your-fullchain.pem ~/.jitsi-meet-cfg/web/keys/cert.crt   # full certificate including the intermediate chain
+cp your-private.key   ~/.jitsi-meet-cfg/web/keys/cert.key   # matching private key
+# Restart so the web container picks it up
 docker compose up -d
 ```
 
-> 檔名固定為 **`cert.crt`（完整鏈）** 與 **`cert.key`（私鑰）**，放在 `~/.jitsi-meet-cfg/web/keys/`（容器內 `/config/keys/`）。`HTTPS_PORT=443` 維持不變。憑證到期前換檔再 `docker compose restart web` 即可。
+> The file names are fixed: **`cert.crt` (full chain)** and **`cert.key` (private key)**, placed in `~/.jitsi-meet-cfg/web/keys/` (`/config/keys/` inside the container). Keep `HTTPS_PORT=443` unchanged. Before the certificate expires, replace the files and run `docker compose restart web`.
 
-**(C) 由前端反向代理處理 TLS**（憑證在 nginx / Traefik / HAProxy 上）：容器只出 HTTP，TLS 交給反代——
+**(C) TLS handled by a front reverse proxy** (certificate lives on nginx / Traefik / HAProxy): the container serves HTTP only and TLS is left to the reverse proxy —
 
 ```ini
 ENABLE_LETSENCRYPT=0
@@ -299,7 +301,7 @@ DISABLE_HTTPS=1
 HTTP_PORT=8000
 ```
 
-反代把 `https://meet.example.com` 轉到容器 `HTTP_PORT`，並務必轉發 **WebSocket**（會議信令需要）與 `X-Forwarded-*` / `Host` 標頭。
+The reverse proxy forwards `https://meet.example.com` to the container's `HTTP_PORT`, and must forward **WebSocket** (required for meeting signaling) as well as the `X-Forwarded-*` / `Host` headers.
 
 ---
 
@@ -310,85 +312,85 @@ HTTP_PORT=8000
 <br>
 <br>
 
-## 三、啟用 JWT 驗證（建議）
+## 3. Enable JWT Authentication (Recommended)
 
-讓 Jitsi **只接受 jt-vc-portal 簽發的 token**，避免任何人猜到會議室名稱就闖入。jt-vc-portal 自建模式使用 **HS256 共享密鑰**簽 token。
+Make Jitsi **accept only tokens issued by jt-vc-portal**, so nobody can barge in just by guessing a meeting room name. In self-hosted mode jt-vc-portal signs tokens with an **HS256 shared secret**.
 
-> **重要 — 啟用 JWT 後，官方行動 App 無法直接加入**
-> 開啟 `ENABLE_AUTH=1`（JWT）後，會議室只接受 jt-vc-portal 簽發的 token。**官方 Jitsi Meet 行動 App（iOS / Android）不經過本入口、取不到 token，將無法加入**（會出現驗證 / token 錯誤）。
-> 行動裝置請改用**手機瀏覽器**開啟邀請連結，透過 jt-vc-portal 加入。若必須讓原生 App 直接進房，只能維持「免 JWT 匿名模式」（下節），但安全性較低。
+> **Important — once JWT is enabled, the official mobile apps cannot join directly**
+> With `ENABLE_AUTH=1` (JWT), meeting rooms only accept tokens issued by jt-vc-portal. **The official Jitsi Meet mobile apps (iOS / Android) don't go through this portal and can't obtain a token, so they will be unable to join** (an authentication / token error will appear).
+> On mobile devices, open the invitation link in the **mobile browser** instead and join via jt-vc-portal. If native apps absolutely must be able to join rooms directly, the only option is to stay in "no-JWT anonymous mode" (see below), which is less secure.
 
-在 `.env` 設定：
+Set in `.env`:
 
 ```ini
 ENABLE_AUTH=1
 AUTH_TYPE=jwt
-ENABLE_GUESTS=0                       # 只有持 token 者可進（入口由 jt-vc-portal 把關）
+ENABLE_GUESTS=0                       # only token holders may enter (jt-vc-portal guards the entrance)
 
-JWT_APP_ID=jt-vc-portal               # ← 對應 jt-vc-portal 的「App ID」
-JWT_APP_SECRET=<請產生一段長亂數>      # ← 對應 jt-vc-portal 的「app_secret（HS256 共享密鑰）」
-JWT_ACCEPTED_ISSUERS=jt-vc-portal     # 與 App ID 相同
-JWT_ACCEPTED_AUDIENCES=jt-vc-portal   # 與 App ID 相同
+JWT_APP_ID=jt-vc-portal               # ← corresponds to jt-vc-portal's "App ID"
+JWT_APP_SECRET=<generate a long random string>  # ← corresponds to jt-vc-portal's "app_secret (HS256 shared secret)"
+JWT_ACCEPTED_ISSUERS=jt-vc-portal     # same as App ID
+JWT_ACCEPTED_AUDIENCES=jt-vc-portal   # same as App ID
 
-# === 主持人權限控制（很重要，見下方說明，三者缺一不可）===
-ENABLE_AUTO_OWNER=0                            # 不讓「第一個進房者」自動變 moderator
-XMPP_MUC_MODULES=token_affiliation             # 依 token 的 moderator 旗標設角色（映像已內建此模組）
-GLOBAL_CONFIG=disable_cascading_set = false    # jicofo 開驗證時必設，否則設完 member 又被改回 owner
+# === Moderator permission control (very important; see below — all three are required) ===
+ENABLE_AUTO_OWNER=0                            # don't make "the first person to join" a moderator automatically
+XMPP_MUC_MODULES=token_affiliation             # set role from the token's moderator flag (module is built into the image)
+GLOBAL_CONFIG=disable_cascading_set = false    # required when jicofo has auth enabled; otherwise member gets changed back to owner
 ```
 
-對應關係（**三邊必須一致**）：
+Mapping (**all three sides must match**):
 
-| jt-vc-portal（/設定 → 連線模式） | Jitsi `.env` | 說明 |
+| jt-vc-portal (Settings → Connection mode) | Jitsi `.env` | Notes |
 |---|---|---|
-| App ID | `JWT_APP_ID` / `JWT_ACCEPTED_ISSUERS` / `JWT_ACCEPTED_AUDIENCES` | jt-vc-portal 簽的 token `iss` = `aud` = App ID |
-| app_secret | `JWT_APP_SECRET` | HS256 共享密鑰，兩邊完全相同 |
-| JWT sub | （prosody 驗證的 subject） | **留空即可**（預設送 `*`，適用單網域非租戶）；多租戶才填租戶名 |
+| App ID | `JWT_APP_ID` / `JWT_ACCEPTED_ISSUERS` / `JWT_ACCEPTED_AUDIENCES` | Tokens signed by jt-vc-portal have `iss` = `aud` = App ID |
+| app_secret | `JWT_APP_SECRET` | HS256 shared secret, identical on both sides |
+| JWT sub | (subject validated by prosody) | **Leave empty** (defaults to sending `*`, suitable for a single domain without tenants); fill in the tenant name only for multi-tenant setups |
 
-> **產生密鑰**：`openssl rand -hex 32`，兩邊貼一樣的值。
+> **Generating the secret**: `openssl rand -hex 32`, and paste the same value on both sides.
 >
-> 為何 sub 預設 `*`：標準單網域 docker-jitsi-meet（非租戶）的 prosody token 驗證只接受 `sub` 為 `*` 或租戶名；本系統已預設送 `*`，直接可用。
+> Why sub defaults to `*`: in a standard single-domain docker-jitsi-meet (non-tenant) setup, prosody token validation only accepts `sub` of `*` or a tenant name; this system sends `*` by default, so it works out of the box.
 
-### 主持人權限控制（重要：否則所有人都是主持人）
+### Moderator permission control (important: otherwise everyone is a moderator)
 
-**docker-jitsi-meet 用 JWT 時，預設「只要持有效 token 就是 moderator」**——即使 token 帶 `context.user.moderator: false` 也不會被執行。後果是**來賓也是主持人**：可踢人、結束所有人會議、且**繞過大廳**。要讓「只有指定主持人是 moderator」，上方 `.env` 那三行**缺一不可**：
+**When docker-jitsi-meet uses JWT, by default "anyone holding a valid token is a moderator"** — even if the token carries `context.user.moderator: false`, it is not enforced. The consequence is that **guests are moderators too**: they can kick people, end the meeting for everyone, and **bypass the lobby**. To make "only designated hosts are moderators", the three lines in `.env` above are **all required**:
 
-| 設定 | 作用 |
+| Setting | Effect |
 |---|---|
-| `ENABLE_AUTO_OWNER=0` | 關掉「第一個進房者自動變 owner」。 |
-| `XMPP_MUC_MODULES=token_affiliation` | 啟用 prosody 模組，依 token 的 `moderator` 旗標把使用者設為 `owner`（主持人）或 `member`（一般與會者）。模組已內建於映像 `/prosody-plugins-contrib/token_affiliation`。 |
-| `GLOBAL_CONFIG=disable_cascading_set = false` | jicofo 有開驗證時，會在模組設完 `member` 後**又把人重新授予 owner**；此設定讓模組在進場後反覆重設 `member`（約 1.6 秒內 9 次）壓過去。**少這行，來賓被大廳放行後仍會變回主持人。** |
+| `ENABLE_AUTO_OWNER=0` | Turns off "the first person to join automatically becomes owner". |
+| `XMPP_MUC_MODULES=token_affiliation` | Enables the prosody module that sets the user to `owner` (moderator) or `member` (regular participant) based on the token's `moderator` flag. The module is built into the image at `/prosody-plugins-contrib/token_affiliation`. |
+| `GLOBAL_CONFIG=disable_cascading_set = false` | When jicofo has authentication enabled, after the module sets `member` it **grants owner again**; this setting makes the module repeatedly reset `member` after joining (about 9 times within 1.6 seconds) to override it. **Without this line, guests revert to moderator after being admitted from the lobby.** |
 
-設定後 `docker compose up -d`（會重建 prosody / jicofo）。對應 jt-vc-portal：主持人 token 帶 `moderator: true`、來賓帶 `moderator: false`（本系統自動處理），於是**主持人 = owner / moderator、來賓 = member**（不能踢人 / 結束會議、會被大廳擋）。
+After configuring, run `docker compose up -d` (this recreates prosody / jicofo). On the jt-vc-portal side: host tokens carry `moderator: true` and guest tokens carry `moderator: false` (handled automatically by this system), so **host = owner / moderator, guest = member** (cannot kick people / end the meeting, and is held by the lobby).
 
-> **不需要把主持人與來賓分到不同 domain / 租戶**——同一個入口、同一個 token，靠 `moderator` 旗標區分即可。
+> **There is no need to split hosts and guests into different domains / tenants** — the same entry point and the same token, distinguished by the `moderator` flag, is enough.
 >
-> 驗證：以來賓身分進會議，其 participants 面板 / 「⋯」選單**不該**出現「全部靜音 / 結束會議 / 踢人」；只有主持人有。
+> Verification: join the meeting as a guest; their participants panel / "⋯" menu should **not** show "Mute everyone / End meeting / Kick"; only the host has these.
 
-### 啟用 JWT 後的存取行為（預設已擋匿名）
+### Access behavior after enabling JWT (anonymous access blocked by default)
 
-開啟 JWT 後，`https://meet.example.com/` 的前端仍會載入，但**沒有 jt-vc-portal 簽發的 token 就無法建立或加入任何會議室**（會出現驗證失敗）——已經**擋掉匿名開房**，也擋掉直接打網域進來的官方手機 App。只有經 jt-vc-portal（帶 token）進來的人才進得去，**安全性無虞**。
+With JWT enabled, the front end at `https://meet.example.com/` still loads, but **without a token issued by jt-vc-portal nobody can create or join any meeting room** (an authentication failure appears) — **anonymous room creation is already blocked**, as are official mobile apps hitting the domain directly. Only people coming through jt-vc-portal (with a token) can get in, so **security is not a concern**.
 
-> **以下純屬「觀感」美化，可選，不做也不影響安全。** 只有當你在意「直接打 `meet.example.com` 還看得到 Jitsi 介面 / 隨機房 / App 安裝提示」、想把 meet 當純後端時，再改這段：
+> **The following is purely cosmetic and optional; skipping it does not affect security.** Only change this if you care that "visiting `meet.example.com` directly still shows the Jitsi UI / random room / app install prompt" and want meet to be a pure back end:
 >
-> **(1) 隱藏歡迎頁**（`.env`）：`ENABLE_WELCOME_PAGE=0`。注意關掉後直接打 `/` 會自動產生隨機房名，手機仍會跳「在應用程式中加入」深層連結頁（點了也會被 JWT 擋）。
+> **(1) Hide the welcome page** (`.env`): `ENABLE_WELCOME_PAGE=0`. Note that once disabled, visiting `/` directly auto-generates a random room name, and phones still show the "Join in the app" deep-link page (tapping it is also blocked by JWT).
 >
-> **(2) 更乾淨——根目錄導回 portal**：利用 web 容器既有的 `include /config/nginx-custom/*.conf;`，丟一個只對 `/` 轉址的設定（房間網址、`external_api.js`、IFrame 內嵌都不受影響）：
+> **(2) Cleaner — redirect the root to the portal**: using the web container's existing `include /config/nginx-custom/*.conf;`, drop in a config that redirects only `/` (room URLs, `external_api.js`, and IFrame embedding are unaffected):
 >
 > ```bash
 > mkdir -p ~/.jitsi-meet-cfg/web/nginx-custom
 > cat > ~/.jitsi-meet-cfg/web/nginx-custom/redirect-root.conf <<'EOF'
 > location = / {
->     return 302 https://vc.example.com/;   # 換成你的 jt-vc-portal 網址
+>     return 302 https://vc.example.com/;   # replace with your jt-vc-portal URL
 > }
 > EOF
 > docker exec docker-jitsi-meet-web-1 nginx -s reload
 > ```
 >
-> 這樣直接打 `meet.example.com` 會轉到入口 portal；只有經 portal 內嵌（`/<房間>` + `external_api.js`）的請求照常服務。
+> Now visiting `meet.example.com` directly redirects to the portal; only requests embedded via the portal (`/<room>` + `external_api.js`) are served as usual.
 
-### 不想用 JWT（開放模式）
+### Not using JWT (open mode)
 
-只要 `ENABLE_AUTH=0`，並在 jt-vc-portal「自建是否需 JWT」選「否」即可——前端不帶 token，任何人有會議室名稱就能進。**安全性較低，僅適合內網 / 測試。**
+Just set `ENABLE_AUTH=0` and choose "No" for "Self-hosted requires JWT" in jt-vc-portal — the front end sends no token, and anyone who knows a room name can join. **Less secure; suitable only for internal networks / testing.**
 
 ---
 
@@ -399,14 +401,14 @@ GLOBAL_CONFIG=disable_cascading_set = false    # jicofo 開驗證時必設，否
 <br>
 <br>
 
-## 四、啟動 Jitsi
+## 4. Start Jitsi
 
 ```bash
 docker compose up -d
 docker compose ps
 ```
 
-驗證：瀏覽器開 `https://meet.example.com/external_api.js` 應可取得 JS（jt-vc-portal 內嵌時會載入它）。
+Verify: opening `https://meet.example.com/external_api.js` in a browser should return the JS (jt-vc-portal loads it when embedding).
 
 ---
 
@@ -417,31 +419,31 @@ docker compose ps
 <br>
 <br>
 
-## 五、jt-vc-portal 端設定
+## 5. jt-vc-portal Settings
 
-登入 jt-vc-portal → **系統設定 → 連線模式設定**，切到「自建 Jitsi Meet」，填：
+Log in to jt-vc-portal → **System settings → Connection mode settings**, switch to "Self-hosted Jitsi Meet", and fill in:
 
-| 欄位 | 範例值 |
+| Field | Example value |
 |---|---|
-| 模式 | 自建 Jitsi Meet |
-| 服務網域 | `meet.example.com`（不含 `https://`） |
-| 本系統對外網址 | `https://vc.example.com` |
-| 自建是否需 JWT | 是（對應 `ENABLE_AUTH=1`）/ 否（`ENABLE_AUTH=0`） |
-| App ID | `jt-vc-portal`（= `JWT_APP_ID`） |
-| app_secret（HS256） | （= `JWT_APP_SECRET`） |
-| JWT sub | 留空即可（預設送 `*`）；多租戶才填租戶名 |
+| Mode | Self-hosted Jitsi Meet |
+| Service domain | `meet.example.com` (without `https://`) |
+| This system's public URL | `https://vc.example.com` |
+| Self-hosted requires JWT | Yes (corresponds to `ENABLE_AUTH=1`) / No (`ENABLE_AUTH=0`) |
+| App ID | `jt-vc-portal` (= `JWT_APP_ID`) |
+| app_secret (HS256) | (= `JWT_APP_SECRET`) |
+| JWT sub | Leave empty (defaults to sending `*`); fill in the tenant name only for multi-tenant setups |
 
-存檔後，從 jt-vc-portal 建立會議室、開始主持，即會內嵌自建 Jitsi 並（若啟用）自動帶入 token。
+After saving, create a meeting room from jt-vc-portal and start hosting; the self-hosted Jitsi will be embedded and (if enabled) the token passed automatically.
 
-> **會議室左上 logo**：改由 Jitsi 伺服器 `config.js` 統一設定（現場與錄影一致），見[第八節](#八品牌-logo-與隱藏錄製者伺服器-configjs)。jt-vc-portal 不再以 IFrame 覆寫 logo，「會議室自訂」也已移除 logo 選項。
+> **Meeting room top-left logo**: now configured centrally in the Jitsi server's `config.js` (consistent between live meetings and recordings); see [Section 8](#8-branding-logo-and-hidden-recorder-server-configjs). jt-vc-portal no longer overrides the logo via IFrame, and the logo option has been removed from "Meeting room customization".
 
-> **以下都由 jt-vc-portal 在進會議時帶入，無需改 Jitsi：**
-> - **停用「用 App 加入」深層連結**（`configOverwrite.disableDeepLinking = true`）：手機經 portal 進會議直接在瀏覽器開啟，不會跳官方 App 安裝/開啟頁（該 App 因 JWT 無法連入）。
-> - **會議室自訂**（系統設定 → 會議室自訂，自建模式）：進入靜音/關鏡頭、畫質上限、**預設檢視（演講者／畫廊）**、工具列功能逐項開關——皆於進會議時帶入。
-> - **大廳模式**：建立會議室時勾選，主持人進場（取得 moderator 後）自動開啟，來賓需逐一核准才能進入。
-> - **編碼偏好**（`videoQuality.codecPreferenceOrder = VP9, H264, VP8, AV1`）：純桌機會議用 VP9（低頻寬畫質佳）；**含 iPhone/iPad 的會議自動改用硬體 H.264**（iOS Safari 不支援 VP9，否則會落到畫質最差的 VP8）。
+> **All of the following are passed in by jt-vc-portal when joining a meeting; no Jitsi changes needed:**
+> - **Disable the "Join in the app" deep link** (`configOverwrite.disableDeepLinking = true`): on phones, joining via the portal opens directly in the browser, without jumping to the official app install/open page (that app can't connect because of JWT).
+> - **Meeting room customization** (System settings → Meeting room customization, self-hosted mode): join muted / camera off, maximum video quality, **default view (speaker / gallery)**, and per-item toolbar toggles — all applied when joining.
+> - **Lobby mode**: check it when creating a meeting room; it is enabled automatically when the host joins (after obtaining moderator), and guests must be approved one by one to enter.
+> - **Codec preference** (`videoQuality.codecPreferenceOrder = VP9, H264, VP8, AV1`): desktop-only meetings use VP9 (good quality at low bandwidth); **meetings that include iPhone/iPad automatically switch to hardware H.264** (iOS Safari doesn't support VP9, otherwise it would fall back to VP8, which has the worst quality).
 
-> **行動端收視畫質**：手機在行動網路看對方視訊偏糊，主因是行動下行頻寬 + 自適應碼率（LAN 端頻寬大所以清楚）。VP9/H.264 已盡量改善；要更好需原生 App（但本架構因 JWT 無法用 App），或確保媒體走 UDP 10000 直連而非 TCP 中繼。
+> **Viewing quality on mobile**: remote video looking blurry on a phone over a cellular network is mainly due to mobile downlink bandwidth + adaptive bitrate (the LAN side has plenty of bandwidth, so it's sharp). VP9/H.264 already improve this as much as possible; doing better requires the native app (which this architecture can't use because of JWT), or ensuring media goes directly over UDP 10000 rather than a TCP relay.
 
 ---
 
@@ -452,16 +454,16 @@ docker compose ps
 <br>
 <br>
 
-## 六、疑難排解
+## 6. Troubleshooting
 
-| 症狀 | 可能原因 / 處理 |
+| Symptom | Likely cause / fix |
 |---|---|
-| `external_api.js` 404 | `PUBLIC_URL` / HTTPS 未設好；確認容器與憑證正常 |
-| 進會議顯示 token / authentication 錯誤 | App ID、`JWT_APP_SECRET`、`iss`、`aud` 不一致；或多租戶環境需在「JWT sub」填租戶名（單網域留空即送 `*`） |
-| 大廳沒作用 | `.env` 要 `ENABLE_LOBBY=1`，且建立會議室時勾「大廳模式」 |
-| 黑畫面 / 媒體不通 | `10000/udp` 未開放，或 NAT；於 `.env` 設 `JVB_ADVERTISE_IPS=<主機公網IP>` |
-| 部分來賓（嚴格網路）連不上媒體 | 該來賓端擋 UDP / 只放行 443 → 見「媒體傳輸的自動後援」架 TURN（coturn，含 turns/443） |
-| 想統一網域體感 | jt-vc-portal 網址列恆為 `vc.example.com`；`meet.example.com` 只在 F12 / 連線中可見（正常） |
+| `external_api.js` 404 | `PUBLIC_URL` / HTTPS not set up correctly; check that the containers and certificate are working |
+| Token / authentication error when joining a meeting | App ID, `JWT_APP_SECRET`, `iss`, `aud` don't match; or in a multi-tenant environment the tenant name must be filled in "JWT sub" (for a single domain leave it empty to send `*`) |
+| Lobby has no effect | `.env` needs `ENABLE_LOBBY=1`, and "Lobby mode" must be checked when creating the meeting room |
+| Black screen / media not flowing | `10000/udp` not open, or NAT; set `JVB_ADVERTISE_IPS=<host-public-IP>` in `.env` |
+| Some guests (strict networks) can't connect media | That guest's network blocks UDP / allows only 443 → see "Automatic media transport fallback" and set up TURN (coturn, incl. turns/443) |
+| Want a unified domain experience | The jt-vc-portal address bar always shows `vc.example.com`; `meet.example.com` is only visible in F12 / connection details (normal) |
 
 ---
 
@@ -472,9 +474,9 @@ docker compose ps
 <br>
 <br>
 
-## 七、錄影（Jibri，選用）
+## 7. Recording (Jibri, Optional)
 
-會議錄影需另外部署 **Jibri**（獨立資源、一台同時錄一場）。完整步驟——含 **同時多會議室錄製** 與 **錄影中文顯示（CJK 字型）** 的處理——見 **[JIBRI-SETUP.md](JIBRI-SETUP.md)**。
+Meeting recording requires deploying **Jibri** separately (dedicated resources; one instance records one meeting at a time). For the complete steps — including **recording multiple meeting rooms simultaneously** and **CJK text display in recordings (CJK fonts)** — see **[JIBRI-SETUP.md](JIBRI-SETUP.md)**.
 
 ---
 
@@ -485,25 +487,25 @@ docker compose ps
 <br>
 <br>
 
-## 八、品牌 logo 與隱藏錄製者（伺服器 config.js）
+## 8. Branding Logo and Hidden Recorder (Server config.js)
 
-這兩項都要設在 **Jitsi 伺服器自身的 `config.js`**，原因相同：
+Both of these must be set in **the Jitsi server's own `config.js`**, for the same reason:
 
-- **Jibri 錄影**用它自己的瀏覽器**直接連 Jitsi 伺服器**，**不經過 portal 的 IFrame**——所以 portal 帶入的設定對錄影無效，只有伺服器 `config.js` 才會同時影響「現場 + 錄影」。
-- 隱藏錄製者（`hiddenDomain`）用 IFrame `configOverwrite` 覆寫不一定生效，設在伺服器端最可靠。
+- **Jibri recording** uses its own browser to **connect directly to the Jitsi server**, **not through the portal's IFrame** — so settings passed by the portal have no effect on recordings; only the server `config.js` affects both "live + recording".
+- Hiding the recorder (`hiddenDomain`) via the IFrame `configOverwrite` does not reliably take effect; setting it on the server side is the most reliable.
 
-docker-jitsi-meet 每次容器啟動時，會把 `~/.jitsi-meet-cfg/web/custom-config.js`、`custom-interface_config.js` 自動**附加**到產生的設定後（見 web 容器 `/etc/cont-init.d/10-config`），放這兩個檔即可持久化。
+Every time the docker-jitsi-meet container starts, it automatically **appends** `~/.jitsi-meet-cfg/web/custom-config.js` and `custom-interface_config.js` to the generated config (see `/etc/cont-init.d/10-config` in the web container), so placing these two files makes the settings persistent.
 
-**設定（兩個檔）：**
+**Configuration (two files):**
 
 ```bash
-# (1) config.js 覆寫：左上 logo + 隱藏錄製者
+# (1) config.js override: top-left logo + hidden recorder
 cat > ~/.jitsi-meet-cfg/web/custom-config.js <<'JS'
-config.defaultLogoUrl = "https://vc.example.com/logo";   // 換成你的 portal 網址 + /logo
-config.hiddenDomain   = "hidden.meet.jitsi";             // 錄製者登入網域，從與會者清單/人數隱藏
+config.defaultLogoUrl = "https://vc.example.com/logo";   // replace with your portal URL + /logo
+config.hiddenDomain   = "hidden.meet.jitsi";             // recorder login domain, hidden from participant list/count
 JS
 
-# (2) interface_config.js 覆寫：浮水印 logo
+# (2) interface_config.js override: watermark logo
 cat > ~/.jitsi-meet-cfg/web/custom-interface_config.js <<'JS'
 interfaceConfig.DEFAULT_LOGO_URL     = "https://vc.example.com/logo";
 interfaceConfig.JITSI_WATERMARK_LINK = "https://vc.example.com";
@@ -511,25 +513,25 @@ interfaceConfig.SHOW_JITSI_WATERMARK = true;
 JS
 ```
 
-**套用（會重啟 web 容器，現場服務中斷數秒）：**
+**Apply (restarts the web container; live service is interrupted for a few seconds):**
 
 ```bash
 docker restart docker-jitsi-meet-web-1
 ```
 
-**重點：**
+**Key points:**
 
-- `https://vc.example.com/logo` 換成你的 jt-vc-portal 對外網址 + `/logo`（portal 把「系統設定 → 站台設定」上傳的 logo 服務在此，回傳 PNG；Jibri 主機也要連得到此網址）。
-- 之後在 portal 換 logo 圖檔即自動生效（網址不變，**不必再重啟 Jitsi**）。
-- `hidden.meet.jitsi` 是 docker-jitsi-meet 的錄製者網域（`XMPP_RECORDER_DOMAIN`），通常即此值；可用 `docker exec docker-jitsi-meet-prosody-1 grep -i VirtualHost /config/conf.d/*.lua` 確認。
+- Replace `https://vc.example.com/logo` with your jt-vc-portal public URL + `/logo` (the portal serves the logo uploaded under "System settings → Site settings" here, returning a PNG; the Jibri host must also be able to reach this URL).
+- After that, changing the logo image in the portal takes effect automatically (the URL stays the same, **no need to restart Jitsi again**).
+- `hidden.meet.jitsi` is docker-jitsi-meet's recorder domain (`XMPP_RECORDER_DOMAIN`) and is usually this value; you can confirm with `docker exec docker-jitsi-meet-prosody-1 grep -i VirtualHost /config/conf.d/*.lua`.
 
-**驗證：**
+**Verify:**
 
 ```bash
 docker exec docker-jitsi-meet-web-1 grep -E "defaultLogoUrl|hiddenDomain" /config/config.js
 ```
 
-再錄一段測試：播放確認左上是自訂 logo（非 jitsi 預設浮水印），且與會者清單/人數**不含**錄製者。
+Then record a test clip: on playback, confirm the top-left shows the custom logo (not the default Jitsi watermark), and that the participant list/count does **not** include the recorder.
 
 ---
 
@@ -540,14 +542,14 @@ docker exec docker-jitsi-meet-web-1 grep -E "defaultLogoUrl|hiddenDomain" /confi
 <br>
 <br>
 
-## 九、升級 Jitsi
+## 9. Upgrading Jitsi
 
 ```bash
 cd docker-jitsi-meet
 git fetch --tags
-git checkout stable-<新版本>
+git checkout stable-<new-version>
 docker compose pull
 docker compose up -d
 ```
 
-JWT 與整合設定不需更動（`custom-config.js` / `custom-interface_config.js` 會保留並自動再附加）。本文撰寫時最新穩定版為 `stable-10888`。
+JWT and integration settings don't need to change (`custom-config.js` / `custom-interface_config.js` are kept and automatically appended again). At the time of writing, the latest stable release is `stable-10888`.

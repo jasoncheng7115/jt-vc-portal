@@ -1,8 +1,15 @@
 <?php
 // === 版本 ===
 // 每次有更新都要推進版本號（patch++ / 功能 minor++）。
-define('APP_VERSION', '1.6.2');
+define('APP_VERSION', '1.6.3');
 define('APP_GITHUB_URL', 'https://github.com/jasoncheng7115/jt-vc-portal');
+
+// === CSP 預設（A05 縱深防禦）===
+// 每個 PHP 回應先帶最嚴格的 CSP；會輸出頁面的 render_head() / send_meeting_csp() 以同名 header 覆蓋成含 nonce 的版本。
+// 確保 403 / 轉址 / JSON 等沒經過版面的回應也有 CSP（ZAP 10038）。
+if (PHP_SAPI !== 'cli' && !headers_sent()) {
+  header("Content-Security-Policy: default-src 'none'; style-src-attr 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+}
 
 // === JaaS (8x8) 連線設定：改由管理介面設定，存於 settings.json，不再寫死 ===
 require_once __DIR__ . '/lib/settings.php';

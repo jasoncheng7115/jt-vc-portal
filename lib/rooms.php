@@ -8,10 +8,12 @@ class Rooms {
 
   /** 讀取整份資料（自動把舊版 int 結構升級成新版結構） */
   public static function load(): array {
-    if (!file_exists(AUTO_ALLOW_FILE)) return [];
-    $data = json_decode(@file_get_contents(AUTO_ALLOW_FILE), true);
-    if (!is_array($data)) return [];
+    return self::normalizeAll(Store::read(AUTO_ALLOW_FILE, []));
+  }
 
+  /** 把原始 JSON 正規化成新版結構（舊版 int → array）。 */
+  private static function normalizeAll($data): array {
+    if (!is_array($data)) return [];
     $out = [];
     foreach ($data as $name => $v) {
       if (is_int($v)) {
@@ -42,8 +44,57 @@ class Rooms {
     return $out;
   }
 
-  public static function save(array $rooms): void {
-    @file_put_contents(AUTO_ALLOW_FILE, json_encode($rooms, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+  /** 在檔案鎖內「讀 → 改 → 寫」整份房間資料。$fn(array &$rooms) 回傳 false 表示不需寫回。 */
+  private static function mutate(callable $fn): array {
+    $result = [];
+    Store::update(AUTO_ALLOW_FILE, function ($raw) use ($fn, &$result) {
+      $rooms = self::normalizeAll($raw);
+      $write = $fn($rooms);
+      $result = $rooms;
+      return $write === false ? null : $rooms;
+    }, []);
+    return $result;
+  }
+
+  /**
+   * 主持 session 逾時（瀏覽器崩潰、沒送離開通知）→ 以最後心跳時間結算並清除，
+   * 避免下次進場延續舊起點造成時長暴增。回傳是否有結算。
+   */
+  private static function closeStaleSession(string $room, array &$r, int $now): bool {
+    if (empty($r['host_joined_at'])) return false;
+    $seen = $r['host_seen_at'] ?? null;
+    if ($seen === null || ($now - (int)$seen) <= self::HOST_STALE_SECONDS) return false;
+    self::recordSession($room, $r, (int)$seen);
+    unset($r['host_joined_at'], $r['roster']);
+    $r['host_joined'] = false;
+    return true;
+  }
+
+  /** 把一段主持 session 寫進 meetings.jsonl。 */
+  private static function recordSession(string $room, array $r, int $end): void {
+    $start = (int)($r['host_joined_at'] ?? 0);
+    if ($start <= 0 || $end <= $start) return;
+    [$participants, $peak] = self::finalizeRoster($r['roster'] ?? null, $start, $end);
+    Store::appendLine(self::MEETINGS_FILE, [
+      'ts'         => $end,
+      'time'       => date('c', $end),
+      'room'       => $room,
+      'start'      => $start,
+      'end'        => $end,
+      'dur'        => $end - $start,           // 秒
+      'owner'      => $r['owner'] ?? '',
+      'owner_name' => $r['owner_name'] ?? '',
+      'attendees'  => count($participants),    // 不重複參與者數
+      'peak'       => $peak,                    // 尖峰同時人數
+      'participants' => $participants,          // [{name,in,out}]，參與者時間軸
+    ]);
+  }
+
+  /** 是否可以主持（回報心跳 / 離開）此房間：管理員、房間擁有者、或無擁有者的舊房間。 */
+  public static function canHost(?array $r, array $me): bool {
+    if ($r === null) return false;
+    if (($me['role'] ?? '') === 'admin') return true;
+    return empty($r['owner']) || $r['owner'] === ($me['id'] ?? '');
   }
 
   /**
@@ -56,22 +107,28 @@ class Rooms {
   public static function pruneAndGet(): array {
     $now = time();
     $rooms = self::load();
-    $valid = [];
-    foreach ($rooms as $name => $r) {
-      $keep = false;
-      if (self::isHostPresent($r, $now)) {
-        $keep = true;                                              // 進行中
-      } elseif (($r['ends_at'] ?? null) !== null) {
-        $keep = ($now - (int)$r['ends_at']) <= 3600;              // 結束後 1h 內
-      } elseif (($r['starts_at'] ?? null) !== null) {
-        $keep = ($now - (int)$r['starts_at']) <= 86400;          // 開始後 24h 內（無結束時間）
-      } else {
-        $keep = ($now - ($r['created_at'] ?? 0)) <= ROOM_TTL_SECONDS; // 無排程：建立後 24h
+    if (!self::needsPrune($rooms, $now)) return $rooms;   // 常見路徑：不需清理就不拿鎖、不寫檔
+    return self::mutate(function (array &$rooms) use ($now) {
+      if (!self::needsPrune($rooms, $now)) return false;
+      foreach ($rooms as $name => $r) {
+        if (self::keepRoom($r, $now)) continue;
+        self::closeStaleSession((string)$name, $r, $now);   // 被清除前先結算未收尾的 session
+        unset($rooms[$name]);
       }
-      if ($keep) $valid[$name] = $r;
-    }
-    if (count($valid) !== count($rooms)) self::save($valid);
-    return $valid;
+      return true;
+    });
+  }
+
+  private static function needsPrune(array $rooms, int $now): bool {
+    foreach ($rooms as $r) if (!self::keepRoom($r, $now)) return true;
+    return false;
+  }
+
+  private static function keepRoom(array $r, int $now): bool {
+    if (self::isHostPresent($r, $now)) return true;                           // 進行中
+    if (($r['ends_at'] ?? null) !== null) return ($now - (int)$r['ends_at']) <= 3600;      // 結束後 1h 內
+    if (($r['starts_at'] ?? null) !== null) return ($now - (int)$r['starts_at']) <= 86400; // 開始後 24h 內（無結束時間）
+    return ($now - ($r['created_at'] ?? 0)) <= ROOM_TTL_SECONDS;              // 無排程：建立後 24h
   }
 
   public static function get(string $room): ?array {
@@ -91,58 +148,43 @@ class Rooms {
 
   /** 主持人離開 → 結算本次 session 時長寫入 meetings.jsonl，並把 host_joined 標回 false */
   public static function setHostLeft(string $room): void {
-    $rooms = self::load();
-    if (isset($rooms[$room]) && is_array($rooms[$room])) {
+    self::mutate(function (array &$rooms) use ($room) {
+      if (!isset($rooms[$room]) || !is_array($rooms[$room])) return false;
       $r = $rooms[$room];
-      if (!empty($r['host_joined_at'])) {
-        $start = (int)$r['host_joined_at'];
-        $end   = time();
-        if ($end > $start) {
-          [$participants, $peak] = self::finalizeRoster($r['roster'] ?? null, $start, $end);
-          Store::appendLine(self::MEETINGS_FILE, [
-            'ts'         => $end,
-            'time'       => date('c', $end),
-            'room'       => $room,
-            'start'      => $start,
-            'end'        => $end,
-            'dur'        => $end - $start,           // 秒
-            'owner'      => $r['owner'] ?? '',
-            'owner_name' => $r['owner_name'] ?? '',
-            'attendees'  => count($participants),    // 不重複參與者數
-            'peak'       => $peak,                    // 尖峰同時人數
-            'participants' => $participants,          // [{name,in,out}]，參與者時間軸
-          ]);
-        }
-      unset($rooms[$room]['roster']);
-      }
+      if (!empty($r['host_joined_at'])) self::recordSession($room, $r, time());
+      unset($rooms[$room]['roster'], $rooms[$room]['host_seen_at'], $rooms[$room]['host_joined_at']);
       $rooms[$room]['host_joined'] = false;
-      unset($rooms[$room]['host_seen_at'], $rooms[$room]['host_joined_at']);
-      self::save($rooms);
-    }
+      return true;
+    });
   }
 
   /** 主持人心跳：寫入 host_seen_at（並確保 host_joined=true、記下 session 起始）；可附帶與會者名冊快照 */
   public static function recordHostHeartbeat(string $room, ?array $roster = null): void {
-    $rooms = self::load();
-    if (!isset($rooms[$room]) || !is_array($rooms[$room])) return;
-    $rooms[$room]['host_joined']  = true;
-    $rooms[$room]['host_seen_at'] = time();
-    if (empty($rooms[$room]['host_joined_at'])) $rooms[$room]['host_joined_at'] = time();
-    if (is_array($roster)) {
-      $clean = [];
-      foreach (array_slice($roster, 0, 200) as $p) {   // 上限 200，避免 rooms.json 膨脹
-        if (!is_array($p)) continue;
-        $in = (int)($p['in'] ?? 0);
-        if ($in <= 0) continue;
-        $clean[] = [
-          'name' => mb_substr(trim((string)($p['name'] ?? '')), 0, 64),
-          'in'   => $in,
-          'out'  => (isset($p['out']) && $p['out'] !== null) ? (int)$p['out'] : null,
-        ];
+    $now = time();
+    self::mutate(function (array &$rooms) use ($room, $roster, $now) {
+      if (!isset($rooms[$room]) || !is_array($rooms[$room])) return false;
+      $r = &$rooms[$room];
+      self::closeStaleSession($room, $r, $now);   // 上一段逾時未收尾 → 先結算，本次重新起算
+      $r['host_joined']  = true;
+      $r['host_seen_at'] = $now;
+      if (empty($r['host_joined_at'])) $r['host_joined_at'] = $now;
+      if (is_array($roster)) {
+        $clean = [];
+        foreach (array_slice($roster, 0, 200) as $p) {   // 上限 200，避免檔案膨脹
+          if (!is_array($p)) continue;
+          $in = (int)($p['in'] ?? 0);
+          if ($in <= 0) continue;
+          $clean[] = [
+            'name' => mb_substr(trim((string)($p['name'] ?? '')), 0, 64),
+            'in'   => $in,
+            'out'  => (isset($p['out']) && $p['out'] !== null) ? (int)$p['out'] : null,
+          ];
+        }
+        $r['roster'] = $clean;
       }
-      $rooms[$room]['roster'] = $clean;
-    }
-    self::save($rooms);
+      unset($r);
+      return true;
+    });
   }
 
   /** 把名冊快照結算成 [participants[{name,in,out}], 尖峰同時人數]；時間 clamp 進 [start,end]。 */
@@ -177,39 +219,42 @@ class Rooms {
   }
 
   public static function upsert(string $room, array $opts = []): array {
-    $rooms = self::pruneAndGet();
-    $existing = $rooms[$room] ?? [
-      'created_at'  => time(),
-      'starts_at'   => null,
-      'ends_at'     => null,
-      'host_joined' => false,
-      'lobby'       => false,
-    ];
-
-    if (!empty($opts['update_schedule'])) {
-      $existing['starts_at'] = $opts['starts_at'] ?? null;
-      $existing['ends_at']   = $opts['ends_at']   ?? null;
-    }
-    if (!empty($opts['host_joined'])) {
-      $existing['host_joined']  = true;
-      $existing['host_seen_at'] = time();
-      if (empty($existing['host_joined_at'])) $existing['host_joined_at'] = time();
-    }
-    // owner 只在尚未有 owner 時設定（第一次建立者），避免事後被改寫
-    if (!empty($opts['owner']) && empty($existing['owner'])) {
-      $existing['owner']      = $opts['owner'];
-      $existing['owner_name'] = $opts['owner_name'] ?? null;
-    }
-    if (array_key_exists('attendees', $opts)) {
-      $existing['attendees'] = $opts['attendees'];
-    }
-    if (array_key_exists('lobby', $opts)) {
-      $existing['lobby'] = !empty($opts['lobby']);
-    }
-
-    $rooms[$room] = $existing;
-    self::save($rooms);
-    return $existing;
+    $now = time();
+    $out = [];
+    self::mutate(function (array &$rooms) use ($room, $opts, $now, &$out) {
+      $existing = $rooms[$room] ?? [
+        'created_at'  => $now,
+        'starts_at'   => null,
+        'ends_at'     => null,
+        'host_joined' => false,
+        'lobby'       => false,
+      ];
+      if (!empty($opts['update_schedule'])) {
+        $existing['starts_at'] = $opts['starts_at'] ?? null;
+        $existing['ends_at']   = $opts['ends_at']   ?? null;
+      }
+      if (!empty($opts['host_joined'])) {
+        self::closeStaleSession($room, $existing, $now);
+        $existing['host_joined']  = true;
+        $existing['host_seen_at'] = $now;
+        if (empty($existing['host_joined_at'])) $existing['host_joined_at'] = $now;
+      }
+      // owner 只在尚未有 owner 時設定（第一次建立者），避免事後被改寫
+      if (!empty($opts['owner']) && empty($existing['owner'])) {
+        $existing['owner']      = $opts['owner'];
+        $existing['owner_name'] = $opts['owner_name'] ?? null;
+      }
+      if (array_key_exists('attendees', $opts)) {
+        $existing['attendees'] = $opts['attendees'];
+      }
+      if (array_key_exists('lobby', $opts)) {
+        $existing['lobby'] = !empty($opts['lobby']);
+      }
+      $rooms[$room] = $existing;
+      $out = $existing;
+      return true;
+    });
+    return $out;
   }
 
   /** 判斷來賓現在能不能進場（會考慮心跳時效） */
@@ -246,20 +291,12 @@ class Rooms {
 
   /** 清理 meetings.jsonl 中結束時間早於保留天數的記錄（保留最近 N 天）。 */
   public static function pruneMeetings(int $days): void {
-    if (!file_exists(self::MEETINGS_FILE)) return;
     $cutoff = time() - max(7, $days) * 86400;
-    $lines = @file(self::MEETINGS_FILE, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
-    $kept = [];
-    $changed = false;
-    foreach ($lines as $ln) {
+    Store::pruneLines(self::MEETINGS_FILE, function (string $ln) use ($cutoff) {
       $e = json_decode($ln, true);
       $end = is_array($e) ? (int)($e['end'] ?? $e['ts'] ?? 0) : 0;
-      if ($end >= $cutoff) $kept[] = $ln;
-      else $changed = true;
-    }
-    if ($changed) {
-      @file_put_contents(self::MEETINGS_FILE, $kept ? implode("\n", $kept) . "\n" : '', LOCK_EX);
-    }
+      return $end >= $cutoff;
+    });
   }
 
   /** 讀取「結束時間」落在 [$fromTs,$toTs] 內的會議 session（舊→新）。 */

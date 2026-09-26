@@ -5,15 +5,13 @@ require_once __DIR__ . '/lib/rooms.php';
 
 header('Cache-Control: no-store');
 
-Auth::start();
-if (!Auth::check()) {
-  http_response_code(403);
-  exit;
-}
-$room = Rooms::sanitize($_POST['room'] ?? $_GET['room'] ?? '');
-if ($room === '') {
-  http_response_code(400);
-  exit;
-}
+// 僅接受 POST + CSRF（sendBeacon 以 FormData 帶 _csrf），且只能對「自己可主持」的會議室標記離開（A01）
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); exit; }
+$me = Auth::user();
+if (!$me) { http_response_code(403); exit; }
+Auth::csrfCheck();
+$room = Rooms::sanitize((string)($_POST['room'] ?? $_GET['room'] ?? ''));
+if ($room === '') { http_response_code(400); exit; }
+if (!Rooms::canHost(Rooms::get($room), $me)) { http_response_code(403); exit; }
 Rooms::setHostLeft($room);
 http_response_code(204);
