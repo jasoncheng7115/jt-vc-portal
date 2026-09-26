@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.7.0 — 會議管理系統
+# jt-vc-portal v1.8.0 — 會議管理系統
 
 > English: [README.md](README.md)
 
@@ -12,7 +12,7 @@
 
 **介紹頁 / Demo：** <https://jasoncheng7115.github.io/jt-vc-portal/>
 
-![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
+![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)
 ![PHP](https://img.shields.io/badge/PHP-8.4-777BB4.svg)
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)
 ![OWASP](https://img.shields.io/badge/OWASP-Top_10_2025-success.svg)
@@ -23,7 +23,7 @@
 ## 功能特色
 
 - **雙連線模式**：8x8 JaaS（雲端託管，RS256 + kid）或自建 Jitsi Meet（HS256 或免 JWT），於管理介面一鍵切換，不動程式碼。
-- **會議室管理**：建立 / 進入會議室、亂數命名、近期清單、一鍵複製邀請、QR Code 彈窗。
+- **會議室管理**：建立 / 進入 / 刪除會議室（受邀者會收到行事曆取消通知）、亂數命名、近期清單、一鍵複製邀請、QR Code 彈窗。
 - **預約時段**：可設定開放時段；時段未到顯示翻頁時鐘倒數，主持人提前進入即自動放行。
 - **來賓流程**：來賓必填顯示名稱才進場；非開放時段顯示等候 / 倒數 / 已結束頁。
 - **大廳模式**：建立會議室時可選；主持人進場自動開啟，來賓需經主持人逐一允許才能進入會議室。
@@ -203,14 +203,14 @@ server {
 
 ```bash
 # 1) 從 Release 頁下載映像與校驗檔（請改用最新版本號）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.7.0/jt-vc-portal-1.7.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.7.0/jt-vc-portal-1.7.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.8.0/jt-vc-portal-1.8.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.8.0/jt-vc-portal-1.8.0-docker-amd64.tar.gz.sha256
 
 # 2) 驗證完整性（應顯示 OK）
-sha256sum -c jt-vc-portal-1.7.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.8.0-docker-amd64.tar.gz.sha256
 
-# 3) 載入映像（會建立 jt-vc-portal:1.7.0 與 :latest 標籤）
-docker load < jt-vc-portal-1.7.0-docker-amd64.tar.gz
+# 3) 載入映像（會建立 jt-vc-portal:1.8.0 與 :latest 標籤）
+docker load < jt-vc-portal-1.8.0-docker-amd64.tar.gz
 
 # 4) 主機端準備持久化目錄（www-data UID 預設 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -425,6 +425,7 @@ sudo -u www-data php login-path.php reset
 - **A09 記錄與告警**：完整稽核記錄 + 即時 SIEM 外拋。
 - **A10 例外處理**：失敗安全降級——讀取失敗回預設、寄信 / 外拋失敗不阻斷主流程、錯誤不外洩。
 - 私鑰、設定與執行資料皆存於掛載卷，**不進版控**（見 `.gitignore`）。
+- **已知限制（Jitsi 設計使然）**：會議室名稱是邀請連結的一部分，敏感會議請用亂數名稱或大廳模式；自建模式未啟用 JWT 時，知道房名的人可直接連 Jitsi 網域進入（請啟用 JWT，設定頁會提示）；來賓一旦取得會議 token，在效期內（6 小時）可直接重新連入——在意的話請用大廳模式。
 - 每次發版都必須通過單元、整合、瀏覽器 e2e 測試與 OWASP ZAP 弱掃（**High / Medium 皆為 0**），詳見 [TEST_CHECKLIST_zh-TW.md](TEST_CHECKLIST_zh-TW.md)。
 
 ---
@@ -438,7 +439,9 @@ sudo -u www-data php login-path.php reset
 
 ## 授權
 
-本專案以 [Apache License 2.0](LICENSE) 釋出。
+本專案以 [GNU 通用公共授權條款第 3 版（GPL-3.0）](LICENSE) 釋出（GPL-3.0-only）。
+
+> v1.7.0（含）以前的版本以 Apache License 2.0 發佈；自 v1.8.0 起改以 GPL-3.0 授權。
 
 <br>
 <br>

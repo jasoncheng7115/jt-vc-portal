@@ -362,6 +362,8 @@ PORT=9080
 
 Set permissions: `chmod 600 /etc/jibri-recordings-api.env`.
 
+> **Security note:** the service speaks plain HTTP and authenticates with a Bearer token, so the token travels unencrypted between the portal and the Jibri host. Keep this traffic on a trusted internal network, and in addition restrict port 9080 with a host firewall so that only the portal host can reach it (`ALLOW_IPS` is the application-level check; a firewall is the network-level one). If the two hosts talk over an untrusted network, put a TLS reverse proxy (e.g. nginx) in front of the service and use an `https://` URL in the portal settings.
+
 4) systemd service `/etc/systemd/system/jibri-recordings-api.service`:
 
 ```ini

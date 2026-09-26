@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.7.0 — Meeting Management System
+# jt-vc-portal v1.8.0 — Meeting Management System
 
 > 繁體中文: [README_zh-TW.md](README_zh-TW.md)
 
@@ -12,7 +12,7 @@
 
 **Project page / Demo:** <https://jasoncheng7115.github.io/jt-vc-portal/>
 
-![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
+![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)
 ![PHP](https://img.shields.io/badge/PHP-8.4-777BB4.svg)
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)
 ![OWASP](https://img.shields.io/badge/OWASP-Top_10_2025-success.svg)
@@ -23,7 +23,7 @@
 ## Features
 
 - **Dual connection modes**: 8x8 JaaS (cloud-hosted, RS256 + kid) or self-hosted Jitsi Meet (HS256 or no JWT), switchable with one click in the admin UI — no code changes required.
-- **Meeting room management**: create / enter rooms, random room names, recent-rooms list, one-click invite copying, QR code pop-up.
+- **Meeting room management**: create / enter / delete rooms (invitees get a calendar cancellation), random room names, recent-rooms list, one-click invite copying, QR code pop-up.
 - **Scheduled time slots**: set an open time window; before it starts, guests see a flip-clock countdown, and the room opens automatically if the host joins early.
 - **Guest flow**: guests must enter a display name before joining; outside the open window they see a waiting / countdown / ended page.
 - **Lobby mode**: optional when creating a room; it is enabled automatically when the host joins, and guests must be admitted one by one by the host.
@@ -203,14 +203,14 @@ Don't want to build it yourself? Download the packaged image (`linux/amd64`) att
 
 ```bash
 # 1) Download the image and checksum file from the Release page (use the latest version number)
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.7.0/jt-vc-portal-1.7.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.7.0/jt-vc-portal-1.7.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.8.0/jt-vc-portal-1.8.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.8.0/jt-vc-portal-1.8.0-docker-amd64.tar.gz.sha256
 
 # 2) Verify integrity (should print OK)
-sha256sum -c jt-vc-portal-1.7.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.8.0-docker-amd64.tar.gz.sha256
 
-# 3) Load the image (creates the jt-vc-portal:1.7.0 and :latest tags)
-docker load < jt-vc-portal-1.7.0-docker-amd64.tar.gz
+# 3) Load the image (creates the jt-vc-portal:1.8.0 and :latest tags)
+docker load < jt-vc-portal-1.8.0-docker-amd64.tar.gz
 
 # 4) Prepare persistent directories on the host (www-data UID defaults to 33)
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -425,6 +425,7 @@ Follows OWASP Top 10:2025, item by item:
 - **A09 Logging and alerting**: complete audit log + real-time SIEM forwarding.
 - **A10 Exception handling**: fail-safe degradation — read failures fall back to defaults, email / forwarding failures do not block the main flow, errors are not leaked.
 - Private keys, settings and runtime data are all stored in mounted volumes and **never enter version control** (see `.gitignore`).
+- **Known limitations (by design of Jitsi):** the room name is part of the invite link, so use random names or lobby mode for sensitive meetings; in self-hosted mode without JWT anyone who knows a room name can join directly on the Jitsi domain (enable JWT — the settings page warns about this); a guest who has already received a meeting token can rejoin directly within its lifetime (6 h) — use lobby mode if that matters.
 - Every release must pass unit, integration, browser e2e tests and an OWASP ZAP scan with **zero High / Medium alerts** — see [TEST_CHECKLIST.md](TEST_CHECKLIST.md).
 
 ---
@@ -438,7 +439,9 @@ Follows OWASP Top 10:2025, item by item:
 
 ## License
 
-This project is released under the [Apache License 2.0](LICENSE).
+This project is released under the [GNU General Public License v3.0](LICENSE) (GPL-3.0-only).
+
+> Versions up to and including v1.7.0 were published under the Apache License 2.0; starting with v1.8.0 the project is licensed under GPL-3.0.
 
 <br>
 <br>

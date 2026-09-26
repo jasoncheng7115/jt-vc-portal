@@ -51,6 +51,17 @@ function watch(page, bag) {
     if (!NO_I18N) ok('html lang 正確', locale === 'en-US' ? html === 'en' : html === 'zh-Hant-TW', html);
     ok('主持人頁無 CSP / SRI 錯誤', hv.length === 0, hv.slice(0, 2).join(' | '));
     ok('來賓頁無 CSP / SRI 錯誤', gv.length === 0, gv.slice(0, 2).join(' | '));
+    // 刪除會議室（自訂確認框）→ 登出（POST 按鈕）
+    await hp.goto(BASE + '/dashboard');
+    const delForm = hp.locator(`form[action="/room-delete"]:has(input[value="${room}"])`);
+    if (await delForm.count()) {
+      await delForm.locator('button').click();
+      await hp.waitForSelector('#confirmModal.open', { timeout: 5000 });
+      await Promise.all([hp.waitForURL(/\/dashboard/), hp.click('#confirmOk')]);
+      ok('UI 刪除會議室', !(await hp.content()).includes(`value="${room}"`));
+    } else ok('UI 刪除會議室', false, '找不到刪除按鈕');
+    await Promise.all([hp.waitForURL(/jt-login/), hp.click('form[action="/logout"] button')]);
+    ok('登出按鈕（POST）', hp.url().includes('/jt-login'));
     await host.close(); await guest.close();
   }
   await browser.close();

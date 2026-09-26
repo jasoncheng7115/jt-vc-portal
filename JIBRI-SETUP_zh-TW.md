@@ -362,6 +362,8 @@ PORT=9080
 
 設好權限：`chmod 600 /etc/jibri-recordings-api.env`。
 
+> **資安提醒**：此服務走明文 HTTP、以 Bearer token 驗證，token 在 portal 與 Jibri 主機之間是未加密傳送的。請讓這段流量只走可信任的內網，並另外用主機防火牆限制 9080 埠只有 portal 主機可連（`ALLOW_IPS` 是應用層檢查，防火牆是網路層）。若兩台之間經過不可信任的網路，請在服務前面加一層 TLS 反向代理（例如 nginx），portal 設定改用 `https://` 網址。
+
 4) systemd 服務 `/etc/systemd/system/jibri-recordings-api.service`：
 
 ```ini

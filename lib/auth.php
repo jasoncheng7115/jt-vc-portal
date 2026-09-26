@@ -96,6 +96,7 @@ class Auth {
     $_SESSION['login_ip'] = self::clientIp();
     $_SESSION['login_at'] = time();
     $_SESSION['last_seen'] = time();
+    $_SESSION['gen'] = (string)($user['session_gen'] ?? '');   // session 世代：換密碼 / 強制登出時失效
     // 套用個人語言偏好（未設定＝沿用 cookie / 瀏覽器判斷）
     $ul = I18n::normalize($user['lang'] ?? null);
     if ($ul !== null) { $_SESSION['lang'] = $ul; I18n::set($ul); I18n::remember($ul); }
@@ -133,7 +134,8 @@ class Auth {
   public static function user(): ?array {
     if (!self::check()) return null;
     $u = Users::find($_SESSION['uid']);
-    if (!$u || !empty($u['disabled'])) {
+    // 帳號停用、刪除，或 session 世代已變（改密碼 / 管理員重設 / 強制登出）→ 立即失效
+    if (!$u || !empty($u['disabled']) || (string)($u['session_gen'] ?? '') !== (string)($_SESSION['gen'] ?? '')) {
       self::logout();
       return null;
     }

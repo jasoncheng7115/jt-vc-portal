@@ -124,7 +124,7 @@ function render_topbar($user = null, ?string $ip = null): void {
           </div>
         </div>
       <?php endif; ?>
-      <a class="btn btn-secondary" href="/logout"><?= icon('log-out') ?><?= th('登出') ?></a>
+      <form method="POST" action="/logout" style="display:inline;margin:0;"><?= Auth::csrfField() ?><button type="submit" class="btn btn-secondary"><?= icon('log-out') ?><?= th('登出') ?></button></form>
     <?php else: ?>
       <?= lang_switch_html() ?>
     <?php endif; ?>

@@ -106,7 +106,8 @@ class Mailer {
 
     if ($ics !== '') {
       $body .= "--$boundary$crlf";
-      $body .= "Content-Type: text/calendar; method=REQUEST; charset=UTF-8$crlf";
+      $icsMethod = (($opts['icsMethod'] ?? 'REQUEST') === 'CANCEL') ? 'CANCEL' : 'REQUEST';
+      $body .= "Content-Type: text/calendar; method={$icsMethod}; charset=UTF-8$crlf";
       $body .= "Content-Transfer-Encoding: base64$crlf";
       $body .= "Content-Disposition: attachment; filename=\"$icsName\"$crlf$crlf";
       $body .= chunk_split(base64_encode($ics)) . $crlf;

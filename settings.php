@@ -98,7 +98,7 @@ render_topbar($me, $ip);
   </div>
 
   <?php /* 會議室介面 */ ?>
-  <?php $meeting_lang = Settings::getMeetingLangSetting(); $meeting_retention = Settings::getMeetingRetentionDays(); $guest_poll = Settings::getGuestPollSeconds(); ?>
+  <?php $meeting_lang = Settings::getMeetingLangSetting(); $meeting_retention = Settings::getMeetingRetentionDays(); $audit_retention = Settings::getAuditRetentionDays(); $guest_poll = Settings::getGuestPollSeconds(); ?>
   <div class="card">
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('video', 18) ?><?= th('會議室介面') ?></h1>
     <p class="subtitle" style="margin:6px 0 18px;"><?= th('設定來賓 / 主持人進入會議室時的預設介面語言（會關閉瀏覽器語言自動偵測，強制使用此語言）。') ?></p>
@@ -115,6 +115,9 @@ render_topbar($me, $ip);
       </div>
       <div class="field"><label><?= th('會議時長保留天數') ?></label>
         <input type="number" name="meeting_retention_days" min="7" max="3650" value="<?= (int)$meeting_retention ?>" style="width:120px;">
+      </div>
+      <div class="field"><label><?= th('稽核記錄保留天數') ?></label>
+        <input type="number" name="audit_retention_days" min="30" max="3650" value="<?= (int)$audit_retention ?>" style="width:120px;">
       </div>
       <div class="field"><label><?= th('等候頁自動檢查間隔（秒）') ?></label>
         <input type="number" name="guest_poll_seconds" min="10" max="600" value="<?= (int)$guest_poll ?>" style="width:120px;">
@@ -174,6 +177,9 @@ render_topbar($me, $ip);
             <option value="none" <?= $jaas['sh_auth']==='none'?'selected':'' ?>><?= th('不需 JWT（匿名加入）') ?></option>
             <option value="jwt" <?= $jaas['sh_auth']==='jwt'?'selected':'' ?>><?= th('需要 JWT（HS256）') ?></option>
           </select>
+          <?php if ($jaas['mode'] === 'selfhosted' && $jaas['sh_auth'] === 'none'): ?>
+            <div class="alert alert-warning" style="margin-top:8px;"><?= icon('warning') ?><span><?= th('目前未啟用 JWT：任何知道會議室名稱的人都能直接連到 Jitsi 網域進入會議，繞過本系統的等候、具名與排程控管。建議改為「需要 JWT」。') ?></span></div>
+          <?php endif; ?>
         </div>
         <div class="field"><label><?= th('JWT 共享密鑰（HS256，須與 prosody 的 app_secret 一致）') ?></label>
           <input type="password" name="sh_secret" value="" autocomplete="new-password" placeholder="<?= $jaas['sh_secret'] !== '' ? th('已設定（留空不變更）') : th('自建 Jitsi Meet 的 app_secret') ?>"></div>

@@ -2,6 +2,18 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md)
 
+## v1.8.0 — Room deletion, session revocation, license change to GPL-3.0
+
+- **License**: the project is now licensed under the **GNU GPL v3.0** (v1.7.0 and earlier remain Apache-2.0).
+- **Delete / cancel a room** from the dashboard (owner or admin, with confirmation). If the room had invitees and SMTP is enabled, a calendar **cancellation** (`METHOD:CANCEL`) is emailed so it disappears from their calendars; a running host session is recorded first. New audit action `room_delete`.
+- **Calendar invites**: each resend increases `SEQUENCE` so calendars replace the old event; UIDs include the room's creation time (a later room with the same name no longer collides); line folding never splits a UTF-8 character.
+- **Sessions**: changing a password (by the user or an admin) signs that account out on all other devices; admins can also force-sign-out an account ("Sign this account out of all devices").
+- **Sign-out** is POST + CSRF only (a cross-site link can no longer sign users out).
+- **Audit log**: configurable retention (default 365 days, 30–3650) with automatic pruning; field length limits against oversized input.
+- **Recordings list** reads meeting records / rooms once per request (faster for hosts with many recordings).
+- **Jibri recordings API**: out-of-range `Range` requests return 416; docs now recommend a firewall / TLS proxy for the token-authenticated HTTP service.
+- **Warnings**: the settings page warns when self-hosted mode runs without JWT; the create-room form explains that easy-to-guess room names can be guessed. README lists the known Jitsi limitations.
+
 ## v1.7.0 — Bilingual interface (Traditional Chinese / English)
 
 - **Portal UI i18n**: every page, message, email default and audit label is translatable (`t()` / `th()`, keys are the original zh-TW text; English in `lang/en/*.php`). About 660 strings translated.

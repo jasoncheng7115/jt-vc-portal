@@ -40,6 +40,7 @@ if (!Users::verifyPassword($me, $cur)) $back('profile_err', t('目前密碼不�
 if (strlen($np) < 10) $back('profile_err', t('新密碼至少需 10 字。'));
 if ($np !== $np2) $back('profile_err', t('兩次輸入的新密碼不一致。'));
 
-Users::update($me['id'], ['password' => $np]);
+$upd = Users::update($me['id'], ['password' => $np]);
+$_SESSION['gen'] = (string)($upd['session_gen'] ?? '');   // 保留目前這個 session，其餘裝置登出
 Audit::log('password_change', t('變更自己的密碼'));
 $back('profile_msg', t('密碼已更新。'));

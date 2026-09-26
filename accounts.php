@@ -73,6 +73,7 @@ render_topbar($me, $ip);
               <div class="field"><label><?= th('重設密碼（留空不改，至少 10 字）') ?></label>
                 <input type="password" name="password" placeholder="<?= th('新密碼') ?>" minlength="10" autocomplete="new-password">
               </div>
+              <div class="field"><label style="font-weight:400;"><input type="checkbox" name="revoke" value="1"> <?= th('強制登出此帳號所有已登入的裝置') ?></label></div>
               <button class="btn btn-secondary"><?= icon('check',14) ?><?= th('儲存') ?></button>
             </form>
           </td>

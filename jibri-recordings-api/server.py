@@ -351,10 +351,17 @@ class H(BaseHTTPRequestHandler):
         size = os.path.getsize(p); start, end, status = 0, size - 1, 200
         rng = self.headers.get("Range")
         if rng:
-            mm = re.match(r"bytes=(\d+)-(\d*)", rng)
+            mm = re.fullmatch(r"bytes=(\d+)-(\d*)", rng.strip())
             if mm:
                 start = int(mm.group(1)); end = int(mm.group(2)) if mm.group(2) else size - 1
                 end = min(end, size - 1); status = 206
+                # 起點超出檔案 / 範圍顛倒 → 416（不可送出負的 Content-Length）
+                if start >= size or start > end:
+                    self.send_response(416)
+                    self.send_header("Content-Range", f"bytes */{size}")
+                    self.send_header("Content-Length", "0")
+                    self.end_headers()
+                    return
         length = end - start + 1
         self.send_response(status)
         self.send_header("Content-Type", "video/mp4")

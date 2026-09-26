@@ -66,6 +66,9 @@
 - [ ] Profile: change display name; changing the password requires the old password, a new password of at least 10 characters, and matching confirmation.
 - [ ] Account management (admin): create / edit / disable / delete / change role / reset password; you cannot delete or disable yourself; at least one enabled admin must remain.
 - [ ] Once an account is disabled, its existing session is invalidated on the next request.
+- [ ] Own password change: sessions on all other devices end, the current session stays; an admin password reset ends all sessions of that account.
+- [ ] Account management → "Sign this account out of all devices" ends all of that account's sessions without affecting other accounts.
+- [ ] Sign-out is POST + CSRF only: `GET /logout` does not sign out; the header "Sign out" button and the 2FA page "Cancel and sign in again" work.
 - [ ] Session idle timeout (default 30 minutes) and absolute timeout (default 12 hours) take effect.
 - [ ] Role-based tabs: a host sees only "Meeting Rooms" + (when Jibri is configured) "Recordings"; an admin sees everything.
 
@@ -75,6 +78,7 @@
 - [ ] Recent list: shows schedule, host status badge, invitee count; copy invite link, QR dialog.
 - [ ] "Enter / Host now / Enter from QR dialog" submit via POST forms and enter the meeting correctly; they do not wipe the existing lobby setting or invitee list.
 - [ ] Entering a meeting room owned by someone else is blocked (except for admins).
+- [ ] Delete room: owner / admin can delete (custom confirm dialog); others cannot; with invitees and SMTP enabled a calendar cancellation is sent (Google / Outlook / Apple remove the event); audit has `room_delete`.
 - [ ] The Jitsi IFrame API is served from the bundled `assets/vendor/jitsi-external-api.js` with SRI; the meeting page CSP `frame-src` allows only the Jitsi domain. After updating it with `tools/update-jitsi-external-api.sh`, run the e2e test.
 - [ ] Meeting page: Jitsi loads correctly, the language is correct, the share button (QR / copy) works, and recording start / stop notices appear.
 - [ ] Host heartbeat reports every 15 seconds; closing the tab sends a leave notification; 45 seconds without a heartbeat counts as offline.
@@ -86,6 +90,7 @@
 - [ ] Set start / end times; an end time earlier than the start time is rejected.
 - [ ] With SMTP enabled, enter attendee emails → an invitation with an `.ics` is sent, and Google / Outlook / Apple can add it to the calendar.
 - [ ] Invalid emails are rejected with a message.
+- [ ] Re-sending invites for the same room: `.ics` SEQUENCE increases, UID stays, calendars replace the old event; long Chinese titles still display correctly after folding.
 - [ ] SMTP test email succeeds; failure messages are displayed correctly.
 
 ### 3.4 Guests
@@ -106,8 +111,10 @@
 - [ ] Delete, cleanup by policy, capacity bar, retention policy (time / capacity / leftovers, disabled by default) are admin-only.
 - [ ] A host can only see and fetch recordings of sessions they hosted; after a room name is re-created by someone else, the new owner cannot see the old sessions.
 - [ ] Recording status (ok / recording / incomplete / orphan) is determined correctly; recordings in progress cannot be deleted.
+- [ ] Jibri recordings API: `tests/test-jibri-api.sh` passes (auth, Range 206 / 416, path traversal).
 
 ### 3.7 System settings (admin)
+- [ ] In self-hosted mode with "No JWT" the settings page shows a warning; the create-room form explains the guessable-name risk.
 - [ ] Connection mode: JaaS and self-hosted settings are saved separately, and switching does not overwrite either; self-hosted mode shows the requirement hints.
 - [ ] Secret fields (self-hosted JWT shared secret, SMTP password, Jibri token) are not echoed back to the page; submitting empty keeps the existing value; SMTP has a checkbox to clear the password.
 - [ ] Site name / logo upload (PNG / JPEG / WebP / GIF, up to 2MB) / restore default.
@@ -124,6 +131,7 @@
 - [ ] Every action (login success / failure / lockout, logout, create / enter meeting room, guest join, send invitation, account CRUD, settings changes, password / 2FA, recording download / delete / cleanup, export) is logged.
 - [ ] Filter by action type, keyword and date; pagination; CSV export uses the current filters, includes a UTF-8 BOM, and has formula-injection protection.
 - [ ] Each entry is forwarded to the SIEM in real time (when enabled).
+- [ ] Audit log retention (default 365 days) works: older entries are pruned when the audit page is opened; oversized account / detail strings are truncated.
 
 ### 3.9 USAGE webhook (JaaS)
 - [ ] Correct Authorization or HMAC signature → counted toward the current period's unique devices; the same idempotencyKey is not counted twice.
@@ -246,4 +254,7 @@ Spot-check on every release; test everything for major changes:
 | No leftover text per page in English / Chinese, html lang, ?lang=, cookie, /set-lang open-redirect guard, per-user language, lang/ 403 | `tests/run-integration.sh` (i18n section) |
 | Untranslated strings / missing keys / placeholder consistency | `tests/check-i18n.php` |
 | Real browser: host join, guest join, iframe, SRI, CSP (zh-TW + English) | `tests/run-e2e.sh` |
+| .ics folding / REQUEST / CANCEL / SEQUENCE, session settlement on room delete, audit length limits and retention pruning | `tests/unit/test_ical_audit.php` |
+| GET sign-out ignored, password change / force sign-out invalidates sessions, room delete permissions, audit | `tests/run-integration.sh` (v1.8.0 section) |
+| Jibri recordings API auth / Range / path traversal | `tests/test-jibri-api.sh` |
 | Vulnerability scan | `tests/zap/run-zap.sh` |

@@ -92,7 +92,7 @@
       <a class="btn btn-ghost" href="https://github.com/jasoncheng7115/jt-vc-portal" target="_blank" rel="noopener"><span class="zh">在 GitHub 檢視</span><span class="en">View on GitHub</span></a>
     </div>
     <div class="badges">
-      <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License">
+      <img src="https://img.shields.io/badge/License-GPL--3.0-blue.svg" alt="License">
       <img src="https://img.shields.io/badge/PHP-8.4-777BB4.svg" alt="PHP 8.4">
       <img src="https://img.shields.io/badge/Docker-ready-2496ED.svg" alt="Docker">
       <img src="https://img.shields.io/badge/OWASP-Top_10_2025-success.svg" alt="OWASP">
@@ -359,9 +359,9 @@ docker run -d --restart unless-stopped -p 127.0.0.1:58189:58189 \
 
     <h3 style="margin-top:24px"><span class="zh">方法三：從 Release 載入預建映像</span><span class="en">Option 3: Load the prebuilt image from a Release</span></h3>
 <pre class="zh"><span class="c"># 不想自己 build，直接下載 Release 打包映像（linux/amd64）</span>
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.7.0/jt-vc-portal-1.7.0-docker-amd64.tar.gz
-sha256sum -c jt-vc-portal-1.7.0-docker-amd64.tar.gz.sha256   <span class="c"># 驗證完整性</span>
-docker load &lt; jt-vc-portal-1.7.0-docker-amd64.tar.gz        <span class="c"># 載入為 jt-vc-portal:latest</span>
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.8.0/jt-vc-portal-1.8.0-docker-amd64.tar.gz
+sha256sum -c jt-vc-portal-1.8.0-docker-amd64.tar.gz.sha256   <span class="c"># 驗證完整性</span>
+docker load &lt; jt-vc-portal-1.8.0-docker-amd64.tar.gz        <span class="c"># 載入為 jt-vc-portal:latest</span>
 
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
 chown 33:33 /opt/jt-vc-portal/data
@@ -375,9 +375,9 @@ docker run -d --restart unless-stopped -p 127.0.0.1:58189:58189 \
   -v /opt/jt-vc-portal/data/:/var/jaas-data \
   --name jt-vc-portal jt-vc-portal:latest</pre>
 <pre class="en"><span class="c"># Skip building: download the packaged image from the Release (linux/amd64)</span>
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.7.0/jt-vc-portal-1.7.0-docker-amd64.tar.gz
-sha256sum -c jt-vc-portal-1.7.0-docker-amd64.tar.gz.sha256   <span class="c"># verify integrity</span>
-docker load &lt; jt-vc-portal-1.7.0-docker-amd64.tar.gz        <span class="c"># loads as jt-vc-portal:latest</span>
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.8.0/jt-vc-portal-1.8.0-docker-amd64.tar.gz
+sha256sum -c jt-vc-portal-1.8.0-docker-amd64.tar.gz.sha256   <span class="c"># verify integrity</span>
+docker load &lt; jt-vc-portal-1.8.0-docker-amd64.tar.gz        <span class="c"># loads as jt-vc-portal:latest</span>
 
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
 chown 33:33 /opt/jt-vc-portal/data
@@ -502,7 +502,7 @@ docker stop jt-vc-portal &amp;&amp; docker rm jt-vc-portal      <span class="c">
   <div class="wrap">
     <h2><span class="zh">免責聲明</span><span class="en">Disclaimer</span></h2>
     <div class="disclaimer">
-      <span class="zh">本軟體依「現狀」（AS IS）提供，不附任何明示或默示之擔保。使用者須自行負責部署環境之安全性與合規性，包含第三方服務（如 <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>）之服務條款與費用。作者不對任何因使用本軟體所生之直接或間接損失負責。本專案以 <a href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a> 釋出。</span><span class="en">This software is provided "AS IS", without warranty of any kind, express or implied. You are solely responsible for the security and compliance of your deployment, including the terms of service and fees of third-party services (such as <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>). The author is not liable for any direct or indirect damages arising from the use of this software. This project is released under the <a href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/LICENSE" target="_blank" rel="noopener">Apache License 2.0</a>.</span>
+      <span class="zh">本軟體依「現狀」（AS IS）提供，不附任何明示或默示之擔保。使用者須自行負責部署環境之安全性與合規性，包含第三方服務（如 <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>）之服務條款與費用。作者不對任何因使用本軟體所生之直接或間接損失負責。本專案以 <a href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/LICENSE" target="_blank" rel="noopener">GNU GPL v3.0</a> 釋出。</span><span class="en">This software is provided "AS IS", without warranty of any kind, express or implied. You are solely responsible for the security and compliance of your deployment, including the terms of service and fees of third-party services (such as <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>). The author is not liable for any direct or indirect damages arising from the use of this software. This project is released under the <a href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/LICENSE" target="_blank" rel="noopener">GNU GPL v3.0</a>.</span>
     </div>
   </div>
 </section>
@@ -510,7 +510,7 @@ docker stop jt-vc-portal &amp;&amp; docker rm jt-vc-portal      <span class="c">
 <!-- FOOTER -->
 <footer>
   <div class="wrap">
-    <div>© <span id="yr"></span> Jason Tools · <span class="zh">以 Apache License 2.0 釋出</span><span class="en">Released under the Apache License 2.0</span></div>
+    <div>© <span id="yr"></span> Jason Tools · <span class="zh">以 GNU GPL v3.0 釋出</span><span class="en">Released under the GNU GPL v3.0</span></div>
     <div class="ftlinks">
       <a href="https://github.com/jasoncheng7115/jt-vc-portal" target="_blank" rel="noopener"><span class="zh">原始碼</span><span class="en">Source code</span></a>
       <a class="zh" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/README_zh-TW.md" target="_blank" rel="noopener">README</a><a class="en" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/README.md" target="_blank" rel="noopener">README</a>

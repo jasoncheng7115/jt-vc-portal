@@ -38,7 +38,7 @@ render_topbar(false);
       <button type="submit" class="btn btn-primary btn-block"><?= icon('check') ?><?= th('驗證') ?></button>
     </form>
     <p style="text-align:center;margin-top:14px;">
-      <a href="/logout" class="muted" style="font-size:13px;"><?= th('取消並重新登入') ?></a>
+      <form method="POST" action="/logout" style="display:inline;margin:0;"><?= Auth::csrfField() ?><button type="submit" class="btn btn-ghost btn-sm muted" style="font-size:13px;"><?= th('取消並重新登入') ?></button></form>
     </p>
   </div>
 </main>

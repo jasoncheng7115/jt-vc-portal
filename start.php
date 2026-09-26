@@ -5,6 +5,7 @@ require_once __DIR__ . '/lib/jaas.php';
 require_once __DIR__ . '/lib/rooms.php';
 require_once __DIR__ . '/lib/mailer.php';
 require_once __DIR__ . '/lib/ical.php';
+require_once __DIR__ . '/lib/invites.php';
 require_once __DIR__ . '/lib/audit.php';
 
 $me = Auth::requireLogin();
@@ -104,7 +105,7 @@ Rooms::upsert($room, $opts);
 // 寄送邀請信（有填 email 且 SMTP 已啟用時）
 $mail_result = null;
 if (!empty($attendees)) {
-  $mail_result = send_invites($room, $attendees, $starts_at, $ends_at, $me);
+  $mail_result = Invites::send($room, Rooms::get($room) ?? ['created_at' => time(), 'starts_at' => $starts_at, 'ends_at' => $ends_at], $attendees, $me);
   if (strpos((string)$mail_result, 'sent_') === 0) {
     Audit::log('invite_sent', t('會議室「{room}」寄給 {n} 位：{emails}', ['room' => $room, 'n' => count($attendees), 'emails' => implode(', ', $attendees)]));
   }
@@ -130,52 +131,3 @@ $_SESSION['room'] = $room;
 Audit::log('room_enter', t('會議室「{room}」', ['room' => $room]));
 header('Location: /meeting');
 exit;
-
-/** 寄出 .ics 邀請，回傳簡短結果字串給儀表板顯示。 */
-function send_invites(string $room, array $attendees, ?int $starts_at, ?int $ends_at, array $me): string {
-  $cfg = Mailer::config();
-  if (empty($cfg['enabled'])) return 'smtp_off';
-
-  $invite_url = SITE_URL . '/room/' . rawurlencode($room);
-  $start = $starts_at ?? time();
-  $end   = $ends_at ?? ($start + 3600);
-  $time_str = $starts_at
-    ? t('會議時間：{start} ～ {end}', ['start' => date('Y-m-d H:i', $start), 'end' => date('H:i', $end)])
-    : '';
-  $site_name = Settings::getSite()['brand_name'];
-  $host_name = ($me['display_name'] ?? '') ?: ($me['username'] ?? '');
-  $vars = [
-    'room'       => $room,
-    'invite_url' => $invite_url,
-    'time'       => $time_str,
-    'site_name'  => $site_name,
-    'host'       => $host_name,
-  ];
-  $subject = Mailer::renderTemplate($cfg['subject_tpl'], $vars);
-  $sent = 0; $failed = 0;
-
-  foreach ($attendees as $to) {
-    $uid = 'jt-' . substr(md5($room . $to), 0, 16) . '@jt-vc-portal';
-    $ics = ICal::buildRequest([
-      'uid'            => $uid,
-      'summary'        => $subject,
-      'description'    => t("請於會議時間點此連結加入：\n{url}", ['url' => $invite_url]),
-      'location'       => $invite_url,
-      'organizerEmail' => $cfg['from_email'],
-      'organizerName'  => $cfg['from_name'],
-      'attendees'      => [$to],
-      'start'          => $start,
-      'end'            => $end,
-    ]);
-    $body = Mailer::renderTemplate($cfg['body_tpl'], $vars);
-    [$ok] = Mailer::sendInvite([
-      'to' => $to,
-      'subject' => $subject,
-      'bodyText' => $body,
-      'icsContent' => $ics,
-      'icsFilename' => 'invite.ics',
-    ], $cfg);
-    $ok ? $sent++ : $failed++;
-  }
-  return "sent_{$sent}_fail_{$failed}";
-}

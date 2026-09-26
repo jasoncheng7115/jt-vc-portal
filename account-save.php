@@ -65,11 +65,14 @@ if ($password !== '') {
   if (strlen($password) < 10) $back('acc_err', t('密碼至少需 10 字。'));
   $fields['password'] = $password;
 }
+$revoke = !empty($_POST['revoke']);
+if ($revoke) $fields['revoke_sessions'] = true;
 Users::update($id, $fields);
 $changed = [];
 if ($role !== $target['role']) $changed[] = t('角色→{role}', ['role' => $role]);
 if ($disabled !== !empty($target['disabled'])) $changed[] = $disabled ? t('停用') : t('啟用');
 if ($password !== '') $changed[] = t('重設密碼');
+if ($revoke) $changed[] = t('強制登出所有裝置');
 if (array_key_exists('email', $_POST) && $email !== ($target['email'] ?? '')) $changed[] = 'Email';
 if (array_key_exists('display_name', $_POST)) $changed[] = t('顯示名稱');
 Audit::log('account_update', t('帳號 {user}：{changes}', ['user' => $target['username'], 'changes' => (implode(t('、'), $changed) ?: t('無變更'))]));

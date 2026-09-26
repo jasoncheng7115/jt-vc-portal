@@ -39,7 +39,8 @@ if (!empty($rooms)) {
 }
 
 $error = $_SESSION['room_error'] ?? '';
-unset($_SESSION['room_error']);
+$room_msg = $_SESSION['room_msg'] ?? '';
+unset($_SESSION['room_error'], $_SESSION['room_msg']);
 $form_values = $_SESSION['form_values'] ?? [];
 unset($_SESSION['form_values']);
 $form_room      = (string)($form_values['room']      ?? ($_GET['room'] ?? ''));
@@ -98,6 +99,7 @@ render_topbar($me, $ip);
   <script <?= nonce_attr() ?> src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/zh-tw.js" integrity="sha384-mjJeOdHLBw1XvGBUqn+UxU0xEtQSbR1nG/0o9getG2BM2o6lfJvCwTjPwyvzKrOY" crossorigin="anonymous"></script>
 
   <?php if ($is_admin || Settings::hasJibri()): ?><?= admin_nav('dashboard') ?><?php endif; ?>
+  <?php if ($room_msg): ?><div class="alert alert-success"><?= icon('check') ?><span><?= htmlspecialchars($room_msg) ?></span></div><?php endif; ?>
 
   <?php if ($created_data):
     $invite_url = SITE_URL . '/room/' . rawurlencode($created);
@@ -149,6 +151,7 @@ render_topbar($me, $ip);
           <button type="button" class="btn btn-secondary" id="randomRoom" title="<?= th('亂數產生會議室名稱') ?>"><?= icon('refresh',14) ?><?= th('亂數') ?></button>
         </div>
         <div class="help"><?= t('僅限英文、數字、{dash}、{us}；空格自動轉 {dash}，中文等其他字元會自動移除（Jitsi 會議室不支援非 ASCII 名稱）。', ['dash' => '<span class="kbd">-</span>', 'us' => '<span class="kbd">_</span>']) ?></div>
+        <div class="help"><?= icon('info', 12) ?> <?= th('會議室名稱就是邀請連結的一部分：容易猜到的名稱（例如 weekly）可能被他人猜中，建議用「亂數」產生，或勾選大廳模式由主持人逐一允許。') ?></div>
       </div>
 
       <div class="schedule-block">
@@ -240,6 +243,13 @@ render_topbar($me, $ip);
               <button type="button" class="btn btn-secondary btn-sm" data-copy="<?= htmlspecialchars($invite) ?>" title="<?= th('複製邀請連結') ?>"><?= icon('copy', 14) ?><?= th('複製') ?></button>
               <button type="button" class="btn btn-secondary btn-sm" data-qr="<?= htmlspecialchars($invite) ?>" data-room="<?= htmlspecialchars($name) ?>" title="<?= th('顯示 QR Code') ?>"><?= icon('qr', 14) ?>QR</button>
               <?= enter_room_form($name, icon('arrow-right', 14) . th('進入'), 'btn btn-secondary btn-sm') ?>
+              <?php if ($is_admin || ($r['owner'] ?? '') === $me['id']): ?>
+              <form method="POST" action="/room-delete" style="display:inline;" data-confirm="<?= !empty($r['attendees']) ? th('確定刪除會議室「{room}」？受邀者會收到取消通知。', ['room' => $name]) : th('確定刪除會議室「{room}」？', ['room' => $name]) ?>">
+                <?= Auth::csrfField() ?>
+                <input type="hidden" name="room" value="<?= htmlspecialchars($name) ?>">
+                <button type="submit" class="btn btn-ghost btn-sm" title="<?= th('刪除會議室') ?>"><?= icon('trash', 14) ?><?= th('刪除') ?></button>
+              </form>
+              <?php endif; ?>
             </div>
           </li>
         <?php endforeach; ?>

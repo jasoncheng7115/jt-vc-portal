@@ -21,15 +21,25 @@ class Recordings {
     $end   = (int)($rec['mtime'] ?? 0);
     $start = $end - max(0, (int)($rec['duration'] ?? 0));
     $best = null; $bd = PHP_INT_MAX;
-    foreach (Rooms::meetingSessions(0, time() + 86400) as $s) {
+    foreach (self::sessions() as $s) {
       if ((string)($s['room'] ?? '') !== $room) continue;
       $ss = (int)($s['start'] ?? 0); $se = (int)($s['end'] ?? 0);
       if ($end >= $ss - 120 && $end <= $se + 300) { $d = abs($se - $end); if ($d < $bd) { $bd = $d; $best = $s; } }
     }
     if ($best) return (string)($best['owner'] ?? '');
-    $r = Rooms::get($room);
+    $r = self::rooms()[$room] ?? null;
     if (!empty($r['owner']) && $start >= (int)($r['created_at'] ?? PHP_INT_MAX) - 60) return (string)$r['owner'];
     return '';
+  }
+
+  /** 每個請求只讀一次會議記錄 / 房間資料（列表逐筆判斷擁有權時避免重複讀檔）。 */
+  private static ?array $sessCache = null;
+  private static ?array $roomCache = null;
+  private static function sessions(): array {
+    return self::$sessCache ??= Rooms::meetingSessions(0, time() + 86400);
+  }
+  private static function rooms(): array {
+    return self::$roomCache ??= Rooms::pruneAndGet();
   }
 
   /** 管理者看全部；主持人只能存取自己主持的會議錄影。 */

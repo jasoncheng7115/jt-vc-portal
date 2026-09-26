@@ -24,6 +24,7 @@ $action  = $_POST['action'] ?? 'save';
 if ($section === 'meeting') {
   Settings::setMeetingLang($_POST['meeting_lang'] ?? Settings::MEETING_LANG_UI);
   Settings::setMeetingRetentionDays((int)($_POST['meeting_retention_days'] ?? 365));
+  if (isset($_POST['audit_retention_days'])) Settings::setAuditRetentionDays((int)$_POST['audit_retention_days']);
   Settings::setGuestPollSeconds((int)($_POST['guest_poll_seconds'] ?? 30));
   Audit::log('settings_update', t('會議室介面：語言 {lang}、記錄保留 {days} 天、等候檢查 {secs} 秒', [
     'lang' => Settings::MEETING_LANGS[Settings::getMeetingLang()] ?? '',

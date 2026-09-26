@@ -37,6 +37,7 @@ class Rooms {
           'owner_name'   => $v['owner_name'] ?? null,    // 顯示用
           'attendees'    => is_array($v['attendees'] ?? null) ? $v['attendees'] : [],
           'lobby'        => !empty($v['lobby']),          // 大廳模式：主持人進場自動開啟
+          'ics_seq'      => (int)($v['ics_seq'] ?? 0),     // .ics SEQUENCE（每次寄邀請 / 取消遞增）
         ];
         if (isset($v['roster']) && is_array($v['roster'])) $out[$name]['roster'] = $v['roster']; // 本次 session 與會者名冊快照
       }
@@ -255,6 +256,33 @@ class Rooms {
       return true;
     });
     return $out;
+  }
+
+  /** 遞增並回傳該房間的 .ics SEQUENCE（房間不存在回 0）。 */
+  public static function bumpIcsSeq(string $room): int {
+    $seq = 0;
+    self::mutate(function (array &$rooms) use ($room, &$seq) {
+      if (!isset($rooms[$room])) return false;
+      $rooms[$room]['ics_seq'] = $seq = (int)($rooms[$room]['ics_seq'] ?? 0) + 1;
+      return true;
+    });
+    return $seq;
+  }
+
+  /** 刪除會議室（進行中的主持 session 先結算）。回傳是否有刪除。 */
+  public static function delete(string $room): bool {
+    $ok = false;
+    self::mutate(function (array &$rooms) use ($room, &$ok) {
+      if (!isset($rooms[$room])) return false;
+      if (!empty($rooms[$room]['host_joined_at'])) {
+        $end = (int)($rooms[$room]['host_seen_at'] ?? time());
+        self::recordSession($room, $rooms[$room], min(time(), max($end, (int)$rooms[$room]['host_joined_at'] + 1)));
+      }
+      unset($rooms[$room]);
+      $ok = true;
+      return true;
+    });
+    return $ok;
   }
 
   /** 判斷來賓現在能不能進場（會考慮心跳時效） */

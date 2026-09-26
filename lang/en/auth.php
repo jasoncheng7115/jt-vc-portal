@@ -146,4 +146,6 @@ return [
   '路徑格式不合法（僅允許英數與 . _ -，長度 1–64）。' => 'Invalid path format (only letters, digits and . _ - are allowed; length 1-64).',
   '已設定登入路徑為 {path}' => 'Sign-in path set to {path}',
   '用法：php login-path.php [show|reset|set <path>]' => 'Usage: php login-path.php [show|reset|set <path>]',
+  '強制登出此帳號所有已登入的裝置' => 'Sign this account out of all devices',
+  '強制登出所有裝置' => 'signed out of all devices',
 ];

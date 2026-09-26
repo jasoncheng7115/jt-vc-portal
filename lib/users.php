@@ -111,7 +111,10 @@ class Users {
         }
         if (!empty($fields['password'])) {
           $u['password_hash'] = password_hash($fields['password'], PASSWORD_DEFAULT);
+          // 換密碼 → 換 session 世代，讓此帳號其他既有登入全部失效（A07）
+          $u['session_gen'] = bin2hex(random_bytes(8));
         }
+        if (!empty($fields['revoke_sessions'])) $u['session_gen'] = bin2hex(random_bytes(8));
         if (isset($u['role']) && !in_array($u['role'], self::ROLES, true)) $u['role'] = 'host';
         $found = $u;
         break;

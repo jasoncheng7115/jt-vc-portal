@@ -156,4 +156,15 @@ return [
 
   // lib/ical.php
   '會議邀請' => 'Meeting invitation',
+  '確定刪除會議室「{room}」？受邀者會收到取消通知。' => 'Delete room "{room}"? Invitees will receive a cancellation notice.',
+  '確定刪除會議室「{room}」？' => 'Delete room "{room}"?',
+  '刪除會議室' => 'Delete room',
+  '會議已取消：{room}' => 'Meeting cancelled: {room}',
+  "您好，\n\n線上視訊會議「{room}」已取消。\n{time}\n\n（附件為行事曆取消通知，開啟後可自動從行事曆移除。）\n\n— {site_name}" => "Hello,\n\nThe online video meeting \"{room}\" has been cancelled.\n{time}\n\n(The attached calendar cancellation removes it from your calendar automatically.)\n\n— {site_name}",
+  '此會議已取消。' => 'This meeting has been cancelled.',
+  '只有會議室擁有者或管理員可以刪除。' => 'Only the room owner or an admin can delete it.',
+  '（取消通知：成功 {ok} 封、失敗 {fail} 封）' => ' (cancellation notices: {ok} sent, {fail} failed)',
+  '已刪除會議室「{room}」。' => 'Room "{room}" deleted.',
+  '（SMTP 未啟用，未寄出取消通知）' => ' (SMTP is not enabled; no cancellation notice was sent)',
+  '會議室名稱就是邀請連結的一部分：容易猜到的名稱（例如 weekly）可能被他人猜中，建議用「亂數」產生，或勾選大廳模式由主持人逐一允許。' => 'The room name is part of the invite link: an easy-to-guess name (such as "weekly") can be guessed by others. Use a random name, or enable lobby mode so the host admits guests one by one.',
 ];

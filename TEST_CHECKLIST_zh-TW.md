@@ -66,6 +66,9 @@
 - [ ] 個人設定：改顯示名稱；改密碼需舊密碼、新密碼至少 10 字、兩次一致。
 - [ ] 帳號管理（admin）：新增 / 編輯 / 停用 / 刪除 / 改角色 / 重設密碼；不能刪除或停用自己；至少保留一位啟用中的管理員。
 - [ ] 帳號被停用後，其既有 session 下一個請求即失效。
+- [ ] 本人改密碼：其他裝置的登入全部失效、目前這個 session 保留；管理員重設密碼同樣讓該帳號所有登入失效。
+- [ ] 帳號管理勾選「強制登出此帳號所有已登入的裝置」→ 該帳號所有 session 失效，不影響其他帳號。
+- [ ] 登出只接受 POST + CSRF：`GET /logout` 不會登出；右上「登出」按鈕與 2FA 頁「取消並重新登入」正常。
 - [ ] Session 閒置逾時（預設 30 分）與絕對逾時（預設 12 小時）生效。
 - [ ] 角色頁籤：host 只見「會議室管理」＋（有 Jibri 時）「錄影記錄」；admin 見全部。
 
@@ -75,6 +78,7 @@
 - [ ] 近期清單：顯示排程、主持人狀態徽章、受邀人數；複製邀請連結、QR 視窗。
 - [ ] 「進入 / 立即主持 / QR 視窗進入」以 POST 表單送出，可正常進入會議；不會清掉原本的大廳設定與受邀名單。
 - [ ] 進入他人擁有的會議室被擋（admin 除外）。
+- [ ] 刪除會議室：擁有者 / 管理員可刪（自訂確認框）；他人不可；有受邀者且 SMTP 啟用時寄出行事曆取消通知（Google / Outlook / Apple 會移除事件）；稽核有 `room_delete`。
 - [ ] Jitsi IFrame API 使用內附的 `assets/vendor/jitsi-external-api.js` 並帶 SRI；會議頁 CSP 的 `frame-src` 只允許 Jitsi 網域。更新 API 用 `tools/update-jitsi-external-api.sh` 後必跑 e2e。
 - [ ] 會議頁：Jitsi 正常載入、語言正確、分享按鈕（QR / 複製）可用、錄影開始 / 停止提示。
 - [ ] 主持人心跳每 15 秒回報；關閉分頁送出離開通知；45 秒無心跳視為離線。
@@ -86,6 +90,7 @@
 - [ ] 設定開始 / 結束時間；結束早於開始被擋。
 - [ ] SMTP 啟用時填寫與會者 Email → 寄出含 `.ics` 的邀請，Google / Outlook / Apple 可加入行事曆。
 - [ ] 無效 Email 被擋並提示。
+- [ ] 同一會議室重寄邀請：`.ics` SEQUENCE 遞增、UID 不變，行事曆以新版取代舊版；中文長標題折行後仍正確顯示。
 - [ ] SMTP 測試信成功；失敗訊息正確顯示。
 
 ### 3.4 來賓
@@ -106,8 +111,10 @@
 - [ ] 刪除、依政策清理、容量條、保留政策（時間 / 容量 / 殘留，預設停用）僅 admin。
 - [ ] host 只看得到、只取得到自己主持場次的錄影；房名被他人重新建立後，新擁有者看不到舊場次。
 - [ ] 錄影狀態（ok / recording / incomplete / orphan）判定正確；錄製中不可刪除。
+- [ ] Jibri 錄影 API：`tests/test-jibri-api.sh` 全綠（授權、Range 206 / 416、路徑穿越）。
 
 ### 3.7 系統設定（admin）
+- [ ] 自建模式「不需 JWT」時設定頁顯示警示；建立會議室表單提示好猜的房名風險。
 - [ ] 連線模式：JaaS 與自建兩組設定分開保存、切換不互相覆蓋；自建模式顯示需求提示。
 - [ ] 密鑰欄位（自建 JWT 共享密鑰、SMTP 密碼、Jibri token）不回填到頁面；留空送出保留原值；SMTP 可勾選清除密碼。
 - [ ] 站台名稱 / logo 上傳（PNG / JPEG / WebP / GIF，2MB 內）/ 恢復預設。
@@ -124,6 +131,7 @@
 - [ ] 各行為（登入成功 / 失敗 / 鎖定、登出、建立 / 進入會議室、來賓進入、寄邀請、帳號 CRUD、設定變更、密碼 / 2FA、錄影下載 / 刪除 / 清理、匯出）都有記錄。
 - [ ] 依行為類型、關鍵字、日期篩選；分頁；CSV 匯出帶目前篩選、UTF-8 BOM、公式注入防護。
 - [ ] 每筆即時外拋 SIEM（啟用時）。
+- [ ] 稽核記錄保留天數（預設 365）生效：超過天數的記錄於查詢頁自動清除；超長帳號 / 詳情會被截斷。
 
 ### 3.9 USAGE webhook（JaaS）
 - [ ] 正確 Authorization 或 HMAC 簽章 → 計入本期 unique 裝置；同 idempotencyKey 不重複計算。
@@ -246,4 +254,7 @@
 | 英文 / 中文逐頁無殘留、html lang、?lang=、cookie、/set-lang 防開放重導、個人語言設定、lang/ 403 | `tests/run-integration.sh`（多語系段） |
 | 未翻譯字串 / 缺漏鍵 / 佔位一致 | `tests/check-i18n.php` |
 | 真瀏覽器：主持人進會議、來賓加入、iframe、SRI、CSP（中英） | `tests/run-e2e.sh` |
+| .ics 折行 / REQUEST / CANCEL / SEQUENCE、刪除會議室結算、稽核長度上限與保留清理 | `tests/unit/test_ical_audit.php` |
+| GET 登出無效、改密碼 / 強制登出讓 session 失效、刪除會議室權限、稽核 | `tests/run-integration.sh`（v1.8.0 段） |
+| Jibri 錄影 API 授權 / Range / 路徑穿越 | `tests/test-jibri-api.sh` |
 | 弱點掃描 | `tests/zap/run-zap.sh` |

@@ -2,6 +2,7 @@
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/audit.php';
+require_once __DIR__ . '/lib/settings.php';
 require_once __DIR__ . '/lib/layout.php';
 
 $me = Auth::requireAdmin();
@@ -15,6 +16,7 @@ $to     = trim($_GET['to'] ?? '');
 $per    = (int)($_GET['per'] ?? 50);
 $page   = (int)($_GET['page'] ?? 1);
 
+Audit::prune(Settings::getAuditRetentionDays());   // 依保留天數清理（A09：有界的記錄保存）
 $res = Audit::search(['action' => $action, 'q' => $q, 'from' => $from, 'to' => $to], $page, $per);
 $rows = $res['rows'];
 

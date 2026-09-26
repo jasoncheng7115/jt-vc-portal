@@ -21,6 +21,7 @@ class Audit {
       'login_locked'   => t('登入遭鎖定'),
       'logout'         => t('登出'),
       'room_create'    => t('建立會議室連結'),
+      'room_delete'    => t('刪除會議室'),
       'room_enter'     => t('進入會議室（主持）'),
       'guest_join'     => t('來賓進入會議'),
       'invite_sent'    => t('寄送邀請郵件'),
@@ -53,6 +54,10 @@ class Audit {
     $role  = $opts['role']       ?? ($_SESSION['role'] ?? '');
     $result = $opts['result']    ?? 'ok';
     $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 300);
+    // 長度上限：避免攻擊者以超長帳號字串 / 詳情灌爆記錄檔
+    $actor  = mb_substr((string)$actor, 0, 128);
+    $name   = mb_substr((string)$name, 0, 128);
+    $detail = mb_substr($detail, 0, 1000);
     $ip = Auth::clientIp();
 
     $entry = [
@@ -79,6 +84,17 @@ class Audit {
       'severity'   => $sev,
       'message'    => trim("audit {$action} actor={$actor} {$detail}"),
     ]);
+  }
+
+  /** 清除早於保留天數的記錄（與 append 同一把檔案鎖，不遺失同時寫入的新記錄）。回傳是否有刪除。 */
+  public static function prune(int $days): bool {
+    $cutoff = time() - max(30, $days) * 86400;
+    return Store::pruneLines(self::FILE, function (string $ln) use ($cutoff) {
+      $e = json_decode($ln, true);
+      if (!is_array($e)) return false;
+      $ts = (int)($e['ts'] ?? strtotime($e['time'] ?? 'now'));
+      return $ts >= $cutoff;
+    });
   }
 
   /**

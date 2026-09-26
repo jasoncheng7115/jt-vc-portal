@@ -104,6 +104,18 @@ class Settings {
     self::save($d);
   }
 
+  /** 稽核記錄保留天數，預設 365；範圍 30–3650（超過者於查詢頁自動清除）。 */
+  public static function getAuditRetentionDays(): int {
+    $d = (int)(self::load()['audit_retention_days'] ?? 365);
+    return max(30, min(3650, $d));
+  }
+
+  public static function setAuditRetentionDays(int $days): void {
+    $d = self::loadForUpdate();
+    $d['audit_retention_days'] = max(30, min(3650, $days));
+    self::save($d);
+  }
+
   /** 來賓等候頁自動檢查間隔（秒），預設 30；範圍 10–600。 */
   public static function getGuestPollSeconds(): int {
     $d = (int)(self::load()['guest_poll_seconds'] ?? 30);
@@ -382,7 +394,7 @@ class Settings {
   /** 允許匯出 / 匯入的頂層設定鍵（白名單，避免匯入夾帶未知結構）。 */
   const EXPORTABLE_KEYS = [
     'theme', 'webhook_secret', 'plan_mau_limit', 'billing_start_day',
-    'meeting_retention_days', 'guest_poll_seconds', 'meeting_lang',
+    'meeting_retention_days', 'audit_retention_days', 'guest_poll_seconds', 'meeting_lang',
     'recorder_name', 'jibri_url', 'jibri_token', 'login_path',
     'meeting_custom', 'smtp', 'logship', 'site', 'jaas',
   ];

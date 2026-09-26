@@ -144,6 +144,36 @@ GE="$JAR/guest-en"
 curl -s -o /dev/null -c $GE -b $GE -H "$EN" $B/room/itest-room
 nocjk "英文來賓等候頁無中文" "$(curl -s -b $GE -H "$EN" $B/guest)"
 
+echo "== v1.8.0：登出 / session 失效 / 刪除會議室"
+chk "GET /logout 不登出（導回儀表板）" "$(loc -b $A $B/logout)" "$B/dashboard"
+chk "GET /logout 後仍登入" "$(code -b $A $B/dashboard)" 200
+chk "POST /logout 無 CSRF → 403" "$(code -b $A -X POST $B/logout)" 403
+# 管理員重設 hostb 密碼 → hostb 既有 session 失效
+T=$(csrf $A /accounts)
+HBID=$(docker exec $NAME php -r 'require "/var/www/html/lib/users.php"; echo Users::findByLogin("hostb")["id"];')
+HB2="$JAR/hostb2"
+docker exec -u www-data $NAME php -r 'require "/var/www/html/lib/ratelimit.php"; RateLimit::resetAccount("hostb");'   # 解除前面帳號鎖定測試留下的鎖
+chk "hostb 重新登入" "$(login $HB2 hostb Itest-HostB-Pass-1 10.0.5.1)" "$B/dashboard"
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d "id=$HBID&role=host&disabled=0&password=Itest-HostB-Pass-2" $B/account-save
+chk "改密碼後 hostb 舊 session 失效" "$(code -b $HB2 $B/dashboard)" 404
+chk "hostb 用新密碼登入" "$(login $HB2 hostb Itest-HostB-Pass-2 10.0.5.2)" "$B/dashboard"
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d "id=$HBID&role=host&disabled=0&revoke=1" $B/account-save
+chk "強制登出後 hostb session 失效" "$(code -b $HB2 $B/dashboard)" 404
+chk "admin 自己不受影響" "$(code -b $A $B/dashboard)" 200
+# 刪除會議室：非擁有者不可、擁有者可
+chk "hostb 重新登入（刪除測試）" "$(login $HB2 hostb Itest-HostB-Pass-2 10.0.5.3)" "$B/dashboard"
+TB=$(csrf $HB2 /dashboard)
+curl -s -o /dev/null -b $HB2 -c $HB2 --data-urlencode "_csrf=$TB" -d 'room=itest-room' $B/room-delete
+has "非擁有者刪除 → 房間仍在" "$(docker exec $NAME cat /var/jaas-data/auto-allow.json)" '"itest-room"'
+chk "room-delete 無 CSRF → 403" "$(code -b $A -d 'room=itest-room' $B/room-delete)" 403
+T=$(csrf $A /dashboard)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-room' $B/room-delete
+hasnt "擁有者刪除 → 房間已移除" "$(docker exec $NAME cat /var/jaas-data/auto-allow.json)" '"itest-room"'
+has "刪除寫入稽核" "$(docker exec $NAME cat /var/jaas-data/audit-log.jsonl)" '"action":"room_delete"'
+T=$(csrf $A /dashboard)
+chk "POST /logout 帶 CSRF → 登出" "$(loc -b $A -c $A --data-urlencode "_csrf=$T" $B/logout)" "$B/jt-login"
+chk "登出後 /dashboard → 404" "$(code -b $A $B/dashboard)" 404
+
 echo
 echo "$PASS passed, $FAIL failed"
 [ $FAIL -eq 0 ]
