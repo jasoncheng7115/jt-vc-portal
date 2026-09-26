@@ -1,6 +1,6 @@
 # jt-vc-portal Release Test Plan and Checklist
 
-> 繁體中文: [TEST_CHECKLIST_zh-TW.md](TEST_CHECKLIST_zh-TW.md)
+> 繁體中文: [TEST_CHECKLIST_zh-TW.md](TEST_CHECKLIST_zh-TW.md) · 日本語: [TEST_CHECKLIST_ja.md](TEST_CHECKLIST_ja.md)
 
 > Author: Jason Cheng · GitHub [@jasoncheng7115](https://github.com/jasoncheng7115) · Project [jt-vc-portal](https://github.com/jasoncheng7115/jt-vc-portal)
 
@@ -39,7 +39,7 @@
   - [ ] No real JaaS tenant (`vpaas-magic-cookie-` followed by a real ID), internal domains, internal IPs, real email addresses, or real passwords / tokens (example values must be obviously fake).
   - [ ] Screenshots have accounts, IPs, meeting room names and other identifying information masked.
 - [ ] No secrets inside the Docker image: `docker run --rm --entrypoint sh <image> -c 'find / \( -name private.key -o -name "*.json" -path "*jaas*" -o -name users.json \) 2>/dev/null'` returns no results.
-- [ ] README / every `.md` (English and `_zh-TW`) / Pages match this release's features, and the version number has been updated.
+- [ ] README / every `.md` (English, `_zh-TW` and `_ja`) / Pages match this release's features, and the version number has been updated.
 
 ## 1. Automated tests
 
@@ -147,18 +147,19 @@
 
 (From v1.7.0)
 - [ ] UI language detection priority: `?lang=` → logged-in user's profile setting → cookie → browser Accept-Language → English.
-- [ ] Language switcher in the top right / on guest pages (繁體中文 / English) takes effect immediately and is remembered; for logged-in users it is saved to their profile.
+- [ ] Language switcher in the top right / on guest pages (繁體中文 / English / 日本語) takes effect immediately and is remembered; for logged-in users it is saved to their profile.
 - [ ] Walk through every page with an English browser (login, 2FA, dashboard, meeting, each guest state, accounts, profile, audit, statistics, recordings, settings, error pages): no leftover Chinese (except the language name "繁體中文").
 - [ ] Walk through every page with a Chinese browser: text matches the pre-change version, with no leftover English.
+- [ ] Walk through every page with a Japanese browser: no leftover Chinese / English UI text (from v1.9.0; except language names such as "繁體中文" / "English").
 - [ ] Dynamic JS text (copy success, confirmation dialogs, countdown units, recording notices) follows the language.
 - [ ] The language switch endpoint `/set-lang?l=&r=` only redirects to same-site relative paths (`//evil` and `https://…` always go to `/`); direct access to the dictionary directory `/lang/` → 403.
-- [ ] Profile → "Interface language" offers Auto / 繁體中文 / English and applies right after sign-in.
+- [ ] Profile → "Interface language" offers Auto / 繁體中文 / English / 日本語 and applies right after sign-in.
 - [ ] Default site name / recorder name / sender name follow the language when not customized; saving settings in the English UI does not store the English defaults as custom values.
 - [ ] The Jitsi meeting language can be set to "Follow UI language".
 - [ ] Default email / .ics templates follow the sender's language; custom templates are used as-is.
-- [ ] `tests/check-i18n.php`: every `t()` key has an English translation, and there are no Chinese strings in the code that are not wrapped in `t()`.
-- [ ] Every `.md` has an English (default) and a `_zh-TW.md` version, cross-linked in their headers.
-- [ ] GitHub Pages: Chinese / English switching, automatic detection by browser language, and `?lang=` can specify the language and is remembered.
+- [ ] `tests/check-i18n.php`: every `t()` key has a translation in every language (English, Japanese) with matching placeholders, Japanese contains no Traditional-only characters, and there are no Chinese strings in the code that are not wrapped in `t()`.
+- [ ] Every `.md` has an English (default), a `_zh-TW.md` and a `_ja.md` version; each header's language line links the other two.
+- [ ] GitHub Pages: Chinese / English / Japanese switching, automatic detection by browser language, and `?lang=` can specify the language and is remembered; each appendix doc card shows exactly one button for the current language, both cards are equal height with buttons aligned at the bottom.
 
 ## 5. Security tests
 

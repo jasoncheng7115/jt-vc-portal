@@ -1,6 +1,6 @@
 # jt-vc-portal 發版測試計畫與檢查清單
 
-> English version: [TEST_CHECKLIST.md](TEST_CHECKLIST.md)
+> English: [TEST_CHECKLIST.md](TEST_CHECKLIST.md) · 日本語: [TEST_CHECKLIST_ja.md](TEST_CHECKLIST_ja.md)
 
 > 作者：Jason Cheng · GitHub [@jasoncheng7115](https://github.com/jasoncheng7115) · 專案 [jt-vc-portal](https://github.com/jasoncheng7115/jt-vc-portal)
 
@@ -39,7 +39,7 @@
   - [ ] 無真實 JaaS tenant（`vpaas-magic-cookie-` 後接真實 ID）、內部網域、內網 IP、真實 Email、真實密碼 / token（範例值必須是明顯假值）。
   - [ ] 截圖已遮蔽帳號、IP、會議室名稱等可識別資訊。
 - [ ] Docker image 內無機密：`docker run --rm --entrypoint sh <image> -c 'find / \( -name private.key -o -name "*.json" -path "*jaas*" -o -name users.json \) 2>/dev/null'` 無結果。
-- [ ] README / 各 `.md`（英文與 `_zh-TW`）/ Pages 與本版功能一致，版本號已更新。
+- [ ] README / 各 `.md`（英文、`_zh-TW`、`_ja` 三版）/ Pages 與本版功能一致，版本號已更新。
 
 ## 1. 自動化測試
 
@@ -147,18 +147,19 @@
 
 （v1.7.0 起）
 - [ ] 介面語言偵測優先序：`?lang=` → 登入者個人設定 → cookie → 瀏覽器 Accept-Language → 英文。
-- [ ] 右上 / 來賓頁語言切換（繁體中文 / English）立即生效並記住；登入者存到個人設定。
+- [ ] 右上 / 來賓頁語言切換（繁體中文 / English / 日本語）立即生效並記住；登入者存到個人設定。
 - [ ] 以英文瀏覽器逐頁巡查（登入、2FA、儀表板、會議、來賓各狀態、帳號、個人設定、稽核、統計、錄影、設定、錯誤頁）：無殘留中文（語言名稱「繁體中文」除外）。
 - [ ] 以中文瀏覽器逐頁巡查：與改版前文字一致、無英文殘留。
+- [ ] 以日文瀏覽器逐頁巡查：無殘留中文 / 英文介面文字（v1.9.0 起；語言名稱如「繁體中文」/「English」除外）。
 - [ ] JS 動態文字（複製成功、確認框、倒數單位、錄影提示）跟隨語言。
 - [ ] 語言切換端點 `/set-lang?l=&r=` 只導回站內相對路徑（`//evil`、`https://…` 一律導回 `/`）；字典目錄 `/lang/` 直接存取 → 403。
-- [ ] 個人設定「介面語言」可選自動 / 繁體中文 / English，登入後即套用。
+- [ ] 個人設定「介面語言」可選自動 / 繁體中文 / English / 日本語，登入後即套用。
 - [ ] 預設站台名稱 / 錄製者名稱 / 寄件人名稱未自訂時依語言顯示；英文介面儲存設定不會把英文預設值存成自訂值。
 - [ ] Jitsi 會議語言可設為「跟隨介面語言」。
 - [ ] Email / .ics 預設範本依寄送者語言；自訂範本原樣使用。
-- [ ] `tests/check-i18n.php`：所有 `t()` 鍵都有英文翻譯、程式中無未包 `t()` 的中文字串。
-- [ ] 所有 `.md` 皆有英文（預設）與 `_zh-TW.md`，檔頭互相連結。
-- [ ] GitHub Pages：中 / 英切換、依瀏覽器語言自動判斷、`?lang=` 可指定並記住。
+- [ ] `tests/check-i18n.php`：所有 `t()` 鍵在每種語言（英文、日文）都有翻譯、佔位一致、日文不含繁中專用字；程式中無未包 `t()` 的中文字串。
+- [ ] 所有 `.md` 皆有英文（預設）、`_zh-TW.md` 與 `_ja.md`，檔頭語言列互相連結另外兩種語言。
+- [ ] GitHub Pages：中 / 英 / 日切換、依瀏覽器語言自動判斷、`?lang=` 可指定並記住；附錄文件卡片只顯示目前語言的一個按鈕、兩卡等高、按鈕底部對齊。
 
 ## 5. 安全測試
 

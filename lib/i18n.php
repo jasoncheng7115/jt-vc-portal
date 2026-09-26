@@ -11,11 +11,11 @@
  * CLI 一律 en（可用環境變數 JTVC_LANG 覆寫）。
  */
 class I18n {
-  const SUPPORTED = ['zh-TW', 'en'];
+  const SUPPORTED = ['zh-TW', 'en', 'ja'];
   const DEFAULT   = 'en';
   const COOKIE    = 'jtvc_lang';
   /** 語言選單顯示名稱（各語言以自身語言書寫，不翻譯）。 */
-  const NAMES = ['zh-TW' => '繁體中文', 'en' => 'English'];  // i18n-ignore
+  const NAMES = ['zh-TW' => '繁體中文', 'en' => 'English', 'ja' => '日本語'];  // i18n-ignore
 
   private static ?string $lang = null;
   private static array $dict = [];
@@ -27,6 +27,7 @@ class I18n {
     if ($v === '') return null;
     if ($v === 'en' || strpos($v, 'en-') === 0 || strpos($v, 'en_') === 0) return 'en';
     if ($v === 'zh' || strpos($v, 'zh-') === 0 || strpos($v, 'zh_') === 0) return 'zh-TW';
+    if ($v === 'ja' || strpos($v, 'ja-') === 0 || strpos($v, 'ja_') === 0) return 'ja';
     return null;
   }
 
@@ -96,12 +97,12 @@ class I18n {
 
   /** HTML lang 屬性值。 */
   public static function htmlLang(): string {
-    return self::lang() === 'zh-TW' ? 'zh-Hant-TW' : 'en';
+    return ['zh-TW' => 'zh-Hant-TW', 'ja' => 'ja'][self::lang()] ?? 'en';
   }
 
   /** 對應的 Jitsi 介面語言碼。 */
   public static function jitsiLang(): string {
-    return self::lang() === 'zh-TW' ? 'zh-TW' : 'en';
+    return ['zh-TW' => 'zh-TW', 'ja' => 'ja'][self::lang()] ?? 'en';
   }
 
   /** 載入某語言字典（lang/<code>/*.php 各回傳 array，合併）。 */
@@ -147,11 +148,12 @@ class I18n {
   public static function isDefaultBrand(string $v): bool { return self::isAnyTranslation($v, 'JT 視訊會議'); }  // i18n-ignore
   public static function isDefaultRecorder(string $v): bool { return self::isAnyTranslation($v, '會議錄影'); }  // i18n-ignore
 
-  /** GitHub 文件連結：依目前語言指向英文 NAME.md 或 NAME_zh-TW.md，並帶對應錨點。 */
-  public static function docUrl(string $doc, string $anchorZh = '', string $anchorEn = ''): string {
-    $zh = self::lang() === 'zh-TW';
-    $a = $zh ? $anchorZh : $anchorEn;
-    return (defined('APP_GITHUB_URL') ? APP_GITHUB_URL : '') . '/blob/main/' . $doc . ($zh ? '_zh-TW' : '') . '.md' . ($a !== '' ? '#' . $a : '');
+  /** GitHub 文件連結：依目前語言指向 NAME.md（英）/ NAME_zh-TW.md / NAME_ja.md，並帶對應錨點（該語言無錨點則不帶）。 */
+  public static function docUrl(string $doc, string $anchorZh = '', string $anchorEn = '', string $anchorJa = ''): string {
+    $l = self::lang();
+    $suffix = ['zh-TW' => '_zh-TW', 'ja' => '_ja'][$l] ?? '';
+    $a = ['zh-TW' => $anchorZh, 'ja' => $anchorJa][$l] ?? $anchorEn;
+    return (defined('APP_GITHUB_URL') ? APP_GITHUB_URL : '') . '/blob/main/' . $doc . $suffix . '.md' . ($a !== '' ? '#' . $a : '');
   }
 
   /** 語言切換連結（回到目前頁面）。 */

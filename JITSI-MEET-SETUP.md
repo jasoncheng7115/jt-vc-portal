@@ -1,6 +1,6 @@
 # Self-Hosted Jitsi Meet × jt-vc-portal Integration Setup
 
-> 繁體中文: [JITSI-MEET-SETUP_zh-TW.md](JITSI-MEET-SETUP_zh-TW.md)
+> 繁體中文: [JITSI-MEET-SETUP_zh-TW.md](JITSI-MEET-SETUP_zh-TW.md) · 日本語: [JITSI-MEET-SETUP_ja.md](JITSI-MEET-SETUP_ja.md)
 
 > **Author**: Jason Cheng　·　GitHub [@jasoncheng7115](https://github.com/jasoncheng7115)　·　Project [jt-vc-portal](https://github.com/jasoncheng7115/jt-vc-portal)
 

@@ -282,7 +282,7 @@ render_topbar($me, $ip);
     <h2 style="font-size:15px;margin:0 0 4px;"><?= th('Jibri 錄影服務') ?></h2>
     <p class="subtitle" style="margin:4px 0 12px;">
       <?= t('在自建 Jibri 主機上安裝 <span class="mono">jibri-recordings-api</span> 後即可串接——安裝步驟見 {link}。', [
-        'link' => '<a href="' . htmlspecialchars(I18n::docUrl('JIBRI-SETUP', '六錄影檔與調閱jibri-recordings-api', '6-recording-files-and-playback-jibri-recordings-api')) . '" target="_blank" rel="noopener">JIBRI-SETUP.md</a>',  // i18n-ignore（GitHub 錨點）
+        'link' => '<a href="' . htmlspecialchars(I18n::docUrl('JIBRI-SETUP', '六錄影檔與調閱jibri-recordings-api', '6-recording-files-and-playback-jibri-recordings-api', '6-録画ファイルと再生jibri-recordings-api')) . '" target="_blank" rel="noopener">JIBRI-SETUP.md</a>',  // i18n-ignore（GitHub 錨點）
       ]) ?><br>
       <?= th('偵測狀態：') ?>
       <?php if (!$jibri_has): ?><span class="badge badge-muted"><?= th('未設定') ?></span>
@@ -291,7 +291,7 @@ render_topbar($me, $ip);
       <?php if ($jibri_ok): ?><a href="/recordings" style="margin-left:8px;"><?= th('前往錄影記錄 →') ?></a><?php endif; ?>
       <?php if ($jibri_ok && $jrec !== null): ?>
         <br><?= t('已註冊錄製器：<strong>{n}</strong> 個（可同時錄製場數）。', ['n' => (int)$jrec]) ?>
-        <a href="<?= htmlspecialchars(I18n::docUrl('JIBRI-SETUP', '四增減錄製器', '4-scaling-recorders-up-or-down')) ?>" target="_blank" rel="noopener"><?php /* i18n-ignore（GitHub 錨點） */ ?>
+        <a href="<?= htmlspecialchars(I18n::docUrl('JIBRI-SETUP', '四增減錄製器', '4-scaling-recorders-up-or-down', '4-録画機の増減')) ?>" target="_blank" rel="noopener"><?php /* i18n-ignore（GitHub 錨點） */ ?>
           <?= th('增減錄製器 →') ?></a>
       <?php endif; ?>
     </p>

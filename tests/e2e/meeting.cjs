@@ -13,7 +13,7 @@ function watch(page, bag) {
 
 (async () => {
   const browser = await chromium.launch();
-  const LOCALES = (process.env.E2E_LOCALES || 'zh-TW,en-US').split(',');
+  const LOCALES = (process.env.E2E_LOCALES || 'zh-TW,en-US,ja-JP').split(',');
   const NO_I18N = !!process.env.E2E_NO_I18N;   // 1.7.0 之前的版本沒有 i18n，略過 html lang 檢查
   for (const locale of LOCALES) {
     console.log(`== ${locale}`);
@@ -48,7 +48,7 @@ function watch(page, bag) {
       ok('來賓會議頁建立 iframe', !!(await gp.$('#jaas-container iframe')));
     }
     const html = await hp.evaluate(() => document.documentElement.lang);
-    if (!NO_I18N) ok('html lang 正確', locale === 'en-US' ? html === 'en' : html === 'zh-Hant-TW', html);
+    if (!NO_I18N) ok('html lang 正確', html === ({ 'en-US': 'en', 'ja-JP': 'ja' }[locale] || 'zh-Hant-TW'), html);
     ok('主持人頁無 CSP / SRI 錯誤', hv.length === 0, hv.slice(0, 2).join(' | '));
     ok('來賓頁無 CSP / SRI 錯誤', gv.length === 0, gv.slice(0, 2).join(' | '));
     // 刪除會議室（自訂確認框）→ 登出（POST 按鈕）

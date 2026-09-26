@@ -15,6 +15,8 @@
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;font-family:var(--font);color:var(--text);background:var(--bg);line-height:1.65;-webkit-font-smoothing:antialiased}
+/* 日文：優先日文字型，避免漢字以繁中字形顯示 */
+body.lang-ja{--font:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI","Yu Gothic",Meiryo,Roboto,Arial,sans-serif}
 a{color:var(--accent);text-decoration:none}
 a:hover{text-decoration:underline}
 .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
@@ -22,12 +24,13 @@ section{padding:84px 0}
 .kicker{font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin:0 0 12px;display:inline-block}
 h2{font-size:33px;letter-spacing:-.025em;margin:0 0 10px;line-height:1.2}
 .section-sub{color:var(--muted);margin:0 0 40px;font-size:16px;max-width:620px}
-/* 雙語切換：只顯示目前語言的節點（body.lang-zh / body.lang-en 由 index.html 開頭 inline script 設定） */
-.zh,.en{display:none}
-body.lang-zh .zh,body.lang-en .en{display:initial}
+/* 多語切換：只顯示目前語言的節點（body.lang-zh / lang-en / lang-ja 由 index.html 開頭 inline script 設定） */
+.zh,.en,.ja{display:none}
+body.lang-zh .zh,body.lang-en .en,body.lang-ja .ja{display:initial}
 body.lang-zh div.zh,body.lang-zh p.zh,body.lang-zh pre.zh,
-body.lang-en div.en,body.lang-en p.en,body.lang-en pre.en{display:block}
-body.lang-zh .btn.zh,body.lang-en .btn.en{display:inline-flex}
+body.lang-en div.en,body.lang-en p.en,body.lang-en pre.en,
+body.lang-ja div.ja,body.lang-ja p.ja,body.lang-ja pre.ja{display:block}
+body.lang-zh .btn.zh,body.lang-en .btn.en,body.lang-ja .btn.ja{display:inline-flex}
 
 .kbd,code{font-family:var(--mono);font-size:.9em;background:var(--bg-muted);padding:2px 6px;border-radius:5px;border:1px solid var(--border)}
 
@@ -64,6 +67,8 @@ body.lang-zh .btn.zh,body.lang-en .btn.en{display:inline-flex}
 .btn-primary:hover{filter:brightness(1.05);box-shadow:0 12px 28px rgba(124,58,237,.30);text-decoration:none;transform:translateY(-1px)}
 .btn-ghost{background:#fff;color:var(--text);border-color:var(--border-strong)}
 .btn-ghost:hover{background:var(--bg-soft);text-decoration:none;border-color:var(--soft)}
+/* .btn 設了 display:inline-flex，會蓋過上方 .zh/.en/.ja 的隱藏規則；提高權重確保非目前語言的按鈕不顯示 */
+.btn.zh,.btn.en,.btn.ja{display:none}
 .tag-opt{display:inline-block;font-size:12px;font-weight:600;color:var(--accent);background:rgba(124,58,237,.10);border:1px solid rgba(124,58,237,.28);border-radius:999px;padding:1px 9px;vertical-align:middle;margin-left:8px}
 .note-opt{font-size:13px;color:var(--muted);margin-top:8px}
 
@@ -105,6 +110,7 @@ body.lang-zh .btn.zh,body.lang-en .btn.en{display:inline-flex}
 .shot .frame.empty::after{content:"畫面即將補上";color:var(--soft);font-size:13px;font-weight:500;letter-spacing:.02em;padding-top:62px;text-align:center;
   background:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='46'%20height='46'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23bcc3d0'%20stroke-width='1.3'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Crect%20x='3'%20y='3'%20width='18'%20height='18'%20rx='2.5'/%3E%3Ccircle%20cx='8.5'%20cy='8.5'%20r='1.6'/%3E%3Cpath%20d='m21%2015-5-5L5%2021'/%3E%3C/svg%3E") no-repeat top center}
 body.lang-en .shot .frame.empty::after{content:"Screenshot coming soon"}
+body.lang-ja .shot .frame.empty::after{content:"スクリーンショットは近日追加予定"}
 .shot figcaption{display:inline-block;color:var(--text);font-size:13px;font-weight:500;margin:14px auto 0;padding:6px 14px;text-align:center;background:rgba(255,255,255,.7);border:1px solid var(--border);border-radius:999px;backdrop-filter:blur(6px)}
 .hero-shot{text-align:center}
 .hero-shot{position:relative;max-width:880px;margin:48px auto 0}
@@ -122,8 +128,14 @@ body.lang-en .shot .frame.empty::after{content:"Screenshot coming soon"}
 .panel.good h3::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--green)}
 .panel ul{margin:0;padding-left:20px;color:var(--muted)}
 .panel li{margin:8px 0}
-#appendix .panel{display:flex;flex-direction:column}
-#appendix .panel>p:last-child{margin-top:auto;margin-bottom:0}
+/* 附錄文件卡：等高、按鈕貼齊卡片底部（說明 / 選配附註在上方） */
+#appendix .cols2{align-items:stretch}
+#appendix .panel{display:flex;flex-direction:column;min-width:0}
+#appendix .panel>p{margin:0 0 10px}
+#appendix .panel .note-opt{margin:2px 0 10px}
+.doc-action{margin-top:auto;padding-top:16px;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.doc-btn{white-space:nowrap;max-width:100%}
+.doc-file{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--soft);overflow-wrap:anywhere}
 
 /* feature grid */
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}

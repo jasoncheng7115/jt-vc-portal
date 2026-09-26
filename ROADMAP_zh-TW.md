@@ -1,12 +1,12 @@
 # jt-vc-portal 開發藍圖（Roadmap）
 
-> English: [ROADMAP.md](ROADMAP.md)
+> English: [ROADMAP.md](ROADMAP.md) · 日本語: [ROADMAP_ja.md](ROADMAP_ja.md)
 
 > **作者**：Jason Cheng　·　GitHub [@jasoncheng7115](https://github.com/jasoncheng7115)　·　專案 [jt-vc-portal](https://github.com/jasoncheng7115/jt-vc-portal)
 
 本文記錄 jt-vc-portal 後續規劃中的功能。已上線功能請見 [README_zh-TW.md](README_zh-TW.md)；本藍圖僅列「尚未開始或進行中」的項目，順序不代表優先級，實際排程視需求調整。
 
-> 目前穩定版本：**v1.8.0**。
+> 目前穩定版本：**v1.9.0**。
 
 ---
 
@@ -34,9 +34,9 @@
 
 ### 三、portal 介面更多語言
 
-v1.7.0 已完成繁體中文 / English 雙語（語系資源、瀏覽器自動判斷、個人語言偏好）。後續：
+v1.7.0 已完成繁體中文 / English，v1.9.0 加入日本語（語系資源、瀏覽器自動判斷、個人語言偏好）。後續：
 
-- 加入更多介面語言（例如简体中文、日本語）：新增 `lang/<code>/*.php` 字典並擴充 `I18n::SUPPORTED`。
+- 加入更多介面語言（例如简体中文、한국어）：新增 `lang/<code>/*.php` 字典並擴充 `I18n::SUPPORTED`。
 - 站台層級的預設語言設定（瀏覽器語言無法判斷時使用）。
 
 ---
@@ -50,8 +50,9 @@ v1.7.0 已完成繁體中文 / English 雙語（語系資源、瀏覽器自動�
 
 ## 已完成（節錄）
 
-下列功能已於 v1.4–v1.8 上線，詳見 README、CHANGELOG 與各設定 SOP：
+下列功能已於 v1.4–v1.9 上線，詳見 README、CHANGELOG 與各設定 SOP：
 
+- **v1.9.0**：日文介面與文件（portal 介面、所有 Markdown 文件 `_ja.md`、GitHub Pages），Pages 文件卡片版面整理。
 - **v1.8.0**：刪除 / 取消會議室並寄行事曆取消通知、改密碼後其他裝置全部登出、稽核記錄保留期限、授權改為 GPL-3.0。
 - **v1.7.0**：portal 介面中英雙語（依瀏覽器自動判斷、右上選單 / 個人設定切換、Jitsi 會議語言可跟隨介面、Email 預設範本依語言）。
 - **v1.6.3**：資安強化（原子寫入 + 鎖、主持人心跳擁有權 + CSRF、帳號層鎖定、nonce CSP、內附 Jitsi API + SRI 等）、全功能測試清單與 ZAP 發版閘門。

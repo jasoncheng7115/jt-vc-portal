@@ -1,6 +1,6 @@
 # 自建 Jitsi Meet × jt-vc-portal 整合設定
 
-> English: [JITSI-MEET-SETUP.md](JITSI-MEET-SETUP.md)
+> English: [JITSI-MEET-SETUP.md](JITSI-MEET-SETUP.md) · 日本語: [JITSI-MEET-SETUP_ja.md](JITSI-MEET-SETUP_ja.md)
 
 > **作者**：Jason Cheng　·　GitHub [@jasoncheng7115](https://github.com/jasoncheng7115)　·　專案 [jt-vc-portal](https://github.com/jasoncheng7115/jt-vc-portal)
 

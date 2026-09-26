@@ -2,7 +2,7 @@
 
 > **Author**: Jason Cheng　·　GitHub [@jasoncheng7115](https://github.com/jasoncheng7115)　·　Project [jt-vc-portal](https://github.com/jasoncheng7115/jt-vc-portal)
 >
-> 繁體中文: [JIBRI-SETUP_zh-TW.md](JIBRI-SETUP_zh-TW.md)
+> 繁體中文: [JIBRI-SETUP_zh-TW.md](JIBRI-SETUP_zh-TW.md) · 日本語: [JIBRI-SETUP_ja.md](JIBRI-SETUP_ja.md)
 
 This guide continues from [JITSI-MEET-SETUP.md](JITSI-MEET-SETUP.md) and adds **Jibri recording** to the same docker-jitsi-meet deployment, with special attention to two points: **recording multiple meeting rooms at the same time** and **rendering Chinese (CJK) text correctly in recordings**.
 

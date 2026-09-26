@@ -1,12 +1,12 @@
 # jt-vc-portal Roadmap
 
-> 繁體中文: [ROADMAP_zh-TW.md](ROADMAP_zh-TW.md)
+> 繁體中文: [ROADMAP_zh-TW.md](ROADMAP_zh-TW.md) · 日本語: [ROADMAP_ja.md](ROADMAP_ja.md)
 
 > **Author**: Jason Cheng　·　GitHub [@jasoncheng7115](https://github.com/jasoncheng7115)　·　Project [jt-vc-portal](https://github.com/jasoncheng7115/jt-vc-portal)
 
 This document tracks planned features for jt-vc-portal. For features already released, see [README.md](README.md); this roadmap only lists items that are "not yet started or in progress". The order does not indicate priority, and the actual schedule will be adjusted according to demand.
 
-> Current stable version: **v1.8.0**.
+> Current stable version: **v1.9.0**.
 
 ---
 
@@ -34,9 +34,9 @@ Integrate with [jt-live-whisper](https://github.com/jasoncheng7115/jt-live-whisp
 
 ### 3. More portal interface languages
 
-v1.7.0 ships Traditional Chinese / English (locale resources, browser-language detection, per-user preference). Next:
+v1.7.0 shipped Traditional Chinese / English and v1.9.0 added Japanese (locale resources, browser-language detection, per-user preference). Next:
 
-- Add more interface languages (e.g. Simplified Chinese, Japanese): add a `lang/<code>/*.php` dictionary and extend `I18n::SUPPORTED`.
+- More interface languages (e.g. Simplified Chinese, Korean): add a `lang/<code>/*.php` dictionary and extend `I18n::SUPPORTED`.
 - A site-wide default language setting (used when the browser language cannot be matched).
 
 ---
@@ -50,8 +50,9 @@ v1.7.0 ships Traditional Chinese / English (locale resources, browser-language d
 
 ## Completed (highlights)
 
-The following features were released in v1.4–v1.8; see the README, CHANGELOG and the setup guides for details:
+The following features were released in v1.4–v1.9; see the README, CHANGELOG and the setup guides for details:
 
+- **v1.9.0**: Japanese interface and documentation (portal UI, all Markdown docs `_ja.md`, GitHub Pages), Pages doc-card layout cleanup.
 - **v1.8.0**: delete / cancel rooms with calendar cancellation, sign-out-everywhere on password change, audit log retention, license changed to GPL-3.0.
 - **v1.7.0**: bilingual portal interface (Traditional Chinese / English, detected from the browser, switchable from the account menu or profile; Jitsi meeting language can follow the interface; default email templates follow the language).
 - **v1.6.3**: security hardening (atomic locked writes, host heartbeat ownership + CSRF, per-account lockout, nonce CSP, bundled Jitsi API with SRI, …), full test checklist and ZAP release gate.

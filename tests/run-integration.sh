@@ -140,6 +140,20 @@ for pg in dashboard accounts audit-log usage settings profile; do nocjk "英文�
 has "登入者語言存到個人設定" "$(docker exec $NAME cat /var/jaas-data/users.json)" '"lang": "en"'
 curl -s -o /dev/null -b $A -c $A "$B/set-lang?l=zh-TW&r=/"
 has "切回中文：儀表板為中文" "$(curl -s -b $A $B/dashboard)" "會議室管理"
+JA="Accept-Language: ja-JP,ja;q=0.9"
+# 日文頁面：html lang=ja、含假名、不含繁體中文專用字（會錄帳號們這與儀刪頁輸擇關顯）
+jacheck() { # name body
+  local b; b=$(printf '%s' "$2" | sed 's/繁體中文//g; s/简体中文//g')
+  if ! printf '%s' "$b" | grep -qP '[\x{3040}-\x{30ff}]'; then echo "  FAIL $1 (沒有假名)"; FAIL=$((FAIL+1)); return; fi
+  if printf '%s' "$b" | grep -qP '[會錄帳號們這與儀刪頁輸擇關顯]'; then echo "  FAIL $1 (含繁中字: $(printf '%s' "$b" | grep -oP '.{0,12}[會錄帳號們這與儀刪頁輸擇關顯].{0,8}' | head -2 | tr '\n' ' '))"; FAIL=$((FAIL+1)); else echo "  ok   $1"; PASS=$((PASS+1)); fi; }
+has "日文瀏覽器：html lang=ja" "$(curl -s -H "$JA" $B/)" '<html lang="ja"'
+jacheck "日文瀏覽器：登入頁為日文" "$(curl -s -H "$JA" $B/jt-login)"
+curl -s -o /dev/null -b $A -c $A "$B/set-lang?l=ja&r=/"
+for pg in dashboard accounts audit-log usage settings profile; do jacheck "日文：/$pg" "$(curl -s -b $A $B/$pg)"; done
+curl -s -o /dev/null -b $A -c $A "$B/set-lang?l=zh-TW&r=/"
+GJ="$JAR/guest-ja"
+curl -s -o /dev/null -c $GJ -b $GJ -H "$JA" $B/room/itest-room
+jacheck "日文來賓等候頁" "$(curl -s -b $GJ -H "$JA" $B/guest)"
 GE="$JAR/guest-en"
 curl -s -o /dev/null -c $GE -b $GE -H "$EN" $B/room/itest-room
 nocjk "英文來賓等候頁無中文" "$(curl -s -b $GE -H "$EN" $B/guest)"

@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title data-zh="jt-vc-portal — 會議管理系統" data-en="jt-vc-portal — Video Meeting Management Portal">jt-vc-portal — Video Meeting Management Portal</title>
-<meta name="description" content="A video-meeting authentication portal supporting both 8x8 JaaS and self-hosted Jitsi Meet. Multiple accounts / roles / 2FA, full audit logging, scheduling and email invitations — self-hostable and fully under your control." data-zh="雙模式支援 8x8 JaaS 與自建 Jitsi Meet 的視訊會議認證入口。多帳號 / 角色 / 2FA、完整稽核、排程、Email 邀請，自主掌控、可自架。" data-en="A video-meeting authentication portal supporting both 8x8 JaaS and self-hosted Jitsi Meet. Multiple accounts / roles / 2FA, full audit logging, scheduling and email invitations — self-hostable and fully under your control.">
+<title data-zh="jt-vc-portal — 會議管理系統" data-en="jt-vc-portal — Video Meeting Management Portal" data-ja="jt-vc-portal — ビデオ会議管理ポータル">jt-vc-portal — Video Meeting Management Portal</title>
+<meta name="description" content="A video-meeting authentication portal supporting both 8x8 JaaS and self-hosted Jitsi Meet. Multiple accounts / roles / 2FA, full audit logging, scheduling and email invitations — self-hostable and fully under your control." data-zh="雙模式支援 8x8 JaaS 與自建 Jitsi Meet 的視訊會議認證入口。多帳號 / 角色 / 2FA、完整稽核、排程、Email 邀請，自主掌控、可自架。" data-en="A video-meeting authentication portal supporting both 8x8 JaaS and self-hosted Jitsi Meet. Multiple accounts / roles / 2FA, full audit logging, scheduling and email invitations — self-hostable and fully under your control." data-ja="8x8 JaaS とセルフホストの Jitsi Meet の両方に対応したビデオ会議認証ポータル。複数アカウント / ロール / 2FA、完全な監査ログ、予約、メール招待に対応し、セルフホストですべてを自分の管理下に置けます。">
 <link rel="icon" type="image/svg+xml" href="images/icon.svg">
 <link rel="icon" type="image/png" href="images/logo-64.png">
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
@@ -14,13 +14,15 @@
 <body>
 <script>
   /* 在內容繪製前先決定語言（避免閃爍）。
-     優先序：網址 ?lang= > localStorage 偏好 > 瀏覽器語言（navigator.languages）> 預設英文。 */
+     優先序：網址 ?lang= > localStorage 偏好 > 瀏覽器語言（navigator.languages）> 預設英文。
+     支援 zh / en / ja（?lang=zh-TW、en、ja；ja-JP 亦可）。 */
   (function(){
     var KEY = 'jtvc-doc-lang';
     function norm(v){
       v = String(v || '').toLowerCase().replace('_', '-');
       if (v === 'en' || v.indexOf('en-') === 0) return 'en';
       if (v === 'zh' || v.indexOf('zh-') === 0) return 'zh';
+      if (v === 'ja' || v.indexOf('ja-') === 0) return 'ja';
       return null;
     }
     var lang = null, u = null;
@@ -35,7 +37,7 @@
     }
     if (!lang) lang = 'en';
     document.body.classList.add('lang-' + lang);
-    document.documentElement.setAttribute('lang', lang === 'en' ? 'en' : 'zh-Hant');
+    document.documentElement.setAttribute('lang', lang === 'en' ? 'en' : lang === 'ja' ? 'ja' : 'zh-Hant');
     try {
       var t = document.querySelector('title'); if (t && t.getAttribute('data-' + lang)) document.title = t.getAttribute('data-' + lang);
       var d = document.querySelector('meta[name="description"]'); if (d && d.getAttribute('data-' + lang)) d.setAttribute('content', d.getAttribute('data-' + lang));
@@ -43,7 +45,7 @@
     if (u) { try {
       localStorage.setItem(KEY, u);
       var url = new URL(location.href);
-      url.searchParams.set('lang', u === 'en' ? 'en' : 'zh-TW');
+      url.searchParams.set('lang', u === 'en' ? 'en' : u === 'ja' ? 'ja' : 'zh-TW');
       history.replaceState(null, '', url);
     } catch (e) {} }
   })();
@@ -54,13 +56,13 @@
   <div class="wrap">
     <a class="brand" href="#top"><img src="images/icon.svg" alt="jt-vc-portal" width="28" height="28"> jt-vc-portal</a>
     <div class="links">
-      <a href="#why"><span class="zh">關鍵</span><span class="en">Why</span></a>
-      <a href="#features"><span class="zh">功能</span><span class="en">Features</span></a>
-      <a href="#compare"><span class="zh">比較</span><span class="en">Compare</span></a>
-      <a href="#security"><span class="zh">安全</span><span class="en">Security</span></a>
-      <a href="#screenshots"><span class="zh">畫面</span><span class="en">Screenshots</span></a>
-      <a href="#install"><span class="zh">安裝</span><span class="en">Install</span></a>
-      <a href="#appendix"><span class="zh">附錄</span><span class="en">Docs</span></a>
+      <a href="#why"><span class="zh">關鍵</span><span class="en">Why</span><span class="ja">特長</span></a>
+      <a href="#features"><span class="zh">功能</span><span class="en">Features</span><span class="ja">機能</span></a>
+      <a href="#compare"><span class="zh">比較</span><span class="en">Compare</span><span class="ja">比較</span></a>
+      <a href="#security"><span class="zh">安全</span><span class="en">Security</span><span class="ja">セキュリティ</span></a>
+      <a href="#screenshots"><span class="zh">畫面</span><span class="en">Screenshots</span><span class="ja">画面</span></a>
+      <a href="#install"><span class="zh">安裝</span><span class="en">Install</span><span class="ja">インストール</span></a>
+      <a href="#appendix"><span class="zh">附錄</span><span class="en">Docs</span><span class="ja">ドキュメント</span></a>
       <a class="gh" href="https://github.com/jasoncheng7115/jt-vc-portal" target="_blank" rel="noopener">GitHub</a>
       <span class="langsw">
         <button type="button" id="langBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Language">
@@ -69,6 +71,7 @@
         <ul id="langMenu" role="listbox" hidden>
           <li role="option" data-lang="zh"><span class="tick">✓</span>繁體中文</li>
           <li role="option" data-lang="en"><span class="tick">✓</span>English</li>
+          <li role="option" data-lang="ja"><span class="tick">✓</span>日本語</li>
         </ul>
       </span>
     </div>
@@ -79,17 +82,17 @@
 <header class="hero" id="top">
   <div class="wrap">
     <div class="eyebrows">
-      <span class="eyebrow"><span class="zh">開源</span><span class="en">Open source</span></span>
-      <span class="eyebrow"><span class="zh">自主</span><span class="en">Self-hosted</span></span>
-      <span class="eyebrow"><span class="zh">可控</span><span class="en">In control</span></span>
-      <span class="eyebrow"><span class="zh">雙模</span><span class="en">Dual-mode</span></span>
+      <span class="eyebrow"><span class="zh">開源</span><span class="en">Open source</span><span class="ja">オープンソース</span></span>
+      <span class="eyebrow"><span class="zh">自主</span><span class="en">Self-hosted</span><span class="ja">セルフホスト</span></span>
+      <span class="eyebrow"><span class="zh">可控</span><span class="en">In control</span><span class="ja">自社で管理</span></span>
+      <span class="eyebrow"><span class="zh">雙模</span><span class="en">Dual-mode</span><span class="ja">デュアルモード</span></span>
     </div>
-    <h1><span class="zh">會議在手，<span class="grad">主權我有</span></span><span class="en">Own your meetings, <span class="grad">own your data</span></span></h1>
-    <p class="lead"><span class="zh">搭配 Jitsi Meet 基底的開源視訊會議系統，打造 Webex/Zoom 風格的會議入口，但一切由你掌控：多帳號 / 角色 / 2FA、預約、大廳、完整稽核與 SIEM 外拋。連線模式支援 <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>（雲端託管）或<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">自建 Jitsi Meet</a>，一鍵切換。</span><span class="en">An open-source meeting portal for Jitsi Meet–based video conferencing — a Webex/Zoom-style front door that stays entirely under your control: multiple accounts / roles / 2FA, scheduling, lobby, full audit logging and SIEM forwarding. Connect to <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> (cloud-hosted) or a <a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">self-hosted Jitsi Meet</a> and switch between them with one click.</span></p>
-    <p class="lead-note"><svg class="ln-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 8v.01"/></svg><span><span class="zh">8x8 自 2018 年起為 <strong>Jitsi / Jitsi Meet</strong> 的開發與維護公司；<strong>8x8 JaaS（Jitsi as a Service）</strong>即其官方雲端託管的 Jitsi 服務。</span><span class="en">Since 2018, 8x8 has been the company developing and maintaining <strong>Jitsi / Jitsi Meet</strong>; <strong>8x8 JaaS (Jitsi as a Service)</strong> is its official cloud-hosted Jitsi service.</span></span></p>
+    <h1><span class="zh">會議在手，<span class="grad">主權我有</span></span><span class="en">Own your meetings, <span class="grad">own your data</span></span><span class="ja">会議も、<span class="grad">データも自分の手に</span></span></h1>
+    <p class="lead"><span class="zh">搭配 Jitsi Meet 基底的開源視訊會議系統，打造 Webex/Zoom 風格的會議入口，但一切由你掌控：多帳號 / 角色 / 2FA、預約、大廳、完整稽核與 SIEM 外拋。連線模式支援 <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>（雲端託管）或<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">自建 Jitsi Meet</a>，一鍵切換。</span><span class="en">An open-source meeting portal for Jitsi Meet–based video conferencing — a Webex/Zoom-style front door that stays entirely under your control: multiple accounts / roles / 2FA, scheduling, lobby, full audit logging and SIEM forwarding. Connect to <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> (cloud-hosted) or a <a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">self-hosted Jitsi Meet</a> and switch between them with one click.</span><span class="ja">Jitsi Meet ベースのビデオ会議のためのオープンソース会議ポータル。Webex / Zoom のような会議の入口を、すべて自分の管理下で提供します：複数アカウント / ロール / 2FA、予約、ロビー、完全な監査ログと SIEM 転送。接続先は <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>（クラウドホスト）または<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">セルフホストの Jitsi Meet</a> から選べ、ワンクリックで切り替えられます。</span></p>
+    <p class="lead-note"><svg class="ln-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 8v.01"/></svg><span><span class="zh">8x8 自 2018 年起為 <strong>Jitsi / Jitsi Meet</strong> 的開發與維護公司；<strong>8x8 JaaS（Jitsi as a Service）</strong>即其官方雲端託管的 Jitsi 服務。</span><span class="en">Since 2018, 8x8 has been the company developing and maintaining <strong>Jitsi / Jitsi Meet</strong>; <strong>8x8 JaaS (Jitsi as a Service)</strong> is its official cloud-hosted Jitsi service.</span><span class="ja">8x8 は 2018 年から <strong>Jitsi / Jitsi Meet</strong> の開発・保守を担う企業であり、<strong>8x8 JaaS（Jitsi as a Service）</strong>はその公式クラウドホスト型 Jitsi サービスです。</span></span></p>
     <div class="cta">
-      <a class="btn btn-primary" href="#install"><span class="zh">開始安裝</span><span class="en">Get started</span></a>
-      <a class="btn btn-ghost" href="https://github.com/jasoncheng7115/jt-vc-portal" target="_blank" rel="noopener"><span class="zh">在 GitHub 檢視</span><span class="en">View on GitHub</span></a>
+      <a class="btn btn-primary" href="#install"><span class="zh">開始安裝</span><span class="en">Get started</span><span class="ja">インストールを始める</span></a>
+      <a class="btn btn-ghost" href="https://github.com/jasoncheng7115/jt-vc-portal" target="_blank" rel="noopener"><span class="zh">在 GitHub 檢視</span><span class="en">View on GitHub</span><span class="ja">GitHub で見る</span></a>
     </div>
     <div class="badges">
       <img src="https://img.shields.io/badge/License-GPL--3.0-blue.svg" alt="License">
@@ -99,8 +102,8 @@
       <img src="https://img.shields.io/badge/PHP_deps-zero-brightgreen.svg" alt="zero deps">
     </div>
     <figure class="shot hero-shot">
-      <div class="frame"><img src="images/hero.png" alt="jt-vc-portal waiting / countdown page" data-alt-zh="jt-vc-portal 等候 / 倒數頁" data-alt-en="jt-vc-portal waiting / countdown page" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div>
-      <figcaption><span class="zh">等候 / 倒數頁：非開放時段顯示翻頁時鐘倒數，主持人進入即自動放行</span><span class="en">Waiting / countdown page: outside the scheduled window guests see a flip-clock countdown, and are let in automatically as soon as the host joins</span></figcaption>
+      <div class="frame"><img src="images/hero.png" alt="jt-vc-portal waiting / countdown page" data-alt-zh="jt-vc-portal 等候 / 倒數頁" data-alt-en="jt-vc-portal waiting / countdown page" data-alt-ja="jt-vc-portal 待機 / カウントダウン画面" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div>
+      <figcaption><span class="zh">等候 / 倒數頁：非開放時段顯示翻頁時鐘倒數，主持人進入即自動放行</span><span class="en">Waiting / countdown page: outside the scheduled window guests see a flip-clock countdown, and are let in automatically as soon as the host joins</span><span class="ja">待機 / カウントダウン画面：公開時間外はゲストにフリップ時計のカウントダウンを表示し、主催者が入室すると自動的に入室を許可します</span></figcaption>
     </figure>
   </div>
 </header>
@@ -109,27 +112,27 @@
 <section id="why">
   <div class="wrap">
     <div class="kicker">Why</div>
-    <h2><span class="zh">為什麼需要 jt-vc-portal？</span><span class="en">Why jt-vc-portal?</span></h2>
-    <p class="section-sub"><span class="zh">把會議邀請連結到處轉貼、沒有權限與記錄，難以管理也難以稽核。</span><span class="en">Meeting links passed around everywhere, with no permissions and no records, are hard to manage and impossible to audit.</span></p>
+    <h2><span class="zh">為什麼需要 jt-vc-portal？</span><span class="en">Why jt-vc-portal?</span><span class="ja">なぜ jt-vc-portal なのか？</span></h2>
+    <p class="section-sub"><span class="zh">把會議邀請連結到處轉貼、沒有權限與記錄，難以管理也難以稽核。</span><span class="en">Meeting links passed around everywhere, with no permissions and no records, are hard to manage and impossible to audit.</span><span class="ja">会議リンクがあちこちに転送され、権限も記録もない状態では、管理も監査もできません。</span></p>
     <div class="cols2">
       <div class="panel warn">
-        <h3><span class="zh">沒有入口閘道時</span><span class="en">Without a gateway</span></h3>
+        <h3><span class="zh">沒有入口閘道時</span><span class="en">Without a gateway</span><span class="ja">ゲートウェイがない場合</span></h3>
         <ul>
-          <li><span class="zh">邀請連結散落各處，誰建的、給了誰無從追查</span><span class="en">Invite links scattered everywhere — no way to trace who created them or who received them</span></li>
-          <li><span class="zh">來賓可任意進入，缺乏開放時段與身分控制</span><span class="en">Guests can walk in any time, with no time-window or identity control</span></li>
-          <li><span class="zh">沒有登入與行為記錄，無法稽核或外拋 SIEM</span><span class="en">No login or activity records, so nothing to audit or forward to a SIEM</span></li>
-          <li><span class="zh">綁死單一雲端服務，難以切換或自建省成本</span><span class="en">Locked into a single cloud service, hard to switch or self-host to cut costs</span></li>
-          <li><span class="zh">就算魔改 prosody 擠出帳號管理，設定繁瑣又難維護</span><span class="en">Even if you hack account management into prosody, it is tedious to configure and hard to maintain</span></li>
+          <li><span class="zh">邀請連結散落各處，誰建的、給了誰無從追查</span><span class="en">Invite links scattered everywhere — no way to trace who created them or who received them</span><span class="ja">招待リンクがあちこちに散らばり、誰が作成し誰に渡したのか追跡できない</span></li>
+          <li><span class="zh">來賓可任意進入，缺乏開放時段與身分控制</span><span class="en">Guests can walk in any time, with no time-window or identity control</span><span class="ja">ゲストがいつでも入室でき、公開時間や本人確認の制御がない</span></li>
+          <li><span class="zh">沒有登入與行為記錄，無法稽核或外拋 SIEM</span><span class="en">No login or activity records, so nothing to audit or forward to a SIEM</span><span class="ja">ログインや操作の記録がなく、監査も SIEM への転送もできない</span></li>
+          <li><span class="zh">綁死單一雲端服務，難以切換或自建省成本</span><span class="en">Locked into a single cloud service, hard to switch or self-host to cut costs</span><span class="ja">単一のクラウドサービスに縛られ、乗り換えやコスト削減のためのセルフホストが難しい</span></li>
+          <li><span class="zh">就算魔改 prosody 擠出帳號管理，設定繁瑣又難維護</span><span class="en">Even if you hack account management into prosody, it is tedious to configure and hard to maintain</span><span class="ja">prosody を改造してアカウント管理を無理やり実現しても、設定が煩雑で保守が難しい</span></li>
         </ul>
       </div>
       <div class="panel good">
-        <h3><span class="zh">用 jt-vc-portal 後</span><span class="en">With jt-vc-portal</span></h3>
+        <h3><span class="zh">用 jt-vc-portal 後</span><span class="en">With jt-vc-portal</span><span class="ja">jt-vc-portal を導入すると</span></h3>
         <ul>
-          <li><span class="zh">統一入口：主持人登入才能建會議室，行為全程稽核</span><span class="en">One front door: only signed-in hosts can create rooms, and every action is audited</span></li>
-          <li><span class="zh">預約時段、來賓需具名、主持人在線上才放行</span><span class="en">Scheduled time windows, named guests only, and guests admitted only while the host is online</span></li>
-          <li><span class="zh">多帳號 / 角色 / 2FA；登入記錄可外拋 syslog/CEF/GELF</span><span class="en">Multiple accounts / roles / 2FA; login records can be forwarded as syslog/CEF/GELF</span></li>
-          <li><span class="zh">雙模式：<a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> 或<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">自建 Jitsi Meet</a>，一鍵切換不動程式碼</span><span class="en">Dual-mode: <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> or <a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">self-hosted Jitsi Meet</a>, switched with one click and no code changes</span></li>
-          <li><span class="zh">帳號 / 角色 / 權限網頁化管理，免碰 prosody 設定檔</span><span class="en">Accounts / roles / permissions managed on the web — no need to touch prosody config files</span></li>
+          <li><span class="zh">統一入口：主持人登入才能建會議室，行為全程稽核</span><span class="en">One front door: only signed-in hosts can create rooms, and every action is audited</span><span class="ja">統一された入口：ログインした主催者だけが会議室を作成でき、すべての操作が監査される</span></li>
+          <li><span class="zh">預約時段、來賓需具名、主持人在線上才放行</span><span class="en">Scheduled time windows, named guests only, and guests admitted only while the host is online</span><span class="ja">予約時間枠、ゲストは名前の入力が必須、主催者がオンラインのときだけ入室を許可</span></li>
+          <li><span class="zh">多帳號 / 角色 / 2FA；登入記錄可外拋 syslog/CEF/GELF</span><span class="en">Multiple accounts / roles / 2FA; login records can be forwarded as syslog/CEF/GELF</span><span class="ja">複数アカウント / ロール / 2FA；ログイン記録は syslog/CEF/GELF で転送可能</span></li>
+          <li><span class="zh">雙模式：<a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> 或<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">自建 Jitsi Meet</a>，一鍵切換不動程式碼</span><span class="en">Dual-mode: <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> or <a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">self-hosted Jitsi Meet</a>, switched with one click and no code changes</span><span class="ja">デュアルモード：<a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> または<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">セルフホストの Jitsi Meet</a> を、コードを変更せずワンクリックで切り替え</span></li>
+          <li><span class="zh">帳號 / 角色 / 權限網頁化管理，免碰 prosody 設定檔</span><span class="en">Accounts / roles / permissions managed on the web — no need to touch prosody config files</span><span class="ja">アカウント / ロール / 権限を Web 上で管理でき、prosody の設定ファイルに触れる必要なし</span></li>
         </ul>
       </div>
     </div>
@@ -140,20 +143,20 @@
 <section id="features" class="alt">
   <div class="wrap">
     <div class="kicker">Features</div>
-    <h2><span class="zh">核心功能</span><span class="en">Core features</span></h2>
-    <p class="section-sub"><span class="zh">企業會議入口需要的均已內建，零外部 PHP 套件。</span><span class="en">Everything an organization's meeting portal needs is built in — with zero external PHP packages.</span></p>
+    <h2><span class="zh">核心功能</span><span class="en">Core features</span><span class="ja">主な機能</span></h2>
+    <p class="section-sub"><span class="zh">企業會議入口需要的均已內建，零外部 PHP 套件。</span><span class="en">Everything an organization's meeting portal needs is built in — with zero external PHP packages.</span><span class="ja">組織の会議ポータルに必要な機能はすべて組み込み済み。外部 PHP パッケージはゼロです。</span></p>
     <div class="grid">
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div><h3><span class="zh">雙連線模式</span><span class="en">Dual connection modes</span></h3><p><span class="zh"><a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>（RS256 + kid）或<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">自建 Jitsi Meet</a>（HS256 / 免 JWT），管理介面一鍵切換。</span><span class="en"><a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> (RS256 + kid) or <a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">self-hosted Jitsi Meet</a> (HS256 / no JWT), switched with one click in the admin UI.</span></p></div>
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m23 7-7 5 7 5V7Z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div><h3><span class="zh">會議室管理</span><span class="en">Room management</span></h3><p><span class="zh">建立 / 進入、亂數命名、近期清單、一鍵複製邀請、QR Code 彈窗。</span><span class="en">Create / join, random room names, a recent-rooms list, one-click invite copy and a QR code pop-up.</span></p></div>
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div><h3><span class="zh">預約時段</span><span class="en">Scheduling</span></h3><p><span class="zh">設定開放時段；未到顯示翻頁時鐘倒數，主持人提前進入即自動放行。</span><span class="en">Set an open time window; before it starts guests see a flip-clock countdown, and are let in automatically if the host joins early.</span></p></div>
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div><h3><span class="zh">Email 邀請</span><span class="en">Email invitations</span></h3><p><span class="zh">填與會者 email，寄送含 <code>.ics</code> 行事曆的邀請信，可自訂主旨 / 內文範本。</span><span class="en">Enter attendee emails to send invitations with an <code>.ics</code> calendar file, using customizable subject / body templates.</span></p></div>
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/></svg></div><h3><span class="zh">來賓流程</span><span class="en">Guest flow</span></h3><p><span class="zh">來賓需自填名稱才進場；非開放時段顯示等候 / 倒數 / 已結束頁。</span><span class="en">Guests must enter their name before joining; outside the open window they see a waiting / countdown / ended page.</span></p></div>
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><circle cx="12" cy="16" r="1"/></svg></div><h3><span class="zh">大廳模式</span><span class="en">Lobby mode</span></h3><p><span class="zh">建立會議室可選；主持人進場自動開啟，來賓需經主持人逐一允許才能進入。</span><span class="en">Optional when creating a room; it switches on automatically when the host joins, and each guest must be admitted by the host.</span></p></div>
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><h3><span class="zh">多帳號 / 角色 / 2FA</span><span class="en">Accounts / roles / 2FA</span></h3><p><span class="zh">admin 看全部、host 只看自己建的；支援 TOTP 雙因素認證。</span><span class="en">Admins see everything, hosts see only the rooms they created; TOTP two-factor authentication supported.</span></p></div>
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M9 11h6M9 15h4"/></svg></div><h3><span class="zh">完整稽核 + SIEM</span><span class="en">Full audit + SIEM</span></h3><p><span class="zh">登入、建室、邀請、設定變更全記錄，可即時外拋 syslog / CEF / GELF。</span><span class="en">Logins, room creation, invitations and settings changes are all recorded and can be forwarded in real time as syslog / CEF / GELF.</span></p></div>
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 1 0-18c4.97 0 9 3.58 9 8 0 2.5-2 4-4 4h-2a2 2 0 0 0-1.5 3.3A1.5 1.5 0 0 1 12 21Z"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="9.5" cy="7.5" r="1"/><circle cx="14.5" cy="7.5" r="1"/><circle cx="16.5" cy="11.5" r="1"/></svg></div><h3><span class="zh">外觀客製</span><span class="en">Customization</span></h3><p><span class="zh">60 種 Jitsi 介面語言、22 種主題、站台名稱 / logo、登入頁路徑偽裝。</span><span class="en">60 Jitsi UI languages, 22 themes, custom site name / logo, and a disguised login-page path.</span></p></div>
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="14" width="3" height="3"/></svg></div><h3><span class="zh">會議統計</span><span class="en">Meeting statistics</span></h3><p><span class="zh">會議時長排行、尖峰同時人數與參與者進出時間軸；JaaS 模式另接 USAGE webhook 統計 MAU。</span><span class="en">Meeting-duration rankings, peak concurrent participants and a join/leave timeline per participant; in JaaS mode the USAGE webhook also tracks MAU.</span></p></div>
-      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2"/></svg></div><h3><span class="zh">錄影調閱（自建 Jibri）</span><span class="en">Recording browser (self-hosted Jibri)</span></h3><p><span class="zh">串接 Jibri 主機錄影服務：線上列表 / 播放 / 下載 / 刪除、主機容量、保留政策（時間 / 容量 / 殘留）；主持人可調閱自己會議的錄影。</span><span class="en">Connects to the recording service on your Jibri host: list / play / download / delete online, disk usage, and retention policies (age / capacity / leftovers); hosts can access recordings of their own meetings.</span></p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div><h3><span class="zh">雙連線模式</span><span class="en">Dual connection modes</span><span class="ja">2 つの接続モード</span></h3><p><span class="zh"><a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>（RS256 + kid）或<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">自建 Jitsi Meet</a>（HS256 / 免 JWT），管理介面一鍵切換。</span><span class="en"><a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> (RS256 + kid) or <a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">self-hosted Jitsi Meet</a> (HS256 / no JWT), switched with one click in the admin UI.</span><span class="ja"><a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>（RS256 + kid）または<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">セルフホストの Jitsi Meet</a>（HS256 / JWT なし）を、管理画面からワンクリックで切り替え。</span></p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m23 7-7 5 7 5V7Z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div><h3><span class="zh">會議室管理</span><span class="en">Room management</span><span class="ja">会議室管理</span></h3><p><span class="zh">建立 / 進入、亂數命名、近期清單、一鍵複製邀請、QR Code 彈窗。</span><span class="en">Create / join, random room names, a recent-rooms list, one-click invite copy and a QR code pop-up.</span><span class="ja">作成 / 入室、ランダムな会議室名、最近の会議室一覧、招待リンクのワンクリックコピー、QR コードのポップアップ。</span></p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></div><h3><span class="zh">預約時段</span><span class="en">Scheduling</span><span class="ja">予約時間枠</span></h3><p><span class="zh">設定開放時段；未到顯示翻頁時鐘倒數，主持人提前進入即自動放行。</span><span class="en">Set an open time window; before it starts guests see a flip-clock countdown, and are let in automatically if the host joins early.</span><span class="ja">公開時間枠を設定。開始前のゲストにはフリップ時計のカウントダウンを表示し、主催者が早めに入室すると自動的に入室を許可します。</span></p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div><h3><span class="zh">Email 邀請</span><span class="en">Email invitations</span><span class="ja">メール招待</span></h3><p><span class="zh">填與會者 email，寄送含 <code>.ics</code> 行事曆的邀請信，可自訂主旨 / 內文範本。</span><span class="en">Enter attendee emails to send invitations with an <code>.ics</code> calendar file, using customizable subject / body templates.</span><span class="ja">参加者のメールアドレスを入力すると、<code>.ics</code> カレンダーファイル付きの招待メールを送信。件名 / 本文のテンプレートはカスタマイズ可能です。</span></p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/></svg></div><h3><span class="zh">來賓流程</span><span class="en">Guest flow</span><span class="ja">ゲストの流れ</span></h3><p><span class="zh">來賓需自填名稱才進場；非開放時段顯示等候 / 倒數 / 已結束頁。</span><span class="en">Guests must enter their name before joining; outside the open window they see a waiting / countdown / ended page.</span><span class="ja">ゲストは入室前に名前の入力が必須。公開時間外は待機 / カウントダウン / 終了画面を表示します。</span></p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><circle cx="12" cy="16" r="1"/></svg></div><h3><span class="zh">大廳模式</span><span class="en">Lobby mode</span><span class="ja">ロビーモード</span></h3><p><span class="zh">建立會議室可選；主持人進場自動開啟，來賓需經主持人逐一允許才能進入。</span><span class="en">Optional when creating a room; it switches on automatically when the host joins, and each guest must be admitted by the host.</span><span class="ja">会議室作成時に選択可能。主催者の入室時に自動で有効になり、ゲストは主催者に 1 人ずつ許可されて入室します。</span></p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><h3><span class="zh">多帳號 / 角色 / 2FA</span><span class="en">Accounts / roles / 2FA</span><span class="ja">アカウント / ロール / 2FA</span></h3><p><span class="zh">admin 看全部、host 只看自己建的；支援 TOTP 雙因素認證。</span><span class="en">Admins see everything, hosts see only the rooms they created; TOTP two-factor authentication supported.</span><span class="ja">admin はすべてを閲覧、host は自分が作成した会議室のみ。TOTP 二要素認証に対応。</span></p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M9 11h6M9 15h4"/></svg></div><h3><span class="zh">完整稽核 + SIEM</span><span class="en">Full audit + SIEM</span><span class="ja">完全な監査 + SIEM</span></h3><p><span class="zh">登入、建室、邀請、設定變更全記錄，可即時外拋 syslog / CEF / GELF。</span><span class="en">Logins, room creation, invitations and settings changes are all recorded and can be forwarded in real time as syslog / CEF / GELF.</span><span class="ja">ログイン、会議室作成、招待、設定変更をすべて記録し、syslog / CEF / GELF でリアルタイムに転送できます。</span></p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 1 0-18c4.97 0 9 3.58 9 8 0 2.5-2 4-4 4h-2a2 2 0 0 0-1.5 3.3A1.5 1.5 0 0 1 12 21Z"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="9.5" cy="7.5" r="1"/><circle cx="14.5" cy="7.5" r="1"/><circle cx="16.5" cy="11.5" r="1"/></svg></div><h3><span class="zh">外觀客製</span><span class="en">Customization</span><span class="ja">外観のカスタマイズ</span></h3><p><span class="zh">60 種 Jitsi 介面語言、22 種主題、站台名稱 / logo、登入頁路徑偽裝。</span><span class="en">60 Jitsi UI languages, 22 themes, custom site name / logo, and a disguised login-page path.</span><span class="ja">60 種類の Jitsi インターフェース言語、22 種類のテーマ、サイト名 / ロゴ、ログインページのパス偽装。</span></p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="14" width="3" height="3"/></svg></div><h3><span class="zh">會議統計</span><span class="en">Meeting statistics</span><span class="ja">会議統計</span></h3><p><span class="zh">會議時長排行、尖峰同時人數與參與者進出時間軸；JaaS 模式另接 USAGE webhook 統計 MAU。</span><span class="en">Meeting-duration rankings, peak concurrent participants and a join/leave timeline per participant; in JaaS mode the USAGE webhook also tracks MAU.</span><span class="ja">会議時間ランキング、同時参加者数のピーク、参加者ごとの入退室タイムライン。JaaS モードでは USAGE Webhook で MAU も集計します。</span></p></div>
+      <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2"/></svg></div><h3><span class="zh">錄影調閱（自建 Jibri）</span><span class="en">Recording browser (self-hosted Jibri)</span><span class="ja">録画の閲覧（セルフホスト Jibri）</span></h3><p><span class="zh">串接 Jibri 主機錄影服務：線上列表 / 播放 / 下載 / 刪除、主機容量、保留政策（時間 / 容量 / 殘留）；主持人可調閱自己會議的錄影。</span><span class="en">Connects to the recording service on your Jibri host: list / play / download / delete online, disk usage, and retention policies (age / capacity / leftovers); hosts can access recordings of their own meetings.</span><span class="ja">Jibri ホストの録画サービスと連携：オンラインで一覧 / 再生 / ダウンロード / 削除、ディスク使用量、保持ポリシー（期間 / 容量 / 残存ファイル）。主催者は自分の会議の録画を閲覧できます。</span></p></div>
     </div>
   </div>
 </section>
@@ -162,49 +165,49 @@
 <section id="compare">
   <div class="wrap">
     <div class="kicker">Compare</div>
-    <h2><span class="zh">怎麼選？8x8 JaaS 與自建 Jitsi Meet</span><span class="en">Which one? 8x8 JaaS vs. self-hosted Jitsi Meet</span></h2>
-    <p class="section-sub"><span class="zh">兩種模式都能在管理介面一鍵切換、不必改程式，依團隊規模與維運能力選擇即可。</span><span class="en">Both modes can be switched with one click in the admin UI without code changes — pick based on your team size and operational capacity.</span></p>
+    <h2><span class="zh">怎麼選？8x8 JaaS 與自建 Jitsi Meet</span><span class="en">Which one? 8x8 JaaS vs. self-hosted Jitsi Meet</span><span class="ja">どちらを選ぶ？ 8x8 JaaS とセルフホスト Jitsi Meet</span></h2>
+    <p class="section-sub"><span class="zh">兩種模式都能在管理介面一鍵切換、不必改程式，依團隊規模與維運能力選擇即可。</span><span class="en">Both modes can be switched with one click in the admin UI without code changes — pick based on your team size and operational capacity.</span><span class="ja">どちらのモードも管理画面からワンクリックで切り替えられ、コード変更は不要です。チームの規模と運用体制に合わせて選んでください。</span></p>
 
     <div class="note" style="margin-bottom:26px">
-      <span class="zh"><strong>小團隊建議從 <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> 起步：</strong>JaaS 提供<strong>免費 Dev 方案（每月 25 MAU 免費額度）</strong>，免架站、免維運即可上線，最適合小團隊、試用與內部小規模使用；待規模成長再評估轉自建。</span><span class="en"><strong>Small teams: start with <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>.</strong> JaaS offers a <strong>free Dev plan (25 MAU free per month)</strong>, so you can go live with no servers to build or maintain — ideal for small teams, trials and small internal use. Consider moving to self-hosting once you grow.</span>
+      <span class="zh"><strong>小團隊建議從 <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> 起步：</strong>JaaS 提供<strong>免費 Dev 方案（每月 25 MAU 免費額度）</strong>，免架站、免維運即可上線，最適合小團隊、試用與內部小規模使用；待規模成長再評估轉自建。</span><span class="en"><strong>Small teams: start with <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>.</strong> JaaS offers a <strong>free Dev plan (25 MAU free per month)</strong>, so you can go live with no servers to build or maintain — ideal for small teams, trials and small internal use. Consider moving to self-hosting once you grow.</span><span class="ja"><strong>小規模チームは <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> から始めるのがおすすめ：</strong>JaaS には<strong>無料の Dev プラン（毎月 25 MAU まで無料）</strong>があり、サーバーの構築も運用も不要ですぐに使い始められます。小規模チーム、試用、社内の小規模利用に最適です。規模が大きくなってからセルフホストへの移行を検討しましょう。</span>
     </div>
 
     <div class="cols2">
       <div class="panel good">
-        <h3><span class="zh">8x8 JaaS（雲端託管）</span><span class="en">8x8 JaaS (cloud-hosted)</span></h3>
-        <p style="margin:0 0 14px;color:var(--muted);font-size:14px;"><span class="zh">適合：小團隊、想快速上線、不想維運伺服器。</span><span class="en">Best for: small teams who want to go live fast without running servers.</span></p>
+        <h3><span class="zh">8x8 JaaS（雲端託管）</span><span class="en">8x8 JaaS (cloud-hosted)</span><span class="ja">8x8 JaaS（クラウドホスト）</span></h3>
+        <p style="margin:0 0 14px;color:var(--muted);font-size:14px;"><span class="zh">適合：小團隊、想快速上線、不想維運伺服器。</span><span class="en">Best for: small teams who want to go live fast without running servers.</span><span class="ja">向いているケース：サーバーを運用せず、すぐに使い始めたい小規模チーム。</span></p>
         <ul>
-          <li><span class="zh"><strong>免費 Dev 方案（25 MAU/月）</strong>，小團隊幾乎零成本上線</span><span class="en"><strong>Free Dev plan (25 MAU/month)</strong> — small teams can go live at almost zero cost</span></li>
-          <li><span class="zh">免維運：伺服器、JVB、錄影皆由 8x8 代管</span><span class="en">No operations: servers, JVB and recording are all managed by 8x8</span></li>
-          <li><span class="zh">全球節點、品質穩定，幾分鐘即可開通</span><span class="en">Global nodes with stable quality, up and running in minutes</span></li>
-          <li><span class="zh">缺點：依 MAU 計費，規模大成本上升；媒體經第三方雲端，需評估隱私 / 合規</span><span class="en">Downsides: billed by MAU, so costs rise with scale; media passes through a third-party cloud, so privacy / compliance must be evaluated</span></li>
+          <li><span class="zh"><strong>免費 Dev 方案（25 MAU/月）</strong>，小團隊幾乎零成本上線</span><span class="en"><strong>Free Dev plan (25 MAU/month)</strong> — small teams can go live at almost zero cost</span><span class="ja"><strong>無料 Dev プラン（25 MAU/月）</strong>：小規模チームならほぼゼロコストで導入可能</span></li>
+          <li><span class="zh">免維運：伺服器、JVB、錄影皆由 8x8 代管</span><span class="en">No operations: servers, JVB and recording are all managed by 8x8</span><span class="ja">運用不要：サーバー、JVB、録画はすべて 8x8 が管理</span></li>
+          <li><span class="zh">全球節點、品質穩定，幾分鐘即可開通</span><span class="en">Global nodes with stable quality, up and running in minutes</span><span class="ja">グローバルなノードで品質が安定しており、数分で開通</span></li>
+          <li><span class="zh">缺點：依 MAU 計費，規模大成本上升；媒體經第三方雲端，需評估隱私 / 合規</span><span class="en">Downsides: billed by MAU, so costs rise with scale; media passes through a third-party cloud, so privacy / compliance must be evaluated</span><span class="ja">デメリット：MAU 課金のため規模が大きくなるとコストが増加。メディアが第三者のクラウドを経由するため、プライバシー / コンプライアンスの検討が必要</span></li>
         </ul>
       </div>
       <div class="panel warn">
-        <h3><span class="zh">自建 Jitsi Meet</span><span class="en">Self-hosted Jitsi Meet</span></h3>
-        <p style="margin:0 0 14px;color:var(--muted);font-size:14px;"><span class="zh">適合：重隱私自主、中小規模、具維運能力。</span><span class="en">Best for: privacy and autonomy, small-to-medium scale, teams with ops capacity.</span></p>
+        <h3><span class="zh">自建 Jitsi Meet</span><span class="en">Self-hosted Jitsi Meet</span><span class="ja">セルフホスト Jitsi Meet</span></h3>
+        <p style="margin:0 0 14px;color:var(--muted);font-size:14px;"><span class="zh">適合：重隱私自主、中小規模、具維運能力。</span><span class="en">Best for: privacy and autonomy, small-to-medium scale, teams with ops capacity.</span><span class="ja">向いているケース：プライバシーと自主性を重視、中小規模、運用体制のあるチーム。</span></p>
         <ul>
-          <li><span class="zh">完全自主掌控，媒體資料不出自家機房</span><span class="en">Full control — media never leaves your own infrastructure</span></li>
-          <li><span class="zh">無 MAU 計費，規模越大反而越省</span><span class="en">No MAU billing, so the bigger you get, the more you save</span></li>
-          <li><span class="zh">可深度客製、與內網整合</span><span class="en">Deeply customizable and integrates with your internal network</span></li>
-          <li><span class="zh">缺點：需自行維運 Jitsi / prosody / jicofo / JVB；錄影搭配自建 Jibri；並發量大需擴充頻寬</span><span class="en">Downsides: you operate Jitsi / prosody / jicofo / JVB yourself; recording requires a self-hosted Jibri; high concurrency needs more bandwidth</span></li>
+          <li><span class="zh">完全自主掌控，媒體資料不出自家機房</span><span class="en">Full control — media never leaves your own infrastructure</span><span class="ja">完全に自社で管理でき、メディアデータが自社インフラの外に出ない</span></li>
+          <li><span class="zh">無 MAU 計費，規模越大反而越省</span><span class="en">No MAU billing, so the bigger you get, the more you save</span><span class="ja">MAU 課金がないため、規模が大きいほど割安に</span></li>
+          <li><span class="zh">可深度客製、與內網整合</span><span class="en">Deeply customizable and integrates with your internal network</span><span class="ja">高度なカスタマイズや社内ネットワークとの統合が可能</span></li>
+          <li><span class="zh">缺點：需自行維運 Jitsi / prosody / jicofo / JVB；錄影搭配自建 Jibri；並發量大需擴充頻寬</span><span class="en">Downsides: you operate Jitsi / prosody / jicofo / JVB yourself; recording requires a self-hosted Jibri; high concurrency needs more bandwidth</span><span class="ja">デメリット：Jitsi / prosody / jicofo / JVB を自分で運用する必要あり。録画にはセルフホストの Jibri が必要。同時接続が多い場合は帯域の増強が必要</span></li>
         </ul>
       </div>
     </div>
 
     <table class="compare-table" style="margin-top:26px">
-      <thead><tr><th><span class="zh">項目</span><span class="en">Aspect</span></th><th>8x8 JaaS</th><th><span class="zh">自建 Jitsi Meet</span><span class="en">Self-hosted Jitsi Meet</span></th></tr></thead>
+      <thead><tr><th><span class="zh">項目</span><span class="en">Aspect</span><span class="ja">項目</span></th><th>8x8 JaaS</th><th><span class="zh">自建 Jitsi Meet</span><span class="en">Self-hosted Jitsi Meet</span><span class="ja">セルフホスト Jitsi Meet</span></th></tr></thead>
       <tbody>
-        <tr><td><span class="zh">維運負擔</span><span class="en">Operations</span></td><td><span class="zh">無（全代管）</span><span class="en">None (fully managed)</span></td><td><span class="zh">需自行維運</span><span class="en">You run it yourself</span></td></tr>
-        <tr><td><span class="zh">上線速度</span><span class="en">Time to launch</span></td><td><span class="zh">幾分鐘</span><span class="en">Minutes</span></td><td><span class="zh">需先架站</span><span class="en">Servers must be set up first</span></td></tr>
-        <tr><td><span class="zh">費用模式</span><span class="en">Pricing</span></td><td><span class="zh">免費 Dev 方案（25 MAU）/ 超過依 MAU 計費</span><span class="en">Free Dev plan (25 MAU) / billed per MAU beyond that</span></td><td><span class="zh">自有硬體與頻寬</span><span class="en">Your own hardware and bandwidth</span></td></tr>
-        <tr><td><span class="zh">資料主權</span><span class="en">Data sovereignty</span></td><td><span class="zh">經 8x8 雲端</span><span class="en">Via the 8x8 cloud</span></td><td><span class="zh">完全自有</span><span class="en">Fully yours</span></td></tr>
-        <tr><td><span class="zh">錄影</span><span class="en">Recording</span></td><td><span class="zh">內建（依方案）</span><span class="en">Built in (plan-dependent)</span></td><td><span class="zh">搭配自建 Jibri</span><span class="en">With a self-hosted Jibri</span></td></tr>
-        <tr><td><span class="zh">適合規模</span><span class="en">Scale</span></td><td><span class="zh">不限規模（小團隊到大規模，依 MAU 計費）</span><span class="en">Any scale (small teams to large, billed per MAU)</span></td><td><span class="zh">中小型 / 高隱私需求</span><span class="en">Small-to-medium / high-privacy needs</span></td></tr>
-        <tr><td><span class="zh">JWT 簽章</span><span class="en">JWT signing</span></td><td>RS256 + kid</td><td><span class="zh">HS256 或免 JWT</span><span class="en">HS256 or no JWT</span></td></tr>
+        <tr><td><span class="zh">維運負擔</span><span class="en">Operations</span><span class="ja">運用負担</span></td><td><span class="zh">無（全代管）</span><span class="en">None (fully managed)</span><span class="ja">なし（フルマネージド）</span></td><td><span class="zh">需自行維運</span><span class="en">You run it yourself</span><span class="ja">自社で運用</span></td></tr>
+        <tr><td><span class="zh">上線速度</span><span class="en">Time to launch</span><span class="ja">導入までの時間</span></td><td><span class="zh">幾分鐘</span><span class="en">Minutes</span><span class="ja">数分</span></td><td><span class="zh">需先架站</span><span class="en">Servers must be set up first</span><span class="ja">先にサーバー構築が必要</span></td></tr>
+        <tr><td><span class="zh">費用模式</span><span class="en">Pricing</span><span class="ja">料金体系</span></td><td><span class="zh">免費 Dev 方案（25 MAU）/ 超過依 MAU 計費</span><span class="en">Free Dev plan (25 MAU) / billed per MAU beyond that</span><span class="ja">無料 Dev プラン（25 MAU）/ 超過分は MAU 課金</span></td><td><span class="zh">自有硬體與頻寬</span><span class="en">Your own hardware and bandwidth</span><span class="ja">自社のハードウェアと帯域</span></td></tr>
+        <tr><td><span class="zh">資料主權</span><span class="en">Data sovereignty</span><span class="ja">データ主権</span></td><td><span class="zh">經 8x8 雲端</span><span class="en">Via the 8x8 cloud</span><span class="ja">8x8 クラウド経由</span></td><td><span class="zh">完全自有</span><span class="en">Fully yours</span><span class="ja">完全に自社所有</span></td></tr>
+        <tr><td><span class="zh">錄影</span><span class="en">Recording</span><span class="ja">録画</span></td><td><span class="zh">內建（依方案）</span><span class="en">Built in (plan-dependent)</span><span class="ja">組み込み（プランによる）</span></td><td><span class="zh">搭配自建 Jibri</span><span class="en">With a self-hosted Jibri</span><span class="ja">セルフホストの Jibri と併用</span></td></tr>
+        <tr><td><span class="zh">適合規模</span><span class="en">Scale</span><span class="ja">適した規模</span></td><td><span class="zh">不限規模（小團隊到大規模，依 MAU 計費）</span><span class="en">Any scale (small teams to large, billed per MAU)</span><span class="ja">規模を問わない（小規模チームから大規模まで、MAU 課金）</span></td><td><span class="zh">中小型 / 高隱私需求</span><span class="en">Small-to-medium / high-privacy needs</span><span class="ja">中小規模 / 高いプライバシー要件</span></td></tr>
+        <tr><td><span class="zh">JWT 簽章</span><span class="en">JWT signing</span><span class="ja">JWT 署名</span></td><td>RS256 + kid</td><td><span class="zh">HS256 或免 JWT</span><span class="en">HS256 or no JWT</span><span class="ja">HS256 または JWT なし</span></td></tr>
       </tbody>
     </table>
-    <div class="note" style="margin-top:18px"><span class="zh"><strong>什麼是 MAU？</strong>MAU（Monthly Active Users，月活躍使用者）指一個計費週期內「不重複」加入會議的人數——同一人多次開會只算一位。8x8 JaaS 以此計費（免費 Dev 方案每月含 25 位）；自建 Jitsi Meet 無此限制。本系統用量統計頁會依訂閱週期統計目前 MAU。</span><span class="en"><strong>What is MAU?</strong> MAU (Monthly Active Users) is the number of <em>unique</em> people who join meetings within a billing period — someone who joins many meetings still counts once. 8x8 JaaS bills by MAU (the free Dev plan includes 25 per month); self-hosted Jitsi Meet has no such limit. The usage page in this system tracks current MAU according to your subscription cycle.</span></div>
+    <div class="note" style="margin-top:18px"><span class="zh"><strong>什麼是 MAU？</strong>MAU（Monthly Active Users，月活躍使用者）指一個計費週期內「不重複」加入會議的人數——同一人多次開會只算一位。8x8 JaaS 以此計費（免費 Dev 方案每月含 25 位）；自建 Jitsi Meet 無此限制。本系統用量統計頁會依訂閱週期統計目前 MAU。</span><span class="en"><strong>What is MAU?</strong> MAU (Monthly Active Users) is the number of <em>unique</em> people who join meetings within a billing period — someone who joins many meetings still counts once. 8x8 JaaS bills by MAU (the free Dev plan includes 25 per month); self-hosted Jitsi Meet has no such limit. The usage page in this system tracks current MAU according to your subscription cycle.</span><span class="ja"><strong>MAU とは？</strong>MAU（Monthly Active Users、月間アクティブユーザー）は、1 つの課金期間内に会議へ参加した<em>重複しない</em>人数です。同じ人が何度会議に参加しても 1 人として数えます。8x8 JaaS は MAU で課金され（無料 Dev プランは毎月 25 人まで）、セルフホストの Jitsi Meet にはこの制限がありません。本システムの利用統計ページでは、契約の課金サイクルに沿って現在の MAU を集計します。</span></div>
   </div>
 </section>
 
@@ -212,19 +215,19 @@
 <section id="security">
   <div class="wrap">
     <div class="kicker">Security</div>
-    <h2><span class="zh">安全性：遵循 OWASP Top 10:2025 實作</span><span class="en">Security: built to OWASP Top 10:2025</span></h2>
-    <p class="section-sub"><span class="zh">從設計到部署逐項把關。</span><span class="en">Checked item by item, from design to deployment.</span></p>
+    <h2><span class="zh">安全性：遵循 OWASP Top 10:2025 實作</span><span class="en">Security: built to OWASP Top 10:2025</span><span class="ja">セキュリティ：OWASP Top 10:2025 に準拠して実装</span></h2>
+    <p class="section-sub"><span class="zh">從設計到部署逐項把關。</span><span class="en">Checked item by item, from design to deployment.</span><span class="ja">設計からデプロイまで、項目ごとにチェック。</span></p>
     <div class="sec">
-      <div class="row"><span class="tag">A01</span><div><b><span class="zh">存取控制</span><span class="en">Access control</span></b><span><span class="zh">未授權頁回 404、會議室依擁有者隔離、CSRF token。</span><span class="en">Unauthorized pages return 404, rooms are isolated by owner, CSRF tokens.</span></span></div></div>
-      <div class="row"><span class="tag">A02</span><div><b><span class="zh">安全設定</span><span class="en">Security configuration</span></b><span><span class="zh">關閉錯誤顯示與版本洩漏、安全標頭、敏感路徑拒絕存取。</span><span class="en">Error display and version disclosure disabled, security headers, sensitive paths denied.</span></span></div></div>
-      <div class="row"><span class="tag">A03</span><div><b><span class="zh">供應鏈</span><span class="en">Supply chain</span></b><span><span class="zh">零外部 PHP 套件；前端 CDN 資源加 SRI 完整性驗證；映像建置時套用最新 OS 安全更新。</span><span class="en">Zero external PHP packages; front-end CDN assets use SRI integrity checks; the latest OS security updates are applied at image build time.</span></span></div></div>
-      <div class="row"><span class="tag">A04</span><div><b><span class="zh">加密</span><span class="en">Cryptography</span></b><span><span class="zh">bcrypt 密碼、JWT 簽章、webhook HMAC、安全 session cookie。</span><span class="en">bcrypt passwords, signed JWTs, webhook HMAC, secure session cookies.</span></span></div></div>
-      <div class="row"><span class="tag">A05</span><div><b><span class="zh">注入</span><span class="en">Injection</span></b><span><span class="zh">輸出跳脫、輸入清洗、Email header injection 防護。</span><span class="en">Output escaping, input sanitization, email header-injection protection.</span></span></div></div>
-      <div class="row"><span class="tag">A06</span><div><b><span class="zh">安全設計</span><span class="en">Secure design</span></b><span><span class="zh">閘道式架構、預設安全（來賓須具名、主持人在線上才放行）、角色最小權限。</span><span class="en">Gateway architecture, secure by default (guests must give a name and are admitted only while the host is online), least-privilege roles.</span></span></div></div>
-      <div class="row"><span class="tag">A07</span><div><b><span class="zh">認證</span><span class="en">Authentication</span></b><span><span class="zh">TOTP 2FA、fail2ban 登入鎖定（依真實來源 IP）。</span><span class="en">TOTP 2FA, fail2ban-style login lockout (by real client IP).</span></span></div></div>
-      <div class="row"><span class="tag">A08</span><div><b><span class="zh">資料完整性</span><span class="en">Data integrity</span></b><span><span class="zh">webhook 以 HMAC 簽章驗證來源，並用 idempotency key 去除重複事件。</span><span class="en">Webhooks are verified with HMAC signatures, and duplicate events are dropped via idempotency keys.</span></span></div></div>
-      <div class="row"><span class="tag">A09</span><div><b><span class="zh">記錄與告警</span><span class="en">Logging &amp; alerting</span></b><span><span class="zh">完整稽核記錄 + 即時 SIEM 外拋。</span><span class="en">Full audit log + real-time SIEM forwarding.</span></span></div></div>
-      <div class="row"><span class="tag">A10</span><div><b><span class="zh">例外處理</span><span class="en">Exception handling</span></b><span><span class="zh">失敗安全降級：讀取失敗回預設、寄信 / 外拋失敗不阻斷主流程、錯誤不外洩。</span><span class="en">Fail-safe degradation: read failures fall back to defaults, mail / log-forwarding failures never block the main flow, and errors are not leaked.</span></span></div></div>
+      <div class="row"><span class="tag">A01</span><div><b><span class="zh">存取控制</span><span class="en">Access control</span><span class="ja">アクセス制御</span></b><span><span class="zh">未授權頁回 404、會議室依擁有者隔離、CSRF token。</span><span class="en">Unauthorized pages return 404, rooms are isolated by owner, CSRF tokens.</span><span class="ja">未認可のページは 404 を返し、会議室は所有者ごとに分離、CSRF トークン。</span></span></div></div>
+      <div class="row"><span class="tag">A02</span><div><b><span class="zh">安全設定</span><span class="en">Security configuration</span><span class="ja">セキュリティ設定</span></b><span><span class="zh">關閉錯誤顯示與版本洩漏、安全標頭、敏感路徑拒絕存取。</span><span class="en">Error display and version disclosure disabled, security headers, sensitive paths denied.</span><span class="ja">エラー表示とバージョン情報の漏えいを無効化、セキュリティヘッダー、機密パスへのアクセス拒否。</span></span></div></div>
+      <div class="row"><span class="tag">A03</span><div><b><span class="zh">供應鏈</span><span class="en">Supply chain</span><span class="ja">サプライチェーン</span></b><span><span class="zh">零外部 PHP 套件；前端 CDN 資源加 SRI 完整性驗證；映像建置時套用最新 OS 安全更新。</span><span class="en">Zero external PHP packages; front-end CDN assets use SRI integrity checks; the latest OS security updates are applied at image build time.</span><span class="ja">外部 PHP パッケージはゼロ。フロントエンドの CDN リソースには SRI による完全性検証を適用し、イメージのビルド時に最新の OS セキュリティ更新を適用。</span></span></div></div>
+      <div class="row"><span class="tag">A04</span><div><b><span class="zh">加密</span><span class="en">Cryptography</span><span class="ja">暗号化</span></b><span><span class="zh">bcrypt 密碼、JWT 簽章、webhook HMAC、安全 session cookie。</span><span class="en">bcrypt passwords, signed JWTs, webhook HMAC, secure session cookies.</span><span class="ja">bcrypt によるパスワード、JWT 署名、Webhook の HMAC、安全なセッション Cookie。</span></span></div></div>
+      <div class="row"><span class="tag">A05</span><div><b><span class="zh">注入</span><span class="en">Injection</span><span class="ja">インジェクション</span></b><span><span class="zh">輸出跳脫、輸入清洗、Email header injection 防護。</span><span class="en">Output escaping, input sanitization, email header-injection protection.</span><span class="ja">出力のエスケープ、入力のサニタイズ、メールヘッダーインジェクション対策。</span></span></div></div>
+      <div class="row"><span class="tag">A06</span><div><b><span class="zh">安全設計</span><span class="en">Secure design</span><span class="ja">セキュアな設計</span></b><span><span class="zh">閘道式架構、預設安全（來賓須具名、主持人在線上才放行）、角色最小權限。</span><span class="en">Gateway architecture, secure by default (guests must give a name and are admitted only while the host is online), least-privilege roles.</span><span class="ja">ゲートウェイ型アーキテクチャ、デフォルトで安全（ゲストは名前の入力が必須、主催者がオンラインのときだけ入室を許可）、最小権限のロール。</span></span></div></div>
+      <div class="row"><span class="tag">A07</span><div><b><span class="zh">認證</span><span class="en">Authentication</span><span class="ja">認証</span></b><span><span class="zh">TOTP 2FA、fail2ban 登入鎖定（依真實來源 IP）。</span><span class="en">TOTP 2FA, fail2ban-style login lockout (by real client IP).</span><span class="ja">TOTP 2FA、fail2ban 方式のログインロックアウト（実際の接続元 IP に基づく）。</span></span></div></div>
+      <div class="row"><span class="tag">A08</span><div><b><span class="zh">資料完整性</span><span class="en">Data integrity</span><span class="ja">データの完全性</span></b><span><span class="zh">webhook 以 HMAC 簽章驗證來源，並用 idempotency key 去除重複事件。</span><span class="en">Webhooks are verified with HMAC signatures, and duplicate events are dropped via idempotency keys.</span><span class="ja">Webhook は HMAC 署名で送信元を検証し、idempotency key で重複イベントを除外。</span></span></div></div>
+      <div class="row"><span class="tag">A09</span><div><b><span class="zh">記錄與告警</span><span class="en">Logging &amp; alerting</span><span class="ja">ログとアラート</span></b><span><span class="zh">完整稽核記錄 + 即時 SIEM 外拋。</span><span class="en">Full audit log + real-time SIEM forwarding.</span><span class="ja">完全な監査ログ + SIEM へのリアルタイム転送。</span></span></div></div>
+      <div class="row"><span class="tag">A10</span><div><b><span class="zh">例外處理</span><span class="en">Exception handling</span><span class="ja">例外処理</span></b><span><span class="zh">失敗安全降級：讀取失敗回預設、寄信 / 外拋失敗不阻斷主流程、錯誤不外洩。</span><span class="en">Fail-safe degradation: read failures fall back to defaults, mail / log-forwarding failures never block the main flow, and errors are not leaked.</span><span class="ja">フェイルセーフな縮退：読み取り失敗時はデフォルト値に戻り、メール送信 / ログ転送の失敗がメインの処理を妨げず、エラー内容も漏えいしません。</span></span></div></div>
     </div>
   </div>
 </section>
@@ -233,52 +236,52 @@
 <section id="screenshots" class="alt">
   <div class="wrap">
     <div class="kicker">Gallery</div>
-    <h2><span class="zh">畫面一覽</span><span class="en">Screenshots</span></h2>
-    <p class="section-sub"><span class="zh">實際操作畫面一覽。</span><span class="en">A tour of the actual interface.</span></p>
+    <h2><span class="zh">畫面一覽</span><span class="en">Screenshots</span><span class="ja">画面</span></h2>
+    <p class="section-sub"><span class="zh">實際操作畫面一覽。</span><span class="en">A tour of the actual interface.</span><span class="ja">実際の操作画面をご紹介します。</span></p>
     <div class="showcase">
       <div class="sc-row">
-        <figure class="shot sc-shot"><div class="frame"><img src="images/01-dashboard.png" alt="Dashboard" data-alt-zh="儀表板" data-alt-en="Dashboard" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">01</span><h3><span class="zh">儀表板</span><span class="en">Dashboard</span></h3><p><span class="zh">登入後的主控台：輸入會議室名稱即可一鍵建立或進入會議室，也能亂數產生會議室名稱。下方「近期會議室」清單會顯示每間是<strong>誰建立、何時進入、開了多久</strong>，以及預約 / 大廳 / 主持人在線上等狀態，所有操作全程稽核。</span><span class="en">The console you land on after signing in: type a room name to create or join a room in one click, or generate a random name. The "Recent rooms" list below shows <strong>who created each room, when it was joined and how long it ran</strong>, plus scheduled / lobby / host-online status — and every action is audited.</span></p></div>
+        <figure class="shot sc-shot"><div class="frame"><img src="images/01-dashboard.png" alt="Dashboard" data-alt-zh="儀表板" data-alt-en="Dashboard" data-alt-ja="ダッシュボード" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">01</span><h3><span class="zh">儀表板</span><span class="en">Dashboard</span><span class="ja">ダッシュボード</span></h3><p><span class="zh">登入後的主控台：輸入會議室名稱即可一鍵建立或進入會議室，也能亂數產生會議室名稱。下方「近期會議室」清單會顯示每間是<strong>誰建立、何時進入、開了多久</strong>，以及預約 / 大廳 / 主持人在線上等狀態，所有操作全程稽核。</span><span class="en">The console you land on after signing in: type a room name to create or join a room in one click, or generate a random name. The "Recent rooms" list below shows <strong>who created each room, when it was joined and how long it ran</strong>, plus scheduled / lobby / host-online status — and every action is audited.</span><span class="ja">ログイン後のメイン画面：会議室名を入力するだけでワンクリックで会議室を作成または入室でき、ランダムな会議室名も生成できます。下の「最近の会議室」一覧には、各会議室を<strong>誰が作成し、いつ入室し、どれだけ続いたか</strong>に加え、予約 / ロビー / 主催者オンラインなどの状態が表示され、すべての操作が監査されます。</span></p></div>
       </div>
       <div class="sc-row">
-        <figure class="shot sc-shot"><div class="frame"><img src="images/02-create.png" alt="Create a room" data-alt-zh="建立會議室" data-alt-en="Create a room" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">02</span><h3><span class="zh">建立會議室</span><span class="en">Create a room</span></h3><p><span class="zh">勾選「限定開放時段」即可設定會議開放時間並寄送含 <code>.ics</code> 行事曆的 Email 邀請；也能勾選「大廳模式」讓主持人逐一允許來賓進入。建立後立即取得邀請連結與 QR Code，可直接開始主持或先複製連結稍後使用。</span><span class="en">Tick "Limit to a time window" to set when the meeting is open and send email invitations with an <code>.ics</code> calendar file; tick "Lobby mode" so the host admits guests one by one. Once created you immediately get the invite link and QR code — start hosting right away or copy the link for later.</span></p></div>
+        <figure class="shot sc-shot"><div class="frame"><img src="images/02-create.png" alt="Create a room" data-alt-zh="建立會議室" data-alt-en="Create a room" data-alt-ja="会議室の作成" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">02</span><h3><span class="zh">建立會議室</span><span class="en">Create a room</span><span class="ja">会議室の作成</span></h3><p><span class="zh">勾選「限定開放時段」即可設定會議開放時間並寄送含 <code>.ics</code> 行事曆的 Email 邀請；也能勾選「大廳模式」讓主持人逐一允許來賓進入。建立後立即取得邀請連結與 QR Code，可直接開始主持或先複製連結稍後使用。</span><span class="en">Tick "Limit to a time window" to set when the meeting is open and send email invitations with an <code>.ics</code> calendar file; tick "Lobby mode" so the host admits guests one by one. Once created you immediately get the invite link and QR code — start hosting right away or copy the link for later.</span><span class="ja">「公開時間枠を限定」にチェックを入れると会議の公開時間を設定でき、<code>.ics</code> カレンダーファイル付きの招待メールを送信できます。「ロビーモード」にチェックを入れると、主催者がゲストを 1 人ずつ許可して入室させられます。作成するとすぐに招待リンクと QR コードが発行され、そのまま主催を始めることも、リンクをコピーして後で使うこともできます。</span></p></div>
       </div>
       <div class="sc-row">
-        <figure class="shot sc-shot"><div class="frame"><img src="images/03-usage.png" alt="Usage statistics" data-alt-zh="用量統計" data-alt-en="Usage statistics" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">03</span><h3><span class="zh">用量統計</span><span class="en">Usage statistics</span></h3><p><span class="zh">數據中心一頁掌握使用狀況。<strong>兩種模式通用</strong>：會議場次與時長、本期會議時長時間軸、主持人排行榜、近 30 天活動折線圖。另有 <strong>JaaS 模式專屬</strong>的本期 MAU 用量與方案上限、各計費週期歷史趨勢，並可手動校正用量基準（自建模式則自動隱藏這兩項、頁籤改稱「會議統計」）。</span><span class="en">A single dashboard for how the system is used. <strong>In both modes</strong>: meeting count and duration, a meeting-duration timeline for the current period, a host leaderboard and a 30-day activity chart. <strong>JaaS mode only</strong>: current-period MAU against your plan limit and the historical trend across billing periods, with manual correction of the usage baseline (in self-hosted mode these two are hidden and the tab is called "Meeting statistics").</span></p></div>
+        <figure class="shot sc-shot"><div class="frame"><img src="images/03-usage.png" alt="Usage statistics" data-alt-zh="用量統計" data-alt-en="Usage statistics" data-alt-ja="利用統計" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">03</span><h3><span class="zh">用量統計</span><span class="en">Usage statistics</span><span class="ja">利用統計</span></h3><p><span class="zh">數據中心一頁掌握使用狀況。<strong>兩種模式通用</strong>：會議場次與時長、本期會議時長時間軸、主持人排行榜、近 30 天活動折線圖。另有 <strong>JaaS 模式專屬</strong>的本期 MAU 用量與方案上限、各計費週期歷史趨勢，並可手動校正用量基準（自建模式則自動隱藏這兩項、頁籤改稱「會議統計」）。</span><span class="en">A single dashboard for how the system is used. <strong>In both modes</strong>: meeting count and duration, a meeting-duration timeline for the current period, a host leaderboard and a 30-day activity chart. <strong>JaaS mode only</strong>: current-period MAU against your plan limit and the historical trend across billing periods, with manual correction of the usage baseline (in self-hosted mode these two are hidden and the tab is called "Meeting statistics").</span><span class="ja">システムの利用状況を 1 ページで把握できます。<strong>両モード共通</strong>：会議数と会議時間、今期の会議時間タイムライン、主催者ランキング、直近 30 日の活動グラフ。<strong>JaaS モード専用</strong>：今期の MAU とプラン上限、課金期間ごとの推移、さらに利用量の基準値を手動で補正できます（セルフホストモードではこの 2 項目は非表示になり、タブ名は「会議統計」になります）。</span></p></div>
       </div>
       <div class="sc-row">
-        <figure class="shot sc-shot"><div class="frame"><img src="images/04-audit.png" alt="Audit log" data-alt-zh="稽核記錄" data-alt-en="Audit log" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">04</span><h3><span class="zh">稽核記錄</span><span class="en">Audit log</span></h3><p><span class="zh">登入登出、建立 / 進入會議室、寄送邀請、帳號與設定變更等行為全數留存。可依行為類型、關鍵字與日期範圍篩選，欄位標題可點擊排序，並即時外拋 syslog / CEF / GELF 至 SIEM。</span><span class="en">Sign-ins and sign-outs, room creation / joins, sent invitations, account and settings changes — everything is kept. Filter by action type, keyword and date range, click column headers to sort, and forward events in real time as syslog / CEF / GELF to your SIEM.</span></p></div>
+        <figure class="shot sc-shot"><div class="frame"><img src="images/04-audit.png" alt="Audit log" data-alt-zh="稽核記錄" data-alt-en="Audit log" data-alt-ja="監査ログ" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">04</span><h3><span class="zh">稽核記錄</span><span class="en">Audit log</span><span class="ja">監査ログ</span></h3><p><span class="zh">登入登出、建立 / 進入會議室、寄送邀請、帳號與設定變更等行為全數留存。可依行為類型、關鍵字與日期範圍篩選，欄位標題可點擊排序，並即時外拋 syslog / CEF / GELF 至 SIEM。</span><span class="en">Sign-ins and sign-outs, room creation / joins, sent invitations, account and settings changes — everything is kept. Filter by action type, keyword and date range, click column headers to sort, and forward events in real time as syslog / CEF / GELF to your SIEM.</span><span class="ja">ログイン / ログアウト、会議室の作成 / 入室、招待の送信、アカウントや設定の変更など、すべての操作を保存します。操作の種類、キーワード、期間で絞り込め、列見出しをクリックして並べ替えでき、syslog / CEF / GELF で SIEM へリアルタイムに転送できます。</span></p></div>
       </div>
       <div class="sc-row">
-        <figure class="shot sc-shot"><div class="frame"><img src="images/05-accounts.png" alt="Account management" data-alt-zh="帳號管理" data-alt-en="Account management" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">05</span><h3><span class="zh">帳號管理</span><span class="en">Account management</span></h3><p><span class="zh">支援多個主持人帳號與角色：admin 可看全部會議室與管理頁，host 只看自己建立的。每個帳號可設定顯示名稱、Email、啟用 TOTP 雙因素認證，並可隨時編輯或停用。</span><span class="en">Multiple host accounts and roles: admins see all rooms and the admin pages, hosts see only the rooms they created. Each account has a display name and email, can enable TOTP two-factor authentication, and can be edited or disabled at any time.</span></p></div>
+        <figure class="shot sc-shot"><div class="frame"><img src="images/05-accounts.png" alt="Account management" data-alt-zh="帳號管理" data-alt-en="Account management" data-alt-ja="アカウント管理" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">05</span><h3><span class="zh">帳號管理</span><span class="en">Account management</span><span class="ja">アカウント管理</span></h3><p><span class="zh">支援多個主持人帳號與角色：admin 可看全部會議室與管理頁，host 只看自己建立的。每個帳號可設定顯示名稱、Email、啟用 TOTP 雙因素認證，並可隨時編輯或停用。</span><span class="en">Multiple host accounts and roles: admins see all rooms and the admin pages, hosts see only the rooms they created. Each account has a display name and email, can enable TOTP two-factor authentication, and can be edited or disabled at any time.</span><span class="ja">複数の主催者アカウントとロールに対応：admin はすべての会議室と管理ページを閲覧でき、host は自分が作成した会議室のみ閲覧できます。各アカウントには表示名とメールアドレスを設定でき、TOTP 二要素認証を有効化でき、いつでも編集や無効化が可能です。</span></p></div>
       </div>
       <div class="sc-row">
-        <figure class="shot sc-shot"><div class="frame"><img src="images/06-settings.png" alt="System settings" data-alt-zh="系統設定" data-alt-en="System settings" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">06</span><h3><span class="zh">系統設定</span><span class="en">System settings</span></h3><p><span class="zh">集中管理所有設定：連線模式（8x8 JaaS / 自建 Jitsi Meet）、SMTP 寄信、會議記錄保留天數、Log 外拋、站台名稱與 Logo，以及 22 種外觀主題，一頁搞定。</span><span class="en">All settings in one place: connection mode (8x8 JaaS / self-hosted Jitsi Meet), SMTP mail, meeting-record retention, log forwarding, site name and logo, and 22 visual themes — all on a single page.</span></p></div>
+        <figure class="shot sc-shot"><div class="frame"><img src="images/06-settings.png" alt="System settings" data-alt-zh="系統設定" data-alt-en="System settings" data-alt-ja="システム設定" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">06</span><h3><span class="zh">系統設定</span><span class="en">System settings</span><span class="ja">システム設定</span></h3><p><span class="zh">集中管理所有設定：連線模式（8x8 JaaS / 自建 Jitsi Meet）、SMTP 寄信、會議記錄保留天數、Log 外拋、站台名稱與 Logo，以及 22 種外觀主題，一頁搞定。</span><span class="en">All settings in one place: connection mode (8x8 JaaS / self-hosted Jitsi Meet), SMTP mail, meeting-record retention, log forwarding, site name and logo, and 22 visual themes — all on a single page.</span><span class="ja">すべての設定を 1 か所で管理：接続モード（8x8 JaaS / セルフホスト Jitsi Meet）、SMTP メール送信、会議記録の保持日数、ログ転送、サイト名とロゴ、22 種類の外観テーマまで、1 ページで完結します。</span></p></div>
       </div>
       <div class="sc-row">
-        <figure class="shot sc-shot"><div class="frame"><img src="images/07-guest.png" alt="Guest entry" data-alt-zh="來賓進入" data-alt-en="Guest entry" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">07</span><h3><span class="zh">來賓進入</span><span class="en">Guest entry</span></h3><p><span class="zh">來賓憑邀請連結進入，須先輸入顯示名稱才能進場，進入會議時自動帶入該名稱。整個來賓流程都套用站台主題與品牌，與主持端體驗一致。</span><span class="en">Guests arrive via the invite link and must enter a display name before joining; that name is carried into the meeting automatically. The whole guest flow uses your site theme and branding, consistent with the host experience.</span></p></div>
+        <figure class="shot sc-shot"><div class="frame"><img src="images/07-guest.png" alt="Guest entry" data-alt-zh="來賓進入" data-alt-en="Guest entry" data-alt-ja="ゲストの入室" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">07</span><h3><span class="zh">來賓進入</span><span class="en">Guest entry</span><span class="ja">ゲストの入室</span></h3><p><span class="zh">來賓憑邀請連結進入，須先輸入顯示名稱才能進場，進入會議時自動帶入該名稱。整個來賓流程都套用站台主題與品牌，與主持端體驗一致。</span><span class="en">Guests arrive via the invite link and must enter a display name before joining; that name is carried into the meeting automatically. The whole guest flow uses your site theme and branding, consistent with the host experience.</span><span class="ja">ゲストは招待リンクからアクセスし、入室前に表示名の入力が必須です。その名前は会議に自動的に引き継がれます。ゲスト側の画面すべてにサイトのテーマとブランドが適用され、主催者側と一貫した体験を提供します。</span></p></div>
       </div>
       <div class="sc-row">
-        <figure class="shot sc-shot"><div class="frame"><img src="images/08-wait.png" alt="Waiting / countdown page" data-alt-zh="等候 / 倒數頁" data-alt-en="Waiting / countdown page" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">08</span><h3><span class="zh">等候 / 倒數頁</span><span class="en">Waiting / countdown page</span></h3><p><span class="zh">非開放時段時，來賓會看到優雅的翻頁時鐘倒數與會議起訖時間；一旦主持人提前進入，系統每隔數秒自動偵測並放行，來賓無需重整、不必苦等。</span><span class="en">Outside the open window, guests see an elegant flip-clock countdown with the meeting's start and end times. If the host joins early, the page detects it within seconds and lets guests in — no reloading, no waiting around.</span></p></div>
+        <figure class="shot sc-shot"><div class="frame"><img src="images/08-wait.png" alt="Waiting / countdown page" data-alt-zh="等候 / 倒數頁" data-alt-en="Waiting / countdown page" data-alt-ja="待機 / カウントダウン画面" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">08</span><h3><span class="zh">等候 / 倒數頁</span><span class="en">Waiting / countdown page</span><span class="ja">待機 / カウントダウン画面</span></h3><p><span class="zh">非開放時段時，來賓會看到優雅的翻頁時鐘倒數與會議起訖時間；一旦主持人提前進入，系統每隔數秒自動偵測並放行，來賓無需重整、不必苦等。</span><span class="en">Outside the open window, guests see an elegant flip-clock countdown with the meeting's start and end times. If the host joins early, the page detects it within seconds and lets guests in — no reloading, no waiting around.</span><span class="ja">公開時間外は、ゲストに洗練されたフリップ時計のカウントダウンと会議の開始・終了時刻を表示します。主催者が早めに入室すると数秒以内に自動で検知して入室を許可するため、ゲストはページを再読み込みしたり待ち続けたりする必要がありません。</span></p></div>
       </div>
       <div class="sc-row">
-        <figure class="shot sc-shot"><div class="frame"><img src="images/09-recordings.png" alt="Recordings" data-alt-zh="錄影記錄" data-alt-en="Recordings" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">09</span><h3><span class="zh">錄影記錄</span><span class="en">Recordings</span></h3><p><span class="zh">調閱自建 Jibri 主機產出的會議錄影：線上播放、下載、刪除，並顯示錄影主機磁碟容量與每筆的大小、長度、狀態。可依<strong>會議室 / 主持人 / 參與者</strong>搜尋，點任一列展開該場的參與者進出時間軸。權限分明——主持人只看自己主持會議的錄影，管理者可管全部；保留政策（依時間 / 容量 / 殘留檔自動清理）也在此一目了然。</span><span class="en">Browse meeting recordings produced by your self-hosted Jibri host: play online, download, delete, and see the recording host's disk usage plus each file's size, length and status. Search by <strong>room / host / participant</strong>, and click any row to expand that meeting's participant join/leave timeline. Permissions are clear-cut — hosts see only recordings of meetings they hosted, admins manage everything — and the retention policy (automatic cleanup by age / capacity / leftover files) is visible at a glance.</span></p></div>
+        <figure class="shot sc-shot"><div class="frame"><img src="images/09-recordings.png" alt="Recordings" data-alt-zh="錄影記錄" data-alt-en="Recordings" data-alt-ja="録画記録" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">09</span><h3><span class="zh">錄影記錄</span><span class="en">Recordings</span><span class="ja">録画記録</span></h3><p><span class="zh">調閱自建 Jibri 主機產出的會議錄影：線上播放、下載、刪除，並顯示錄影主機磁碟容量與每筆的大小、長度、狀態。可依<strong>會議室 / 主持人 / 參與者</strong>搜尋，點任一列展開該場的參與者進出時間軸。權限分明——主持人只看自己主持會議的錄影，管理者可管全部；保留政策（依時間 / 容量 / 殘留檔自動清理）也在此一目了然。</span><span class="en">Browse meeting recordings produced by your self-hosted Jibri host: play online, download, delete, and see the recording host's disk usage plus each file's size, length and status. Search by <strong>room / host / participant</strong>, and click any row to expand that meeting's participant join/leave timeline. Permissions are clear-cut — hosts see only recordings of meetings they hosted, admins manage everything — and the retention policy (automatic cleanup by age / capacity / leftover files) is visible at a glance.</span><span class="ja">セルフホストの Jibri ホストで作成された会議の録画を閲覧：オンライン再生、ダウンロード、削除に加え、録画ホストのディスク使用量と各ファイルのサイズ・長さ・状態を表示します。<strong>会議室 / 主催者 / 参加者</strong>で検索でき、行をクリックするとその会議の参加者の入退室タイムラインを展開できます。権限は明確で、主催者は自分が主催した会議の録画のみ、管理者はすべてを管理できます。保持ポリシー（期間 / 容量 / 残存ファイルによる自動クリーンアップ）もひと目で確認できます。</span></p></div>
       </div>
       <div class="sc-row">
-        <figure class="shot sc-shot"><div class="frame"><img src="images/10-room-customize.png" alt="Room customization" data-alt-zh="會議室自訂" data-alt-en="Room customization" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">10</span><h3><span class="zh">會議室自訂</span><span class="en">Room customization</span></h3><p><span class="zh">自建 Jitsi Meet 模式專用的會議室介面客製：進入時是否靜音 / 關鏡頭、畫質上限、預設檢視（演講者 / 畫廊）、是否關閉「視訊省頻寬」自動降載，以及逐項勾選工具列要開放的功能（聊天、螢幕分享、舉手、錄影、虛擬背景、共享文件…）。所有設定都在進入會議時自動帶入 Jitsi，無需改動 Jitsi 設定檔。</span><span class="en">Meeting-UI customization for self-hosted Jitsi Meet mode: whether to join muted / with camera off, maximum video quality, default view (speaker / tile), whether to disable automatic "bandwidth saving" video downgrades, and which toolbar features to enable, item by item (chat, screen sharing, raise hand, recording, virtual background, shared documents…). Everything is applied to Jitsi automatically when joining — no Jitsi config files to edit.</span></p></div>
+        <figure class="shot sc-shot"><div class="frame"><img src="images/10-room-customize.png" alt="Room customization" data-alt-zh="會議室自訂" data-alt-en="Room customization" data-alt-ja="会議室のカスタマイズ" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">10</span><h3><span class="zh">會議室自訂</span><span class="en">Room customization</span><span class="ja">会議室のカスタマイズ</span></h3><p><span class="zh">自建 Jitsi Meet 模式專用的會議室介面客製：進入時是否靜音 / 關鏡頭、畫質上限、預設檢視（演講者 / 畫廊）、是否關閉「視訊省頻寬」自動降載，以及逐項勾選工具列要開放的功能（聊天、螢幕分享、舉手、錄影、虛擬背景、共享文件…）。所有設定都在進入會議時自動帶入 Jitsi，無需改動 Jitsi 設定檔。</span><span class="en">Meeting-UI customization for self-hosted Jitsi Meet mode: whether to join muted / with camera off, maximum video quality, default view (speaker / tile), whether to disable automatic "bandwidth saving" video downgrades, and which toolbar features to enable, item by item (chat, screen sharing, raise hand, recording, virtual background, shared documents…). Everything is applied to Jitsi automatically when joining — no Jitsi config files to edit.</span><span class="ja">セルフホスト Jitsi Meet モード専用の会議画面カスタマイズ：入室時にミュート / カメラオフにするか、画質の上限、デフォルト表示（スピーカー / ギャラリー）、「帯域節約」による映像の自動低画質化を無効にするか、さらにツールバーで提供する機能を項目ごとに選択できます（チャット、画面共有、挙手、録画、バーチャル背景、共有ドキュメント…）。すべての設定は入室時に Jitsi へ自動適用されるため、Jitsi の設定ファイルを編集する必要はありません。</span></p></div>
       </div>
       <div class="sc-row">
-        <figure class="shot sc-shot"><div class="frame"><img src="images/11-settings-recording.png" alt="Recording settings" data-alt-zh="錄製設定" data-alt-en="Recording settings" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
-        <div class="sc-text"><span class="num">11</span><h3><span class="zh">錄製設定</span><span class="en">Recording settings</span></h3><p><span class="zh">設定會議錄製者在與會者清單顯示的名稱，並串接自建 Jibri 主機的錄影調閱服務——填入服務 URL 與 token 後即顯示連線狀態與<strong>已註冊錄製器數</strong>，並附上增減錄製器的文件連結。錄影保留政策可依時間（保留 N 天）、容量（保留可用空間或總量上限）或殘留檔自動清理，<strong>預設全部停用</strong>以策安全。</span><span class="en">Set the name the meeting recorder shows in the participant list, and connect to the recording service on your self-hosted Jibri host — enter the service URL and token to see the connection status and <strong>number of registered recorders</strong>, with a link to docs on adding or removing recorders. Recording retention can clean up automatically by age (keep N days), capacity (keep free space or cap total usage) or leftover files, and is <strong>all disabled by default</strong> to be safe.</span></p></div>
+        <figure class="shot sc-shot"><div class="frame"><img src="images/11-settings-recording.png" alt="Recording settings" data-alt-zh="錄製設定" data-alt-en="Recording settings" data-alt-ja="録画設定" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('empty')"></div></figure>
+        <div class="sc-text"><span class="num">11</span><h3><span class="zh">錄製設定</span><span class="en">Recording settings</span><span class="ja">録画設定</span></h3><p><span class="zh">設定會議錄製者在與會者清單顯示的名稱，並串接自建 Jibri 主機的錄影調閱服務——填入服務 URL 與 token 後即顯示連線狀態與<strong>已註冊錄製器數</strong>，並附上增減錄製器的文件連結。錄影保留政策可依時間（保留 N 天）、容量（保留可用空間或總量上限）或殘留檔自動清理，<strong>預設全部停用</strong>以策安全。</span><span class="en">Set the name the meeting recorder shows in the participant list, and connect to the recording service on your self-hosted Jibri host — enter the service URL and token to see the connection status and <strong>number of registered recorders</strong>, with a link to docs on adding or removing recorders. Recording retention can clean up automatically by age (keep N days), capacity (keep free space or cap total usage) or leftover files, and is <strong>all disabled by default</strong> to be safe.</span><span class="ja">会議の録画者が参加者一覧に表示される名前を設定し、セルフホストの Jibri ホストの録画サービスと連携します。サービスの URL とトークンを入力すると接続状態と<strong>登録済みの録画器の数</strong>が表示され、録画器の増減に関するドキュメントへのリンクも表示されます。録画の保持ポリシーは期間（N 日保持）、容量（空き容量の確保または合計使用量の上限）、残存ファイルによる自動クリーンアップに対応し、安全のため<strong>デフォルトではすべて無効</strong>です。</span></p></div>
       </div>
     </div>
   </div>
@@ -288,20 +291,20 @@
 <section id="install">
   <div class="wrap">
     <div class="kicker">Install</div>
-    <h2><span class="zh">系統需求與安裝</span><span class="en">Requirements &amp; installation</span></h2>
-    <p class="section-sub"><span class="zh">兩種安裝方式，資料與設定皆持久化、更新不遺失。</span><span class="en">Two ways to install; data and settings are persisted and survive updates.</span></p>
+    <h2><span class="zh">系統需求與安裝</span><span class="en">Requirements &amp; installation</span><span class="ja">システム要件とインストール</span></h2>
+    <p class="section-sub"><span class="zh">三種安裝方式，資料與設定皆持久化、更新不遺失。</span><span class="en">Three ways to install; data and settings are persisted and survive updates.</span><span class="ja">3 通りのインストール方法があり、データと設定は永続化されるため更新しても失われません。</span></p>
 
     <table class="compare-table" style="margin-bottom:28px">
-      <thead><tr><th><span class="zh">項目</span><span class="en">Item</span></th><th><span class="zh">最低</span><span class="en">Minimum</span></th><th><span class="zh">建議</span><span class="en">Recommended</span></th></tr></thead>
+      <thead><tr><th><span class="zh">項目</span><span class="en">Item</span><span class="ja">項目</span></th><th><span class="zh">最低</span><span class="en">Minimum</span><span class="ja">最小</span></th><th><span class="zh">建議</span><span class="en">Recommended</span><span class="ja">推奨</span></th></tr></thead>
       <tbody>
         <tr><td>PHP</td><td>8.2</td><td>8.4</td></tr>
-        <tr><td><span class="zh">Web 伺服器</span><span class="en">Web server</span></td><td><span class="zh">Apache + mod_rewrite（AllowOverride All）</span><span class="en">Apache + mod_rewrite (AllowOverride All)</span></td><td><span class="zh">同左 + HTTPS</span><span class="en">Same + HTTPS</span></td></tr>
-        <tr><td><span class="zh">PHP 擴充</span><span class="en">PHP extensions</span></td><td><span class="zh">openssl、fileinfo、json、mbstring</span><span class="en">openssl, fileinfo, json, mbstring</span></td><td><span class="zh">同左</span><span class="en">Same</span></td></tr>
-        <tr><td><span class="zh">其他</span><span class="en">Other</span></td><td><span class="zh">可寫入資料目錄；JaaS 模式需 8x8 私鑰</span><span class="en">A writable data directory; the 8x8 private key for JaaS mode</span></td><td>Docker 24+</td></tr>
+        <tr><td><span class="zh">Web 伺服器</span><span class="en">Web server</span><span class="ja">Web サーバー</span></td><td><span class="zh">Apache + mod_rewrite（AllowOverride All）</span><span class="en">Apache + mod_rewrite (AllowOverride All)</span><span class="ja">Apache + mod_rewrite（AllowOverride All）</span></td><td><span class="zh">同左 + HTTPS</span><span class="en">Same + HTTPS</span><span class="ja">同左 + HTTPS</span></td></tr>
+        <tr><td><span class="zh">PHP 擴充</span><span class="en">PHP extensions</span><span class="ja">PHP 拡張</span></td><td><span class="zh">openssl、fileinfo、json、mbstring</span><span class="en">openssl, fileinfo, json, mbstring</span><span class="ja">openssl、fileinfo、json、mbstring</span></td><td><span class="zh">同左</span><span class="en">Same</span><span class="ja">同左</span></td></tr>
+        <tr><td><span class="zh">其他</span><span class="en">Other</span><span class="ja">その他</span></td><td><span class="zh">可寫入資料目錄；JaaS 模式需 8x8 私鑰</span><span class="en">A writable data directory; the 8x8 private key for JaaS mode</span><span class="ja">書き込み可能なデータディレクトリ。JaaS モードでは 8x8 の秘密鍵が必要</span></td><td>Docker 24+</td></tr>
       </tbody>
     </table>
 
-    <h3><span class="zh">方法一：直接安裝（Apache + PHP）</span><span class="en">Option 1: Direct install (Apache + PHP)</span></h3>
+    <h3><span class="zh">方法一：直接安裝（Apache + PHP）</span><span class="en">Option 1: Direct install (Apache + PHP)</span><span class="ja">方法 1：直接インストール（Apache + PHP）</span></h3>
 <pre class="zh"><span class="c"># 取得程式並啟用 .htaccess</span>
 git clone https://github.com/jasoncheng7115/jt-vc-portal.git
 cd jt-vc-portal
@@ -324,8 +327,19 @@ sudo mkdir -p /var/jaas-data &amp;&amp; sudo chown www-data:www-data /var/jaas-d
 
 <span class="c"># JaaS mode only: put the 8x8 private key in place</span>
 sudo mkdir -p keys &amp;&amp; sudo cp /path/to/private.key keys/private.key</pre>
+<pre class="ja"><span class="c"># コードを取得して .htaccess を有効化</span>
+git clone https://github.com/jasoncheng7115/jt-vc-portal.git
+cd jt-vc-portal
+a2enmod rewrite headers
+cp dot.htaccess .htaccess
 
-    <h3 style="margin-top:24px"><span class="zh">方法二：Docker 打包部署</span><span class="en">Option 2: Build and run with Docker</span></h3>
+<span class="c"># 永続化データディレクトリ（デフォルト /var/jaas-data、config.php で変更可能）</span>
+sudo mkdir -p /var/jaas-data &amp;&amp; sudo chown www-data:www-data /var/jaas-data
+
+<span class="c"># JaaS モードのみ：8x8 の秘密鍵を配置</span>
+sudo mkdir -p keys &amp;&amp; sudo cp /path/to/private.key keys/private.key</pre>
+
+    <h3 style="margin-top:24px"><span class="zh">方法二：Docker 打包部署</span><span class="en">Option 2: Build and run with Docker</span><span class="ja">方法 2：Docker でビルドしてデプロイ</span></h3>
 <pre class="zh">git clone https://github.com/jasoncheng7115/jt-vc-portal.git
 cd jt-vc-portal
 docker build --pull -t jt-vc-portal .
@@ -356,12 +370,27 @@ docker run -d --restart unless-stopped -p 127.0.0.1:58189:58189 \
   -v /opt/jt-vc-portal/keys/:/var/www/html/keys \
   -v /opt/jt-vc-portal/data/:/var/jaas-data \
   --name jt-vc-portal jt-vc-portal</pre>
+<pre class="ja">git clone https://github.com/jasoncheng7115/jt-vc-portal.git
+cd jt-vc-portal
+docker build --pull -t jt-vc-portal .
 
-    <h3 style="margin-top:24px"><span class="zh">方法三：從 Release 載入預建映像</span><span class="en">Option 3: Load the prebuilt image from a Release</span></h3>
+mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
+chown 33:33 /opt/jt-vc-portal/data
+cp /path/to/private.key /opt/jt-vc-portal/keys/private.key   <span class="c"># JaaS モード</span>
+
+docker run -d --restart unless-stopped -p 127.0.0.1:58189:58189 \
+  -e JTVC_ADMIN_EMAIL="admin@example.com" \
+  -e JTVC_ADMIN_PASSWORD="強力なパスワードを設定" \
+  -e JTVC_TRUSTED_PROXIES="127.0.0.1,172.16.0.0/12" \
+  -v /opt/jt-vc-portal/keys/:/var/www/html/keys \
+  -v /opt/jt-vc-portal/data/:/var/jaas-data \
+  --name jt-vc-portal jt-vc-portal</pre>
+
+    <h3 style="margin-top:24px"><span class="zh">方法三：從 Release 載入預建映像</span><span class="en">Option 3: Load the prebuilt image from a Release</span><span class="ja">方法 3：Release からビルド済みイメージを読み込む</span></h3>
 <pre class="zh"><span class="c"># 不想自己 build，直接下載 Release 打包映像（linux/amd64）</span>
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.8.0/jt-vc-portal-1.8.0-docker-amd64.tar.gz
-sha256sum -c jt-vc-portal-1.8.0-docker-amd64.tar.gz.sha256   <span class="c"># 驗證完整性</span>
-docker load &lt; jt-vc-portal-1.8.0-docker-amd64.tar.gz        <span class="c"># 載入為 jt-vc-portal:latest</span>
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.9.0/jt-vc-portal-1.9.0-docker-amd64.tar.gz
+sha256sum -c jt-vc-portal-1.9.0-docker-amd64.tar.gz.sha256   <span class="c"># 驗證完整性</span>
+docker load &lt; jt-vc-portal-1.9.0-docker-amd64.tar.gz        <span class="c"># 載入為 jt-vc-portal:latest</span>
 
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
 chown 33:33 /opt/jt-vc-portal/data
@@ -375,9 +404,9 @@ docker run -d --restart unless-stopped -p 127.0.0.1:58189:58189 \
   -v /opt/jt-vc-portal/data/:/var/jaas-data \
   --name jt-vc-portal jt-vc-portal:latest</pre>
 <pre class="en"><span class="c"># Skip building: download the packaged image from the Release (linux/amd64)</span>
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.8.0/jt-vc-portal-1.8.0-docker-amd64.tar.gz
-sha256sum -c jt-vc-portal-1.8.0-docker-amd64.tar.gz.sha256   <span class="c"># verify integrity</span>
-docker load &lt; jt-vc-portal-1.8.0-docker-amd64.tar.gz        <span class="c"># loads as jt-vc-portal:latest</span>
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.9.0/jt-vc-portal-1.9.0-docker-amd64.tar.gz
+sha256sum -c jt-vc-portal-1.9.0-docker-amd64.tar.gz.sha256   <span class="c"># verify integrity</span>
+docker load &lt; jt-vc-portal-1.9.0-docker-amd64.tar.gz        <span class="c"># loads as jt-vc-portal:latest</span>
 
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
 chown 33:33 /opt/jt-vc-portal/data
@@ -390,9 +419,25 @@ docker run -d --restart unless-stopped -p 127.0.0.1:58189:58189 \
   -v /opt/jt-vc-portal/keys/:/var/www/html/keys \
   -v /opt/jt-vc-portal/data/:/var/jaas-data \
   --name jt-vc-portal jt-vc-portal:latest</pre>
+<pre class="ja"><span class="c"># 自分でビルドしない場合：Release のパッケージ済みイメージを直接ダウンロード（linux/amd64）</span>
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.9.0/jt-vc-portal-1.9.0-docker-amd64.tar.gz
+sha256sum -c jt-vc-portal-1.9.0-docker-amd64.tar.gz.sha256   <span class="c"># 完全性を検証</span>
+docker load &lt; jt-vc-portal-1.9.0-docker-amd64.tar.gz        <span class="c"># jt-vc-portal:latest として読み込まれる</span>
 
-    <h3 style="margin-top:24px"><span class="zh">前端反向代理 HTTPS（建議）</span><span class="en">HTTPS via a reverse proxy (recommended)</span></h3>
-    <p class="section-sub" style="margin-bottom:14px;max-width:none"><span class="zh">系統對外為 <code>:58189</code>，正式環境建議前面再以 nginx 或 Apache 反向代理掛上 HTTPS。</span><span class="en">The app listens on <code>:58189</code>; in production, put nginx or Apache in front as a reverse proxy to provide HTTPS.</span></p>
+mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
+chown 33:33 /opt/jt-vc-portal/data
+cp /path/to/private.key /opt/jt-vc-portal/keys/private.key   <span class="c"># JaaS モードのみ必要</span>
+
+docker run -d --restart unless-stopped -p 127.0.0.1:58189:58189 \
+  -e JTVC_ADMIN_EMAIL="admin@example.com" \
+  -e JTVC_ADMIN_PASSWORD="強力なパスワードを設定" \
+  -e JTVC_TRUSTED_PROXIES="127.0.0.1,172.16.0.0/12" \
+  -v /opt/jt-vc-portal/keys/:/var/www/html/keys \
+  -v /opt/jt-vc-portal/data/:/var/jaas-data \
+  --name jt-vc-portal jt-vc-portal:latest</pre>
+
+    <h3 style="margin-top:24px"><span class="zh">前端反向代理 HTTPS（建議）</span><span class="en">HTTPS via a reverse proxy (recommended)</span><span class="ja">リバースプロキシによる HTTPS 化（推奨）</span></h3>
+    <p class="section-sub" style="margin-bottom:14px;max-width:none"><span class="zh">系統對外為 <code>:58189</code>，正式環境建議前面再以 nginx 或 Apache 反向代理掛上 HTTPS。</span><span class="en">The app listens on <code>:58189</code>; in production, put nginx or Apache in front as a reverse proxy to provide HTTPS.</span><span class="ja">アプリは <code>:58189</code> で待ち受けます。本番環境では、前段に nginx または Apache をリバースプロキシとして置き、HTTPS を提供することをおすすめします。</span></p>
 <pre class="zh"><span class="c"># nginx 範例</span>
 server {
     listen 443 ssl;
@@ -425,10 +470,26 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }</pre>
-    <div class="note"><span class="zh">系統以 <code>X-Real-IP</code> 取得真實來源 IP（fail2ban 鎖定與稽核用），請務必讓反向代理帶上此 header。<strong>公開上線資安重點：</strong>設定 <code>JTVC_TRUSTED_PROXIES</code>（逗號分隔 IP/CIDR）只採信可信代理的來源標頭，並以 <code>-p 127.0.0.1:58189:58189</code> 或防火牆限制容器埠只讓反代可達——否則攻擊者可偽造 <code>X-Real-IP</code> 繞過 fail2ban、污染稽核。留空＝相容模式（盲信標頭，須搭配埠隔離）。經 Cloudflare 時讓反代由 <code>CF-Connecting-IP</code> 帶入 <code>X-Real-IP</code>。完整 Apache 站台設定範例請見 <a href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/README_zh-TW.md" target="_blank" rel="noopener">GitHub README</a>。</span><span class="en">The app takes the real client IP from <code>X-Real-IP</code> (for fail2ban lockout and auditing), so make sure your reverse proxy sends this header. <strong>Security essentials for a public deployment:</strong> set <code>JTVC_TRUSTED_PROXIES</code> (comma-separated IPs/CIDRs) so forwarded headers are trusted only from your proxies, and use <code>-p 127.0.0.1:58189:58189</code> or a firewall so only the proxy can reach the container port — otherwise an attacker can forge <code>X-Real-IP</code> to bypass fail2ban and pollute the audit log. Leaving it empty = compatibility mode (headers trusted blindly; requires port isolation). Behind Cloudflare, have the proxy populate <code>X-Real-IP</code> from <code>CF-Connecting-IP</code>. For a full Apache site configuration example, see the <a href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/README.md" target="_blank" rel="noopener">GitHub README</a>.</span></div>
+<pre class="ja"><span class="c"># nginx の例</span>
+server {
+    listen 443 ssl;
+    server_name your-domain.com;
 
-    <h3 style="margin-top:28px"><span class="zh">更新 / 升級</span><span class="en">Updating / upgrading</span></h3>
-    <p class="section-sub" style="margin-bottom:14px;max-width:none"><span class="zh">所有設定與資料（帳號、會議室、稽核、用量等）都存在 <code>DATA_DIR</code> 或掛載卷，<strong>更新不會遺失</strong>，JSON 結構會自動相容升級。更新前仍建議先備份資料目錄與 <code>keys/</code>。</span><span class="en">All settings and data (accounts, rooms, audit log, usage, etc.) live in <code>DATA_DIR</code> or the mounted volumes, so <strong>nothing is lost on update</strong>, and the JSON structures are upgraded compatibly and automatically. Backing up the data directory and <code>keys/</code> before updating is still recommended.</span></p>
+    <span class="c"># ssl_certificate     /etc/letsencrypt/live/your-domain.com/fullchain.pem;</span>
+    <span class="c"># ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;</span>
+
+    location / {
+        proxy_pass http://127.0.0.1:58189/;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}</pre>
+    <div class="note"><span class="zh">系統以 <code>X-Real-IP</code> 取得真實來源 IP（fail2ban 鎖定與稽核用），請務必讓反向代理帶上此 header。<strong>公開上線資安重點：</strong>設定 <code>JTVC_TRUSTED_PROXIES</code>（逗號分隔 IP/CIDR）只採信可信代理的來源標頭，並以 <code>-p 127.0.0.1:58189:58189</code> 或防火牆限制容器埠只讓反代可達——否則攻擊者可偽造 <code>X-Real-IP</code> 繞過 fail2ban、污染稽核。留空＝相容模式（盲信標頭，須搭配埠隔離）。經 Cloudflare 時讓反代由 <code>CF-Connecting-IP</code> 帶入 <code>X-Real-IP</code>。完整 Apache 站台設定範例請見 <a href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/README_zh-TW.md" target="_blank" rel="noopener">GitHub README</a>。</span><span class="en">The app takes the real client IP from <code>X-Real-IP</code> (for fail2ban lockout and auditing), so make sure your reverse proxy sends this header. <strong>Security essentials for a public deployment:</strong> set <code>JTVC_TRUSTED_PROXIES</code> (comma-separated IPs/CIDRs) so forwarded headers are trusted only from your proxies, and use <code>-p 127.0.0.1:58189:58189</code> or a firewall so only the proxy can reach the container port — otherwise an attacker can forge <code>X-Real-IP</code> to bypass fail2ban and pollute the audit log. Leaving it empty = compatibility mode (headers trusted blindly; requires port isolation). Behind Cloudflare, have the proxy populate <code>X-Real-IP</code> from <code>CF-Connecting-IP</code>. For a full Apache site configuration example, see the <a href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/README.md" target="_blank" rel="noopener">GitHub README</a>.</span><span class="ja">アプリは <code>X-Real-IP</code> から実際の接続元 IP を取得します（fail2ban のロックアウトと監査に使用）。リバースプロキシが必ずこのヘッダーを付与するようにしてください。<strong>公開運用時のセキュリティの要点：</strong><code>JTVC_TRUSTED_PROXIES</code>（カンマ区切りの IP/CIDR）を設定して信頼できるプロキシからの転送ヘッダーのみを採用し、<code>-p 127.0.0.1:58189:58189</code> またはファイアウォールでコンテナのポートにリバースプロキシだけが到達できるよう制限してください。そうしないと、攻撃者が <code>X-Real-IP</code> を偽装して fail2ban を回避し、監査ログを汚染できてしまいます。空欄の場合は互換モード（ヘッダーを無条件に信頼するため、ポートの分離が必須）です。Cloudflare 経由の場合は、リバースプロキシで <code>CF-Connecting-IP</code> の値を <code>X-Real-IP</code> に設定してください。Apache のサイト設定の完全な例は <a href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/README_ja.md" target="_blank" rel="noopener">GitHub README</a> をご覧ください。</span></div>
+
+    <h3 style="margin-top:28px"><span class="zh">更新 / 升級</span><span class="en">Updating / upgrading</span><span class="ja">更新 / アップグレード</span></h3>
+    <p class="section-sub" style="margin-bottom:14px;max-width:none"><span class="zh">所有設定與資料（帳號、會議室、稽核、用量等）都存在 <code>DATA_DIR</code> 或掛載卷，<strong>更新不會遺失</strong>，JSON 結構會自動相容升級。更新前仍建議先備份資料目錄與 <code>keys/</code>。</span><span class="en">All settings and data (accounts, rooms, audit log, usage, etc.) live in <code>DATA_DIR</code> or the mounted volumes, so <strong>nothing is lost on update</strong>, and the JSON structures are upgraded compatibly and automatically. Backing up the data directory and <code>keys/</code> before updating is still recommended.</span><span class="ja">すべての設定とデータ（アカウント、会議室、監査ログ、利用量など）は <code>DATA_DIR</code> またはマウントしたボリュームに保存されるため、<strong>更新しても失われません</strong>。JSON の構造も互換性を保ったまま自動的にアップグレードされます。それでも更新前にデータディレクトリと <code>keys/</code> をバックアップしておくことをおすすめします。</span></p>
 <pre class="zh"><span class="c"># 共同：更新前備份（建議）</span>
 cp -a /opt/jt-vc-portal/data /opt/jt-vc-portal/data.bak-$(date +%Y%m%d)
 
@@ -471,7 +532,28 @@ docker run -d --restart unless-stopped -p 58189:58189 \
 curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/latest/download/jt-vc-portal-&lt;new-version&gt;-docker-amd64.tar.gz
 docker load &lt; jt-vc-portal-&lt;new-version&gt;-docker-amd64.tar.gz
 docker stop jt-vc-portal &amp;&amp; docker rm jt-vc-portal      <span class="c"># then docker run again with the same options as Option 2</span></pre>
-    <div class="note"><span class="zh">資料與私鑰都在掛載卷 / <code>DATA_DIR</code>，換容器不受影響；登入後可從左上版本號確認已更新到新版。</span><span class="en">Data and the private key live in the mounted volumes / <code>DATA_DIR</code>, so replacing the container does not affect them; after signing in, check the version number at the top left to confirm the update.</span></div>
+<pre class="ja"><span class="c"># 共通：更新前にバックアップ（推奨）</span>
+cp -a /opt/jt-vc-portal/data /opt/jt-vc-portal/data.bak-$(date +%Y%m%d)
+
+<span class="c"># 方法 1：直接インストール</span>
+git pull
+cp dot.htaccess .htaccess          <span class="c"># .htaccess が更新された場合</span>
+sudo systemctl reload apache2      <span class="c"># opcache をクリア</span>
+
+<span class="c"># 方法 2：Docker で自分でビルド</span>
+git pull
+docker build --pull -t jt-vc-portal .
+docker stop jt-vc-portal &amp;&amp; docker rm jt-vc-portal
+docker run -d --restart unless-stopped -p 58189:58189 \
+  -v /opt/jt-vc-portal/keys/:/var/www/html/keys \
+  -v /opt/jt-vc-portal/data/:/var/jaas-data \
+  --name jt-vc-portal jt-vc-portal
+
+<span class="c"># 方法 3：Release のビルド済みイメージをダウンロード（ビルドなし）</span>
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/latest/download/jt-vc-portal-&lt;新バージョン&gt;-docker-amd64.tar.gz
+docker load &lt; jt-vc-portal-&lt;新バージョン&gt;-docker-amd64.tar.gz
+docker stop jt-vc-portal &amp;&amp; docker rm jt-vc-portal      <span class="c"># その後、方法 2 と同じオプションで再度 docker run</span></pre>
+    <div class="note"><span class="zh">資料與私鑰都在掛載卷 / <code>DATA_DIR</code>，換容器不受影響；登入後可從左上版本號確認已更新到新版。</span><span class="en">Data and the private key live in the mounted volumes / <code>DATA_DIR</code>, so replacing the container does not affect them; after signing in, check the version number at the top left to confirm the update.</span><span class="ja">データと秘密鍵はマウントしたボリューム / <code>DATA_DIR</code> にあるため、コンテナを入れ替えても影響を受けません。ログイン後、左上のバージョン番号で新しいバージョンに更新されたことを確認できます。</span></div>
   </div>
 </section>
 
@@ -479,19 +561,25 @@ docker stop jt-vc-portal &amp;&amp; docker rm jt-vc-portal      <span class="c">
 <section id="appendix">
   <div class="wrap">
     <div class="kicker">Appendix</div>
-    <h2><span class="zh">附錄：進階文件</span><span class="en">Appendix: advanced guides</span></h2>
-    <p class="section-sub"><span class="zh">自建 Jitsi Meet 與錄影的完整部署 SOP。</span><span class="en">Complete deployment SOPs for self-hosted Jitsi Meet and recording.</span></p>
+    <h2><span class="zh">附錄：進階文件</span><span class="en">Appendix: advanced guides</span><span class="ja">付録：詳細ガイド</span></h2>
+    <p class="section-sub"><span class="zh">自建 Jitsi Meet 與錄影的完整部署 SOP。</span><span class="en">Complete deployment SOPs for self-hosted Jitsi Meet and recording.</span><span class="ja">セルフホスト Jitsi Meet と録画の完全なデプロイ手順書（SOP）。</span></p>
     <div class="cols2">
-      <div class="panel">
-        <h3><span class="zh">自建 Jitsi Meet 整合</span><span class="en">Self-hosted Jitsi Meet integration</span></h3>
-        <p><span class="zh">從官方 Docker 版 Jitsi Meet 一路設定到與 jt-vc-portal 搭配：架構、連接埠 / NAT、TLS、JWT 與主持人權限、媒體後援 / TURN。</span><span class="en">From the official Docker edition of Jitsi Meet all the way to working with jt-vc-portal: architecture, ports / NAT, TLS, JWT and host permissions, media fallback / TURN.</span></p>
-        <p><a class="btn btn-primary zh" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/JITSI-MEET-SETUP_zh-TW.md" target="_blank" rel="noopener">JITSI-MEET-SETUP_zh-TW.md</a><a class="btn btn-primary en" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/JITSI-MEET-SETUP.md" target="_blank" rel="noopener">JITSI-MEET-SETUP.md</a></p>
+      <div class="panel doc-card">
+        <h3><span class="zh">自建 Jitsi Meet 整合</span><span class="en">Self-hosted Jitsi Meet integration</span><span class="ja">セルフホスト Jitsi Meet との連携</span></h3>
+        <p><span class="zh">從官方 Docker 版 Jitsi Meet 一路設定到與 jt-vc-portal 搭配：架構、連接埠 / NAT、TLS、JWT 與主持人權限、媒體後援 / TURN。</span><span class="en">From the official Docker edition of Jitsi Meet all the way to working with jt-vc-portal: architecture, ports / NAT, TLS, JWT and host permissions, media fallback / TURN.</span><span class="ja">公式の Docker 版 Jitsi Meet から jt-vc-portal との連携までを一通り設定：アーキテクチャ、ポート / NAT、TLS、JWT と主催者権限、メディアのフォールバック / TURN。</span></p>
+        <div class="doc-action">
+          <a class="btn btn-primary doc-btn zh" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/JITSI-MEET-SETUP_zh-TW.md" target="_blank" rel="noopener">閱讀完整設定指南 →</a><a class="btn btn-primary doc-btn en" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/JITSI-MEET-SETUP.md" target="_blank" rel="noopener">Read the setup guide →</a><a class="btn btn-primary doc-btn ja" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/JITSI-MEET-SETUP_ja.md" target="_blank" rel="noopener">設定ガイドを読む →</a>
+          <div class="doc-file"><span class="zh">JITSI-MEET-SETUP_zh-TW.md</span><span class="en">JITSI-MEET-SETUP.md</span><span class="ja">JITSI-MEET-SETUP_ja.md</span></div>
+        </div>
       </div>
-      <div class="panel">
-        <h3><span class="zh">Jibri 錄影整合</span><span class="en">Jibri recording integration</span> <span class="tag-opt"><span class="zh">選配</span><span class="en">Optional</span></span></h3>
-        <p><span class="zh">在自建 Jitsi Meet 上加上 Jibri 錄影：VM 需求、snd-aloop、同時多會議室錄製、錄影中文顯示（CJK 字型）、獨立 Jibri VM 實作。</span><span class="en">Add Jibri recording to a self-hosted Jitsi Meet: VM requirements, snd-aloop, recording several rooms at once, rendering Chinese text in recordings (CJK fonts), and running Jibri on a dedicated VM.</span></p>
-        <p class="note-opt"><span class="zh">非必要——不安裝完全不影響 Jitsi Meet 與會議運作，只是不提供錄影功能；需要時再加裝即可。</span><span class="en">Not required — without it, Jitsi Meet and your meetings work exactly the same, just without recording; add it whenever you need it.</span></p>
-        <p><a class="btn btn-ghost zh" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/JIBRI-SETUP_zh-TW.md" target="_blank" rel="noopener">JIBRI-SETUP_zh-TW.md</a><a class="btn btn-ghost en" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/JIBRI-SETUP.md" target="_blank" rel="noopener">JIBRI-SETUP.md</a></p>
+      <div class="panel doc-card">
+        <h3><span class="zh">Jibri 錄影整合</span><span class="en">Jibri recording integration</span><span class="ja">Jibri 録画の連携</span> <span class="tag-opt"><span class="zh">選配</span><span class="en">Optional</span><span class="ja">オプション</span></span></h3>
+        <p><span class="zh">在自建 Jitsi Meet 上加上 Jibri 錄影：VM 需求、snd-aloop、同時多會議室錄製、錄影中文顯示（CJK 字型）、獨立 Jibri VM 實作。</span><span class="en">Add Jibri recording to a self-hosted Jitsi Meet: VM requirements, snd-aloop, recording several rooms at once, rendering Chinese text in recordings (CJK fonts), and running Jibri on a dedicated VM.</span><span class="ja">セルフホストの Jitsi Meet に Jibri 録画を追加：VM の要件、snd-aloop、複数会議室の同時録画、録画での中国語表示（CJK フォント）、専用 Jibri VM での構築。</span></p>
+        <p class="note-opt"><span class="zh">非必要——不安裝完全不影響 Jitsi Meet 與會議運作，只是不提供錄影功能；需要時再加裝即可。</span><span class="en">Not required — without it, Jitsi Meet and your meetings work exactly the same, just without recording; add it whenever you need it.</span><span class="ja">必須ではありません。導入しなくても Jitsi Meet と会議はまったく同じように動作し、録画機能が使えないだけです。必要になったときに追加できます。</span></p>
+        <div class="doc-action">
+          <a class="btn btn-primary doc-btn zh" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/JIBRI-SETUP_zh-TW.md" target="_blank" rel="noopener">閱讀完整設定指南 →</a><a class="btn btn-primary doc-btn en" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/JIBRI-SETUP.md" target="_blank" rel="noopener">Read the setup guide →</a><a class="btn btn-primary doc-btn ja" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/JIBRI-SETUP_ja.md" target="_blank" rel="noopener">設定ガイドを読む →</a>
+          <div class="doc-file"><span class="zh">JIBRI-SETUP_zh-TW.md</span><span class="en">JIBRI-SETUP.md</span><span class="ja">JIBRI-SETUP_ja.md</span></div>
+        </div>
       </div>
     </div>
   </div>
@@ -500,9 +588,9 @@ docker stop jt-vc-portal &amp;&amp; docker rm jt-vc-portal      <span class="c">
 <!-- DISCLAIMER -->
 <section id="disclaimer" class="alt">
   <div class="wrap">
-    <h2><span class="zh">免責聲明</span><span class="en">Disclaimer</span></h2>
+    <h2><span class="zh">免責聲明</span><span class="en">Disclaimer</span><span class="ja">免責事項</span></h2>
     <div class="disclaimer">
-      <span class="zh">本軟體依「現狀」（AS IS）提供，不附任何明示或默示之擔保。使用者須自行負責部署環境之安全性與合規性，包含第三方服務（如 <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>）之服務條款與費用。作者不對任何因使用本軟體所生之直接或間接損失負責。本專案以 <a href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/LICENSE" target="_blank" rel="noopener">GNU GPL v3.0</a> 釋出。</span><span class="en">This software is provided "AS IS", without warranty of any kind, express or implied. You are solely responsible for the security and compliance of your deployment, including the terms of service and fees of third-party services (such as <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>). The author is not liable for any direct or indirect damages arising from the use of this software. This project is released under the <a href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/LICENSE" target="_blank" rel="noopener">GNU GPL v3.0</a>.</span>
+      <span class="zh">本軟體依「現狀」（AS IS）提供，不附任何明示或默示之擔保。使用者須自行負責部署環境之安全性與合規性，包含第三方服務（如 <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>）之服務條款與費用。作者不對任何因使用本軟體所生之直接或間接損失負責。本專案以 <a href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/LICENSE" target="_blank" rel="noopener">GNU GPL v3.0</a> 釋出。</span><span class="en">This software is provided "AS IS", without warranty of any kind, express or implied. You are solely responsible for the security and compliance of your deployment, including the terms of service and fees of third-party services (such as <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>). The author is not liable for any direct or indirect damages arising from the use of this software. This project is released under the <a href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/LICENSE" target="_blank" rel="noopener">GNU GPL v3.0</a>.</span><span class="ja">本ソフトウェアは「現状のまま」（AS IS）提供され、明示または黙示を問わず、いかなる保証もありません。デプロイ環境のセキュリティとコンプライアンスは、第三者サービス（<a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> など）の利用規約や料金を含め、利用者ご自身の責任となります。作者は、本ソフトウェアの使用により生じたいかなる直接的または間接的な損害についても責任を負いません。本プロジェクトは <a href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/LICENSE" target="_blank" rel="noopener">GNU GPL v3.0</a> で公開されています。</span>
     </div>
   </div>
 </section>
@@ -510,21 +598,21 @@ docker stop jt-vc-portal &amp;&amp; docker rm jt-vc-portal      <span class="c">
 <!-- FOOTER -->
 <footer>
   <div class="wrap">
-    <div>© <span id="yr"></span> Jason Tools · <span class="zh">以 GNU GPL v3.0 釋出</span><span class="en">Released under the GNU GPL v3.0</span></div>
+    <div>© <span id="yr"></span> Jason Tools · <span class="zh">以 GNU GPL v3.0 釋出</span><span class="en">Released under the GNU GPL v3.0</span><span class="ja">GNU GPL v3.0 で公開</span></div>
     <div class="ftlinks">
-      <a href="https://github.com/jasoncheng7115/jt-vc-portal" target="_blank" rel="noopener"><span class="zh">原始碼</span><span class="en">Source code</span></a>
-      <a class="zh" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/README_zh-TW.md" target="_blank" rel="noopener">README</a><a class="en" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/README.md" target="_blank" rel="noopener">README</a>
-      <a class="zh" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/ROADMAP_zh-TW.md" target="_blank" rel="noopener">後續規劃</a><a class="en" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/ROADMAP.md" target="_blank" rel="noopener">Roadmap</a>
-      <a class="zh" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/TEST_CHECKLIST_zh-TW.md" target="_blank" rel="noopener">測試清單</a><a class="en" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/TEST_CHECKLIST.md" target="_blank" rel="noopener">Test checklist</a>
-      <a href="https://github.com/jasoncheng7115/jt-vc-portal/issues" target="_blank" rel="noopener"><span class="zh">問題回報</span><span class="en">Issues</span></a>
-      <a href="https://github.com/jasoncheng7115" target="_blank" rel="noopener"><span class="zh">作者</span><span class="en">Author</span></a>
+      <a href="https://github.com/jasoncheng7115/jt-vc-portal" target="_blank" rel="noopener"><span class="zh">原始碼</span><span class="en">Source code</span><span class="ja">ソースコード</span></a>
+      <a class="zh" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/README_zh-TW.md" target="_blank" rel="noopener">README</a><a class="en" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/README.md" target="_blank" rel="noopener">README</a><a class="ja" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/README_ja.md" target="_blank" rel="noopener">README</a>
+      <a class="zh" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/ROADMAP_zh-TW.md" target="_blank" rel="noopener">後續規劃</a><a class="en" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/ROADMAP.md" target="_blank" rel="noopener">Roadmap</a><a class="ja" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/ROADMAP_ja.md" target="_blank" rel="noopener">ロードマップ</a>
+      <a class="zh" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/TEST_CHECKLIST_zh-TW.md" target="_blank" rel="noopener">測試清單</a><a class="en" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/TEST_CHECKLIST.md" target="_blank" rel="noopener">Test checklist</a><a class="ja" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/TEST_CHECKLIST_ja.md" target="_blank" rel="noopener">テストチェックリスト</a>
+      <a href="https://github.com/jasoncheng7115/jt-vc-portal/issues" target="_blank" rel="noopener"><span class="zh">問題回報</span><span class="en">Issues</span><span class="ja">問題の報告</span></a>
+      <a href="https://github.com/jasoncheng7115" target="_blank" rel="noopener"><span class="zh">作者</span><span class="en">Author</span><span class="ja">作者</span></a>
     </div>
   </div>
 </footer>
 
 <!-- 圖片放大檢視 -->
-<div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Enlarged view" data-aria-zh="放大檢視" data-aria-en="Enlarged view">
-  <button class="lightbox-close" type="button" aria-label="Close" data-aria-zh="關閉" data-aria-en="Close">
+<div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Enlarged view" data-aria-zh="放大檢視" data-aria-en="Enlarged view" data-aria-ja="拡大表示">
+  <button class="lightbox-close" type="button" aria-label="Close" data-aria-zh="關閉" data-aria-en="Close" data-aria-ja="閉じる">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
   </button>
   <img src="" alt="">
@@ -540,9 +628,10 @@ docker stop jt-vc-portal &amp;&amp; docker rm jt-vc-portal      <span class="c">
     var menu = document.getElementById('langMenu');
     var label = document.getElementById('langCur');
     var items = menu ? Array.prototype.slice.call(menu.querySelectorAll('li')) : [];
-    function cur(){ return document.body.classList.contains('lang-zh') ? 'zh' : 'en'; }
+    function cur(){ return document.body.classList.contains('lang-ja') ? 'ja'
+                         : document.body.classList.contains('lang-zh') ? 'zh' : 'en'; }
     function applyAttrs(l){
-      document.documentElement.setAttribute('lang', l === 'en' ? 'en' : 'zh-Hant');
+      document.documentElement.setAttribute('lang', l === 'en' ? 'en' : l === 'ja' ? 'ja' : 'zh-Hant');
       var t = document.querySelector('title');
       if (t && t.getAttribute('data-' + l)) document.title = t.getAttribute('data-' + l);
       var d = document.querySelector('meta[name="description"]');
@@ -562,13 +651,13 @@ docker stop jt-vc-portal &amp;&amp; docker rm jt-vc-portal      <span class="c">
       btn.setAttribute('aria-expanded', String(v));
     }
     function set(l){
-      document.body.classList.remove('lang-zh', 'lang-en');
+      document.body.classList.remove('lang-zh', 'lang-en', 'lang-ja');
       document.body.classList.add('lang-' + l);
       applyAttrs(l);
       try {
         localStorage.setItem(KEY, l);
         var u = new URL(location.href);
-        u.searchParams.set('lang', l === 'en' ? 'en' : 'zh-TW');
+        u.searchParams.set('lang', l === 'en' ? 'en' : l === 'ja' ? 'ja' : 'zh-TW');
         history.replaceState(null, '', u);
       } catch (e) {}
       mark(); open(false);

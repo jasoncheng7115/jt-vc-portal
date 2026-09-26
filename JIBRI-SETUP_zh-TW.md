@@ -2,7 +2,7 @@
 
 > **作者**：Jason Cheng　·　GitHub [@jasoncheng7115](https://github.com/jasoncheng7115)　·　專案 [jt-vc-portal](https://github.com/jasoncheng7115/jt-vc-portal)
 >
-> English: [JIBRI-SETUP.md](JIBRI-SETUP.md)
+> English: [JIBRI-SETUP.md](JIBRI-SETUP.md) · 日本語: [JIBRI-SETUP_ja.md](JIBRI-SETUP_ja.md)
 
 接續 [JITSI-MEET-SETUP_zh-TW.md](JITSI-MEET-SETUP_zh-TW.md)，本文在同一套 docker-jitsi-meet 上加上 **Jibri 錄影**，並特別處理兩個重點：**同時多會議室錄製**與**錄影中文顯示**。
 

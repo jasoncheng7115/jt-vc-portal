@@ -1,6 +1,14 @@
 # Changelog
 
-> 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md)
+> 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
+
+## v1.9.0 — Japanese
+
+- **Japanese interface**: the portal UI is now available in Traditional Chinese, English and **Japanese** (`lang/ja/*.php`, ~675 strings). Browsers preferring `ja*` get Japanese automatically; switch from the account menu, sign-in / guest page header, or Profile → Interface language.
+- **Jitsi meeting language** "Follow interface language" maps Japanese users to the Japanese meeting UI; default email templates and default names also follow Japanese.
+- **Docs**: every Markdown document now has a `_ja.md` Japanese version, and each language line links the other two languages; in-app doc links open the Japanese guides for Japanese users.
+- **GitHub Pages**: Chinese / English / Japanese switching with browser detection; the appendix doc cards now show one button for the current language, equal-height cards with bottom-aligned buttons.
+- **Tests**: `check-i18n.php` checks every language (missing keys, placeholders, Traditional-only characters in Japanese); unit, integration and browser e2e runs cover Japanese.
 
 ## v1.8.0 — Room deletion, session revocation, license change to GPL-3.0
 
