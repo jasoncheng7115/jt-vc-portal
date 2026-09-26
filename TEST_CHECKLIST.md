@@ -238,9 +238,9 @@ Spot-check on every release; test everything for major changes:
 - [ ] Deploy to production: lint → build (`--pull`) → replace the container → health check (home page 200, login page, entering a meeting).
 - [ ] Sync `github/` (copy only changed files; do not use `rsync --delete`), then run the section 0 secret checks again.
 - [ ] commit / push; create and push the `vX.Y.Z` tag.
-- [ ] **Package that version's Docker image**: `jt-vc-portal-X.Y.Z-docker-amd64.tar.gz` + `.sha256`, and verify there are no secrets inside the image.
-- [ ] Update the version number and download links in the README and Pages together.
-- [ ] Create the GitHub Release and upload the image and `.sha256`; download via the public link and verify with `sha256sum -c`.
+- [ ] After pushing the `vX.Y.Z` tag, **GitHub Actions (`.github/workflows/release.yml`) automatically** builds this version's Docker image (verifying no secrets are inside), packages `jt-vc-portal-X.Y.Z-docker-amd64.tar.gz` + `.sha256`, and creates the Release (notes taken from the CHANGELOG). Confirm the Actions run succeeded.
+- [ ] Version numbers and download links in the README and Pages are updated.
+- [ ] Download the Release image and `.sha256` from the public links, verify with `sha256sum -c`, and confirm `docker load` + start work.
 
 ## 10. Automated test mapping
 

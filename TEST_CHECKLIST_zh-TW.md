@@ -238,9 +238,9 @@
 - [ ] 部署正式機：lint → build（`--pull`）→ 換容器 → 健康檢查（首頁 200、登入頁、進入會議）。
 - [ ] 同步 `github/`（只複製變動檔，勿用 `rsync --delete`），再跑一次第 0 節機密檢查。
 - [ ] commit / push；建立並推送 `vX.Y.Z` tag。
-- [ ] **打包該版 Docker image**：`jt-vc-portal-X.Y.Z-docker-amd64.tar.gz` + `.sha256`，驗證 image 內無機密。
+- [ ] 推送 `vX.Y.Z` tag 後，**GitHub Actions（`.github/workflows/release.yml`）自動**建立該版 Docker image（驗證 image 內無機密）、打包 `jt-vc-portal-X.Y.Z-docker-amd64.tar.gz` + `.sha256`，並建立 Release（說明取自 CHANGELOG）。確認 Actions 執行成功。
 - [ ] README 與 Pages 的版本號、下載連結同步更新。
-- [ ] 建立 GitHub Release 並上傳 image 與 `.sha256`；以公開連結下載後 `sha256sum -c` 驗證。
+- [ ] 以公開連結下載 Release 的 image 與 `.sha256`，`sha256sum -c` 驗證並 `docker load` 可啟動。
 
 ## 10. 自動化測試對照表
 

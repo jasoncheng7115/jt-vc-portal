@@ -1,0 +1,87 @@
+# 自動發佈 Release：推送 vX.Y.Z tag 時，建立該版 Docker image（amd64）並上傳到 GitHub Release。
+# 另外在 main 更新本檔或手動執行時，會補齊「已有 tag 但還沒有 Release」的版本（v1.6.3 起）。
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+    branches: [main]
+    paths: ['.github/workflows/release.yml', 'tools/ci-build-release.sh']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to (re)build, e.g. v1.8.0 (empty = all tags from v1.6.3 without a release)'
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Decide which tags to release
+        id: tags
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            TAGS="${GITHUB_REF_NAME}"
+          elif [ -n "${INPUT_TAG:-}" ]; then
+            TAGS="${INPUT_TAG}"
+          else
+            TAGS=""
+            for t in $(git tag -l 'v*.*.*' | sort -V); do
+              # 只處理 v1.6.3 以後（更早的版本由使用者手動發佈過）
+              [ "$(printf '%s\n%s\n' v1.6.3 "$t" | sort -V | head -1)" = "v1.6.3" ] || continue
+              if gh release view "$t" >/dev/null 2>&1; then
+                n=$(gh release view "$t" --json assets --jq '[.assets[].name | select(endswith("-docker-amd64.tar.gz"))] | length')
+                [ "$n" -gt 0 ] && continue
+              fi
+              TAGS="$TAGS $t"
+            done
+          fi
+          echo "tags=$(echo $TAGS)" >> "$GITHUB_OUTPUT"
+          echo "Tags to release: ${TAGS:-<none>}"
+
+      - name: Build and publish
+        if: steps.tags.outputs.tags != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for TAG in ${{ steps.tags.outputs.tags }}; do
+            VER="${TAG#v}"
+            echo "::group::$TAG"
+            SRC="$RUNNER_TEMP/src-$VER"; OUT="$RUNNER_TEMP/out-$VER"
+            rm -rf "$SRC"; mkdir -p "$SRC"
+            git archive "$TAG" | tar -x -C "$SRC"
+            bash tools/ci-build-release.sh "$VER" "$SRC" "$OUT"
+            # Release 說明：取該版 CHANGELOG.md 的對應段落（英文），並附上中文版連結
+            NOTES="$RUNNER_TEMP/notes-$VER.md"
+            awk -v h="## $TAG" 'index($0,h)==1{p=1;next} /^## v/{if(p)exit} p' "$SRC/CHANGELOG.md" > "$NOTES" || true
+            [ -s "$NOTES" ] || echo "See CHANGELOG.md." > "$NOTES"
+            {
+              echo
+              echo "繁體中文：[CHANGELOG_zh-TW.md](https://github.com/${GITHUB_REPOSITORY}/blob/${TAG}/CHANGELOG_zh-TW.md)"
+              echo
+              echo "**Docker image (amd64):** \`jt-vc-portal-$VER-docker-amd64.tar.gz\` — verify with \`sha256sum -c jt-vc-portal-$VER-docker-amd64.tar.gz.sha256\`, then \`docker load < jt-vc-portal-$VER-docker-amd64.tar.gz\`."
+            } >> "$NOTES"
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              gh release upload "$TAG" "$OUT"/* --clobber
+            else
+              gh release create "$TAG" "$OUT"/* --title "$TAG" --notes-file "$NOTES" --verify-tag
+            fi
+            docker rmi "jt-vc-portal:$VER" jt-vc-portal:latest >/dev/null 2>&1 || true
+            echo "::endgroup::"
+          done
