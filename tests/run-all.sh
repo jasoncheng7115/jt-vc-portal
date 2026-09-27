@@ -10,3 +10,7 @@ echo "### unit"
 "$ROOT/tests/run-unit.sh"
 echo "### integration"
 "$ROOT/tests/run-integration.sh"
+echo "### sso (real Keycloak)"
+"$ROOT/tests/run-sso.sh" | tail -1
+echo "### jibri api"
+"$ROOT/tests/test-jibri-api.sh" | tail -1

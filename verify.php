@@ -6,6 +6,7 @@ require_once __DIR__ . '/lib/totp.php';
 require_once __DIR__ . '/lib/ratelimit.php';
 require_once __DIR__ . '/lib/audit.php';
 require_once __DIR__ . '/lib/settings.php';
+require_once __DIR__ . '/lib/oidc.php';
 
 Auth::start();
 Users::bootstrap();
@@ -31,6 +32,13 @@ $fail = function (string $msg) {
 if (RateLimit::isLocked($ip)) {
   Audit::log('login_locked', t('嘗試帳號：{login}', ['login' => $login]), ['actor' => $login, 'result' => 'warn']);
   $fail(t('因多次登入失敗，此來源已被暫時鎖定，請稍後再試。'));
+}
+
+// 1a) 僅限 SSO 模式：本地密碼登入只允許指定來源 IP（緊急用管理員）
+if (!Oidc::localLoginAllowed($ip)) {
+  RateLimit::fail($ip);
+  Audit::log('login_fail', t('嘗試帳號：{login}（本地登入不允許此來源）', ['login' => $login]), ['actor' => $login, 'result' => 'fail']);
+  $fail(t('請使用單一登入（SSO）。'));
 }
 
 // 1b) 帳號層鎖定（防分散 IP 暴力破解；不論帳號存在與否行為一致）

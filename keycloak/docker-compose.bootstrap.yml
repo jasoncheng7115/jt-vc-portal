@@ -1,0 +1,9 @@
+# 只在「第一次啟動」使用，建立暫時管理員：
+#   docker compose -f docker-compose.yml -f docker-compose.bootstrap.yml up -d
+# 建好正式管理員並刪除暫時管理員後，改回一般的 `docker compose up -d`（容器會重建、不再帶這兩個變數）。
+# 注意：Keycloak 看到 KC_BOOTSTRAP_ADMIN_USERNAME 但密碼為空時會拒絕啟動，所以不能只把密碼清空留在主 compose。
+services:
+  keycloak:
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD}

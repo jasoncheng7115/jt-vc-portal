@@ -7,7 +7,7 @@ VER=$1; SRC=$2; OUT=$3
 mkdir -p "$OUT"
 grep -q "APP_VERSION', '$VER'" "$SRC/config.php" || { echo "config.php APP_VERSION != $VER"; exit 1; }
 # 版控 / CI 設定不屬於 image（舊 tag 的 .dockerignore 可能沒排除，這裡一律先移除）
-rm -rf "$SRC/.github" "$SRC/.git"
+rm -rf "$SRC/.github" "$SRC/.git" "$SRC/keycloak"
 docker run --rm -v "$SRC":/app -w /app php:8.4-cli sh -c 'for f in $(find . -name "*.php" -not -path "./tests/*"); do php -l "$f" >/dev/null || { php -l "$f"; exit 1; }; done'
 docker build --pull -q -t jt-vc-portal:$VER "$SRC" >/dev/null
 docker tag jt-vc-portal:$VER jt-vc-portal:latest

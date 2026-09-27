@@ -1,0 +1,5 @@
+.env
+realm.env
+client-secret.txt
+data/
+truststores/*.pem

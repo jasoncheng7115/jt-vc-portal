@@ -37,4 +37,5 @@ tests/
 tools/
 *.md
 jibri-recordings-api/
+keycloak/
 zap-reports/

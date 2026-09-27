@@ -97,6 +97,69 @@ render_topbar($me, $ip);
     </div>
   </div>
 
+  <?php /* 單一登入（OIDC SSO） */ ?>
+  <?php $oidc = Settings::getOidc(); $oidc_ip = Auth::clientIp(); ?>
+  <div class="card" id="sso">
+    <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('user', 18) ?><?= th('單一登入（SSO / OIDC）') ?></h1>
+    <p class="subtitle" style="margin:6px 0 12px;"><?= th('讓主持人與管理員用公司帳號登入（Keycloak、Microsoft Entra ID 等 OIDC 身分驗證服務）。本系統不直接連 AD / LDAP；地端 AD 請由 Keycloak 聯合。來賓仍使用邀請連結，不受影響。') ?></p>
+    <div class="help" style="margin-bottom:12px;"><?= t('Keycloak 完整部署步驟見 {link}。', ['link' => '<a href="' . htmlspecialchars(I18n::docUrl('KEYCLOAK-SETUP')) . '" target="_blank" rel="noopener">KEYCLOAK-SETUP.md</a>']) ?></div>
+    <form method="POST" action="/save-settings">
+      <?= Auth::csrfField() ?>
+      <input type="hidden" name="section" value="oidc">
+      <div class="field"><label><input type="checkbox" name="enabled" value="1" <?= $oidc['enabled'] ? 'checked' : '' ?>> <?= th('啟用單一登入') ?></label></div>
+      <div class="field"><label><?= th('Redirect URI（請在 IdP 註冊這個網址）') ?></label>
+        <input type="text" readonly class="mono" value="<?= htmlspecialchars(rtrim(SITE_URL, '/') . '/sso-callback') ?>"></div>
+      <div class="field-row">
+        <div class="field"><label><?= th('Issuer（例：https://sso.example.com/realms/jtvc）') ?></label>
+          <input type="url" name="issuer" value="<?= htmlspecialchars($oidc['issuer']) ?>" placeholder="https://sso.example.com/realms/jtvc"></div>
+        <div class="field"><label><?= th('登入按鈕文字（留空用預設）') ?></label>
+          <input type="text" name="display_name" maxlength="60" value="<?= htmlspecialchars($oidc['display_name']) ?>" placeholder="<?= th('以公司帳號登入（SSO）') ?>"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Client ID</label>
+          <input type="text" name="client_id" value="<?= htmlspecialchars($oidc['client_id']) ?>" placeholder="jt-vc-portal"></div>
+        <div class="field"><label>Client secret</label>
+          <input type="password" name="client_secret" value="" autocomplete="new-password" placeholder="<?= $oidc['client_secret'] !== '' ? th('已設定（留空不變更）') : '' ?>"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label><?= th('管理員群組（逗號分隔）') ?></label>
+          <input type="text" name="admin_groups" value="<?= htmlspecialchars($oidc['admin_groups']) ?>" placeholder="VC-Admins"></div>
+        <div class="field"><label><?= th('主持人群組（逗號分隔）') ?></label>
+          <input type="text" name="host_groups" value="<?= htmlspecialchars($oidc['host_groups']) ?>" placeholder="VC-Hosts"></div>
+      </div>
+      <div class="help"><?= th('不在上述任一群組的使用者一律無法登入。群組名稱不分大小寫；Keycloak 的完整路徑（/A/B）可填完整路徑或最後一段。') ?></div>
+      <div class="field" style="margin-top:12px;"><label><input type="checkbox" name="require_https" value="1" <?= $oidc['require_https'] ? 'checked' : '' ?>> <?= th('IdP 必須使用 HTTPS（建議保持勾選）') ?></label></div>
+      <div class="field"><label><input type="checkbox" name="sso_only" value="1" <?= $oidc['sso_only'] ? 'checked' : '' ?>> <?= th('僅限單一登入：一般帳號不能再用本地密碼登入') ?></label></div>
+      <div class="field"><label><?= th('僅限單一登入時，仍允許本地密碼登入的來源 IP / CIDR（緊急用管理員；逗號分隔，留空＝只允許本機）') ?></label>
+        <input type="text" name="local_login_cidrs" value="<?= htmlspecialchars($oidc['local_login_cidrs']) ?>" placeholder="192.168.1.0/24, 10.8.0.0/16">
+        <div class="help"><?= th('您目前的來源 IP：') ?><span class="mono"><?= htmlspecialchars($oidc_ip) ?></span></div></div>
+      <details style="margin:10px 0;"><summary class="muted" style="cursor:pointer;"><?= th('進階：Scopes 與 claim 名稱') ?></summary>
+        <div class="field-row" style="margin-top:10px;">
+          <div class="field"><label>Scopes</label><input type="text" name="scopes" value="<?= htmlspecialchars($oidc['scopes']) ?>"></div>
+          <div class="field"><label><?= th('群組 claim') ?></label><input type="text" name="groups_claim" value="<?= htmlspecialchars($oidc['groups_claim']) ?>"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label><?= th('帳號名稱 claim') ?></label><input type="text" name="username_claim" value="<?= htmlspecialchars($oidc['username_claim']) ?>"></div>
+          <div class="field"><label><?= th('Email claim') ?></label><input type="text" name="email_claim" value="<?= htmlspecialchars($oidc['email_claim']) ?>"></div>
+          <div class="field"><label><?= th('顯示名稱 claim') ?></label><input type="text" name="name_claim" value="<?= htmlspecialchars($oidc['name_claim']) ?>"></div>
+        </div>
+      </details>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="submit" name="action" value="save" class="btn btn-primary"><?= icon('check', 14) ?><?= th('儲存') ?></button>
+        <button type="submit" name="action" value="test" class="btn btn-secondary"><?= icon('refresh', 14) ?><?= th('儲存並測試連線') ?></button>
+      </div>
+    </form>
+    <details style="margin-top:14px;"><summary class="muted" style="cursor:pointer;"><?= th('常見 IdP 設定對照') ?></summary>
+      <table class="table" style="margin-top:8px;font-size:13px;">
+        <thead><tr><th class="no-sort">IdP</th><th class="no-sort">Issuer</th><th class="no-sort"><?= th('群組 claim') ?></th></tr></thead>
+        <tbody>
+          <tr><td>Keycloak</td><td class="mono">https://&lt;host&gt;/realms/&lt;realm&gt;</td><td><?= th('groups（需 Group Membership mapper，建議關閉完整路徑）') ?></td></tr>
+          <tr><td>Microsoft Entra ID</td><td class="mono">https://login.microsoftonline.com/&lt;tenant&gt;/v2.0</td><td><?= th('groups（需在 Token configuration 加入群組；值為群組 ID）') ?></td></tr>
+        </tbody>
+      </table>
+    </details>
+  </div>
+
   <?php /* 會議室介面 */ ?>
   <?php $meeting_lang = Settings::getMeetingLangSetting(); $meeting_retention = Settings::getMeetingRetentionDays(); $audit_retention = Settings::getAuditRetentionDays(); $guest_poll = Settings::getGuestPollSeconds(); ?>
   <div class="card">

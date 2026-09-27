@@ -31,7 +31,7 @@ render_topbar($me, $ip);
       <tbody>
       <?php foreach ($users as $u): ?>
         <tr>
-          <td class="mono"><?= htmlspecialchars($u['username']) ?></td>
+          <td class="mono"><?= htmlspecialchars($u['username']) ?><?php if (Users::isSso($u)): ?> <span class="badge badge-sso" title="<?= th('單一登入（SSO）帳號') ?>">SSO</span><?php endif; ?></td>
           <td><?= htmlspecialchars($u['display_name'] ?? '') ?></td>
           <td class="mono"><?= htmlspecialchars($u['email']) ?></td>
           <td><?= $u['role'] === 'admin' ? th('管理員') : th('主持人') ?></td>
@@ -70,9 +70,11 @@ render_topbar($me, $ip);
                   <option value="1" <?= !empty($u['disabled'])?'selected':'' ?>><?= th('停用') ?></option>
                 </select>
               </div>
+              <?php if (!Users::isSso($u)): ?>
               <div class="field"><label><?= th('重設密碼（留空不改，至少 10 字）') ?></label>
                 <input type="password" name="password" placeholder="<?= th('新密碼') ?>" minlength="10" autocomplete="new-password">
               </div>
+              <?php endif; ?>
               <div class="field"><label style="font-weight:400;"><input type="checkbox" name="revoke" value="1"> <?= th('強制登出此帳號所有已登入的裝置') ?></label></div>
               <button class="btn btn-secondary"><?= icon('check',14) ?><?= th('儲存') ?></button>
             </form>

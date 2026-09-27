@@ -2,6 +2,16 @@
 
 > English: [CHANGELOG.md](CHANGELOG.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.10.0 — OIDC 單一登入（Keycloak）
+
+- **OIDC 單一登入**（主持人與管理員；Keycloak、Microsoft Entra ID 或任何 OIDC IdP）：授權碼流程 + PKCE S256、state 與 nonce，id_token 以 IdP 的 JWKS 驗簽（僅 RS256/384/512），檢查 iss / aud / azp / exp / nonce。設計參考同系列專案 jt-doc-tools 與 jt-ipam。
+- **本系統不直接連 AD / LDAP**。地端 AD 由獨立主機上的 Keycloak 聯合；附完整部署 SOP（`KEYCLOAK-SETUP.md`，英 / 繁中 / 日）與現成腳本（`keycloak/`：docker compose、可重複執行的 `configure-realm.sh`、nginx 範例）。
+- **群組 → 角色**：依 IdP 的管理員 / 主持人群組；不在任何群組者拒絕。帳號以 (issuer, sub) 綁定，絕不與同名或同 email 的本地帳號自動合併。
+- **僅限單一登入模式**：本地密碼登入可限定為指定 IP 範圍的緊急用管理員；開啟前必須有啟用中的本地管理員。緊急 CLI `sso-cli.php` 可還原密碼登入。
+- **登出**同時登出 IdP（帶 id_token_hint）。SSO 帳號沒有本地密碼與 portal 2FA（MFA 由 IdP 強制）。
+- **Keycloak 加固（附的 realm 腳本）**：所有人強制 OTP、暴力破解偵測門檻低於 AD 鎖定門檻、只看得到兩個 portal 群組的成員、管理介面不對外。
+- **測試**：24 項單元測試（偽造 / 竄改 / `alg=none` / HS256 混淆 token、聲明、state 重放、迷你 IdP 流程）、45 項真實 Keycloak 瀏覽器測試（OTP 設定與 TOTP 登入、群組對應、衝突、停用帳號、僅限 SSO、暴力破解鎖定、PKCE 與 redirect URI 強制、登出）、啟用 SSO 的 ZAP 掃描。清單項目 S01–S26。
+
 ## v1.9.0 — 日文
 
 - **日文介面**：portal 介面支援繁體中文、English 與**日本語**（`lang/ja/*.php`，約 675 條）。瀏覽器偏好 `ja*` 時自動顯示日文；可從右上帳號選單、登入頁 / 來賓頁頂列或「個人設定 → 介面語言」切換。

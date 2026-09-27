@@ -19,6 +19,16 @@ function csp_nonce(): string {
   return $n;
 }
 
+/** CSP form-action：本站；啟用 SSO 時加上 IdP 來源（登出表單會被導到 IdP 的 end_session）。 */
+function csp_form_action(): string {
+  $fa = "'self'";
+  if (is_file(__DIR__ . '/oidc.php')) {
+    require_once __DIR__ . '/oidc.php';
+    if (Oidc::enabled() && ($o = Oidc::origin()) !== '' && preg_match('#^https?://[A-Za-z0-9.\-:\[\]]+$#', $o)) $fa .= ' ' . $o;
+  }
+  return $fa;
+}
+
 /** nonce 屬性字串（直接嵌進標籤）。 */
 function nonce_attr(): string {
   return 'nonce="' . csp_nonce() . '"';
@@ -42,8 +52,9 @@ function render_head(string $title): void {
   // 會議內嵌頁（meeting/guest 進場）自建 <head>、不經此函式。
   if (!headers_sent()) {
     $n = csp_nonce();
+    $fa = csp_form_action();
     header("Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; "
-         . "frame-ancestors 'self'; form-action 'self'; img-src 'self' data:; font-src 'self' data:; "
+         . "frame-ancestors 'self'; form-action {$fa}; img-src 'self' data:; font-src 'self' data:; "
          . "style-src 'self' 'nonce-{$n}' https://cdn.jsdelivr.net; style-src-elem 'self' 'nonce-{$n}' https://cdn.jsdelivr.net; "
          . "style-src-attr 'unsafe-inline'; "
          . "script-src 'self' 'nonce-{$n}' https://cdn.jsdelivr.net; script-src-attr 'none'; connect-src 'self'");

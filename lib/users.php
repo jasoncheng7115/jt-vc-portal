@@ -109,7 +109,7 @@ class Users {
         foreach (['username', 'display_name', 'email', 'role', 'totp_secret', 'totp_enabled', 'totp_last_counter', 'disabled', 'lang'] as $k) {
           if (array_key_exists($k, $fields)) $u[$k] = $fields[$k];
         }
-        if (!empty($fields['password'])) {
+        if (!empty($fields['password']) && ($u['auth'] ?? 'local') !== 'oidc') {   // SSO 帳號不設本地密碼
           $u['password_hash'] = password_hash($fields['password'], PASSWORD_DEFAULT);
           // 換密碼 → 換 session 世代，讓此帳號其他既有登入全部失效（A07）
           $u['session_gen'] = bin2hex(random_bytes(8));
@@ -136,7 +136,34 @@ class Users {
     return $ok;
   }
 
+  /** 建立 SSO（OIDC）帳號：無本地密碼（隨機雜湊且標記 auth=oidc，無法以密碼登入）。 */
+  public static function createSso(array $data): array {
+    $user = [
+      'id'            => 'u_' . bin2hex(random_bytes(8)),
+      'username'      => $data['username'],
+      'display_name'  => $data['display_name'] ?: $data['username'],
+      'email'         => $data['email'] ?? '',
+      'password_hash' => password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT),
+      'role'          => in_array($data['role'] ?? 'host', self::ROLES, true) ? $data['role'] : 'host',
+      'auth'          => 'oidc',
+      'oidc_iss'      => $data['oidc_iss'],
+      'oidc_sub'      => $data['oidc_sub'],
+      'totp_secret'   => null,
+      'totp_enabled'  => false,
+      'disabled'      => false,
+      'created_at'    => time(),
+    ];
+    self::mutate(function (array &$users) use ($user) { $users[] = $user; return true; });
+    return $user;
+  }
+
+  /** 是否為 SSO 帳號（密碼、2FA 由 IdP 管理）。 */
+  public static function isSso(array $user): bool {
+    return ($user['auth'] ?? 'local') === 'oidc';
+  }
+
   public static function verifyPassword(array $user, string $password): bool {
+    if (self::isSso($user)) return false;   // SSO 帳號沒有本地密碼
     return password_verify($password, $user['password_hash'] ?? '');
   }
 

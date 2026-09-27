@@ -32,6 +32,7 @@ if (array_key_exists('display_name', $_POST) && !isset($_POST['new_password'])) 
   $back('profile_msg', t('顯示名稱已更新。'));
 }
 
+if (Users::isSso($me)) $back('profile_err', t('此帳號由單一登入（SSO）管理：密碼與雙因素認證請在公司的身分驗證服務（IdP）變更。'));
 $cur  = (string)($_POST['current_password'] ?? '');
 $np   = (string)($_POST['new_password'] ?? '');
 $np2  = (string)($_POST['new_password2'] ?? '');

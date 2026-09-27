@@ -5,6 +5,7 @@ require_once __DIR__ . '/lib/users.php';
 require_once __DIR__ . '/lib/ratelimit.php';
 require_once __DIR__ . '/lib/settings.php';
 require_once __DIR__ . '/lib/layout.php';
+require_once __DIR__ . '/lib/oidc.php';
 
 // 登入頁路由偽裝：只有「設定的登入路徑」才顯示登入頁。
 // 預設 /jt-login 被改掉後直接 404；其他未對應路徑（經 .htaccess 轉來此檔）也一律 404。
@@ -26,6 +27,8 @@ unset($_SESSION['login_error']);
 
 $ip = Auth::clientIp();
 $st = RateLimit::status($ip);
+$sso_on = Oidc::enabled();
+$local_ok = Oidc::localLoginAllowed($ip);   // 僅限 SSO 模式時，只有允許的來源 IP 看得到本地密碼登入
 
 render_head(t('登入'));
 render_topbar(false);
@@ -56,6 +59,11 @@ render_topbar(false);
         <button type="submit" class="btn btn-primary btn-block" disabled><?= icon('lock') ?><?= th('已鎖定') ?></button>
       </form>
     <?php else: ?>
+      <?php if ($sso_on): ?>
+        <a class="btn btn-primary btn-block" href="/sso-login"><?= icon('user') ?><?= Oidc::cfg()['display_name'] !== '' ? htmlspecialchars(Oidc::cfg()['display_name']) : th('以公司帳號登入（SSO）') ?></a>
+        <?php if ($local_ok): ?><div class="login-divider"><span><?= th('或使用本地帳號') ?></span></div><?php endif; ?>
+      <?php endif; ?>
+      <?php if ($local_ok): ?>
       <?php if ($st['remaining'] < RateLimit::MAX_FAILS): ?>
         <div class="alert alert-warning"><?= icon('info') ?>
           <span><?= t('登入失敗，剩餘嘗試次數 {n} 次。', ['n' => '<strong>' . (int)$st['remaining'] . '</strong>']) ?></span></div>
@@ -72,8 +80,9 @@ render_topbar(false);
           <input type="password" id="password" name="password" required
                  placeholder="••••••••" autocomplete="current-password">
         </div>
-        <button type="submit" class="btn btn-primary btn-block"><?= icon('login') ?><?= th('登入') ?></button>
+        <button type="submit" class="btn <?= $sso_on ? 'btn-secondary' : 'btn-primary' ?> btn-block"><?= icon('login') ?><?= th('登入') ?></button>
       </form>
+      <?php endif; ?>
     <?php endif; ?>
   </div>
   <p class="muted" style="text-align:center;margin-top:18px;font-size:13px;">

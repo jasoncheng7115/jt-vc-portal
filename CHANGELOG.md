@@ -2,6 +2,16 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.10.0 — Single sign-on (OIDC) with Keycloak
+
+- **OIDC single sign-on** for hosts and admins (Keycloak, Microsoft Entra ID or any OIDC IdP): Authorization Code + PKCE S256, state and nonce, id_token signature verification against the IdP's JWKS (RS256/384/512 only), iss / aud / azp / exp / nonce checks. Design follows the sibling projects jt-doc-tools and jt-ipam.
+- **This system never connects to AD / LDAP directly.** On-premises AD is federated by Keycloak on its own host; a complete deployment SOP (`KEYCLOAK-SETUP.md`, EN / zh-TW / ja) and ready-to-use scripts (`keycloak/`: docker compose, idempotent `configure-realm.sh`, nginx example) are included.
+- **Groups → roles**: admin / host groups from the IdP; users in no group are refused. Accounts are bound by (issuer, sub) and never auto-merged with local accounts that share a username or email.
+- **SSO-only mode**: local password sign-in can be restricted to an emergency admin from allowed IP ranges; enabling it requires an enabled local admin. Emergency CLI `sso-cli.php` restores password sign-in.
+- **Sign-out** also signs out of the IdP (RP-initiated logout with id_token_hint). SSO accounts have no local password or portal 2FA (MFA is enforced at the IdP).
+- **Keycloak hardening in the provided realm script**: OTP required for everyone, brute-force detection below the AD lockout threshold, only members of the two portal groups visible, admin console kept off the Internet.
+- **Tests**: 24 unit tests (forged / tampered / `alg=none` / HS256-confusion tokens, claims, state replay, mini IdP flow), 45 real-Keycloak browser tests (OTP enrolment and TOTP sign-in, group mapping, conflicts, disabled accounts, SSO-only, brute-force lockout, PKCE and redirect-URI enforcement, logout), ZAP scan with SSO enabled. Checklist items S01–S26.
+
 ## v1.9.0 — Japanese
 
 - **Japanese interface**: the portal UI is now available in Traditional Chinese, English and **Japanese** (`lang/ja/*.php`, ~675 strings). Browsers preferring `ja*` get Japanese automatically; switch from the account menu, sign-in / guest page header, or Profile → Interface language.

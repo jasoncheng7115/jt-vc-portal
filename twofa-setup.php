@@ -15,6 +15,7 @@ $back = function (string $key, string $msg) {
   header('Location: /profile');
   exit;
 };
+if (Users::isSso($me)) $back('profile_err', t('此帳號由單一登入（SSO）管理：密碼與雙因素認證請在公司的身分驗證服務（IdP）變更。'));
 
 if ($action === 'enable') {
   $secret = $_SESSION['pending_totp'] ?? '';

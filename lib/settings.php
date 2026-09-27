@@ -170,6 +170,44 @@ class Settings {
     return $j['url'] !== '' && $j['token'] !== '';
   }
 
+  // === OIDC 單一登入（v1.10.0；設計參考 jt-doc-tools）===
+  const OIDC_DEFAULTS = [
+    'enabled' => false, 'display_name' => '', 'issuer' => '', 'client_id' => '', 'client_secret' => '',
+    'require_https' => true, 'scopes' => 'openid email profile',
+    'username_claim' => 'preferred_username', 'email_claim' => 'email', 'name_claim' => 'name', 'groups_claim' => 'groups',
+    'admin_groups' => '', 'host_groups' => '', 'sso_only' => false, 'local_login_cidrs' => '',
+  ];
+
+  /** OIDC 設定（含 client_secret；頁面顯示請用 hasOidcSecret 判斷，不回填）。 */
+  public static function getOidc(): array {
+    $c = self::load()['oidc'] ?? [];
+    $c = is_array($c) ? $c : [];
+    $o = self::OIDC_DEFAULTS;
+    foreach ($o as $k => $def) {
+      if (!array_key_exists($k, $c)) continue;
+      $o[$k] = is_bool($def) ? (bool)$c[$k] : trim((string)$c[$k]);
+    }
+    $o['issuer'] = rtrim($o['issuer'], '/');
+    foreach (['username_claim' => 'preferred_username', 'email_claim' => 'email', 'name_claim' => 'name', 'groups_claim' => 'groups', 'scopes' => 'openid email profile'] as $k => $d) {
+      if ($o[$k] === '') $o[$k] = $d;
+    }
+    if (!preg_match('/(^|\s)openid(\s|$)/', $o['scopes'])) $o['scopes'] = 'openid ' . $o['scopes'];
+    return $o;
+  }
+
+  /** 儲存 OIDC 設定；client_secret 空字串＝沿用既有值（頁面不回填密鑰）。 */
+  public static function setOidc(array $v): void {
+    $d = self::loadForUpdate();
+    $cur = is_array($d['oidc'] ?? null) ? $d['oidc'] : [];
+    $o = [];
+    foreach (self::OIDC_DEFAULTS as $k => $def) {
+      $o[$k] = is_bool($def) ? !empty($v[$k]) : mb_substr(trim((string)($v[$k] ?? '')), 0, 2000);
+    }
+    if ($o['client_secret'] === '') $o['client_secret'] = (string)($cur['client_secret'] ?? '');
+    $d['oidc'] = $o;
+    self::save($d);
+  }
+
   // === 登入頁路由偽裝 ===
   const DEFAULT_LOGIN_PATH = 'jt-login';
   /** 合法的登入路徑格式（單段、無斜線）。 */
@@ -396,10 +434,10 @@ class Settings {
     'theme', 'webhook_secret', 'plan_mau_limit', 'billing_start_day',
     'meeting_retention_days', 'audit_retention_days', 'guest_poll_seconds', 'meeting_lang',
     'recorder_name', 'jibri_url', 'jibri_token', 'login_path',
-    'meeting_custom', 'smtp', 'logship', 'site', 'jaas',
+    'meeting_custom', 'smtp', 'logship', 'site', 'jaas', 'oidc',
   ];
   /** 結構鍵：值必須是物件 / 陣列，否則略過（避免匯入錯型把設定弄壞）。 */
-  const EXPORT_ARRAY_KEYS = ['meeting_custom', 'smtp', 'logship', 'site', 'jaas'];
+  const EXPORT_ARRAY_KEYS = ['meeting_custom', 'smtp', 'logship', 'site', 'jaas', 'oidc'];
 
   /** 匯出用：只輸出白名單內（本版應有）的設定鍵，與匯入範圍一致。 */
   public static function exportData(): array {

@@ -20,6 +20,11 @@ docker run -d --name $NAME -p 127.0.0.1:$PORT:58189 -e JTVC_ADMIN_PASSWORD="$ADM
 B="http://127.0.0.1:$PORT"
 for i in $(seq 1 30); do curl -s -o /dev/null "$B/" && break; sleep 1; done
 
+# 啟用 SSO（指向不存在的 IdP），讓 /sso-login、/sso-callback 納入掃描範圍（S22）
+docker exec -i -u www-data $NAME php <<'PHP'
+<?php require '/var/www/html/lib/settings.php';
+Settings::setOidc(['enabled' => true, 'issuer' => 'http://127.0.0.1:9/realms/zap', 'client_id' => 'zap', 'client_secret' => 'zap', 'require_https' => false, 'host_groups' => 'VC-Hosts']);
+PHP
 # 登入取得 admin session cookie，並預先建立一間會議室讓掃描有內容
 T=$(curl -s -c $JAR -b $JAR $B/jt-login | grep -o 'name="_csrf" value="[^"]*"' | head -1 | sed 's/.*value="//;s/"//')
 curl -s -o /dev/null -c $JAR -b $JAR --data-urlencode "_csrf=$T" -d "email=jtvc-admin" --data-urlencode "password=$ADMIN_PW" $B/verify
@@ -49,6 +54,8 @@ jobs:
     parameters: { context: jtvc, url: "$B/dashboard", maxDuration: 3 }
   - type: spider
     parameters: { context: jtvc, url: "$B/room/zap-room", maxDuration: 2 }
+  - type: spider
+    parameters: { context: jtvc, url: "$B/sso-callback?state=zap&code=zap", maxDuration: 1 }
   - type: passiveScan-wait
     parameters: { maxDuration: 5 }
   - type: activeScan

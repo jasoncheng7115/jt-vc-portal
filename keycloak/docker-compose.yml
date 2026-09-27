@@ -1,0 +1,54 @@
+# Keycloak（OIDC IdP）for jt-vc-portal — 獨立主機部署。說明見 KEYCLOAK-SETUP.md。
+# 版本固定；升級時改 image tag 並照 SOP「升級」一節操作。
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KC_DB_PASSWORD}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    networks: [kc]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:${KC_VERSION:-26.4}
+    restart: unless-stopped
+    command: ["start"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+      # 對外（使用者瀏覽器）網址：一律經反向代理的 https
+      KC_HOSTNAME: ${KC_PUBLIC_URL}
+      # 管理介面只走內網網址（反向代理不轉送 /admin）
+      KC_HOSTNAME_ADMIN: ${KC_ADMIN_URL}
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      # 信任 AD 的 LDAPS 憑證（UCS / AD CA）
+      KC_TRUSTSTORE_PATHS: /opt/keycloak/conf/truststores
+      KC_LOG: console
+      # 成功登入事件以 INFO 記錄（預設為 DEBUG 不會輸出）；失敗為 WARN。供 SIEM 收集
+      KC_SPI_EVENTS_LISTENER__JBOSS_LOGGING__SUCCESS_LEVEL: info
+      # 首次啟動的暫時管理員另放在 docker-compose.bootstrap.yml（只在第一次啟動時加上 -f 使用）
+    volumes:
+      - ./truststores:/opt/keycloak/conf/truststores:ro
+    ports:
+      # 8080 = HTTP（反向代理與內網管理用）；9000 = 健康檢查（僅本機）
+      - "${KC_BIND_ADDR:-0.0.0.0}:8080:8080"
+      - "127.0.0.1:9000:9000"
+    networks: [kc]
+
+networks:
+  kc: {}

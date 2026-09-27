@@ -18,6 +18,8 @@ class Audit {
       'login'          => t('登入成功'),
       'login_fail'     => t('登入失敗'),
       'login_2fa_fail' => t('2FA 驗證失敗'),
+      'sso_login'      => t('單一登入成功'),
+      'sso_fail'       => t('單一登入失敗'),
       'login_locked'   => t('登入遭鎖定'),
       'logout'         => t('登出'),
       'room_create'    => t('建立會議室連結'),

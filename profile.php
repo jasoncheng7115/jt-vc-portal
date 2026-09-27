@@ -61,6 +61,10 @@ render_topbar($me, $ip);
       <button type="submit" class="btn btn-primary"><?= icon('globe') ?><?= th('更新介面語言') ?></button>
     </form>
 
+    <?php if (Users::isSso($me)): ?>
+    <div class="section-title"><?= th('密碼與雙因素認證') ?></div>
+    <p class="muted" style="font-size:13px;"><span class="badge badge-sso">SSO</span> <?= th('此帳號由單一登入（SSO）管理：密碼與雙因素認證請在公司的身分驗證服務（IdP）變更。') ?></p>
+    <?php else: ?>
     <div class="section-title"><?= th('變更密碼') ?></div>
     <form method="POST" action="/profile-save">
       <?= Auth::csrfField() ?>
@@ -78,8 +82,10 @@ render_topbar($me, $ip);
       </div>
       <button type="submit" class="btn btn-primary"><?= icon('lock') ?><?= th('更新密碼') ?></button>
     </form>
+    <?php endif; ?>
   </div>
 
+  <?php if (!Users::isSso($me)): ?>
   <div class="card">
     <div class="section-title" style="margin-top:0;"><?= th('雙因素認證（2FA / TOTP）') ?></div>
     <?php if (!empty($me['totp_enabled'])): ?>
@@ -122,5 +128,6 @@ render_topbar($me, $ip);
       <a class="btn btn-primary" href="/profile?setup=1"><?= icon('lock') ?><?= th('啟用 2FA') ?></a>
     <?php endif; ?>
   </div>
+  <?php endif; ?>
 </main>
 <?php render_foot(); ?>

@@ -1625,3 +1625,10 @@ body.is-dark .flip { color: #fff; }
 .dropdown-item.active { font-weight: 600; }
 body.is-dark .dropdown-sep { background: rgba(255,255,255,0.12); }
 .lang-switch { white-space: nowrap; }
+
+/* 登入頁：SSO 按鈕與本地帳號之間的分隔線 */
+.login-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--text-soft); font-size: 12px; }
+.login-divider::before, .login-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+body.is-dark .login-divider::before, body.is-dark .login-divider::after { background: rgba(255,255,255,0.14); }
+.badge-sso { background: rgba(124,58,237,0.12); color: #6d28d9; }
+body.is-dark .badge-sso { background: rgba(167,139,250,0.18); color: #ddd6fe; }

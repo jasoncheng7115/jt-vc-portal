@@ -388,9 +388,9 @@ docker run -d --restart unless-stopped -p 127.0.0.1:58189:58189 \
 
     <h3 style="margin-top:24px"><span class="zh">方法三：從 Release 載入預建映像</span><span class="en">Option 3: Load the prebuilt image from a Release</span><span class="ja">方法 3：Release からビルド済みイメージを読み込む</span></h3>
 <pre class="zh"><span class="c"># 不想自己 build，直接下載 Release 打包映像（linux/amd64）</span>
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.9.0/jt-vc-portal-1.9.0-docker-amd64.tar.gz
-sha256sum -c jt-vc-portal-1.9.0-docker-amd64.tar.gz.sha256   <span class="c"># 驗證完整性</span>
-docker load &lt; jt-vc-portal-1.9.0-docker-amd64.tar.gz        <span class="c"># 載入為 jt-vc-portal:latest</span>
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.10.0/jt-vc-portal-1.10.0-docker-amd64.tar.gz
+sha256sum -c jt-vc-portal-1.10.0-docker-amd64.tar.gz.sha256   <span class="c"># 驗證完整性</span>
+docker load &lt; jt-vc-portal-1.10.0-docker-amd64.tar.gz        <span class="c"># 載入為 jt-vc-portal:latest</span>
 
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
 chown 33:33 /opt/jt-vc-portal/data
@@ -404,9 +404,9 @@ docker run -d --restart unless-stopped -p 127.0.0.1:58189:58189 \
   -v /opt/jt-vc-portal/data/:/var/jaas-data \
   --name jt-vc-portal jt-vc-portal:latest</pre>
 <pre class="en"><span class="c"># Skip building: download the packaged image from the Release (linux/amd64)</span>
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.9.0/jt-vc-portal-1.9.0-docker-amd64.tar.gz
-sha256sum -c jt-vc-portal-1.9.0-docker-amd64.tar.gz.sha256   <span class="c"># verify integrity</span>
-docker load &lt; jt-vc-portal-1.9.0-docker-amd64.tar.gz        <span class="c"># loads as jt-vc-portal:latest</span>
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.10.0/jt-vc-portal-1.10.0-docker-amd64.tar.gz
+sha256sum -c jt-vc-portal-1.10.0-docker-amd64.tar.gz.sha256   <span class="c"># verify integrity</span>
+docker load &lt; jt-vc-portal-1.10.0-docker-amd64.tar.gz        <span class="c"># loads as jt-vc-portal:latest</span>
 
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
 chown 33:33 /opt/jt-vc-portal/data
@@ -420,9 +420,9 @@ docker run -d --restart unless-stopped -p 127.0.0.1:58189:58189 \
   -v /opt/jt-vc-portal/data/:/var/jaas-data \
   --name jt-vc-portal jt-vc-portal:latest</pre>
 <pre class="ja"><span class="c"># 自分でビルドしない場合：Release のパッケージ済みイメージを直接ダウンロード（linux/amd64）</span>
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.9.0/jt-vc-portal-1.9.0-docker-amd64.tar.gz
-sha256sum -c jt-vc-portal-1.9.0-docker-amd64.tar.gz.sha256   <span class="c"># 完全性を検証</span>
-docker load &lt; jt-vc-portal-1.9.0-docker-amd64.tar.gz        <span class="c"># jt-vc-portal:latest として読み込まれる</span>
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.10.0/jt-vc-portal-1.10.0-docker-amd64.tar.gz
+sha256sum -c jt-vc-portal-1.10.0-docker-amd64.tar.gz.sha256   <span class="c"># 完全性を検証</span>
+docker load &lt; jt-vc-portal-1.10.0-docker-amd64.tar.gz        <span class="c"># jt-vc-portal:latest として読み込まれる</span>
 
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
 chown 33:33 /opt/jt-vc-portal/data
@@ -562,8 +562,8 @@ docker stop jt-vc-portal &amp;&amp; docker rm jt-vc-portal      <span class="c">
   <div class="wrap">
     <div class="kicker">Appendix</div>
     <h2><span class="zh">附錄：進階文件</span><span class="en">Appendix: advanced guides</span><span class="ja">付録：詳細ガイド</span></h2>
-    <p class="section-sub"><span class="zh">自建 Jitsi Meet 與錄影的完整部署 SOP。</span><span class="en">Complete deployment SOPs for self-hosted Jitsi Meet and recording.</span><span class="ja">セルフホスト Jitsi Meet と録画の完全なデプロイ手順書（SOP）。</span></p>
-    <div class="cols2">
+    <p class="section-sub"><span class="zh">自建 Jitsi Meet、錄影與單一登入（Keycloak）的完整部署 SOP。</span><span class="en">Complete deployment SOPs for self-hosted Jitsi Meet, recording and single sign-on (Keycloak).</span><span class="ja">セルフホスト Jitsi Meet、録画、シングルサインオン（Keycloak）の完全なデプロイ手順書（SOP）。</span></p>
+    <div class="cols3">
       <div class="panel doc-card">
         <h3><span class="zh">自建 Jitsi Meet 整合</span><span class="en">Self-hosted Jitsi Meet integration</span><span class="ja">セルフホスト Jitsi Meet との連携</span></h3>
         <p><span class="zh">從官方 Docker 版 Jitsi Meet 一路設定到與 jt-vc-portal 搭配：架構、連接埠 / NAT、TLS、JWT 與主持人權限、媒體後援 / TURN。</span><span class="en">From the official Docker edition of Jitsi Meet all the way to working with jt-vc-portal: architecture, ports / NAT, TLS, JWT and host permissions, media fallback / TURN.</span><span class="ja">公式の Docker 版 Jitsi Meet から jt-vc-portal との連携までを一通り設定：アーキテクチャ、ポート / NAT、TLS、JWT と主催者権限、メディアのフォールバック / TURN。</span></p>
@@ -579,6 +579,15 @@ docker stop jt-vc-portal &amp;&amp; docker rm jt-vc-portal      <span class="c">
         <div class="doc-action">
           <a class="btn btn-primary doc-btn zh" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/JIBRI-SETUP_zh-TW.md" target="_blank" rel="noopener">閱讀完整設定指南 →</a><a class="btn btn-primary doc-btn en" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/JIBRI-SETUP.md" target="_blank" rel="noopener">Read the setup guide →</a><a class="btn btn-primary doc-btn ja" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/JIBRI-SETUP_ja.md" target="_blank" rel="noopener">設定ガイドを読む →</a>
           <div class="doc-file"><span class="zh">JIBRI-SETUP_zh-TW.md</span><span class="en">JIBRI-SETUP.md</span><span class="ja">JIBRI-SETUP_ja.md</span></div>
+        </div>
+      </div>
+      <div class="panel doc-card">
+        <h3><span class="zh">單一登入（Keycloak）</span><span class="en">SSO with Keycloak</span><span class="ja">SSO（Keycloak）</span> <span class="tag-opt"><span class="zh">選配</span><span class="en">Optional</span><span class="ja">オプション</span></span></h3>
+        <p><span class="zh">在獨立主機架設 Keycloak，以 LDAPS 聯合 AD，讓主持人與管理員用公司帳號登入：AD 群組對應角色、強制 OTP、防暴力破解、管理介面不對外、僅限單一登入模式。</span><span class="en">Run Keycloak on its own host, federate AD over LDAPS and let hosts and admins sign in with their company account: AD groups → roles, mandatory OTP, brute-force protection, admin console kept internal, SSO-only mode.</span><span class="ja">専用ホストに Keycloak を構築し LDAPS で AD と連携、ホストと管理者が会社アカウントでログイン：AD グループ → ロール、OTP 必須、総当たり対策、管理コンソール非公開、SSO のみモード。</span></p>
+        <p class="note-opt"><span class="zh">本系統不直接連 AD / LDAP；未設定時照常使用本地帳號。</span><span class="en">The portal never connects to AD / LDAP directly; without it, local accounts work as before.</span><span class="ja">ポータルは AD / LDAP に直接接続しません。未設定ならローカルアカウントで従来どおり利用できます。</span></p>
+        <div class="doc-action">
+          <a class="btn btn-primary doc-btn zh" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/KEYCLOAK-SETUP_zh-TW.md" target="_blank" rel="noopener">閱讀完整設定指南 →</a><a class="btn btn-primary doc-btn en" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/KEYCLOAK-SETUP.md" target="_blank" rel="noopener">Read the setup guide →</a><a class="btn btn-primary doc-btn ja" href="https://github.com/jasoncheng7115/jt-vc-portal/blob/main/KEYCLOAK-SETUP_ja.md" target="_blank" rel="noopener">設定ガイドを読む →</a>
+          <div class="doc-file"><span class="zh">KEYCLOAK-SETUP_zh-TW.md</span><span class="en">KEYCLOAK-SETUP.md</span><span class="ja">KEYCLOAK-SETUP_ja.md</span></div>
         </div>
       </div>
     </div>

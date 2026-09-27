@@ -70,7 +70,7 @@ body.lang-zh .btn.zh,body.lang-en .btn.en,body.lang-ja .btn.ja{display:inline-fl
 .btn-ghost:hover{background:var(--bg-soft);text-decoration:none;border-color:var(--soft)}
 /* .btn 設了 display:inline-flex，會蓋過上方 .zh/.en/.ja 的隱藏規則；提高權重確保非目前語言的按鈕不顯示 */
 .btn.zh,.btn.en,.btn.ja{display:none}
-.tag-opt{display:inline-block;font-size:12px;font-weight:600;color:var(--accent);background:rgba(124,58,237,.10);border:1px solid rgba(124,58,237,.28);border-radius:999px;padding:1px 9px;vertical-align:middle;margin-left:8px}
+.tag-opt{display:inline-block;font-size:12px;font-weight:600;color:var(--accent);background:rgba(124,58,237,.10);border:1px solid rgba(124,58,237,.28);border-radius:999px;padding:1px 9px;vertical-align:middle;margin-left:8px;white-space:nowrap;flex-shrink:0}
 .note-opt{font-size:13px;color:var(--muted);margin-top:8px}
 
 /* hero — 白底 + 頂部彩雲光暈 */
@@ -120,6 +120,8 @@ body.lang-ja .shot .frame.empty::after{content:"スクリーンショットは�
 
 /* two columns */
 .cols2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+@media(max-width:1000px){.cols3{grid-template-columns:1fr}}
 @media(max-width:760px){.cols2{grid-template-columns:1fr}}
 .panel{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:26px;box-shadow:var(--shadow-sm)}
 .panel.warn{background:#fffaf3;border-color:#f6e4c8}

@@ -6,21 +6,17 @@
 
 本文記錄 jt-vc-portal 後續規劃中的功能。已上線功能請見 [README_zh-TW.md](README_zh-TW.md)；本藍圖僅列「尚未開始或進行中」的項目，順序不代表優先級，實際排程視需求調整。
 
-> 目前穩定版本：**v1.9.0**。
+> 目前穩定版本：**v1.10.0**。
 
 ---
 
 ## 規劃中功能
 
-### 一、整合 AD / LDAP 認證
+### 一、企業帳號（AD / LDAP）——v1.10.0 以單一登入完成
 
-讓主持人帳號可串接企業既有的目錄服務，免去在本系統另建一套帳密。
+以 **OIDC 單一登入**實作：Keycloak（獨立主機）透過 LDAPS 聯合 Active Directory，jt-vc-portal 以 OIDC 信任 Keycloak，詳見 [KEYCLOAK-SETUP_zh-TW.md](KEYCLOAK-SETUP_zh-TW.md)。AD 群組對應管理員 / 主持人角色、首次登入自動建立帳號，MFA 與防暴力破解由 Keycloak 負責。
 
-- 支援 Active Directory 與標準 LDAP（含 LDAPS / StartTLS 加密連線）。
-- 以管理介面設定連線資訊（伺服器、Base DN、Bind 帳號、使用者搜尋過濾、群組對應）。
-- 登入時改向目錄服務驗證；本機帳號與 AD/LDAP 帳號可並存（混合模式）。
-- 依目錄群組對應系統角色（管理者／主持人），首次登入自動建立對應的本機帳號資料。
-- 與既有的稽核記錄、fail2ban、2FA 機制整合；密碼不落地、不改動現有 bcrypt 本機帳號邏輯。
+- **portal 不會直接連 AD / LDAP**：portal 對外網開放，直接連會把 AD 密碼驗證（與 AD 帳號鎖定）暴露到網路上。
 
 ### 二、整合 jt-live-whisper 會議語音轉錄
 
@@ -50,8 +46,9 @@ v1.7.0 已完成繁體中文 / English，v1.9.0 加入日本語（語系資源�
 
 ## 已完成（節錄）
 
-下列功能已於 v1.4–v1.9 上線，詳見 README、CHANGELOG 與各設定 SOP：
+下列功能已於 v1.4–v1.10 上線，詳見 README、CHANGELOG 與各設定 SOP：
 
+- **v1.10.0**：OIDC 單一登入（Keycloak + AD）、僅限單一登入模式與緊急用本地管理員、Keycloak 部署 SOP 與腳本。
 - **v1.9.0**：日文介面與文件（portal 介面、所有 Markdown 文件 `_ja.md`、GitHub Pages），Pages 文件卡片版面整理。
 - **v1.8.0**：刪除 / 取消會議室並寄行事曆取消通知、改密碼後其他裝置全部登出、稽核記錄保留期限、授權改為 GPL-3.0。
 - **v1.7.0**：portal 介面中英雙語（依瀏覽器自動判斷、右上選單 / 個人設定切換、Jitsi 會議語言可跟隨介面、Email 預設範本依語言）。

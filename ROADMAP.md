@@ -6,21 +6,17 @@
 
 This document tracks planned features for jt-vc-portal. For features already released, see [README.md](README.md); this roadmap only lists items that are "not yet started or in progress". The order does not indicate priority, and the actual schedule will be adjusted according to demand.
 
-> Current stable version: **v1.9.0**.
+> Current stable version: **v1.10.0**.
 
 ---
 
 ## Planned features
 
-### 1. AD / LDAP authentication integration
+### 1. Company accounts (AD / LDAP) — done in v1.10.0 via SSO
 
-Allow host accounts to connect to an organization's existing directory service, eliminating the need for a separate set of credentials in this system.
+Delivered as **OIDC single sign-on**: Keycloak (on its own host) federates Active Directory over LDAPS and jt-vc-portal trusts Keycloak via OIDC — see [KEYCLOAK-SETUP.md](KEYCLOAK-SETUP.md). AD groups map to admin / host roles, accounts are created on first sign-in, MFA and brute-force protection live in Keycloak.
 
-- Support for Active Directory and standard LDAP (including LDAPS / StartTLS encrypted connections).
-- Connection settings configured in the admin UI (server, Base DN, bind account, user search filter, group mapping).
-- Sign-ins are authenticated against the directory service; local accounts and AD/LDAP accounts can coexist (hybrid mode).
-- Directory groups are mapped to system roles (admin / host), and a corresponding local account record is created automatically on first sign-in.
-- Integrated with the existing audit log, fail2ban-style lockout and 2FA mechanisms; passwords are never stored, and the existing bcrypt local account logic is unchanged.
+- **Direct AD / LDAP binding from the portal will not be implemented**: the portal is Internet-facing, and binding directly would expose AD password checks (and AD account lockouts) to the Internet.
 
 ### 2. jt-live-whisper meeting speech transcription integration
 
@@ -50,8 +46,9 @@ v1.7.0 shipped Traditional Chinese / English and v1.9.0 added Japanese (locale r
 
 ## Completed (highlights)
 
-The following features were released in v1.4–v1.9; see the README, CHANGELOG and the setup guides for details:
+The following features were released in v1.4–v1.10; see the README, CHANGELOG and the setup guides for details:
 
+- **v1.10.0**: OIDC single sign-on (Keycloak + AD), SSO-only mode with emergency local admin, Keycloak deployment SOP and scripts.
 - **v1.9.0**: Japanese interface and documentation (portal UI, all Markdown docs `_ja.md`, GitHub Pages), Pages doc-card layout cleanup.
 - **v1.8.0**: delete / cancel rooms with calendar cancellation, sign-out-everywhere on password change, audit log retention, license changed to GPL-3.0.
 - **v1.7.0**: bilingual portal interface (Traditional Chinese / English, detected from the browser, switchable from the account menu or profile; Jitsi meeting language can follow the interface; default email templates follow the language).

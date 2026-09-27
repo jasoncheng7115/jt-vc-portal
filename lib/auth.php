@@ -45,6 +45,11 @@ class Auth {
     return false;
   }
 
+  /** 公開版：判斷 IP 是否落在 CIDR / 單一 IP 內（SSO 緊急本地登入限制等使用）。 */
+  public static function ipMatches(string $ip, string $cidr): bool {
+    return self::ipInCidr($ip, trim($cidr));
+  }
+
   /** 判斷 IP 是否落在 CIDR（或單一 IP）內，支援 IPv4 / IPv6。 */
   private static function ipInCidr(string $ip, string $cidr): bool {
     if ($ip === '') return false;

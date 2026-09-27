@@ -2,6 +2,16 @@
 
 > English: [CHANGELOG.md](CHANGELOG.md) · 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md)
 
+## v1.10.0 — OIDC シングルサインオン（Keycloak）
+
+- ホスト・管理者向けの **OIDC シングルサインオン**（Keycloak、Microsoft Entra ID など任意の OIDC IdP）：認可コードフロー + PKCE S256、state と nonce、IdP の JWKS による id_token 署名検証（RS256/384/512 のみ）、iss / aud / azp / exp / nonce の検証。設計は姉妹プロジェクト jt-doc-tools と jt-ipam に準拠。
+- **本システムは AD / LDAP に直接接続しません。** オンプレミス AD は専用ホストの Keycloak が連携します。構築 SOP（`KEYCLOAK-SETUP.md`、英 / 繁中 / 日）とすぐ使えるスクリプト（`keycloak/`：docker compose、再実行可能な `configure-realm.sh`、nginx 例）を同梱。
+- **グループ → ロール**：IdP の管理者 / ホストグループに対応。どのグループにも属さないユーザーは拒否。アカウントは (issuer, sub) で紐付け、同名・同メールのローカルアカウントと自動統合しません。
+- **SSO のみモード**：ローカルパスワードでのログインを許可 IP 範囲の緊急用管理者に限定可能。有効化には有効なローカル管理者が必要。緊急用 CLI `sso-cli.php` でパスワードログインを戻せます。
+- **サインアウト**で IdP からもサインアウト（id_token_hint 付き）。SSO アカウントにはローカルパスワードとポータルの 2FA がありません（MFA は IdP で必須）。
+- **Keycloak の強化（同梱の realm スクリプト）**：全員 OTP 必須、総当たり検知のしきい値を AD のロックアウトより低く、ポータルの 2 グループのメンバーのみ参照、管理コンソールは非公開。
+- **テスト**：ユニット 24 件（偽造 / 改ざん / `alg=none` / HS256 混同トークン、クレーム、state 再送、ミニ IdP フロー）、実 Keycloak のブラウザテスト 45 件（OTP 登録と TOTP ログイン、グループ対応、衝突、無効アカウント、SSO のみ、総当たりロック、PKCE と redirect URI の強制、サインアウト）、SSO を有効にした ZAP スキャン。チェックリスト項目 S01–S26。
+
 ## v1.9.0 — 日本語対応
 
 - **日本語インターフェース**：ポータル UI が繁体字中国語・英語・**日本語**に対応しました（`lang/ja/*.php`、約 675 項目）。ブラウザの優先言語が `ja*` なら自動で日本語表示。アカウントメニュー、サインイン／ゲスト画面のヘッダー、プロフィール →「インターフェース言語」から切り替えられます。

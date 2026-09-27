@@ -7,6 +7,7 @@ require_once __DIR__ . '/lib/logship.php';
 require_once __DIR__ . '/lib/usage.php';
 require_once __DIR__ . '/lib/audit.php';
 require_once __DIR__ . '/lib/recordings.php';
+require_once __DIR__ . '/lib/oidc.php';
 
 $me = Auth::requireAdmin();
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: /settings'); exit; }
@@ -89,6 +90,37 @@ if ($section === 'meeting_custom') {
   ]);
   Audit::log('settings_update', t('會議室自訂（自建 Jitsi Meet）'));
   $back('set_msg', t('會議室自訂已更新。'));
+}
+
+if ($section === 'oidc') {
+  $v = $_POST;
+  $v['issuer'] = rtrim(trim((string)($v['issuer'] ?? '')), '/');
+  if (!empty($v['enabled'])) {
+    if (!filter_var($v['issuer'], FILTER_VALIDATE_URL) || !preg_match('#^https?://#i', $v['issuer'])) $back('set_err', t('Issuer 網址格式不正確。'));
+    if (trim((string)($v['client_id'] ?? '')) === '') $back('set_err', t('請填寫 Client ID。'));
+    if (trim((string)($v['admin_groups'] ?? '')) === '' && trim((string)($v['host_groups'] ?? '')) === '') $back('set_err', t('請至少設定一個管理員或主持人群組。'));
+  }
+  if (!empty($v['sso_only'])) {
+    // 緊急用管理員保護：必須至少有一位啟用中的「本地」管理員，否則 IdP 故障時無人能登入
+    $localAdmins = array_filter(Users::all(), fn($u) => ($u['role'] ?? '') === 'admin' && empty($u['disabled']) && !Users::isSso($u));
+    if (!$localAdmins) $back('set_err', t('啟用「僅限單一登入」前，必須至少保留一位啟用中的本地管理員（緊急用）。'));
+    foreach (preg_split('/\s*,\s*/', (string)($v['local_login_cidrs'] ?? ''), -1, PREG_SPLIT_NO_EMPTY) as $cidr) {
+      if (!preg_match('#^[0-9A-Fa-f:.]+(/\d{1,3})?$#', $cidr) || @inet_pton(explode('/', $cidr)[0]) === false) $back('set_err', t('IP / CIDR 格式不正確：{cidr}', ['cidr' => $cidr]));
+    }
+  }
+  Settings::setOidc($v);
+  Audit::log('settings_update', t('單一登入設定（{state}）', ['state' => !empty($v['enabled']) ? t('啟用') : t('停用')]) . (!empty($v['sso_only']) ? t('（僅限單一登入）') : ''));
+  if ($action === 'test') {
+    try {
+      $d = Oidc::discovery(true);
+      $keys = Oidc::jwks(true);
+      $back('set_msg', t('連線成功：已取得 IdP 設定與 {n} 把簽章金鑰。', ['n' => count($keys)]));
+    } catch (Throwable $e) {
+      Audit::log('sso_fail', 'oidc test: ' . Oidc::safeReason($e), ['result' => 'fail']);
+      $back('set_err', t('連線失敗：{reason}', ['reason' => Oidc::safeReason($e)]));
+    }
+  }
+  $back('set_msg', t('單一登入設定已儲存。'));
 }
 
 if ($section === 'login_path') {

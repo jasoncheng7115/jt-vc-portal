@@ -143,6 +143,37 @@
 - [ ] Click-to-sort table columns, collapsible cards, top-right account menu (closes on outside click / Esc).
 - [ ] Layout is usable at mobile width.
 
+### 3.11 Single sign-on (SSO / OIDC, from v1.10.0)
+
+> This system never connects to AD / LDAP directly; company accounts always go through an OIDC IdP (Keycloak on its own host — see [KEYCLOAK-SETUP.md](KEYCLOAK-SETUP.md)). Item numbers map to the tests in section 10.
+
+- [ ] S01 Disabled by default; when disabled, `/sso-login` and `/sso-callback` return 404 and the sign-in page has no SSO button.
+- [ ] S02 The issuer returned by discovery must exactly match the configured one.
+- [ ] S03 IdP endpoints must use HTTPS by default (can be turned off for an internal IdP).
+- [ ] S04 Cloud metadata hosts are blocked; the IdP URL may not contain credentials; redirects are not followed.
+- [ ] S05 The authorization request carries PKCE S256, state, nonce, the fixed redirect_uri (`/sso-callback`) and a scope containing openid; the token exchange sends the code_verifier and client authentication.
+- [ ] S06 state is single-use: a mismatch or replaying the same callback URL is rejected and audited.
+- [ ] S07 The login transaction expires after 10 minutes.
+- [ ] S08 id_token signature: only RS256 / RS384 / RS512 accepted; another key, tampered content, `alg=none` and HS256 confusion are all rejected; an unknown kid re-fetches the JWKS; a failed signature never falls back to userinfo.
+- [ ] S09 Claim checks: any wrong iss, aud, azp, exp, iat, nonce or sub is rejected.
+- [ ] S10 When the id_token has no groups, userinfo is used — but its sub must equal the id_token's sub.
+- [ ] S11 Groups → role: admin groups first, then host groups; users in no group are refused; case-insensitive, Keycloak paths (/A/B) match.
+- [ ] S12 Provisioning: bound by (issuer, sub); same username or email as an existing account → refused (never auto-merged); a disabled SSO account loses its sessions immediately and can't sign in again; group sync never demotes the last admin.
+- [ ] S13 SSO accounts have no local password: password sign-in fails and an admin can't set one; Profile hides password and 2FA; Accounts shows an SSO badge.
+- [ ] S14 SSO only: from a disallowed IP the local password form is hidden and a direct POST to `/verify` (even with a valid CSRF token) is blocked; the emergency local admin can sign in from an allowed IP; empty list = localhost only.
+- [ ] S15 "SSO only" can't be enabled without an enabled local admin; IP / CIDR format is validated.
+- [ ] S16 Sign-out redirects to the IdP end_session (with id_token_hint) and the portal session is cleared.
+- [ ] S17 With SSO enabled, the CSP `form-action` includes the IdP origin (so sign-out can redirect to the IdP).
+- [ ] S18 Audit has `sso_login` / `sso_fail`; users only see a generic error; reasons are stripped of control characters and length-limited.
+- [ ] S19 SSO failures count toward the source-IP rate limit; a locked source can't start SSO.
+- [ ] S20 Settings page: the client secret is never echoed and blank keeps it; "Save and test connection" retrieves the IdP configuration and signing keys; settings export includes `oidc`.
+- [ ] S21 Emergency CLI `sso-cli.php show|disable-sso-only|disable` works; web access returns 404.
+- [ ] S22 The ZAP scan covers `/sso-login` and `/sso-callback` with zero High / Medium.
+- [ ] S23 Keycloak: the first sign-in forces OTP enrolment; later sign-ins require a TOTP code; the same code can't be reused within its time window.
+- [ ] S24 Keycloak: 5 consecutive failures lock the account temporarily (threshold below AD's); the client enforces PKCE S256, authorization code flow only, confidential; requests without PKCE or with an unregistered redirect_uri are rejected.
+- [ ] S25 `configure-realm.sh` can be re-run: it succeeds, the client secret stays the same and the AD bind password is kept.
+- [ ] S26 Production: the Keycloak admin console (`/admin`) returns 404 from the Internet; the discovery issuer is the public https URL; only VC-Admins / VC-Hosts members can sign in.
+
 ## 4. Internationalization (i18n)
 
 (From v1.7.0)
@@ -258,4 +289,9 @@ Spot-check on every release; test everything for major changes:
 | .ics folding / REQUEST / CANCEL / SEQUENCE, session settlement on room delete, audit length limits and retention pruning | `tests/unit/test_ical_audit.php` |
 | GET sign-out ignored, password change / force sign-out invalidates sessions, room delete permissions, audit | `tests/run-integration.sh` (v1.8.0 section) |
 | Jibri recordings API auth / Range / path traversal | `tests/test-jibri-api.sh` |
+| SSO S02–S20 (signature, claims, state, PKCE URL, groups, provisioning, SSO only, logout URL, settings) | `tests/unit/test_oidc.php` |
+| SSO S02 / S05 / S08 / S10 (mini IdP: token exchange, userinfo, fail-closed) | `tests/unit/test_oidc_flow.php` |
+| SSO S01, S05–S07, S11–S21, S23–S25 (real Keycloak + browser, incl. OTP) | `tests/run-sso.sh` (`tests/e2e/sso.cjs`) |
+| SSO S22 | `tests/zap/run-zap.sh` (scan with SSO enabled) |
+| SSO S26 | Manual: KEYCLOAK-SETUP section 7 verification commands |
 | Vulnerability scan | `tests/zap/run-zap.sh` |

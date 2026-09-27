@@ -143,6 +143,37 @@
 - [ ] 表の列見出しクリックでの並べ替え、折りたたみ可能なカード、右上のアカウントメニュー（外側クリック / Esc で閉じる）。
 - [ ] モバイル幅でもレイアウトが利用可能であること。
 
+### 3.11 シングルサインオン（SSO / OIDC、v1.10.0 以降）
+
+> 本システムは AD / LDAP に直接接続しません。会社アカウントは必ず OIDC IdP（専用ホストの Keycloak。[KEYCLOAK-SETUP_ja.md](KEYCLOAK-SETUP_ja.md) を参照）を経由します。項目番号は第 10 節のテストに対応します。
+
+- [ ] S01 既定では無効。無効時は `/sso-login`、`/sso-callback` が 404 を返し、ログイン画面に SSO ボタンが出ないこと。
+- [ ] S02 ディスカバリーが返す issuer が設定値と完全に一致すること。
+- [ ] S03 IdP エンドポイントは既定で HTTPS 必須（社内 IdP 向けに解除可能）であること。
+- [ ] S04 クラウドのメタデータホストをブロックし、IdP URL に認証情報を含められず、リダイレクトを追従しないこと。
+- [ ] S05 認可リクエストに PKCE S256、state、nonce、固定の redirect_uri（`/sso-callback`）、openid を含む scope があり、トークン交換で code_verifier とクライアント認証を送ること。
+- [ ] S06 state は一回限り：不一致や同じコールバック URL の再送は拒否され、監査ログに残ること。
+- [ ] S07 ログイントランザクションは 10 分で失効すること。
+- [ ] S08 id_token の署名：RS256 / RS384 / RS512 のみ受理し、別の鍵・改ざん・`alg=none`・HS256 混同はすべて拒否。未知の kid では JWKS を再取得し、署名失敗時に userinfo へフォールバックしないこと。
+- [ ] S09 クレーム検証：iss、aud、azp、exp、iat、nonce、sub のいずれかが不正なら拒否すること。
+- [ ] S10 id_token にグループがない場合は userinfo を使うが、その sub が id_token の sub と一致すること。
+- [ ] S11 グループ → ロール：管理者グループ優先、次にホストグループ。どのグループにも属さないユーザーは拒否。大文字小文字を区別せず、Keycloak のパス（/A/B）も一致すること。
+- [ ] S12 プロビジョニング：(issuer, sub) で紐付け。既存アカウントとユーザー名またはメールが同じなら拒否（自動統合しない）。無効化した SSO アカウントは既存セッションが即時失効し再ログインできず、グループ同期で最後の管理者が降格されないこと。
+- [ ] S13 SSO アカウントにはローカルパスワードがない：パスワードログインは失敗し管理者も設定できない。プロフィールにパスワードと 2FA が表示されず、アカウント管理に SSO バッジが出ること。
+- [ ] S14 SSO のみ：許可外の IP ではローカルパスワードのフォームが表示されず、`/verify` への直接 POST（有効な CSRF トークン付きでも）も拒否。許可 IP の緊急用ローカル管理者はログインでき、空欄＝ローカルホストのみであること。
+- [ ] S15 有効なローカル管理者がいないと「SSO のみ」を有効にできず、IP / CIDR の形式が検証されること。
+- [ ] S16 サインアウトで IdP の end_session（id_token_hint 付き）へ遷移し、ポータルのセッションが消えること。
+- [ ] S17 SSO 有効時、CSP の `form-action` に IdP のオリジンが含まれること（サインアウトで IdP へ遷移できる）。
+- [ ] S18 監査ログに `sso_login` / `sso_fail` が残り、利用者には汎用エラーのみ表示、理由は制御文字除去・長さ制限済みであること。
+- [ ] S19 SSO の失敗が送信元 IP のレート制限に計上され、ロック中の送信元は SSO を開始できないこと。
+- [ ] S20 設定画面：クライアントシークレットを表示せず空欄なら保持、「保存して接続テスト」で IdP 設定と署名鍵を取得、設定エクスポートに `oidc` を含むこと。
+- [ ] S21 緊急用 CLI `sso-cli.php show|disable-sso-only|disable` が動作し、Web からは 404 であること。
+- [ ] S22 ZAP スキャンが `/sso-login`、`/sso-callback` を含み、High / Medium が 0 であること。
+- [ ] S23 Keycloak：初回ログインで OTP 登録を強制、以降は TOTP が必要、同じ時間枠内で同じコードを再利用できないこと。
+- [ ] S24 Keycloak：5 回連続失敗で一時ロック（AD のしきい値より低い）。クライアントは PKCE S256 必須・認可コードフローのみ・コンフィデンシャル。PKCE なしや未登録 redirect_uri のリクエストは拒否されること。
+- [ ] S25 `configure-realm.sh` を再実行しても成功し、クライアントシークレットが変わらず、AD のバインドパスワードが保持されること。
+- [ ] S26 本番：Keycloak の管理コンソール（`/admin`）がインターネットから 404、ディスカバリーの issuer が公開 https URL、VC-Admins / VC-Hosts のメンバーだけがログインできること。
+
 ## 4. 多言語対応（i18n）
 
 （v1.7.0 以降）
@@ -258,4 +289,9 @@
 | .ics の折り返し / REQUEST / CANCEL / SEQUENCE、会議室削除時のセッション確定、監査の長さ制限と保持期間による削除 | `tests/unit/test_ical_audit.php` |
 | GET によるサインアウトの無視、パスワード変更 / 強制サインアウトによるセッション無効化、会議室削除の権限、監査 | `tests/run-integration.sh`（v1.8.0 セクション） |
 | Jibri 録画 API の認証 / Range / パストラバーサル | `tests/test-jibri-api.sh` |
+| SSO S02–S20（署名、クレーム、state、PKCE URL、グループ、プロビジョニング、SSO のみ、ログアウト URL、設定） | `tests/unit/test_oidc.php` |
+| SSO S02 / S05 / S08 / S10（ミニ IdP：トークン交換、userinfo、fail-closed） | `tests/unit/test_oidc_flow.php` |
+| SSO S01、S05–S07、S11–S21、S23–S25（実 Keycloak + ブラウザ、OTP を含む） | `tests/run-sso.sh`（`tests/e2e/sso.cjs`） |
+| SSO S22 | `tests/zap/run-zap.sh`（SSO を有効にしてスキャン） |
+| SSO S26 | 手動：KEYCLOAK-SETUP 第 7 節の確認コマンド |
 | 脆弱性スキャン | `tests/zap/run-zap.sh` |

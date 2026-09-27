@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.9.0 — 会議管理システム
+# jt-vc-portal v1.10.0 — 会議管理システム
 
 > English: [README.md](README.md) · 繁體中文: [README_zh-TW.md](README_zh-TW.md)
 
@@ -29,6 +29,7 @@
 - **ロビーモード**：会議室の作成時に選択できます。ホストの入室時に自動で有効になり、ゲストはホストが 1 人ずつ許可して入室させます。
 - **メール招待**：参加者のメールアドレスを入力すると、ワンクリックでカレンダーに追加できる `.ics` 添付（METHOD:REQUEST）付きの招待を送信します。
 - **複数アカウント / ロール / 2FA**：管理者はすべての会議室を、ホストは自分が作成した会議室のみを参照できます。TOTP による二要素認証に対応しています。
+- **シングルサインオン（OIDC）**：ホストと管理者は Keycloak / Entra ID 経由で会社アカウントでログイン可能（AD グループ → ロール、MFA は IdP 側）。ポータルは AD / LDAP に直接接続しません。IP 制限付きの緊急用管理者を残した「SSO のみ」モードに対応。構築手順：[KEYCLOAK-SETUP_ja.md](KEYCLOAK-SETUP_ja.md)。
 - **監査とセキュリティ**：利用者の操作（サインイン、会議室の作成、招待、設定変更など）の完全な監査ログ + syslog / CEF / GELF によるリアルタイム転送、fail2ban 方式のログインロックアウト、CSRF 対策。OWASP Top 10:2025 に準拠しています。
 - **録画の閲覧**（自前ホストの Jibri）：Jibri ホスト上の録画サービスと連携し、オンラインでの一覧 / 再生 / ダウンロード / 削除、ホストのストレージ容量の表示、保持ポリシー（経過日数 / 容量 / 残骸。既定はすべて無効）を提供します。ホストは自分が主催した会議の録画を閲覧できます。
 - **多言語インターフェース**：ポータルの UI は繁體中文（繁体字中国語）、English、日本語に対応しています。ブラウザから自動判定され、アカウントメニューまたはプロフィールで利用者ごとに切り替えられます。Jitsi の会議画面の言語をインターフェース言語に合わせることもできます。
@@ -203,14 +204,14 @@ server {
 
 ```bash
 # 1) Release ページからイメージとチェックサムファイルをダウンロード（最新のバージョン番号を使用）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.9.0/jt-vc-portal-1.9.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.9.0/jt-vc-portal-1.9.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.10.0/jt-vc-portal-1.10.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.10.0/jt-vc-portal-1.10.0-docker-amd64.tar.gz.sha256
 
 # 2) 完全性を検証（OK と表示されるはず）
-sha256sum -c jt-vc-portal-1.9.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.10.0-docker-amd64.tar.gz.sha256
 
-# 3) イメージを読み込む（jt-vc-portal:1.9.0 と :latest のタグが作成される）
-docker load < jt-vc-portal-1.9.0-docker-amd64.tar.gz
+# 3) イメージを読み込む（jt-vc-portal:1.10.0 と :latest のタグが作成される）
+docker load < jt-vc-portal-1.10.0-docker-amd64.tar.gz
 
 # 4) ホスト側で永続ディレクトリを準備（www-data の UID は既定で 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data

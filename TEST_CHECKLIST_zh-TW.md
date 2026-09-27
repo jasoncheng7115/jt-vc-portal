@@ -143,6 +143,37 @@
 - [ ] 表格欄位點擊排序、卡片收合、右上帳號選單（點外面 / Esc 收合）。
 - [ ] 手機寬度版面可用。
 
+### 3.11 單一登入（SSO / OIDC，v1.10.0 起）
+
+> 本系統不直接連 AD / LDAP；企業帳號一律經 OIDC IdP（Keycloak 獨立主機，見 [KEYCLOAK-SETUP_zh-TW.md](KEYCLOAK-SETUP_zh-TW.md)）。項目編號對應第 10 節測試。
+
+- [ ] S01 預設停用；停用時 `/sso-login`、`/sso-callback` 回 404、登入頁無 SSO 按鈕。
+- [ ] S02 Discovery 回傳的 issuer 必須與設定完全一致。
+- [ ] S03 IdP 端點預設必須 HTTPS（內網 IdP 可在設定取消）。
+- [ ] S04 擋雲端 metadata 主機；IdP 網址不可含帳密；不跟隨轉址。
+- [ ] S05 授權請求帶 PKCE S256、state、nonce、固定 redirect_uri（`/sso-callback`）、scope 含 openid；token 交換帶 code_verifier 與 client 認證。
+- [ ] S06 state 一次性：不符、重放同一個回呼網址 → 拒絕並記稽核。
+- [ ] S07 登入交易 10 分鐘逾時。
+- [ ] S08 id_token 驗簽：只接受 RS256 / RS384 / RS512；他人金鑰、竄改內容、`alg=none`、HS256 混淆一律拒絕；未知 kid 會重新抓 JWKS；驗簽失敗不退回 userinfo。
+- [ ] S09 聲明檢查：iss、aud、azp、exp、iat、nonce、sub 任一錯誤即拒絕。
+- [ ] S10 id_token 無群組時以 userinfo 補，但 userinfo 的 sub 必須與 id_token 相同。
+- [ ] S11 群組 → 角色：管理員群組優先、主持人群組；不在任何群組拒絕登入；不分大小寫，Keycloak 路徑（/A/B）可比對。
+- [ ] S12 帳號佈建：以 (issuer, sub) 綁定；與既有帳號同名或同 email → 拒絕（不自動併入）；停用的 SSO 帳號既有 session 立即失效且無法再登入；群組同步不會把最後一位管理員降級。
+- [ ] S13 SSO 帳號沒有本地密碼：密碼登入失敗、管理員也無法替它設密碼；個人設定不顯示密碼與 2FA；帳號管理顯示 SSO 徽章。
+- [ ] S14 僅限單一登入：非允許 IP 看不到本地密碼表單，直接 POST `/verify`（即使帶有效 CSRF token）也被擋；允許 IP 的緊急用本地管理員可登入；清單空白＝只允許本機。
+- [ ] S15 沒有啟用中的本地管理員時不可開啟「僅限單一登入」；IP / CIDR 格式驗證。
+- [ ] S16 登出：導向 IdP end_session（帶 id_token_hint），portal session 已清除。
+- [ ] S17 啟用 SSO 時 CSP `form-action` 含 IdP 來源（登出可導向 IdP）。
+- [ ] S18 稽核有 `sso_login` / `sso_fail`；使用者只看到通用錯誤訊息；原因已去控制字元、限長。
+- [ ] S19 SSO 失敗計入來源 IP 限流；被鎖定的來源不能發起 SSO。
+- [ ] S20 設定頁：client secret 不回填、留空沿用；「儲存並測試連線」可取得 IdP 設定與簽章金鑰；設定匯出含 `oidc`。
+- [ ] S21 緊急 CLI `sso-cli.php show|disable-sso-only|disable` 可用；網頁存取 404。
+- [ ] S22 ZAP 掃描涵蓋 `/sso-login`、`/sso-callback`，High / Medium 為 0。
+- [ ] S23 Keycloak：首次登入強制設定 OTP；之後登入需 TOTP；同一時間窗內不可重用同一組碼。
+- [ ] S24 Keycloak：連續 5 次錯誤暫時鎖定（門檻低於 AD）；client 強制 PKCE S256、只允許授權碼流程、非公開 client；未帶 PKCE 或未註冊 redirect_uri 的請求被拒。
+- [ ] S25 `configure-realm.sh` 可重複執行：成功、client secret 不變、AD bind 密碼保留。
+- [ ] S26 正式部署：Keycloak 管理介面（`/admin`）從外網存取回 404；discovery 的 issuer 為對外 https 網址；只有 VC-Admins / VC-Hosts 成員能登入。
+
 ## 4. 多語系（i18n）
 
 （v1.7.0 起）
@@ -258,4 +289,9 @@
 | .ics 折行 / REQUEST / CANCEL / SEQUENCE、刪除會議室結算、稽核長度上限與保留清理 | `tests/unit/test_ical_audit.php` |
 | GET 登出無效、改密碼 / 強制登出讓 session 失效、刪除會議室權限、稽核 | `tests/run-integration.sh`（v1.8.0 段） |
 | Jibri 錄影 API 授權 / Range / 路徑穿越 | `tests/test-jibri-api.sh` |
+| SSO S02–S20（驗簽、聲明、state、PKCE URL、群組、佈建、僅限 SSO、登出網址、設定） | `tests/unit/test_oidc.php` |
+| SSO S02 / S05 / S08 / S10（迷你 IdP：token 交換、userinfo、fail-closed） | `tests/unit/test_oidc_flow.php` |
+| SSO S01、S05–S07、S11–S21、S23–S25（真實 Keycloak + 瀏覽器，含 OTP） | `tests/run-sso.sh`（`tests/e2e/sso.cjs`） |
+| SSO S22 | `tests/zap/run-zap.sh`（啟用 SSO 掃描） |
+| SSO S26 | 手動：KEYCLOAK-SETUP 第 7 節驗證指令 |
 | 弱點掃描 | `tests/zap/run-zap.sh` |
