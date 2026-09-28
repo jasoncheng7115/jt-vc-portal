@@ -174,6 +174,7 @@
 - [ ] S25 `configure-realm.sh` can be re-run: it succeeds, the client secret stays the same and the AD bind password is kept.
 - [ ] S26 Production: the Keycloak admin console (`/admin`) returns 404 from the Internet; the discovery issuer is the public https URL; only VC-Admins / VC-Hosts members can sign in; `/realms/master` returns 404 from the Internet; the admin console opens and signs in at `https://<Keycloak host>:8443/admin/` from the admin network (no "Something went wrong").
 - [ ] S27 `configure-realm.sh` with `KC_ADMIN_URL`: the master realm Frontend URL (and its issuer) becomes the internal admin URL, the script still succeeds on its first run with it (re-login after the change), and the public realm issuer and client secret are unchanged.
+- [ ] S28 Keycloak UI language: with `LOCALES` / `DEFAULT_LOCALE`, the login page follows the browser language (zh-TW → Traditional Chinese `zh-Hant`, ja → Japanese, en → English, unsupported → default), for the portal realm and the master (admin) realm.
 
 ## 4. Internationalization (i18n)
 
@@ -292,7 +293,7 @@ Spot-check on every release; test everything for major changes:
 | Jibri recordings API auth / Range / path traversal | `tests/test-jibri-api.sh` |
 | SSO S02–S20 (signature, claims, state, PKCE URL, groups, provisioning, SSO only, logout URL, settings) | `tests/unit/test_oidc.php` |
 | SSO S02 / S05 / S08 / S10 (mini IdP: token exchange, userinfo, fail-closed) | `tests/unit/test_oidc_flow.php` |
-| SSO S01, S05–S07, S11–S21, S23–S25, S27 (real Keycloak + browser, incl. OTP) | `tests/run-sso.sh` (`tests/e2e/sso.cjs`) |
+| SSO S01, S05–S07, S11–S21, S23–S25, S27, S28 (real Keycloak + browser, incl. OTP) | `tests/run-sso.sh` (`tests/e2e/sso.cjs`) |
 | SSO S22 | `tests/zap/run-zap.sh` (scan with SSO enabled) |
 | SSO S26 | Manual: KEYCLOAK-SETUP section 7 verification commands |
 | Vulnerability scan | `tests/zap/run-zap.sh` |

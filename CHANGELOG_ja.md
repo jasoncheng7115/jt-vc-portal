@@ -5,6 +5,7 @@
 ## 未リリース
 
 - **Keycloak キット / SOP**：Keycloak 26 の管理コンソールはブラウザのセキュアコンテキストが必要で、`http://<IP>:8080` では「Something went wrong」と表示されていました。**HTTPS 8443**（自己署名証明書を `keycloak/certs/` に配置）で提供するように変更。`realm.env` に `KC_ADMIN_URL` を設定すると `configure-realm.sh` が **master realm の Frontend URL** を内部の管理 URL に設定し、nginx の例は `/realms/master` を拒否します。テスト S27 を追加。ポータル本体は変更なし（v1.10.0 のまま）。
+- **Keycloak の表示言語**：`configure-realm.sh` が多言語化（`LOCALES`、既定 `en,zh-Hant,ja`、`DEFAULT_LOCALE`）をポータルの realm と管理コンソールに設定し、ログイン画面がブラウザの言語に従うようになりました。テスト S28 を追加。
 
 ## v1.10.0 — OIDC シングルサインオン（Keycloak）
 

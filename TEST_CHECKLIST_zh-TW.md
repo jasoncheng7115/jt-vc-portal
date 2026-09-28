@@ -174,6 +174,7 @@
 - [ ] S25 `configure-realm.sh` 可重複執行：成功、client secret 不變、AD bind 密碼保留。
 - [ ] S26 正式部署：Keycloak 管理介面（`/admin`）從外網存取回 404；discovery 的 issuer 為對外 https 網址；只有 VC-Admins / VC-Hosts 成員能登入；`/realms/master` 從外網存取回 404；從管理網段開 `https://<Keycloak 主機>:8443/admin/` 可正常登入管理介面（不出現「Something went wrong」）。
 - [ ] S27 `configure-realm.sh` 設了 `KC_ADMIN_URL`：master realm 的 Frontend URL（與其 issuer）改為內網管理網址，第一次帶此設定執行也能成功（變更後重新登入 kcadm），對外 realm 的 issuer 與 client secret 不變。
+- [ ] S28 Keycloak 介面語言：設定 `LOCALES` / `DEFAULT_LOCALE` 後，登入頁依瀏覽器語言顯示（zh-TW → 繁中 `zh-Hant`、ja → 日文、en → 英文、不支援的語言 → 預設），portal realm 與 master（管理員）realm 皆然。
 
 ## 4. 多語系（i18n）
 
@@ -292,7 +293,7 @@
 | Jibri 錄影 API 授權 / Range / 路徑穿越 | `tests/test-jibri-api.sh` |
 | SSO S02–S20（驗簽、聲明、state、PKCE URL、群組、佈建、僅限 SSO、登出網址、設定） | `tests/unit/test_oidc.php` |
 | SSO S02 / S05 / S08 / S10（迷你 IdP：token 交換、userinfo、fail-closed） | `tests/unit/test_oidc_flow.php` |
-| SSO S01、S05–S07、S11–S21、S23–S25、S27（真實 Keycloak + 瀏覽器，含 OTP） | `tests/run-sso.sh`（`tests/e2e/sso.cjs`） |
+| SSO S01、S05–S07、S11–S21、S23–S25、S27、S28（真實 Keycloak + 瀏覽器，含 OTP） | `tests/run-sso.sh`（`tests/e2e/sso.cjs`） |
 | SSO S22 | `tests/zap/run-zap.sh`（啟用 SSO 掃描） |
 | SSO S26 | 手動：KEYCLOAK-SETUP 第 7 節驗證指令 |
 | 弱點掃描 | `tests/zap/run-zap.sh` |

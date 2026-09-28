@@ -5,6 +5,7 @@
 ## Unreleased
 
 - **Keycloak kit / SOP**: the Keycloak 26 admin console needs a browser secure context and showed "Something went wrong" over `http://<IP>:8080`. It is now served over **HTTPS on 8443** (self-signed certificate in `keycloak/certs/`); `KC_ADMIN_URL` in `realm.env` makes `configure-realm.sh` set the **master realm Frontend URL** to the internal admin URL, and the nginx example refuses `/realms/master`. New test S27. The portal itself is unchanged (still v1.10.0).
+- **Keycloak UI languages**: `configure-realm.sh` enables internationalization (`LOCALES`, default `en,zh-Hant,ja`; `DEFAULT_LOCALE`) for the portal realm and the admin console, so login pages follow the browser language. New test S28.
 
 ## v1.10.0 — Single sign-on (OIDC) with Keycloak
 

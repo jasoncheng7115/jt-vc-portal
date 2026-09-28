@@ -439,6 +439,7 @@ vi realm.env
 | `LDAP_GROUPS_DN` | `CN=Groups,DC=example,DC=com` | 2 つのグループがあるコンテナー |
 | `ADMIN_GROUP` / `HOST_GROUP` | `VC-Admins` / `VC-Hosts` | グループ名（CN） |
 | `LOCKOUT_FAILURES` | `5` | Keycloak のブルートフォース閾値。**AD のロックアウト閾値より小さくすること** |
+| `LOCALES` / `DEFAULT_LOCALE` | `en,zh-Hant,ja` / `en` | ログイン画面・アカウント画面・管理コンソールの言語（組み込み：`en`、`zh-Hant` 繁体字中国語、`zh-Hans` 簡体字中国語、`ja` など）。ブラウザの言語で自動選択され、ログイン画面で切り替えも可能。該当がない場合は `DEFAULT_LOCALE`。master realm（管理コンソール）にも適用。 |
 | `KC_ADMIN_URL` | `https://10.0.0.20:8443` | `.env` と同じ値。スクリプトはこれを **master realm の Frontend URL** に設定するため、Keycloak 管理者のログインページは常に内部の管理 URL から提供されます（プロキシが `/realms/master` を拒否する `sso.example.com` からは提供されません）。 |
 | `KC_ADMIN_USER` / `KC_ADMIN_PASSWORD` | （master の管理者） | スクリプトのログイン用。実行後は空にしてください（または 2 行とも `realm.env` から削除してシェルで `export` する。`realm.env` の空の値は export した値を上書きします）。 |
 
@@ -799,7 +800,7 @@ curl -sf http://127.0.0.1:9000/health/ready && echo OK     # Keycloak ホスト�
 
 ## 12. テスト方法
 
-- **`tests/run-sso.sh`**——本番システムには一切触れないエンドツーエンドの統合テストです。使い捨ての Keycloak を起動し、**同じ `configure-realm.sh`** をローカルユーザーモード（`LDAP_URL` 空、`KCADM` / `KC_SERVER` / `SECRET_OUT` の上書きを使用）で実行して設定し、`VC-Admins`・`VC-Hosts`・どのグループにも属さないテストユーザーを作成、使い捨ての portal をビルドして起動し、Playwright で **47 項目のブラウザー / 統合チェック**を実行します。内容：初回ログインでの OTP 登録と TOTP ログイン、グループ → ロール、許可グループ外ユーザーの拒否、認可リクエストの PKCE S256 / `state` / `nonce`、固定リダイレクト URI、コールバック再送の拒否、ローカルアカウントとのユーザー名衝突、無効化アカウント（既存セッションの即時失効）、SSO のみモードの IP 許可リストとローカル管理者保護、保存して接続テスト、fail2ban ロック、Keycloak のブルートフォースロック、PKCE なしや未登録リダイレクト URI のリクエストを Keycloak が拒否すること、RP-initiated logout、`sso-cli.php` コマンド、スクリプトの再実行（冪等性）、`KC_ADMIN_URL` が公開 issuer を変えずに master realm の Frontend URL を設定すること。
+- **`tests/run-sso.sh`**——本番システムには一切触れないエンドツーエンドの統合テストです。使い捨ての Keycloak を起動し、**同じ `configure-realm.sh`** をローカルユーザーモード（`LDAP_URL` 空、`KCADM` / `KC_SERVER` / `SECRET_OUT` の上書きを使用）で実行して設定し、`VC-Admins`・`VC-Hosts`・どのグループにも属さないテストユーザーを作成、使い捨ての portal をビルドして起動し、Playwright で **52 項目のブラウザー / 統合チェック**を実行します。内容：初回ログインでの OTP 登録と TOTP ログイン、グループ → ロール、許可グループ外ユーザーの拒否、認可リクエストの PKCE S256 / `state` / `nonce`、固定リダイレクト URI、コールバック再送の拒否、ローカルアカウントとのユーザー名衝突、無効化アカウント（既存セッションの即時失効）、SSO のみモードの IP 許可リストとローカル管理者保護、保存して接続テスト、fail2ban ロック、Keycloak のブルートフォースロック、PKCE なしや未登録リダイレクト URI のリクエストを Keycloak が拒否すること、RP-initiated logout、`sso-cli.php` コマンド、スクリプトの再実行（冪等性）、`KC_ADMIN_URL` が公開 issuer を変えずに master realm の Frontend URL を設定すること、ログイン画面がブラウザの言語（繁体字中国語 / 日本語 / 英語、管理者ログインを含む）に従うこと。
 - **`tests/unit/test_oidc.php`**——`lib/oidc.php` の単体テスト。テスト内で RSA 鍵を生成し ID トークンを偽造して検証します：署名とアルゴリズムのホワイトリスト（`none` / `HS*` を拒否）、`iss` / `aud` / `azp` / `exp` / `iat` / `nonce` / `sub` の検査、JWK → PEM 変換、グループ → ロール、アカウント作成と衝突ルール、IdP エンドポイントの HTTPS / ホスト制限。
 
 リリースのたびに、他のテスト（`tests/run-unit.sh`、`tests/run-sso.sh`）とあわせて実行してください。

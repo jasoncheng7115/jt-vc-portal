@@ -48,6 +48,16 @@ iss() { curl -s "http://127.0.0.1:$KCPORT/realms/$1/.well-known/openid-configura
 MI=$(iss master); JI=$(iss jtvc)
 [ "$MI" = "https://kc-admin.test:8443/realms/master" ] && echo "  ok   S27 master issuer = 管理網址（$MI）" || { echo "  FAIL S27 master issuer $MI"; exit 1; }
 [ "$JI" = "http://kc.test:$KCPORT/realms/jtvc" ] && [ "$(cat "$WORK/secret3")" = "$SECRET" ] && echo "  ok   S27 jtvc issuer 不受影響、client secret 不變" || { echo "  FAIL S27 jtvc issuer $JI"; exit 1; }
+echo "== S28 多語系：依瀏覽器語言顯示繁中 / 日文 / 英文登入頁（jtvc 與 master）"
+RU=$(python3 -c 'import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe=""))' "http://127.0.0.1:$PPORT/sso-callback")
+AUTH="http://127.0.0.1:$KCPORT/realms/jtvc/protocol/openid-connect/auth?client_id=jt-vc-portal&response_type=code&scope=openid&redirect_uri=$RU&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_challenge_method=S256&state=s28&nonce=s28"
+MAUTH="http://127.0.0.1:$KCPORT/realms/master/protocol/openid-connect/auth?client_id=security-admin-console&response_type=code&scope=openid&redirect_uri=$(python3 -c 'import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe=""))' "https://kc-admin.test:8443/admin/master/console/")&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_challenge_method=S256&state=s28"
+pl() { curl -s -H "Accept-Language: $2" "$1" | grep -oE '<html[^>]*lang="[^"]*"' | grep -oE 'lang="[^"]*"' | head -1; }
+for c in "zh-TW,zh;q=0.9:zh-Hant" "ja:ja" "en-US:en" "fr-FR:en"; do
+  al=${c%%:*}; want=${c##*:}
+  got=$(pl "$AUTH" "$al"); [ "$got" = "lang=\"$want\"" ] && echo "  ok   S28 jtvc Accept-Language $al → $want" || { echo "  FAIL S28 jtvc $al → $got"; exit 1; }
+done
+got=$(pl "$MAUTH" "zh-TW"); [ "$got" = 'lang="zh-Hant"' ] && echo "  ok   S28 master（管理員登入）zh-TW → zh-Hant" || { echo "  FAIL S28 master zh-TW → $got"; exit 1; }
 KC="docker exec -i $KCN /opt/keycloak/bin/kcadm.sh"
 for u in alice:VC-Admins bob:VC-Hosts carol: dave:VC-Hosts; do
   n=${u%%:*}; g=${u#*:}

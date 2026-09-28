@@ -5,6 +5,7 @@
 ## 未發佈
 
 - **Keycloak 部署範本 / SOP**：Keycloak 26 管理介面需要瀏覽器安全環境，用 `http://<IP>:8080` 開會顯示「Something went wrong」。改為 **HTTPS 8443**（自簽憑證放 `keycloak/certs/`）；`realm.env` 設 `KC_ADMIN_URL` 後，`configure-realm.sh` 會把 **master realm 的 Frontend URL** 設為內網管理網址，nginx 範例也拒絕 `/realms/master`。新增測試 S27。portal 本身沒有變更（仍為 v1.10.0）。
+- **Keycloak 介面語言**：`configure-realm.sh` 啟用多語系（`LOCALES`，預設 `en,zh-Hant,ja`；`DEFAULT_LOCALE`），套用到 portal realm 與管理介面，登入頁依瀏覽器語言顯示。新增測試 S28。
 
 ## v1.10.0 — OIDC 單一登入（Keycloak）
 

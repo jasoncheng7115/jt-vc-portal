@@ -439,6 +439,7 @@ vi realm.env
 | `LDAP_GROUPS_DN` | `CN=Groups,DC=example,DC=com` | 兩個群組所在的容器 |
 | `ADMIN_GROUP` / `HOST_GROUP` | `VC-Admins` / `VC-Hosts` | 群組名稱（CN） |
 | `LOCKOUT_FAILURES` | `5` | Keycloak 暴力破解門檻——**必須小於 AD 的帳號鎖定門檻** |
+| `LOCALES` / `DEFAULT_LOCALE` | `en,zh-Hant,ja` / `en` | 登入頁、帳號頁與管理介面的語言（內建 `en`、`zh-Hant` 繁中、`zh-Hans` 簡中、`ja`…）。依瀏覽器語言自動選擇，使用者也可在登入頁切換；找不到對應語言時用 `DEFAULT_LOCALE`。master realm（管理介面）一併套用。 |
 | `KC_ADMIN_URL` | `https://10.0.0.20:8443` | 與 `.env` 相同。腳本會把它設為 **master realm 的 Frontend URL**，讓 Keycloak 管理員登入頁一律由內網管理網址提供（絕不經 `sso.example.com`，反向代理會拒絕 `/realms/master`）。 |
 | `KC_ADMIN_USER` / `KC_ADMIN_PASSWORD` | （您的 master 管理員） | 腳本登入用。執行後請清空（或把這兩行從 `realm.env` 刪掉、改在 shell 以 `export` 提供——`realm.env` 中的空白值會覆蓋 export 的值）。 |
 
@@ -799,7 +800,7 @@ curl -sf http://127.0.0.1:9000/health/ready && echo OK     # 只能在 Keycloak 
 
 ## 十二、測試方式
 
-- **`tests/run-sso.sh`**——端對端整合測試，不碰任何正式系統。它會啟動拋棄式 Keycloak，以**同一支 `configure-realm.sh`** 在本地帳號模式（`LDAP_URL` 留空，並使用 `KCADM` / `KC_SERVER` / `SECRET_OUT` 覆寫）完成設定，建立分屬 `VC-Admins`、`VC-Hosts` 與不屬任何群組的測試使用者，建置並啟動拋棄式 portal，再以 Playwright 跑 **47 項瀏覽器 / 整合檢查**，包括：首次登入綁定 OTP 與 TOTP 登入、群組 → 角色、不在允許群組者被拒、授權請求帶 PKCE S256 / `state` / `nonce`、固定 redirect URI、重放回呼被拒、與本地帳號同名衝突、停用帳號（既有 session 立即失效）、僅限單一登入模式的 IP 允許清單與本地管理員保護、儲存並測試連線、fail2ban 鎖定、Keycloak 暴力破解鎖定、Keycloak 拒絕未帶 PKCE 或未註冊 redirect URI 的請求、RP-initiated logout、`sso-cli.php` 指令、重跑腳本（冪等），以及 `KC_ADMIN_URL` 會設定 master realm 的 Frontend URL 且不改變公開 issuer。
+- **`tests/run-sso.sh`**——端對端整合測試，不碰任何正式系統。它會啟動拋棄式 Keycloak，以**同一支 `configure-realm.sh`** 在本地帳號模式（`LDAP_URL` 留空，並使用 `KCADM` / `KC_SERVER` / `SECRET_OUT` 覆寫）完成設定，建立分屬 `VC-Admins`、`VC-Hosts` 與不屬任何群組的測試使用者，建置並啟動拋棄式 portal，再以 Playwright 跑 **52 項瀏覽器 / 整合檢查**，包括：首次登入綁定 OTP 與 TOTP 登入、群組 → 角色、不在允許群組者被拒、授權請求帶 PKCE S256 / `state` / `nonce`、固定 redirect URI、重放回呼被拒、與本地帳號同名衝突、停用帳號（既有 session 立即失效）、僅限單一登入模式的 IP 允許清單與本地管理員保護、儲存並測試連線、fail2ban 鎖定、Keycloak 暴力破解鎖定、Keycloak 拒絕未帶 PKCE 或未註冊 redirect URI 的請求、RP-initiated logout、`sso-cli.php` 指令、重跑腳本（冪等），以及 `KC_ADMIN_URL` 會設定 master realm 的 Frontend URL 且不改變公開 issuer，以及登入頁依瀏覽器語言顯示繁中 / 日文 / 英文（含管理員登入頁）。
 - **`tests/unit/test_oidc.php`**——`lib/oidc.php` 的單元測試，在測試內產生 RSA 金鑰並偽造 ID token：簽章與演算法白名單（拒絕 `none` / `HS*`）、`iss` / `aud` / `azp` / `exp` / `iat` / `nonce` / `sub` 檢查、JWK → PEM 轉換、群組 → 角色、帳號建立與衝突規則、IdP 端點的 HTTPS / 主機限制。
 
 每次發版前請與其他測試（`tests/run-unit.sh`、`tests/run-sso.sh`）一起執行。

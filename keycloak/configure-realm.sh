@@ -3,7 +3,7 @@
 #
 # 做的事：
 #   0. master realm frontendUrl（設了 KC_ADMIN_URL 時）：管理員登入只走內網管理網址
-#   1. realm（sslRequired=external、暴力破解偵測、事件記錄、OTP 政策、預設要求設定 OTP）
+#   1. realm（多語系 LOCALES / DEFAULT_LOCALE、sslRequired=external、暴力破解偵測、事件記錄、OTP 政策、預設要求設定 OTP）
 #   2. LDAP 使用者聯合（AD，LDAPS、唯讀、只納入指定群組成員）+ 群組對應
 #   3. OIDC client「jt-vc-portal」（confidential、授權碼流程 + PKCE S256、固定 redirect URI）
 #      + groups claim mapper（不含完整路徑）
@@ -25,6 +25,10 @@ KC_ADMIN_USER=${KC_ADMIN_USER:-$_KCU}; KC_ADMIN_PASSWORD=${KC_ADMIN_PASSWORD:-$_
 LDAP_URL=${LDAP_URL:-}
 if [ -n "$LDAP_URL" ]; then : "${LDAP_BASE_DN:?}" "${LDAP_BIND_DN:?}" "${LDAP_GROUPS_DN:?}"; fi
 LOCKOUT_FAILURES=${LOCKOUT_FAILURES:-5}
+# 介面語言（登入頁 / 帳號頁 / 管理介面）：依瀏覽器語言自動選擇，DEFAULT_LOCALE 為找不到對應時的預設
+LOCALES=${LOCALES:-en,zh-Hant,ja}
+DEFAULT_LOCALE=${DEFAULT_LOCALE:-en}
+LOCALES_JSON="[\"$(echo "$LOCALES" | sed 's/ //g; s/,/","/g')\"]"
 LDAP_BIND_CREDENTIAL=${LDAP_BIND_CREDENTIAL:-}
 
 KC=${KCADM:-docker compose exec -T keycloak /opt/keycloak/bin/kcadm.sh}
@@ -38,6 +42,9 @@ if [ -n "${KC_ADMIN_URL:-}" ]; then
   # 改了 frontendUrl 後，先前取得的管理 token（issuer 不同）會被拒（401），需重新登入
   $KC config credentials --server "${KC_SERVER:-http://localhost:8080}" --realm master --user "$KC_ADMIN_USER" --password "$KC_ADMIN_PASSWORD" >/dev/null
 fi
+
+# master realm（管理介面）也套用多語系
+$KC update realms/master -s internationalizationEnabled=true -s "supportedLocales=$LOCALES_JSON" -s "defaultLocale=$DEFAULT_LOCALE" >/dev/null
 
 # ---------- 1. realm ----------
 if ! $KC get "realms/$REALM" >/dev/null 2>&1; then
@@ -56,10 +63,11 @@ $KC update "realms/$REALM" \
   -s 'eventsListeners=["jboss-logging"]' \
   -s otpPolicyType=totp -s otpPolicyAlgorithm=HmacSHA1 -s otpPolicyDigits=6 -s otpPolicyPeriod=30 \
   -s ssoSessionIdleTimeout=1800 -s ssoSessionMaxLifespan=43200 \
-  -s accessTokenLifespan=300 >/dev/null
+  -s accessTokenLifespan=300 \
+  -s internationalizationEnabled=true -s "supportedLocales=$LOCALES_JSON" -s "defaultLocale=$DEFAULT_LOCALE" >/dev/null
 # 所有使用者首次登入都必須設定 OTP（之後每次登入都要驗證碼）
 $KC update "authentication/required-actions/CONFIGURE_TOTP" -r "$REALM" -s enabled=true -s defaultAction=true >/dev/null
-echo "realm settings applied (brute force: ${LOCKOUT_FAILURES} failures, OTP required)"
+echo "realm settings applied (brute force: ${LOCKOUT_FAILURES} failures, OTP required, locales: ${LOCALES}, default ${DEFAULT_LOCALE})"
 
 # ---------- 2. LDAP（AD）聯合 ----------
 if [ -n "$LDAP_URL" ]; then
