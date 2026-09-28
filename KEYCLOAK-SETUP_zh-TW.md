@@ -537,8 +537,8 @@ client secret 寫在 `client-secret.txt`（權限 600），第八節要貼到 po
 - **只把 `/realms/…` 與 `/resources/…` 轉送**到 `http://10.0.0.20:8080`。其餘一律回 **404**，包括 `/admin`、`/metrics`、`/health` 與 `/`。
 - **`/realms/master` 也回 404**：master realm（Keycloak 管理員）只從內網管理網址使用。這條規則必須放在其他 `/realms` location 之前。
 - 登入表單 POST（`/realms/<realm>/login-actions/authenticate`）依來源 IP **限速**（`limit_req`，每分鐘 20 次、burst 10），作為防猜密碼的第一道防線。zone 需宣告在 `http {}` 內。
-- 加上 **HSTS** 與 `X-Content-Type-Options: nosniff`。
-- 共用片段 `kc-proxy.conf` 設定 `Host`、`X-Forwarded-Host`、`X-Forwarded-Proto https`、`X-Forwarded-Port 443`、`X-Forwarded-For`（Keycloak 以 `KC_PROXY_HEADERS=xforwarded` 執行），並**加大 proxy buffer**（Keycloak 的回應帶有很大的標頭 / cookie，預設 buffer 會造成 `502 upstream sent too big header`）。
+- **HSTS**、`X-Content-Type-Options: nosniff` 與 `X-Frame-Options` 由 Keycloak 自己送出，反向代理不再重複加（否則標頭會出現兩次）。
+- 共用片段 `kc-proxy.conf` 設定 `Host`、`X-Forwarded-Host`、`X-Forwarded-Proto https`、`X-Forwarded-Port 443`、`X-Forwarded-For` **只帶真實來源 IP**（`$remote_addr`；經 CDN 時先用 `real_ip` 模組還原），避免用戶端偽造（Keycloak 以 `KC_PROXY_HEADERS=xforwarded` 執行），並**加大 proxy buffer**（Keycloak 的回應帶有很大的標頭 / cookie，預設 buffer 會造成 `502 upstream sent too big header`）。
 
 ```bash
 # 在反向代理主機上

@@ -537,8 +537,8 @@ Check that only group members are visible: realm **jtvc** → **Users** → sear
 - **Only `/realms/…` and `/resources/…` are forwarded** to `http://10.0.0.20:8080`. Everything else — including `/admin`, `/metrics`, `/health` and `/` — returns **404**.
 - **`/realms/master` also returns 404**: the master realm (Keycloak administrators) is only used from the internal admin URL. This rule must come before the other `/realms` locations.
 - The login form POST (`/realms/<realm>/login-actions/authenticate`) is **rate-limited** per client IP (`limit_req`, 20 per minute, burst 10) as a first line against password guessing. The zone must be declared in the `http {}` context.
-- **HSTS** and `X-Content-Type-Options: nosniff` are added.
-- The shared snippet `kc-proxy.conf` sets `Host`, `X-Forwarded-Host`, `X-Forwarded-Proto https`, `X-Forwarded-Port 443`, `X-Forwarded-For` (Keycloak runs with `KC_PROXY_HEADERS=xforwarded`), and **larger proxy buffers** (Keycloak's responses carry large headers/cookies; the default buffers cause `502 upstream sent too big header`).
+- **HSTS**, `X-Content-Type-Options: nosniff` and `X-Frame-Options` are sent by Keycloak itself, so the proxy does not add them again (they would appear twice).
+- The shared snippet `kc-proxy.conf` sets `Host`, `X-Forwarded-Host`, `X-Forwarded-Proto https`, `X-Forwarded-Port 443`, `X-Forwarded-For` set to **only the real client IP** (`$remote_addr`; behind a CDN restore it first with the `real_ip` module) so a client cannot spoof it (Keycloak runs with `KC_PROXY_HEADERS=xforwarded`), and **larger proxy buffers** (Keycloak's responses carry large headers/cookies; the default buffers cause `502 upstream sent too big header`).
 
 ```bash
 # On the reverse proxy

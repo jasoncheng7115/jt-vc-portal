@@ -7,8 +7,7 @@ server {
     ssl_certificate     /etc/letsencrypt/live/sso.example.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/sso.example.com/privkey.pem;
 
-    add_header Strict-Transport-Security "max-age=31536000" always;
-    add_header X-Content-Type-Options nosniff always;
+    # HSTS / nosniff / X-Frame-Options 由 Keycloak 自己送出，這裡不重複加（重複會出現兩次標頭）
 
     # master realm（Keycloak 管理員登入）只走內網管理網址，對外一律拒絕（必須放在其他 /realms 規則之前）
     location ~ ^/realms/master(/|$) { return 404; }
@@ -36,7 +35,7 @@ server {
 #   proxy_set_header X-Forwarded-Host  $host;
 #   proxy_set_header X-Forwarded-Proto https;
 #   proxy_set_header X-Forwarded-Port  443;
-#   proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+#   proxy_set_header X-Forwarded-For   $remote_addr;   # 只帶真實來源 IP（經 CDN 時先用 real_ip 模組還原），不接續外部送來的 XFF 以免偽造
 #   proxy_buffer_size 128k;
 #   proxy_buffers 4 256k;
 #   proxy_busy_buffers_size 256k;

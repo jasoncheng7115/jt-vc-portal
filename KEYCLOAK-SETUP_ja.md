@@ -537,8 +537,8 @@ Redirect URI  : https://vc.example.com/sso-callback
 - **`/realms/…` と `/resources/…` のみ** `http://10.0.0.20:8080` に転送します。それ以外（`/admin`、`/metrics`、`/health`、`/` を含む）はすべて **404** を返します。
 - **`/realms/master` も 404 を返します**：master realm（Keycloak 管理者）は内部の管理 URL からのみ使用します。このルールは他の `/realms` location より前に置く必要があります。
 - ログインフォームの POST（`/realms/<realm>/login-actions/authenticate`）は送信元 IP ごとに**レート制限**（`limit_req`、毎分 20 回、burst 10）され、パスワード推測に対する最初の防御線になります。zone は `http {}` コンテキストで宣言する必要があります。
-- **HSTS** と `X-Content-Type-Options: nosniff` を付加します。
-- 共通スニペット `kc-proxy.conf` は `Host`、`X-Forwarded-Host`、`X-Forwarded-Proto https`、`X-Forwarded-Port 443`、`X-Forwarded-For` を設定し（Keycloak は `KC_PROXY_HEADERS=xforwarded` で動作）、**プロキシバッファーを拡大**します（Keycloak の応答は大きなヘッダー / Cookie を含むため、既定のバッファーでは `502 upstream sent too big header` になります）。
+- **HSTS**、`X-Content-Type-Options: nosniff`、`X-Frame-Options` は Keycloak 自身が送るため、リバースプロキシでは重ねて付加しません（ヘッダーが 2 回出てしまうため）。
+- 共通スニペット `kc-proxy.conf` は `Host`、`X-Forwarded-Host`、`X-Forwarded-Proto https`、`X-Forwarded-Port 443`、`X-Forwarded-For` には**実際の送信元 IP のみ**（`$remote_addr`。CDN 経由の場合は先に `real_ip` モジュールで復元）を設定してクライアントによる偽装を防ぎ（Keycloak は `KC_PROXY_HEADERS=xforwarded` で動作）、**プロキシバッファーを拡大**します（Keycloak の応答は大きなヘッダー / Cookie を含むため、既定のバッファーでは `502 upstream sent too big header` になります）。
 
 ```bash
 # リバースプロキシ上で
