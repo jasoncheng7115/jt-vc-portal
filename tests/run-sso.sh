@@ -57,6 +57,11 @@ for c in "zh-TW,zh;q=0.9:zh-Hant" "ja:ja" "en-US:en" "fr-FR:en"; do
   al=${c%%:*}; want=${c##*:}
   got=$(pl "$AUTH" "$al"); [ "$got" = "lang=\"$want\"" ] && echo "  ok   S28 jtvc Accept-Language $al → $want" || { echo "  FAIL S28 jtvc $al → $got"; exit 1; }
 done
+for c in "zh-TW:繁體中文" "en-US:Traditional Chinese (繁體中文)" "ja:繁体字中国語 (繁體中文)"; do
+  al=${c%%:*}; want=${c#*:}
+  curl -s -H "Accept-Language: $al" "$AUTH" | grep -qF "$want" && echo "  ok   S28 語言選單顯示「$want」（$al）" || { echo "  FAIL S28 語言選單缺「$want」（$al）"; exit 1; }
+done
+curl -s -H "Accept-Language: zh-TW" "$MAUTH" | grep -qF "繁體中文" && echo "  ok   S28 master 語言選單顯示「繁體中文」" || { echo "  FAIL S28 master 語言選單"; exit 1; }
 got=$(pl "$MAUTH" "zh-TW"); [ "$got" = 'lang="zh-Hant"' ] && echo "  ok   S28 master（管理員登入）zh-TW → zh-Hant" || { echo "  FAIL S28 master zh-TW → $got"; exit 1; }
 KC="docker exec -i $KCN /opt/keycloak/bin/kcadm.sh"
 for u in alice:VC-Admins bob:VC-Hosts carol: dave:VC-Hosts; do

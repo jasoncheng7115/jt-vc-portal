@@ -2,10 +2,11 @@
 
 > English: [CHANGELOG.md](CHANGELOG.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
-## 未發佈
+## v1.11.0 — 系統設定頁目錄；Keycloak 部署範本改進
 
-- **Keycloak 部署範本 / SOP**：Keycloak 26 管理介面需要瀏覽器安全環境，用 `http://<IP>:8080` 開會顯示「Something went wrong」。改為 **HTTPS 8443**（自簽憑證放 `keycloak/certs/`）；`realm.env` 設 `KC_ADMIN_URL` 後，`configure-realm.sh` 會把 **master realm 的 Frontend URL** 設為內網管理網址，nginx 範例也拒絕 `/realms/master`。新增測試 S27。portal 本身沒有變更（仍為 v1.10.0）。
-- **Keycloak 介面語言**：`configure-realm.sh` 啟用多語系（`LOCALES`，預設 `en,zh-Hant,ja`；`DEFAULT_LOCALE`），套用到 portal realm 與管理介面，登入頁依瀏覽器語言顯示。新增測試 S28。
+- **系統設定頁目錄**：頁面上方列出所有設定卡片，點選即只顯示該卡片（網址變成 `/settings#id`，可加書籤或分享），「全部」顯示全部；重新整理與儲存後仍停留在同一張。依連線模式隱藏的卡片，目錄中也會隱藏。
+- **Keycloak 部署範本 / SOP**：Keycloak 26 管理介面需要瀏覽器安全環境，用 `http://<IP>:8080` 開會顯示「Something went wrong」。改為 **HTTPS 8443**（自簽憑證放 `keycloak/certs/`）；`realm.env` 設 `KC_ADMIN_URL` 後，`configure-realm.sh` 會把 **master realm 的 Frontend URL** 設為內網管理網址，nginx 範例也拒絕 `/realms/master`。新增測試 S27。
+- **Keycloak 介面語言**：`configure-realm.sh` 啟用多語系（`LOCALES`，預設 `en,zh-Hant,ja`；`DEFAULT_LOCALE`），套用到 portal realm 與管理介面，登入頁依瀏覽器語言顯示，語言選單顯示「繁體中文」而不是代碼 `zh-Hant`。新增測試 S28。
 
 ## v1.10.0 — OIDC 單一登入（Keycloak）
 

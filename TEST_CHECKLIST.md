@@ -125,6 +125,7 @@
 - [ ] Plan MAU limit, billing cycle start day, manual correction of current-period usage (JaaS only).
 - [ ] SIEM forwarding: syslog / CEF / GELF × UDP / TCP; test send succeeds.
 - [ ] Settings export / import: whitelisted keys, including logo; round-trip is consistent.
+- [ ] Settings page section index (v1.11.0): a chip for every visible settings card (cards hidden by the connection mode are hidden in the index too); clicking one shows only that card and sets `#id` in the URL; reloading or `/settings#id` keeps it; after saving you stay on the same card; "All" shows every card; no CSP errors.
 - [ ] Login path obfuscation: after changing the path, the old path returns 404 and the new path allows login; the `login-path.php show|reset|set` CLI works, and web access returns 404.
 
 ### 3.8 Audit log
@@ -289,6 +290,7 @@ Spot-check on every release; test everything for major changes:
 | No leftover text per page in English / Chinese, html lang, ?lang=, cookie, /set-lang open-redirect guard, per-user language, lang/ 403 | `tests/run-integration.sh` (i18n section) |
 | Untranslated strings / missing keys / placeholder consistency | `tests/check-i18n.php` |
 | Real browser: host join, guest join, iframe, SRI, CSP (zh-TW + English) | `tests/run-e2e.sh` |
+| Settings page section index (show one card, URL hash, reload, All) | `tests/run-e2e.sh` (`tests/e2e/meeting.cjs`) |
 | .ics folding / REQUEST / CANCEL / SEQUENCE, session settlement on room delete, audit length limits and retention pruning | `tests/unit/test_ical_audit.php` |
 | GET sign-out ignored, password change / force sign-out invalidates sessions, room delete permissions, audit | `tests/run-integration.sh` (v1.8.0 section) |
 | Jibri recordings API auth / Range / path traversal | `tests/test-jibri-api.sh` |

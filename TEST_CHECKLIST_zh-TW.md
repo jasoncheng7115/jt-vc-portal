@@ -125,6 +125,7 @@
 - [ ] 方案 MAU 上限、計費週期起始日、本期用量手動校正（僅 JaaS）。
 - [ ] SIEM 外拋：syslog / CEF / GELF × UDP / TCP，測試送出成功。
 - [ ] 設定匯出 / 匯入：白名單鍵、含 logo；來回一致。
+- [ ] 系統設定頁目錄（v1.11.0）：每張可見的設定卡片都有對應目錄項目（依連線模式隱藏的卡片，目錄也隱藏）；點選只顯示該卡片並把網址改為 `#id`；重新整理或直接開 `/settings#id` 會保持；儲存後停留在同一張卡片；「全部」顯示所有卡片；無 CSP 錯誤。
 - [ ] 登入路徑偽裝：改路徑後舊路徑 404、新路徑可登入；`login-path.php show|reset|set` CLI 可用、網頁存取 404。
 
 ### 3.8 稽核記錄
@@ -289,6 +290,7 @@
 | 英文 / 中文逐頁無殘留、html lang、?lang=、cookie、/set-lang 防開放重導、個人語言設定、lang/ 403 | `tests/run-integration.sh`（多語系段） |
 | 未翻譯字串 / 缺漏鍵 / 佔位一致 | `tests/check-i18n.php` |
 | 真瀏覽器：主持人進會議、來賓加入、iframe、SRI、CSP（中英） | `tests/run-e2e.sh` |
+| 系統設定頁目錄（單張顯示、網址 #、重新整理、全部） | `tests/run-e2e.sh`（`tests/e2e/meeting.cjs`） |
 | .ics 折行 / REQUEST / CANCEL / SEQUENCE、刪除會議室結算、稽核長度上限與保留清理 | `tests/unit/test_ical_audit.php` |
 | GET 登出無效、改密碼 / 強制登出讓 session 失效、刪除會議室權限、稽核 | `tests/run-integration.sh`（v1.8.0 段） |
 | Jibri 錄影 API 授權 / Range / 路徑穿越 | `tests/test-jibri-api.sh` |

@@ -46,6 +46,24 @@ fi
 # master realm（管理介面）也套用多語系
 $KC update realms/master -s internationalizationEnabled=true -s "supportedLocales=$LOCALES_JSON" -s "defaultLocale=$DEFAULT_LOCALE" >/dev/null
 
+# 中文語言在選單上的顯示名稱：Keycloak 內建翻譯沒有 locale_zh-Hant / locale_zh-Hans，選單會直接顯示代碼「zh-Hant」。
+# 以 realm 自訂翻譯補上（格式同內建：「當前語言的名稱 (原文名稱)」）。
+locale_names() {   # $1 = 目前介面語言 → 輸出 JSON
+  case "$1" in
+    zh-Hant) echo '{"locale_zh-Hant":"繁體中文","locale_zh-Hans":"簡體中文 (简体中文)"}' ;;
+    zh-Hans) echo '{"locale_zh-Hant":"繁体中文 (繁體中文)","locale_zh-Hans":"简体中文"}' ;;
+    ja)      echo '{"locale_zh-Hant":"繁体字中国語 (繁體中文)","locale_zh-Hans":"簡体字中国語 (简体中文)"}' ;;
+    en)      echo '{"locale_zh-Hant":"Traditional Chinese (繁體中文)","locale_zh-Hans":"Simplified Chinese (简体中文)"}' ;;
+    *)       echo '{"locale_zh-Hant":"繁體中文","locale_zh-Hans":"简体中文"}' ;;
+  esac
+}
+set_locale_names() {   # $1 = realm
+  for L in $(echo "$LOCALES" | tr -d ' ' | tr ',' ' '); do
+    locale_names "$L" | $KC create "realms/$1/localization/$L" -f - >/dev/null
+  done
+}
+set_locale_names master
+
 # ---------- 1. realm ----------
 if ! $KC get "realms/$REALM" >/dev/null 2>&1; then
   $KC create realms -s realm="$REALM" -s enabled=true >/dev/null
@@ -67,6 +85,7 @@ $KC update "realms/$REALM" \
   -s internationalizationEnabled=true -s "supportedLocales=$LOCALES_JSON" -s "defaultLocale=$DEFAULT_LOCALE" >/dev/null
 # 所有使用者首次登入都必須設定 OTP（之後每次登入都要驗證碼）
 $KC update "authentication/required-actions/CONFIGURE_TOTP" -r "$REALM" -s enabled=true -s defaultAction=true >/dev/null
+set_locale_names "$REALM"
 echo "realm settings applied (brute force: ${LOCKOUT_FAILURES} failures, OTP required, locales: ${LOCALES}, default ${DEFAULT_LOCALE})"
 
 # ---------- 2. LDAP（AD）聯合 ----------

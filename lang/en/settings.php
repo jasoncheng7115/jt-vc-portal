@@ -294,4 +294,5 @@ return [
   "您好，\n\n您受邀參加線上視訊會議「{room}」。\n{time}\n加入連結：{invite_url}\n\n（附件為行事曆邀請，開啟後可自動加入您的行事曆。）\n\n— {site_name}" => "Hello,\n\nYou are invited to the online video meeting \"{room}\".\n{time}\nJoin link: {invite_url}\n\n(The attached calendar invitation can be added to your calendar automatically.)\n\n— {site_name}",
   '稽核記錄保留天數' => 'Audit log retention (days)',
   '目前未啟用 JWT：任何知道會議室名稱的人都能直接連到 Jitsi 網域進入會議，繞過本系統的等候、具名與排程控管。建議改為「需要 JWT」。' => 'JWT is not enabled: anyone who knows a room name can join directly on the Jitsi domain, bypassing this portal\'s waiting room, name requirement and schedule. Switching to "JWT required" is recommended.',
+  '設定目錄' => 'Settings sections',
 ];

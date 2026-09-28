@@ -2,10 +2,11 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
-## Unreleased
+## v1.11.0 — Settings section index; Keycloak kit improvements
 
-- **Keycloak kit / SOP**: the Keycloak 26 admin console needs a browser secure context and showed "Something went wrong" over `http://<IP>:8080`. It is now served over **HTTPS on 8443** (self-signed certificate in `keycloak/certs/`); `KC_ADMIN_URL` in `realm.env` makes `configure-realm.sh` set the **master realm Frontend URL** to the internal admin URL, and the nginx example refuses `/realms/master`. New test S27. The portal itself is unchanged (still v1.10.0).
-- **Keycloak UI languages**: `configure-realm.sh` enables internationalization (`LOCALES`, default `en,zh-Hant,ja`; `DEFAULT_LOCALE`) for the portal realm and the admin console, so login pages follow the browser language. New test S28.
+- **Settings page section index**: a row of chips at the top lists every settings card; click one to show only that card (the URL becomes `/settings#id`, so it can be bookmarked or shared), "All" shows everything. The selection survives reloads and saving. Cards hidden by the connection mode are hidden in the index too.
+- **Keycloak kit / SOP**: the Keycloak 26 admin console needs a browser secure context and showed "Something went wrong" over `http://<IP>:8080`. It is now served over **HTTPS on 8443** (self-signed certificate in `keycloak/certs/`); `KC_ADMIN_URL` in `realm.env` makes `configure-realm.sh` set the **master realm Frontend URL** to the internal admin URL, and the nginx example refuses `/realms/master`. New test S27.
+- **Keycloak UI languages**: `configure-realm.sh` enables internationalization (`LOCALES`, default `en,zh-Hant,ja`; `DEFAULT_LOCALE`) for the portal realm and the admin console, so login pages follow the browser language, and the language menu shows "繁體中文" / "Traditional Chinese (繁體中文)" instead of the raw code `zh-Hant`. New test S28.
 
 ## v1.10.0 — Single sign-on (OIDC) with Keycloak
 

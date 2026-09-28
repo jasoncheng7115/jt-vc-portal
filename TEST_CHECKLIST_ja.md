@@ -125,6 +125,7 @@
 - [ ] プランの MAU 上限、請求サイクルの開始日、当期使用量の手動補正（JaaS のみ）。
 - [ ] SIEM 転送：syslog / CEF / GELF × UDP / TCP。テスト送信が成功すること。
 - [ ] 設定のエクスポート / インポート：ホワイトリストのキー（ロゴを含む）。往復で内容が一致すること。
+- [ ] 設定画面の目次（v1.11.0）：表示中の設定カードごとに目次項目があること（接続モードで非表示のカードは目次でも非表示）。クリックでそのカードだけを表示し URL を `#id` にすること。再読み込みや `/settings#id` でも維持され、保存後も同じカードに留まること。「すべて」で全カードを表示し、CSP エラーがないこと。
 - [ ] ログインパスの秘匿：パスを変更すると旧パスは 404 を返し、新パスでログインできる。`login-path.php show|reset|set` CLI が機能し、Web からのアクセスは 404 を返す。
 
 ### 3.8 監査ログ
@@ -289,6 +290,7 @@
 | 英語 / 中国語でページごとの文言残りなし、html lang、?lang=、cookie、/set-lang のオープンリダイレクト対策、ユーザーごとの言語、lang/ の 403 | `tests/run-integration.sh`（i18n セクション） |
 | 未翻訳文字列 / 欠落キー / プレースホルダーの整合性 | `tests/check-i18n.php` |
 | 実ブラウザ：主催者の入室、ゲストの入室、iframe、SRI、CSP（zh-TW + 英語） | `tests/run-e2e.sh` |
+| 設定画面の目次（1 枚表示、URL の #、再読み込み、すべて） | `tests/run-e2e.sh`（`tests/e2e/meeting.cjs`） |
 | .ics の折り返し / REQUEST / CANCEL / SEQUENCE、会議室削除時のセッション確定、監査の長さ制限と保持期間による削除 | `tests/unit/test_ical_audit.php` |
 | GET によるサインアウトの無視、パスワード変更 / 強制サインアウトによるセッション無効化、会議室削除の権限、監査 | `tests/run-integration.sh`（v1.8.0 セクション） |
 | Jibri 録画 API の認証 / Range / パストラバーサル | `tests/test-jibri-api.sh` |

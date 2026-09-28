@@ -2,10 +2,11 @@
 
 > English: [CHANGELOG.md](CHANGELOG.md) · 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md)
 
-## 未リリース
+## v1.11.0 — 設定画面の目次、Keycloak キットの改善
 
-- **Keycloak キット / SOP**：Keycloak 26 の管理コンソールはブラウザのセキュアコンテキストが必要で、`http://<IP>:8080` では「Something went wrong」と表示されていました。**HTTPS 8443**（自己署名証明書を `keycloak/certs/` に配置）で提供するように変更。`realm.env` に `KC_ADMIN_URL` を設定すると `configure-realm.sh` が **master realm の Frontend URL** を内部の管理 URL に設定し、nginx の例は `/realms/master` を拒否します。テスト S27 を追加。ポータル本体は変更なし（v1.10.0 のまま）。
-- **Keycloak の表示言語**：`configure-realm.sh` が多言語化（`LOCALES`、既定 `en,zh-Hant,ja`、`DEFAULT_LOCALE`）をポータルの realm と管理コンソールに設定し、ログイン画面がブラウザの言語に従うようになりました。テスト S28 を追加。
+- **設定画面の目次**：画面上部にすべての設定カードを一覧表示し、クリックするとそのカードだけを表示します（URL が `/settings#id` になるため、ブックマークや共有が可能）。「すべて」で全カードを表示。再読み込みや保存後も同じカードに留まります。接続モードで非表示のカードは目次でも非表示になります。
+- **Keycloak キット / SOP**：Keycloak 26 の管理コンソールはブラウザのセキュアコンテキストが必要で、`http://<IP>:8080` では「Something went wrong」と表示されていました。**HTTPS 8443**（自己署名証明書を `keycloak/certs/` に配置）で提供するように変更。`realm.env` に `KC_ADMIN_URL` を設定すると `configure-realm.sh` が **master realm の Frontend URL** を内部の管理 URL に設定し、nginx の例は `/realms/master` を拒否します。テスト S27 を追加。
+- **Keycloak の表示言語**：`configure-realm.sh` が多言語化（`LOCALES`、既定 `en,zh-Hant,ja`、`DEFAULT_LOCALE`）をポータルの realm と管理コンソールに設定し、ログイン画面がブラウザの言語に従い、言語メニューにはコード `zh-Hant` ではなく「繁体字中国語 (繁體中文)」などと表示されます。テスト S28 を追加。
 
 ## v1.10.0 — OIDC シングルサインオン（Keycloak）
 

@@ -60,6 +60,23 @@ function watch(page, bag) {
       await Promise.all([hp.waitForURL(/\/dashboard/), hp.click('#confirmOk')]);
       ok('UI 刪除會議室', !(await hp.content()).includes(`value="${room}"`));
     } else ok('UI 刪除會議室', false, '找不到刪除按鈕');
+    // 系統設定頁目錄：每張可見卡片都有對應目錄項目；點選只顯示該卡片（#hash）、重新整理保持、「全部」還原
+    await hp.goto(BASE + '/settings');
+    const tocInfo = await hp.evaluate(() => {
+      const cards = [...document.querySelectorAll('.settings-card')].filter(c => c.style.display !== 'none').map(c => c.id.replace(/^card-/, ''));
+      const items = [...document.querySelectorAll('.settings-toc-item')].filter(a => a.offsetParent !== null).map(a => a.getAttribute('data-toc'));
+      return { cards, items };
+    });
+    ok('設定目錄：可見卡片與目錄項目一致', tocInfo.cards.length >= 10 && JSON.stringify(tocInfo.items) === JSON.stringify(['all', ...tocInfo.cards]), JSON.stringify(tocInfo));
+    const visibleCards = () => hp.evaluate(() => [...document.querySelectorAll('.settings-card')].filter(c => c.offsetParent !== null).map(c => c.id.replace(/^card-/, '')));
+    await hp.click('.settings-toc-item[data-toc="sso"]');
+    { const v = await visibleCards(); ok('設定目錄：點選後只顯示該卡片並更新網址', JSON.stringify(v) === '["sso"]' && hp.url().endsWith('#sso'), hp.url() + ' ' + JSON.stringify(v)); }
+    await hp.goto(BASE + '/dashboard'); await hp.goto(BASE + '/settings#sso'); await hp.waitForTimeout(500);
+    ok('設定目錄：直接開 /settings#sso 只顯示該卡片', JSON.stringify(await visibleCards()) === '["sso"]');
+    ok('設定目錄：以 #id 開啟時目錄仍在畫面內', await hp.evaluate(() => document.querySelector('.settings-toc').getBoundingClientRect().top >= 0));
+    await hp.click('.settings-toc-item[data-toc="all"]');
+    ok('設定目錄：「全部」還原所有卡片', (await visibleCards()).length === tocInfo.cards.length);
+    ok('設定頁無 CSP 錯誤', hv.length === 0, hv.slice(0, 2).join(' | '));
     await Promise.all([hp.waitForURL(/jt-login/), hp.click('form[action="/logout"] button')]);
     ok('登出按鈕（POST）', hp.url().includes('/jt-login'));
     await host.close(); await guest.close();

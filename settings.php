@@ -32,9 +32,58 @@ render_topbar($me, $ip);
   <?php if ($msg): ?><div class="alert alert-success"><?= icon('check') ?><span><?= htmlspecialchars($msg) ?></span></div><?php endif; ?>
   <?php if ($err): ?><div class="alert alert-error"><?= icon('warning') ?><span><?= htmlspecialchars($err) ?></span></div><?php endif; ?>
 
+  <?php
+  /* 設定目錄：點選只顯示該卡片（#id），「全部」顯示全部；依連線模式隱藏的卡片，目錄項目一併隱藏 */
+  $toc = [
+    ['site', 'home', t('站台設定'), ''],
+    ['login-path', 'lock', t('登入頁路徑'), ''],
+    ['sso', 'user', t('單一登入（SSO / OIDC）'), ''],
+    ['meeting-ui', 'video', t('會議室介面'), ''],
+    ['connection', 'link', t('連線模式設定'), ''],
+    ['meeting-custom', 'video', t('會議室自訂'), 'js-card-selfhosted'],
+    ['recording', 'video', t('錄製設定'), ''],
+    ['webhook', 'chart', t('8x8 用量 Webhook'), 'js-card-jaas'],
+    ['smtp', 'calendar', t('SMTP 寄信（會議邀請 .ics）'), ''],
+    ['logship', 'upload', t('登入記錄外拋（SIEM）'), ''],
+    ['theme', 'edit', t('外觀主題'), ''],
+    ['backup', 'upload', t('設定匯出 / 匯入'), ''],
+  ];
+  $toc_hidden = fn($cls) => ($cls === 'js-card-selfhosted' && $jaas['mode'] !== 'selfhosted') || ($cls === 'js-card-jaas' && $jaas['mode'] !== 'jaas');
+  ?>
+  <nav class="settings-toc" aria-label="<?= th('設定目錄') ?>">
+    <a href="#all" class="settings-toc-item" data-toc="all"><?= th('全部') ?></a>
+    <?php foreach ($toc as [$tid, $ticon, $tlabel, $tcls]): ?>
+      <a href="#<?= $tid ?>" class="settings-toc-item <?= $tcls ?>" data-toc="<?= $tid ?>"<?= $toc_hidden($tcls) ? ' style="display:none;"' : '' ?>><?= icon($ticon, 14) ?><?= htmlspecialchars($tlabel) ?></a>
+    <?php endforeach; ?>
+  </nav>
+  <script <?= nonce_attr() ?>>
+  (function () {
+    var KEY = 'jtvc-settings-tab';
+    function show(id, push) {
+      var cards = document.querySelectorAll('.settings-card');
+      var el = id !== 'all' ? document.getElementById('card-' + id) : null;
+      var ok = el && el.classList.contains('settings-card') && el.style.display !== 'none';
+      if (!ok) id = 'all';
+      cards.forEach(function (c) { c.classList.toggle('toc-hidden', id !== 'all' && c.id !== 'card-' + id); });
+      document.querySelectorAll('.settings-toc-item').forEach(function (a) { a.classList.toggle('active', a.getAttribute('data-toc') === id); });
+      try { sessionStorage.setItem(KEY, id); } catch (e) {}
+      if (push && history.replaceState) history.replaceState(null, '', id === 'all' ? location.pathname : '#' + id);
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.settings-toc-item').forEach(function (a) {
+        a.addEventListener('click', function (e) { e.preventDefault(); show(a.getAttribute('data-toc'), true); window.scrollTo(0, 0); });
+      });
+      var h = location.hash.replace('#', ''), saved = '';
+      try { saved = sessionStorage.getItem(KEY) || ''; } catch (e) {}
+      show(h || saved || 'all', false);
+    });
+    // cards use id="card-<id>" so the URL #<id> never triggers the browser's own anchor jump (the index stays visible)
+  })();
+  </script>
+
   <?php /* 站台設定 */ ?>
   <?php $brand = site_brand(); ?>
-  <div class="card">
+  <div id="card-site" class="card settings-card">
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('home', 18) ?><?= th('站台設定') ?></h1>
     <p class="subtitle" style="margin:6px 0 18px;"><?= th('設定左上角 logo 與站台名稱，套用到所有頁面（含登入頁、來賓頁）。') ?></p>
     <form method="POST" action="/save-site" enctype="multipart/form-data">
@@ -74,7 +123,7 @@ render_topbar($me, $ip);
 
   <?php /* 登入頁路徑偽裝 */ ?>
   <?php $login_path = Settings::getLoginPath(); ?>
-  <div class="card">
+  <div id="card-login-path" class="card settings-card">
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('lock', 18) ?><?= th('登入頁路徑') ?></h1>
     <p class="subtitle" style="margin:6px 0 18px;"><?= t('把登入入口改成只有你知道的祕密路徑，降低被自動掃描 / 暴力嘗試的機會。改掉後原本的 <span class="mono">/jt-login</span> 會直接回 404。') ?></p>
     <form method="POST" action="/save-settings">
@@ -99,7 +148,7 @@ render_topbar($me, $ip);
 
   <?php /* 單一登入（OIDC SSO） */ ?>
   <?php $oidc = Settings::getOidc(); $oidc_ip = Auth::clientIp(); ?>
-  <div class="card" id="sso">
+  <div id="card-sso" class="card settings-card">
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('user', 18) ?><?= th('單一登入（SSO / OIDC）') ?></h1>
     <p class="subtitle" style="margin:6px 0 12px;"><?= th('讓主持人與管理員用公司帳號登入（Keycloak、Microsoft Entra ID 等 OIDC 身分驗證服務）。本系統不直接連 AD / LDAP；地端 AD 請由 Keycloak 聯合。來賓仍使用邀請連結，不受影響。') ?></p>
     <div class="help" style="margin-bottom:12px;"><?= t('Keycloak 完整部署步驟見 {link}。', ['link' => '<a href="' . htmlspecialchars(I18n::docUrl('KEYCLOAK-SETUP')) . '" target="_blank" rel="noopener">KEYCLOAK-SETUP.md</a>']) ?></div>
@@ -162,7 +211,7 @@ render_topbar($me, $ip);
 
   <?php /* 會議室介面 */ ?>
   <?php $meeting_lang = Settings::getMeetingLangSetting(); $meeting_retention = Settings::getMeetingRetentionDays(); $audit_retention = Settings::getAuditRetentionDays(); $guest_poll = Settings::getGuestPollSeconds(); ?>
-  <div class="card">
+  <div id="card-meeting-ui" class="card settings-card">
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('video', 18) ?><?= th('會議室介面') ?></h1>
     <p class="subtitle" style="margin:6px 0 18px;"><?= th('設定來賓 / 主持人進入會議室時的預設介面語言（會關閉瀏覽器語言自動偵測，強制使用此語言）。') ?></p>
     <form method="POST" action="/save-settings" class="inline-form">
@@ -191,7 +240,7 @@ render_topbar($me, $ip);
   </div>
 
   <?php /* 連線模式設定 */ ?>
-  <div class="card">
+  <div id="card-connection" class="card settings-card">
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('link', 18) ?><?= th('連線模式設定') ?></h1>
     <p class="subtitle" style="margin:6px 0 18px;"><?= t('選擇使用 8x8 JaaS（雲端託管）或自建 Jitsi Meet。私鑰仍由主機掛載（<span class="mono">/var/www/html/keys/private.key</span>）。') ?></p>
     <form method="POST" action="/save-settings">
@@ -270,7 +319,7 @@ render_topbar($me, $ip);
 
   <?php /* 會議室自訂（僅自建 Jitsi Meet 模式；依連線模式下拉即時顯示） */ ?>
   <?php $mc = Settings::getMeetingCustom(); ?>
-  <div class="card js-card-selfhosted"<?= $jaas['mode']==='selfhosted' ? '' : ' style="display:none;"' ?>>
+  <div id="card-meeting-custom" class="card settings-card js-card-selfhosted"<?= $jaas['mode']==='selfhosted' ? '' : ' style="display:none;"' ?>>
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('video', 18) ?><?= th('會議室自訂') ?></h1>
     <p class="subtitle" style="margin:6px 0 18px;"><?= th('自建 Jitsi Meet 模式專用：進入預設值與工具列功能。設定會在進入會議時帶入 Jitsi。') ?></p>
     <form method="POST" action="/save-settings">
@@ -326,7 +375,7 @@ render_topbar($me, $ip);
     $rconf  = is_array($jstats['config'] ?? null) ? $jstats['config'] : [];
     $jrec   = $jstats['jibri']['recorders'] ?? null;
   ?>
-  <div class="card">
+  <div id="card-recording" class="card settings-card">
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('video', 18) ?><?= th('錄製設定') ?></h1>
     <p class="subtitle" style="margin:6px 0 18px;"><?= th('錄製者顯示名稱、自建 Jibri 錄影服務串接與錄影保留政策。') ?></p>
 
@@ -404,7 +453,7 @@ render_topbar($me, $ip);
   </div>
 
   <?php /* 8x8 用量 webhook（僅 JaaS 模式；依連線模式下拉即時顯示） */ ?>
-  <div class="card js-card-jaas"<?= $jaas['mode']==='jaas' ? '' : ' style="display:none;"' ?>>
+  <div id="card-webhook" class="card settings-card js-card-jaas"<?= $jaas['mode']==='jaas' ? '' : ' style="display:none;"' ?>>
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('chart', 18) ?><?= th('8x8 用量 Webhook') ?></h1>
     <p class="subtitle" style="margin:6px 0 18px;"><?= th('在 8x8 JaaS Console → Webhooks 設定下列 endpoint 與 secret，即可開始計量 MAU。') ?></p>
     <div class="field"><label>Webhook URL</label>
@@ -446,7 +495,7 @@ render_topbar($me, $ip);
   </div>
 
   <!-- SMTP -->
-  <div class="card">
+  <div id="card-smtp" class="card settings-card">
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('calendar', 18) ?><?= th('SMTP 寄信（會議邀請 .ics）') ?></h1>
     <p class="subtitle" style="margin:6px 0 18px;"><?= th('啟用後，建立會議室時填寫的與會者 email 會收到含行事曆的邀請信。') ?></p>
     <form method="POST" action="/save-settings">
@@ -494,7 +543,7 @@ render_topbar($me, $ip);
   </div>
 
   <?php /* Log 外拋 */ ?>
-  <div class="card">
+  <div id="card-logship" class="card settings-card">
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('upload', 18) ?><?= th('登入記錄外拋（SIEM）') ?></h1>
     <p class="subtitle" style="margin:6px 0 18px;"><?= th('將登入事件即時送往 syslog / CEF / GELF collector，支援 UDP / TCP。') ?></p>
     <form method="POST" action="/save-settings">
@@ -537,7 +586,7 @@ render_topbar($me, $ip);
     $current_theme = Settings::getTheme();
     $themes = Settings::themeOptions();
   ?>
-  <div class="card" id="theme">
+  <div id="card-theme" class="card settings-card">
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('edit', 18) ?><?= th('外觀主題') ?></h1>
     <p class="subtitle" style="margin:6px 0 0;"><?= th('站台層級設定，套用到所有頁面（含來賓頁）。點選即時套用。') ?></p>
     <form method="POST" action="/set-theme" class="theme-picker" id="themeForm">
@@ -559,7 +608,7 @@ render_topbar($me, $ip);
   </div>
 
   <?php /* 設定匯出 / 匯入 */ ?>
-  <div class="card">
+  <div id="card-backup" class="card settings-card">
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('upload', 18) ?><?= th('設定匯出 / 匯入') ?></h1>
     <p class="subtitle" style="margin:6px 0 18px;"><?= th('備份或搬移本系統的所有設定（含主題、連線模式、SMTP、外拋、會議室自訂、站台 logo、錄製/錄影服務、登入路徑、來賓等候等）。不含帳號、會議室與稽核記錄。') ?></p>
     <div class="alert alert-info" style="align-items:flex-start;">

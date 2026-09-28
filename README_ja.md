@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.10.0 — 会議管理システム
+# jt-vc-portal v1.11.0 — 会議管理システム
 
 > English: [README.md](README.md) · 繁體中文: [README_zh-TW.md](README_zh-TW.md)
 
@@ -204,14 +204,14 @@ server {
 
 ```bash
 # 1) Release ページからイメージとチェックサムファイルをダウンロード（最新のバージョン番号を使用）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.10.0/jt-vc-portal-1.10.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.10.0/jt-vc-portal-1.10.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.11.0/jt-vc-portal-1.11.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.11.0/jt-vc-portal-1.11.0-docker-amd64.tar.gz.sha256
 
 # 2) 完全性を検証（OK と表示されるはず）
-sha256sum -c jt-vc-portal-1.10.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.11.0-docker-amd64.tar.gz.sha256
 
-# 3) イメージを読み込む（jt-vc-portal:1.10.0 と :latest のタグが作成される）
-docker load < jt-vc-portal-1.10.0-docker-amd64.tar.gz
+# 3) イメージを読み込む（jt-vc-portal:1.11.0 と :latest のタグが作成される）
+docker load < jt-vc-portal-1.11.0-docker-amd64.tar.gz
 
 # 4) ホスト側で永続ディレクトリを準備（www-data の UID は既定で 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
