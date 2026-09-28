@@ -175,6 +175,7 @@
 - [ ] S26 本番：Keycloak の管理コンソール（`/admin`）がインターネットから 404、ディスカバリーの issuer が公開 https URL、VC-Admins / VC-Hosts のメンバーだけがログインできること。`/realms/master` がインターネットから 404 で、管理ネットワークから `https://<Keycloak ホスト>:8443/admin/` の管理コンソールにログインできること（「Something went wrong」が出ない）。
 - [ ] S27 `KC_ADMIN_URL` を設定した `configure-realm.sh`：master realm の Frontend URL（とその issuer）が内部の管理 URL になり、この設定での初回実行も成功し（変更後に kcadm へ再ログイン）、公開 realm の issuer とクライアントシークレットが変わらないこと。
 - [ ] S28 Keycloak の表示言語：`LOCALES` / `DEFAULT_LOCALE` を設定すると、ログイン画面がブラウザの言語に従うこと（zh-TW → 繁体字中国語 `zh-Hant`、ja → 日本語、en → 英語、未対応 → 既定）。ポータルの realm と master（管理者）realm の両方。
+- [ ] S29 本番環境の SSO スモークテスト（毎リリース、デプロイ後）：ディレクトリに作成した一時アカウント（管理者グループ・ホストグループ・グループなし）が実際の IdP 経由で OTP 登録を伴ってサインインし、ロールが正しいこと、SSO アカウントにローカルパスワード / 2FA がないこと、サインアウトでポータルと IdP の両セッションが終了すること、2 回目は OTP のみでサインインできること、グループなしのアカウントが拒否されること。終了後、一時アカウントはディレクトリ・IdP・ポータルからすべて削除されること。
 
 ## 4. 多言語対応（i18n）
 
@@ -296,4 +297,5 @@
 | SSO S01、S05–S07、S11–S21、S23–S25、S27、S28（実 Keycloak + ブラウザ、OTP を含む） | `tests/run-sso.sh`（`tests/e2e/sso.cjs`） |
 | SSO S22 | `tests/zap/run-zap.sh`（SSO を有効にしてスキャン） |
 | SSO S26 | 手動：KEYCLOAK-SETUP 第 7 節の確認コマンド |
+| SSO S29 | メンテナーが本番環境に対して実行するスモークテストスクリプト（一時アカウント、終了後に削除） |
 | 脆弱性スキャン | `tests/zap/run-zap.sh` |

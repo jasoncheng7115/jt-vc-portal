@@ -175,6 +175,7 @@
 - [ ] S26 Production: the Keycloak admin console (`/admin`) returns 404 from the Internet; the discovery issuer is the public https URL; only VC-Admins / VC-Hosts members can sign in; `/realms/master` returns 404 from the Internet; the admin console opens and signs in at `https://<Keycloak host>:8443/admin/` from the admin network (no "Something went wrong").
 - [ ] S27 `configure-realm.sh` with `KC_ADMIN_URL`: the master realm Frontend URL (and its issuer) becomes the internal admin URL, the script still succeeds on its first run with it (re-login after the change), and the public realm issuer and client secret are unchanged.
 - [ ] S28 Keycloak UI language: with `LOCALES` / `DEFAULT_LOCALE`, the login page follows the browser language (zh-TW → Traditional Chinese `zh-Hant`, ja → Japanese, en → English, unsupported → default), for the portal realm and the master (admin) realm.
+- [ ] S29 Production SSO smoke test (every release, after deploying): temporary directory accounts in the admin group, the host group and no group sign in through the real IdP with OTP enrolment; roles are correct, SSO accounts have no local password / 2FA, sign-out ends both the portal and IdP sessions, the second sign-in needs only OTP, the no-group account is refused; all temporary accounts are removed from the directory, the IdP and the portal afterwards.
 
 ## 4. Internationalization (i18n)
 
@@ -296,4 +297,5 @@ Spot-check on every release; test everything for major changes:
 | SSO S01, S05–S07, S11–S21, S23–S25, S27, S28 (real Keycloak + browser, incl. OTP) | `tests/run-sso.sh` (`tests/e2e/sso.cjs`) |
 | SSO S22 | `tests/zap/run-zap.sh` (scan with SSO enabled) |
 | SSO S26 | Manual: KEYCLOAK-SETUP section 7 verification commands |
+| SSO S29 | Production smoke script run by the maintainer against the live deployment (temporary accounts, cleaned up afterwards) |
 | Vulnerability scan | `tests/zap/run-zap.sh` |

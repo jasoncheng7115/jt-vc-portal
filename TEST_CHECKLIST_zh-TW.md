@@ -175,6 +175,7 @@
 - [ ] S26 正式部署：Keycloak 管理介面（`/admin`）從外網存取回 404；discovery 的 issuer 為對外 https 網址；只有 VC-Admins / VC-Hosts 成員能登入；`/realms/master` 從外網存取回 404；從管理網段開 `https://<Keycloak 主機>:8443/admin/` 可正常登入管理介面（不出現「Something went wrong」）。
 - [ ] S27 `configure-realm.sh` 設了 `KC_ADMIN_URL`：master realm 的 Frontend URL（與其 issuer）改為內網管理網址，第一次帶此設定執行也能成功（變更後重新登入 kcadm），對外 realm 的 issuer 與 client secret 不變。
 - [ ] S28 Keycloak 介面語言：設定 `LOCALES` / `DEFAULT_LOCALE` 後，登入頁依瀏覽器語言顯示（zh-TW → 繁中 `zh-Hant`、ja → 日文、en → 英文、不支援的語言 → 預設），portal realm 與 master（管理員）realm 皆然。
+- [ ] S29 正式環境 SSO 冒煙測試（每次發版、部署後）：以目錄服務建立的臨時帳號（管理員群組、主持人群組、無群組）經真實 IdP 登入並綁定 OTP；角色正確、SSO 帳號沒有本地密碼 / 2FA、登出同時結束 portal 與 IdP session、第二次登入只需 OTP、無群組帳號被拒；結束後臨時帳號從目錄服務、IdP 與 portal 全部移除。
 
 ## 4. 多語系（i18n）
 
@@ -296,4 +297,5 @@
 | SSO S01、S05–S07、S11–S21、S23–S25、S27、S28（真實 Keycloak + 瀏覽器，含 OTP） | `tests/run-sso.sh`（`tests/e2e/sso.cjs`） |
 | SSO S22 | `tests/zap/run-zap.sh`（啟用 SSO 掃描） |
 | SSO S26 | 手動：KEYCLOAK-SETUP 第 7 節驗證指令 |
+| SSO S29 | 維護者對正式環境執行的冒煙測試腳本（臨時帳號，結束後清除） |
 | 弱點掃描 | `tests/zap/run-zap.sh` |
