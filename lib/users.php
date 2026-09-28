@@ -106,7 +106,7 @@ class Users {
     self::mutate(function (array &$users) use ($id, $fields, &$found) {
       foreach ($users as &$u) {
         if (($u['id'] ?? '') !== $id) continue;
-        foreach (['username', 'display_name', 'email', 'role', 'totp_secret', 'totp_enabled', 'totp_last_counter', 'disabled', 'lang'] as $k) {
+        foreach (['username', 'display_name', 'email', 'role', 'totp_secret', 'totp_enabled', 'totp_last_counter', 'disabled', 'lang', 'transcribe'] as $k) {
           if (array_key_exists($k, $fields)) $u[$k] = $fields[$k];
         }
         if (!empty($fields['password']) && ($u['auth'] ?? 'local') !== 'oidc') {   // SSO 帳號不設本地密碼

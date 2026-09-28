@@ -2,6 +2,15 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.12.0 — Meeting transcripts and summaries (jt-live-whisper)
+
+- **Transcripts and meeting summaries**: finished Jibri recordings can be sent to jt-live-whisper (JTLW, `api_revision` 2.4) — streamed upload, one job for recognition, speakers, correction and summary, webhook (hex HMAC-SHA256, 300-second window, deduplicated by event id) with a per-minute background worker as fallback, results written to disk before JTLW is told to delete its copy. Summary: key points, decisions and action items, events, risks, open questions, topic timeline and speaking time, every item citing the recording time.
+- **Permissions**: per-account transcript permission (off / manual / automatic), a per-meeting switch when creating a room (cannot exceed the account permission), admins can generate for any meeting; hosts only see their own meetings. Automatic generation only covers meetings recorded after the feature was enabled.
+- **Transcript page** (following Jason Tools Doc Tools): waveform player with speaker tooltip, click a time or a citation to jump there, current segment highlighted, speaker colours, rename a speaker everywhere or just one segment, TXT / SRT / JSON / Markdown download, notices for uncorrected text, trailing silence and missing speaker separation.
+- **Retention and audit**: results follow the recording (deleted with it or by the Jibri retention policy, together with the JTLW job record); audit events for generate / done / failed / cancel / delete / view / download / rename, never the content.
+- **Language menu**: the top-right language switch now shows only the current language and opens a menu on click.
+- **Tests**: 16 unit tests and 62 integration / browser tests against the JTLW mock server and a stub Jibri service (T01–T31).
+
 ## v1.11.1 — Settings sidebar, SSO display name, fixes
 
 - **Settings page**: the section index is now a sidebar on the left (one entry per line, short labels, stays in place while scrolling; a scrollable row on narrow screens). Changing only the `#` part of the URL switches the card too.

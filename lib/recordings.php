@@ -112,6 +112,26 @@ class Recordings {
     return self::req('DELETE', '/api/recordings/' . rawurlencode($id))['ok'];
   }
 
+  /** 把錄影檔下載到本機暫存（送逐字稿用）；成功回 true。不整個讀進記憶體。 */
+  public static function downloadTo(string $id, string $dest): bool {
+    $j = Settings::getJibri();
+    if ($j['url'] === '' || $j['token'] === '') return false;
+    $fh = @fopen($dest, 'wb');
+    if (!$fh) return false;
+    $ch = curl_init($j['url'] . '/api/recordings/' . rawurlencode($id) . '/file');
+    curl_setopt_array($ch, [
+      CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $j['token']],
+      CURLOPT_FILE => $fh, CURLOPT_CONNECTTIMEOUT => 5, CURLOPT_TIMEOUT => 0,
+      CURLOPT_LOW_SPEED_LIMIT => 1024, CURLOPT_LOW_SPEED_TIME => 60, CURLOPT_FOLLOWLOCATION => false,
+    ]);
+    $ok = curl_exec($ch) !== false;
+    $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    curl_close($ch); fclose($fh);
+    if (!$ok || $code !== 200 || filesize($dest) === 0) { @unlink($dest); return false; }
+    @chmod($dest, 0640);
+    return true;
+  }
+
   /**
    * 串流代理：把錄影檔（支援 Range）原樣轉給瀏覽器；$dl=true 為下載。
    * 直接輸出 header 與內容，呼叫端不應再輸出任何東西。

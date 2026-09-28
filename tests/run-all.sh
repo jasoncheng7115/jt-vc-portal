@@ -14,3 +14,5 @@ echo "### sso (real Keycloak)"
 "$ROOT/tests/run-sso.sh" | tail -1
 echo "### jibri api"
 "$ROOT/tests/test-jibri-api.sh" | tail -1
+echo "### transcribe (JTLW mock)"
+"$ROOT/tests/run-transcribe.sh" | tail -1

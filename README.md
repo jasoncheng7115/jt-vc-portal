@@ -30,6 +30,7 @@
 - **Email invitations**: enter attendee email addresses to send invitations with an `.ics` attachment (METHOD:REQUEST) that can be added to a calendar in one click.
 - **Multiple accounts / roles / 2FA**: admins see all rooms, hosts see only the rooms they created; TOTP two-factor authentication supported.
 - **Single sign-on (OIDC)**: hosts and admins can sign in with their company account through Keycloak / Entra ID (AD groups → roles, MFA at the IdP); the portal never connects to AD / LDAP directly. SSO-only mode with an IP-restricted emergency admin. Setup: [KEYCLOAK-SETUP.md](KEYCLOAK-SETUP.md).
+- **Meeting transcripts and summaries (jt-live-whisper)**: after a self-hosted Jibri recording finishes, the portal can send it to [jt-live-whisper](https://github.com/jasoncheng7115/jt-live-whisper) (JTLW) to produce a speaker-labelled transcript and a meeting summary — key points, decisions and action items, events, risks, open questions, topics and who spoke how much, every item citing the time in the recording. Per-account permission (off / manual / automatic), a per-meeting switch, and admins can generate for any meeting. Viewer with a waveform player, click-to-seek, speaker renaming and TXT / SRT / JSON / Markdown downloads. The portal itself never connects to a language model.
 - **Auditing and security**: complete audit log of user actions (sign-ins, room creation, invitations, settings changes…) + real-time forwarding via syslog / CEF / GELF; fail2ban-style login lockout; CSRF protection; follows OWASP Top 10:2025.
 - **Recording retrieval** (self-hosted Jibri): connects to a recording service on the Jibri host for online listing / playback / download / deletion, host storage capacity, and retention policies (age / capacity / leftovers, disabled by default); hosts can access recordings of the meetings they hosted.
 - **Multilingual interface**: the portal UI is available in Traditional Chinese, English and Japanese — detected from the browser, switchable from the account menu or per user in the profile; the Jitsi meeting language can follow the interface language.
@@ -401,6 +402,41 @@ When recording with self-hosted Jitsi Meet + Jibri, you can run the bundled `jib
 - Enter the service URL and token under **System Settings → Recording settings → Jibri recording service**; once detected, a "Recordings" tab appears in the navigation bar.
 - **Retention policies** (all disabled by default): by age (keep N days), by capacity (keep a minimum of free space / cap total recording size, deleting oldest first), and automatic cleanup of leftover / incomplete recordings. Files still being recorded are never cleaned up.
 - For service installation and systemd configuration, see **[JIBRI-SETUP.md](JIBRI-SETUP.md)**.
+
+---
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+## Meeting transcripts and summaries (jt-live-whisper)
+
+After a recording on the self-hosted Jibri host finishes, the portal can hand it to the speech service **jt-live-whisper (JTLW)**, which returns a transcript with speakers and a meeting summary. Results are stored by the portal next to the recording.
+
+**Requirements**
+
+- Recording retrieval set up (self-hosted Jibri + `jibri-recordings-api`, see above).
+- A jt-live-whisper REST API (`api_revision` 2.4 or later) and an API key for this portal with the scopes `jobs:write`, `jobs:read`, `jobs:cancel`, `profiles:read`.
+- Optional: the JTLW host must be able to reach `<your site>/jtlw-webhook` for completion notifications. Without it the portal still works — the background worker checks progress every minute.
+
+**Setup**
+
+1. **System Settings → Transcripts and summaries**: enter the JTLW URL (e.g. `https://10.0.0.30:8790`), the API key and, for a self-signed certificate, its PEM (it is trusted as given — certificate verification is never turned off; compare the SHA-256 fingerprint shown). Choose the meeting language (set it when known — "auto" decides from roughly the first 30 seconds) and whether to produce summaries. Click **Save and test connection**, then **Register webhook**.
+2. **Background worker** — run it every minute:
+   - Docker: add to the host's crontab `* * * * * docker exec -u www-data jaas-auth php /var/www/html/transcribe-worker.php`
+   - Direct install: `/etc/cron.d/jtvc-transcribe` with `* * * * * www-data php /var/www/html/transcribe-worker.php`
+   It uploads recordings one at a time, follows progress, retrieves the results and removes results whose recording is gone. Only one instance runs at a time.
+3. **Permissions — Account management → Transcript permission** for each host: *off* (default), *manual* (can press "Generate transcript" on their own meetings) or *automatic* (generated when their recordings finish). When creating a room, a host who may use transcripts can switch it on or off for that meeting. Administrators can generate transcripts for any meeting. Automatic generation only processes meetings recorded after the feature was enabled.
+
+**How it works and data retention**
+
+- The portal streams the recording to JTLW, submits one job (recognition, speakers, punctuation correction, summary), waits for the webhook or polls, retrieves the transcript and the summary (JSON + Markdown), writes them to disk and only then tells JTLW to delete its copy. JTLW deletes the uploaded recording after processing.
+- Results live in the data directory (`transcripts/<recording id>/`) and follow the recording: deleting a recording, or the Jibri retention policy removing it, deletes its transcript and summary too.
+- Hosts only see transcripts of meetings they hosted; the audit log records who generated, viewed, downloaded or renamed — never the transcript content.
+- Summaries are available for Chinese and English meetings; for Japanese and Korean only the transcript is produced. Speaker ids (S1, S2…) are voice clusters, not names — rename them on the transcript page.
 
 ---
 

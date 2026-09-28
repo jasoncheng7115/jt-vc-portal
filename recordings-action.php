@@ -3,6 +3,7 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/recordings.php';
 require_once __DIR__ . '/lib/audit.php';
+require_once __DIR__ . '/lib/transcripts.php';
 
 $me = Auth::requireAdmin();
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: /recordings'); exit; }
@@ -20,6 +21,7 @@ if ($action === 'delete') {
   $id = (string)($_POST['id'] ?? '');
   if ($id !== '' && Recordings::delete($id)) {
     Audit::log('recording_delete', t('刪除錄影 {id}', ['id' => $id]));
+    if (Transcripts::validId($id) && Transcripts::get($id)) Transcripts::purge($id, 'recording_deleted');   // 逐字稿跟著錄影走
     $back('rec_msg', t('已刪除該筆錄影。'));
   }
   $back('rec_err', t('刪除失敗（可能正在錄製或服務無法連線）。'));

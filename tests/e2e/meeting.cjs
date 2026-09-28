@@ -20,6 +20,11 @@ function watch(page, bag) {
     const host = await browser.newContext({ locale, extraHTTPHeaders: { 'Accept-Language': locale } });
     const hp = await host.newPage(); const hv = []; watch(hp, hv);
     await hp.goto(BASE + '/jt-login');
+    ok('語言選單預設收合、只顯示目前語言', !(await hp.isVisible('#topbarLangMenu')) && (await hp.$$('#topbarLangBtn')).length === 1);
+    await hp.click('#topbarLangBtn');
+    ok('語言選單點了才展開，列出所有語言並標示目前語言', (await hp.$$eval('#topbarLangMenu a[hreflang]', as => as.length)) === 3 && await hp.isVisible('#topbarLangMenu a.active'));
+    await hp.keyboard.press('Escape');
+    ok('語言選單按 Esc 收合', !(await hp.isVisible('#topbarLangMenu')));
     await hp.fill('#email', 'jtvc-admin'); await hp.fill('#password', ADMIN_PW);
     await Promise.all([hp.waitForURL(/\/dashboard/), hp.click('button[type=submit]')]);
     ok('登入後到儀表板', hp.url().includes('/dashboard'));

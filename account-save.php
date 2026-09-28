@@ -50,6 +50,11 @@ if ($target['id'] === $me['id'] && $disabled) {
 }
 
 $fields = ['role' => $role, 'disabled' => $disabled];
+if (array_key_exists('transcribe', $_POST)) {
+  $tp = (string)$_POST['transcribe'];
+  if (!in_array($tp, ['none', 'manual', 'auto'], true)) $back('acc_err', t('參數錯誤。'));
+  $fields['transcribe'] = $tp;
+}
 if (array_key_exists('display_name', $_POST)) {
   $fields['display_name'] = trim($_POST['display_name']) ?: $target['username'];
 }
@@ -70,6 +75,7 @@ if ($revoke) $fields['revoke_sessions'] = true;
 Users::update($id, $fields);
 $changed = [];
 if ($role !== $target['role']) $changed[] = t('角色→{role}', ['role' => $role]);
+if (isset($fields['transcribe']) && $fields['transcribe'] !== ($target['transcribe'] ?? 'none')) $changed[] = t('逐字稿權限→{p}', ['p' => $fields['transcribe']]);
 if ($disabled !== !empty($target['disabled'])) $changed[] = $disabled ? t('停用') : t('啟用');
 if ($password !== '') $changed[] = t('重設密碼');
 if ($revoke) $changed[] = t('強制登出所有裝置');

@@ -1,0 +1,464 @@
+<?php
+/**
+ * 錄影逐字稿與會議摘要（v1.12.0；後端 JTLW）。
+ *
+ * 流程（照 JTLW 交付的串接說明與 jtdt meeting_transcribe 的做法）：
+ *   待處理（pending）→ 從 Jibri 取錄影、串流上傳 JTLW（uploading）→ 送件（queued / running）
+ *   → webhook 通知或排程輪詢到終態 → 取回逐字稿（final + raw + speakers 以 seq 對齊）與摘要（JSON + Markdown）
+ *   → 寫檔（原子寫入 + fsync）→ 才 ACK 讓 JTLW 刪掉它那份 → done / partial（摘要失敗，逐字稿在）/ failed。
+ *
+ * 權限：帳號「逐字稿權限」none / manual / auto；建立會議室時可單場開關（覆蓋帳號預設）；管理員可對任何場次手動產生。
+ * 資料：transcripts.json（索引，Store::update 加鎖）＋ transcripts/<錄影 id>/{transcript,summary}.json、summary.md、speakers.json。
+ * 保留：錄影不在了（保留政策清除 / 刪除）→ 一併刪除本地結果並呼叫 JTLW DELETE。稽核不記逐字稿內容。
+ */
+require_once __DIR__ . '/store.php';
+require_once __DIR__ . '/settings.php';
+require_once __DIR__ . '/users.php';
+require_once __DIR__ . '/rooms.php';
+require_once __DIR__ . '/recordings.php';
+require_once __DIR__ . '/jtlw.php';
+require_once __DIR__ . '/audit.php';
+
+class Transcripts {
+  const INDEX_FILE  = DATA_DIR . '/transcripts.json';
+  const EVENTS_FILE = DATA_DIR . '/transcripts-events.json';
+  const DIR         = DATA_DIR . '/transcripts';
+  const PERMS       = ['none', 'manual', 'auto'];
+  const ACTIVE      = ['pending', 'uploading', 'queued', 'running', 'cancelling'];
+  const TAIL_GAP_HINT_MS = 60000;           // 錄影尾端超過 60 秒沒有文字：只提示、不判失敗（jtdt 同）
+  const MAX_ATTEMPTS = 6;
+  const BACKOFF = [60, 120, 300, 600, 1800, 3600];
+
+  // ── 權限 ──
+  public static function perm(?array $u): string {
+    $p = (string)($u['transcribe'] ?? 'none');
+    return in_array($p, self::PERMS, true) ? $p : 'none';
+  }
+  /** 可以使用逐字稿功能（看自己場次的逐字稿、手動產生）：管理員或權限 manual / auto。 */
+  public static function canUse(array $me): bool {
+    return ($me['role'] ?? '') === 'admin' || self::perm($me) !== 'none';
+  }
+  public static function canView(array $rec, array $me): bool {
+    return self::canUse($me) && Recordings::canAccess($rec, $me);
+  }
+  public static function canRequest(array $rec, array $me): bool {
+    if (($me['role'] ?? '') === 'admin') return true;
+    return self::perm($me) !== 'none' && Recordings::canAccess($rec, $me);
+  }
+
+  public static function validId(string $id): bool { return (bool)preg_match('/^[A-Za-z0-9_-]{6,80}$/', $id); }
+  private static function dir(string $id): string { return self::DIR . '/' . $id; }
+
+  // ── 索引 ──
+  public static function all(): array {
+    $d = Store::read(self::INDEX_FILE, []);
+    return is_array($d) ? $d : [];
+  }
+  public static function get(string $id): ?array { return self::all()[$id] ?? null; }
+  /** 加鎖讀改寫：$fn(array &$d) 回 true 才寫回。 */
+  private static function mutate(callable $fn): void {
+    Store::update(self::INDEX_FILE, function ($cur) use ($fn) {
+      $d = is_array($cur) ? $cur : [];
+      return $fn($d) ? $d : null;
+    }, []);
+  }
+  private static function patch(string $id, array $fields): void {
+    self::mutate(function (array &$d) use ($id, $fields) {
+      if (!isset($d[$id])) return false;
+      $d[$id] = array_merge($d[$id], $fields, ['updated_at' => time()]);
+      return true;
+    });
+  }
+
+  /** 對應錄影的會議 session（meetings.jsonl），用來帶 hints.meeting 與單場開關。 */
+  public static function sessionOf(array $rec): ?array {
+    $room = (string)($rec['room'] ?? ''); $end = (int)($rec['mtime'] ?? 0);
+    $best = null; $bd = PHP_INT_MAX;
+    foreach (Rooms::meetingSessions(0, time() + 86400) as $s) {
+      if ((string)($s['room'] ?? '') !== $room) continue;
+      $ss = (int)($s['start'] ?? 0); $se = (int)($s['end'] ?? 0);
+      if ($end >= $ss - 120 && $end <= $se + 300) { $dd = abs($se - $end); if ($dd < $bd) { $bd = $dd; $best = $s; } }
+    }
+    return $best;
+  }
+
+  /**
+   * 錄影完成後要不要自動產生：單場開關優先（true / false），沒設定才看主持人帳號是否為「自動」。
+   * 單場開關只對「可使用逐字稿」的主持人（或管理員）有效——不能用房間設定繞過帳號權限。
+   */
+  public static function autoEligible(array $rec): bool {
+    $ownerId = Recordings::ownerOf($rec);
+    if ($ownerId === '') return false;
+    $owner = Users::find($ownerId);
+    if (!$owner || !empty($owner['disabled'])) return false;
+    if (!self::canUse($owner)) return false;
+    $sess = self::sessionOf($rec);
+    $flag = $sess['transcribe'] ?? null;
+    if ($flag === null) { $r = Rooms::get((string)($rec['room'] ?? '')); $flag = $r['transcribe'] ?? null; }
+    if ($flag !== null) return (bool)$flag;
+    return self::perm($owner) === 'auto';
+  }
+
+  /** 建立一筆待處理（手動或自動）。已有進行中 / 完成的回 false。 */
+  public static function enqueue(array $rec, string $trigger, ?array $by = null, ?string $language = null): bool {
+    $id = (string)($rec['id'] ?? '');
+    if (!self::validId($id)) return false;
+    $cfg = Settings::getTranscribe();
+    $lang = in_array($language, Settings::TRANSCRIBE_LANGS, true) ? $language : $cfg['language'];
+    $ok = false;
+    self::mutate(function (array &$d) use ($id, $rec, $trigger, $by, $lang, &$ok) {
+      $cur = $d[$id] ?? null;
+      if ($cur && in_array($cur['status'] ?? '', array_merge(self::ACTIVE, ['done', 'partial']), true)) return false;
+      $d[$id] = [
+        'rec_id' => $id, 'room' => (string)($rec['room'] ?? ''), 'file' => (string)($rec['file'] ?? ''),
+        'rec_mtime' => (int)($rec['mtime'] ?? 0), 'duration' => (int)($rec['duration'] ?? 0), 'size' => (int)($rec['size'] ?? 0),
+        'owner' => Recordings::ownerOf($rec),
+        'trigger' => $trigger, 'requested_by' => $by['id'] ?? '', 'requested_by_name' => $by['username'] ?? '',
+        'requested_at' => time(), 'language' => $lang,
+        'gen' => (int)($cur['gen'] ?? 0) + 1,       // 重新產生時換 Idempotency-Key（upload_id 只能用一次）
+        'status' => 'pending', 'attempts' => 0, 'next_try_at' => 0,
+        'job_id' => '', 'upload_id' => '', 'error_code' => '', 'error_reason' => '',
+        'progress' => null, 'summary_status' => '', 'notify_due' => false, 'updated_at' => time(),
+      ];
+      $ok = true;
+      return true;
+    });
+    return $ok;
+  }
+
+  // ── 背景工作（transcribe-worker.php 每分鐘呼叫；只有一個執行個體）──
+  public static function runWorker(?callable $log = null): array {
+    $log = $log ?? function ($m) {};
+    $stats = ['auto_enqueued' => 0, 'submitted' => 0, 'polled' => 0, 'finished' => 0, 'purged' => 0];
+    if (!Settings::transcribeReady()) { $log('transcribe not configured'); return $stats; }
+    $recs = [];
+    foreach (Recordings::listRecordings() as $r) { if (!empty($r['id'])) $recs[(string)$r['id']] = $r; }
+    $listed = Recordings::configured() && (Recordings::ping());
+
+    // 1. 錄影不在了 → 刪除本地結果與 JTLW 端紀錄（保留政策跟著錄影走）
+    if ($listed) {
+      foreach (self::all() as $id => $e) {
+        if (isset($recs[$id])) continue;
+        if (in_array($e['status'] ?? '', ['uploading'], true)) continue;
+        self::purge((string)$id, 'recording_gone');
+        $stats['purged']++;
+      }
+    }
+
+    // 2. 自動產生：錄影完成（status ok）、在啟用自動之後錄的、符合權限
+    $since = (int)(Settings::getSection('transcribe')['auto_since'] ?? 0);
+    if ($since > 0) {
+      $index = self::all();
+      foreach ($recs as $id => $r) {
+        if (($r['status'] ?? '') !== 'ok' || isset($index[$id])) continue;
+        if ((int)($r['mtime'] ?? 0) < $since) continue;
+        if (self::autoEligible($r) && self::enqueue($r, 'auto')) {
+          $stats['auto_enqueued']++;
+          Audit::log('transcript_request', t('自動產生逐字稿：會議室「{room}」錄影 {id}', ['room' => $r['room'] ?? '', 'id' => $id]), ['actor' => 'system']);
+        }
+      }
+    }
+
+    // 3. 送件：一次只上傳一件（JTLW 要求一件一件來）
+    foreach (self::all() as $id => $e) {
+      if (($e['status'] ?? '') !== 'pending' || (int)($e['next_try_at'] ?? 0) > time()) continue;
+      if (!isset($recs[$id])) { self::fail($id, 'recording_missing', false); continue; }
+      self::submit((string)$id, $recs[$id], $log);
+      $stats['submitted']++;
+      break;
+    }
+
+    // 4. 查詢進行中的作業；到終態就取回
+    foreach (self::all() as $id => $e) {
+      if (!in_array($e['status'] ?? '', ['queued', 'running', 'cancelling'], true) || empty($e['job_id'])) continue;
+      $stats['polled']++;
+      if (self::poll((string)$id)) $stats['finished']++;
+    }
+    return $stats;
+  }
+
+  private static function fail(string $id, string $code, bool $retryable, string $reason = ''): void {
+    $e = self::get($id); if (!$e) return;
+    $attempts = (int)($e['attempts'] ?? 0) + 1;
+    if ($retryable && $attempts < self::MAX_ATTEMPTS) {
+      self::patch($id, ['status' => 'pending', 'attempts' => $attempts, 'error_code' => $code, 'error_reason' => $reason,
+                        'next_try_at' => time() + self::BACKOFF[min($attempts - 1, count(self::BACKOFF) - 1)]]);
+      return;
+    }
+    self::patch($id, ['status' => 'failed', 'attempts' => $attempts, 'error_code' => $code, 'error_reason' => $reason]);
+    Audit::log('transcript_failed', t('逐字稿產生失敗：會議室「{room}」錄影 {id}（{code}）', ['room' => $e['room'] ?? '', 'id' => $id, 'code' => $code]), ['actor' => 'system', 'result' => 'fail']);
+  }
+
+  /** 取錄影 → 串流上傳 → 送件。 */
+  public static function submit(string $id, array $rec, ?callable $log = null): void {
+    $e = self::get($id); if (!$e) return;
+    $cfg = Settings::getTranscribe();
+    self::patch($id, ['status' => 'uploading', 'error_code' => '', 'error_reason' => '']);
+    @mkdir(DATA_DIR . '/tmp', 0750, true);
+    $tmp = DATA_DIR . '/tmp/rec-' . $id . '.bin';
+    try {
+      if (!Recordings::downloadTo($id, $tmp)) throw new JtlwError(0, ['code' => 'recording_missing', 'retryable' => true]);
+      $up = Jtlw::upload($tmp, (string)($rec['file'] ?? ($id . '.mp4')));
+      @unlink($tmp);
+      $lang = (string)($e['language'] ?? $cfg['language']);
+      $tasks = ['transcribe', 'diarize', 'correct'];
+      $summary = $cfg['summarize'] && in_array($lang, ['zh-Hant', 'en', 'auto'], true);
+      if ($summary) $tasks[] = 'summarize';
+      $body = [
+        'profile_id' => $cfg['profile_id'],
+        'tasks' => $tasks,
+        'source' => ['type' => 'upload', 'upload_id' => (string)$up['upload_id']],
+        'language' => $lang,
+        'external_ref' => ['system' => 'jtvc', 'job_id' => $id],
+      ];
+      // 測試用：JTLW mock 以 external_ref.mock_scenario 切換情境（只有測試容器會設這個環境變數）
+      $sc = (string)getenv('JTVC_JTLW_MOCK_SCENARIO');
+      if ($sc !== '' && preg_match('/^[a-z_]{1,32}$/', $sc)) $body['external_ref']['mock_scenario'] = $sc;
+      $hints = self::meetingHints($rec);
+      if ($hints) $body['hints'] = ['meeting' => $hints];
+      if ($cfg['webhook_endpoint_id'] !== '') $body['webhook'] = ['endpoint_id' => $cfg['webhook_endpoint_id']];
+      $job = Jtlw::createJob($body, 'jtvc-rec-' . $id . '-' . (int)($e['gen'] ?? 1));
+      self::patch($id, ['status' => (string)($job['status'] ?? 'queued') === 'running' ? 'running' : 'queued',
+                        'job_id' => (string)$job['job_id'], 'upload_id' => (string)$up['upload_id'],
+                        'summary_requested' => $summary, 'submitted_at' => time(), 'progress' => self::progressOf($job)]);
+      if ($log) $log("submitted $id -> " . $job['job_id']);
+    } catch (JtlwError $ex) {
+      @unlink($tmp);
+      self::fail($id, $ex->errCode(), $ex->retryable(), $ex->reason());
+      if ($log) $log("submit $id failed: " . $ex->errCode());
+    }
+  }
+
+  /** hints.meeting：只幫助讀懂逐字稿（人名、稱呼），不會變成摘要項目；沒有標題就不放 title。 */
+  public static function meetingHints(array $rec): array {
+    $s = self::sessionOf($rec);
+    $h = ['room' => (string)($rec['room'] ?? '')];
+    if ($s) {
+      $owner = Users::find((string)($s['owner'] ?? ''));
+      $host = trim((string)($owner['display_name'] ?? '')) ?: (string)($s['owner_name'] ?? '');
+      if ($host !== '') $h['host'] = mb_substr($host, 0, 100);
+      if (!empty($s['start'])) $h['started_at'] = gmdate('Y-m-d\TH:i:s\Z', (int)$s['start']);
+      if (!empty($s['end']))   $h['ended_at']   = gmdate('Y-m-d\TH:i:s\Z', (int)$s['end']);
+      $ps = [];
+      foreach ((array)($s['participants'] ?? []) as $p) {
+        $name = trim((string)($p['name'] ?? '')); if ($name === '') continue;
+        $x = ['name' => mb_substr($name, 0, 100)];
+        if (!empty($p['in']))  $x['joined_at'] = gmdate('Y-m-d\TH:i:s\Z', (int)$p['in']);
+        if (!empty($p['out'])) $x['left_at']   = gmdate('Y-m-d\TH:i:s\Z', (int)$p['out']);
+        $ps[] = $x;
+        if (count($ps) >= 200) break;
+      }
+      if ($ps) $h['participants'] = $ps;
+    }
+    return $h;
+  }
+
+  private static function progressOf(array $job): array {
+    $p = (array)($job['progress'] ?? []);
+    return [
+      'status' => (string)($job['status'] ?? ''),
+      'stage' => (string)($p['stage'] ?? ''), 'percent' => isset($p['percent']) ? (int)$p['percent'] : null,
+      'detail' => mb_substr((string)($p['detail'] ?? ''), 0, 60),
+      'processed_ms' => isset($p['processed_audio_ms']) ? (int)$p['processed_audio_ms'] : null,
+      'total_ms' => isset($p['total_audio_ms']) ? (int)$p['total_audio_ms'] : null,
+      'queue_position' => isset($job['queue_position']) ? (int)$job['queue_position'] : null,
+      'waiting' => !empty($p['waiting']) ? (int)($p['waiting']['ahead'] ?? 0) : null,
+    ];
+  }
+
+  /** 查一次；到終態就取回結果。回 true＝已結束。 */
+  public static function poll(string $id): bool {
+    $e = self::get($id); if (!$e || empty($e['job_id'])) return false;
+    try { $job = Jtlw::getJob((string)$e['job_id']); }
+    catch (JtlwError $ex) {
+      if ($ex->status === 404) { self::fail($id, 'job_missing', false); return true; }
+      return false;                                   // 連不上：下一輪再查（撐過 JTLW 重啟）
+    }
+    $st = (string)($job['status'] ?? '');
+    if (in_array($st, ['queued', 'running', 'cancelling'], true)) {
+      self::patch($id, ['status' => $st, 'progress' => self::progressOf($job), 'notify_due' => false]);
+      return false;
+    }
+    if ($st === 'cancelled') {
+      self::patch($id, ['status' => 'cancelled', 'progress' => null, 'notify_due' => false]);
+      Audit::log('transcript_cancel', t('逐字稿作業已取消：會議室「{room}」錄影 {id}', ['room' => $e['room'] ?? '', 'id' => $id]), ['actor' => 'system']);
+      return true;
+    }
+    if ($st === 'failed') {
+      $code = (string)($job['errors'][0]['code'] ?? 'failed');
+      self::patch($id, ['attempts' => self::MAX_ATTEMPTS]);          // 錄影已在 JTLW 刪除，不自動重送（可手動重新產生）
+      self::fail($id, $code, false);
+      return true;
+    }
+    if (in_array($st, ['succeeded', 'partially_succeeded'], true)) return self::fetch($id, $job);
+    return false;
+  }
+
+  /** 取回結果、存檔（fsync）、才 ACK。 */
+  public static function fetch(string $id, array $job): bool {
+    $e = self::get($id); if (!$e) return false;
+    $jid = (string)$e['job_id'];
+    try {
+      $final = Jtlw::segments($jid, 'final');
+      $raw = Jtlw::segments($jid, 'raw');
+      $spk = [];
+      try { $spk = Jtlw::segments($jid, 'speakers'); } catch (JtlwError $x) { if ($x->errCode() !== 'task_not_requested') throw $x; }
+    } catch (JtlwError $ex) {
+      return false;                                    // 暫時取不到：下一輪再試（內容在 ACK 前不會被刪）
+    }
+    $tr = self::mergeSegments($raw, $final, $spk);
+    if (!$tr['segments']) {                            // 0 段視為失敗（jtdt 教訓：曾有「成功但 0 段」；也可能是錄影裡沒有人說話）
+      try { Jtlw::delete($jid); } catch (JtlwError $x) {}   // 沒有內容可取回：JTLW 端紀錄直接刪除，不留 7 天
+      self::fail($id, 'empty_transcript', false);
+      return true;
+    }
+    $durMs = max((int)($e['duration'] ?? 0) * 1000, (int)($job['result']['duration_ms'] ?? 0));
+    $lastEnd = 0; foreach ($tr['segments'] as $s) $lastEnd = max($lastEnd, (int)($s['end_ms'] ?? 0));
+    $tr['duration_ms'] = $durMs;
+    $tr['tail_gap_ms'] = $durMs > 0 ? max(0, $durMs - $lastEnd) : 0;
+    $tr['tail_hint'] = $tr['tail_gap_ms'] > self::TAIL_GAP_HINT_MS;
+    $tr['diarize_skipped'] = !$spk;
+    $tr['job_id'] = $jid; $tr['language'] = (string)($e['language'] ?? '');
+    $tr['generated_at'] = time();
+
+    // 摘要：tasks.summarize ＝ succeeded / failed / skipped…；失敗原因在 errors[] 中 task=summarize 那筆
+    $summaryStatus = 'not_requested'; $summary = null; $md = null; $sumErr = '';
+    if (!empty($e['summary_requested'])) {
+      $task = (string)($job['tasks']['summarize'] ?? '');
+      foreach ((array)($job['errors'] ?? []) as $er) { if (($er['task'] ?? '') === 'summarize') { $sumErr = (string)($er['code'] ?? ''); break; } }
+      if (in_array($task, ['pending', 'running'], true)) return false;           // 摘要還在做（逐字稿可能已好）：下一輪再取
+      try { $summary = Jtlw::getSummary($jid); $md = Jtlw::getSummaryMarkdown($jid); $summaryStatus = 'ok'; }
+      catch (JtlwError $ex) {
+        if ($ex->errCode() === 'summary_not_ready') return false;
+        if ($ex->errCode() === 'network_error' || $ex->status >= 500) return false;
+        $summaryStatus = $sumErr === 'language_not_supported' ? 'unsupported' : 'failed';
+        if ($sumErr === '') $sumErr = $ex->reason() ?: $ex->errCode();
+      }
+    }
+    $dir = self::dir($id); @mkdir($dir, 0750, true);
+    self::writeFile("$dir/transcript.json", json_encode($tr, JSON_UNESCAPED_UNICODE));
+    if ($summary !== null) self::writeFile("$dir/summary.json", json_encode($summary, JSON_UNESCAPED_UNICODE));
+    if ($md !== null) self::writeFile("$dir/summary.md", $md);
+    $status = ($summaryStatus === 'failed') ? 'partial' : 'done';
+    self::patch($id, ['status' => $status, 'summary_status' => $summaryStatus, 'summary_error' => $sumErr,
+                      'progress' => null, 'done_at' => time(), 'notify_due' => false,
+                      'segments' => count($tr['segments']), 'uncorrected' => $tr['uncorrected']]);
+    // 摘要可重做（retry）時先不 ACK——ACK 之後 JTLW 就沒有逐字稿可以重做摘要
+    if ($status === 'done') { try { Jtlw::ack($jid); self::patch($id, ['acked' => true]); } catch (JtlwError $x) {} }
+    Audit::log('transcript_done', t('逐字稿已產生：會議室「{room}」錄影 {id}（{n} 段；摘要：{s}）', ['room' => $e['room'] ?? '', 'id' => $id, 'n' => count($tr['segments']), 's' => $summaryStatus]), ['actor' => 'system']);
+    return true;
+  }
+
+  /** 原子寫入 + fsync（ACK 前必須確定落地）。 */
+  private static function writeFile(string $path, string $data): void {
+    $tmp = $path . '.tmp-' . bin2hex(random_bytes(4));
+    $fh = fopen($tmp, 'wb'); fwrite($fh, $data); fflush($fh); if (function_exists('fsync')) fsync($fh); fclose($fh);
+    @chmod($tmp, 0640);
+    rename($tmp, $path);
+  }
+
+  /** 三層以 seq 對齊：時間取 raw、文字優先 final（缺的用 raw）、發言者取 speakers。 */
+  public static function mergeSegments(array $raw, array $final, array $spk): array {
+    $f = []; foreach ($final as $s) $f[(int)$s['seq']] = (string)($s['text'] ?? '');
+    $sp = []; foreach ($spk as $s) $sp[(int)$s['seq']] = (string)($s['speaker_id'] ?? '');
+    $out = []; $usedRaw = 0;
+    foreach ($raw as $s) {
+      $seq = (int)$s['seq'];
+      $text = $f[$seq] ?? null;
+      if ($text === null || $text === '') { $text = (string)($s['text'] ?? ''); $usedRaw++; }
+      if (trim($text) === '') continue;
+      $out[] = ['seq' => $seq, 'start_ms' => isset($s['start_ms']) ? (int)$s['start_ms'] : null,
+                'end_ms' => isset($s['end_ms']) ? (int)$s['end_ms'] : null, 'speaker' => $sp[$seq] ?? '', 'text' => $text];
+    }
+    return ['segments' => $out, 'uncorrected' => $out && !$final];
+  }
+
+  // ── 讀取結果（頁面用）──
+  public static function result(string $id): ?array {
+    $p = self::dir($id) . '/transcript.json';
+    if (!is_file($p)) return null;
+    $t = json_decode((string)file_get_contents($p), true);
+    if (!is_array($t)) return null;
+    $sp = json_decode((string)@file_get_contents(self::dir($id) . '/speakers.json'), true);
+    $t['speaker_names'] = (array)($sp['map'] ?? []);
+    $t['speaker_overrides'] = (array)($sp['overrides'] ?? []);
+    return $t;
+  }
+  public static function summary(string $id): ?array {
+    $p = self::dir($id) . '/summary.json';
+    $s = is_file($p) ? json_decode((string)file_get_contents($p), true) : null;
+    return is_array($s) ? $s : null;
+  }
+  public static function summaryMarkdown(string $id): ?string {
+    $p = self::dir($id) . '/summary.md';
+    return is_file($p) ? (string)file_get_contents($p) : null;
+  }
+
+  /** 發言者改名：map（整個代號）與 overrides（單段）。名稱去控制字元、上限 40 字（jtdt 同）。 */
+  public static function saveSpeakers(string $id, array $map, array $overrides): void {
+    $clean = function ($v) { return mb_substr(trim(preg_replace('/[\x00-\x1F\x7F]/u', '', (string)$v)), 0, 40); };
+    $m = []; foreach ($map as $k => $v) { if (preg_match('/^S\d{1,3}$/', (string)$k) && ($n = $clean($v)) !== '') $m[(string)$k] = $n; }
+    $o = []; foreach ($overrides as $k => $v) { if (ctype_digit((string)$k) && ($n = $clean($v)) !== '') $o[(string)$k] = $n; }
+    if (count($m) > 50) $m = array_slice($m, 0, 50, true);
+    if (count($o) > 2000) $o = array_slice($o, 0, 2000, true);
+    $dir = self::dir($id); if (!is_dir($dir)) return;
+    self::writeFile("$dir/speakers.json", json_encode(['map' => (object)$m, 'overrides' => (object)$o], JSON_UNESCAPED_UNICODE));
+  }
+
+  // ── 動作 ──
+  public static function cancel(string $id): bool {
+    $e = self::get($id); if (!$e) return false;
+    if (($e['status'] ?? '') === 'pending') { self::patch($id, ['status' => 'cancelled']); return true; }
+    if (!in_array($e['status'] ?? '', ['queued', 'running'], true) || empty($e['job_id'])) return false;
+    try { Jtlw::cancel((string)$e['job_id']); } catch (JtlwError $x) { return false; }
+    self::patch($id, ['status' => 'cancelling']);
+    return true;
+  }
+
+  /** 只重做摘要（partial，JTLW 尚未 ACK 時）。 */
+  public static function retrySummary(string $id): bool {
+    $e = self::get($id); if (!$e || ($e['status'] ?? '') !== 'partial' || empty($e['job_id']) || !empty($e['acked'])) return false;
+    try { Jtlw::retry((string)$e['job_id']); } catch (JtlwError $x) { return false; }
+    self::patch($id, ['status' => 'running', 'summary_status' => '', 'progress' => null]);
+    return true;
+  }
+
+  /** 刪除本地結果＋JTLW 端紀錄（管理員刪除、或錄影不在了）。 */
+  public static function purge(string $id, string $why = ''): void {
+    $e = self::get($id);
+    if ($e && !empty($e['job_id'])) {
+      try {
+        if (in_array($e['status'] ?? '', ['queued', 'running'], true)) Jtlw::cancel((string)$e['job_id']);
+        Jtlw::delete((string)$e['job_id']);
+      } catch (JtlwError $x) {}
+    }
+    $dir = self::dir($id);
+    if (is_dir($dir)) { foreach (glob($dir . '/*') ?: [] as $f) @unlink($f); @rmdir($dir); }
+    self::mutate(function (array &$d) use ($id) { if (!isset($d[$id])) return false; unset($d[$id]); return true; });
+    if ($e) Audit::log('transcript_delete', t('刪除逐字稿與摘要：會議室「{room}」錄影 {id}（{why}）', ['room' => $e['room'] ?? '', 'id' => $id, 'why' => $why]), ['actor' => $why === 'recording_gone' ? 'system' : null]);
+  }
+
+  // ── webhook ──
+  /** 驗簽後呼叫：去重（event_id），終態事件標記「待取回」。回 true＝已處理（或重複）。 */
+  public static function handleEvent(array $ev): bool {
+    $eid = (string)($ev['event_id'] ?? '');
+    if ($eid === '') return false;
+    $dup = false;
+    Store::update(self::EVENTS_FILE, function ($cur) use ($eid, &$dup) {
+      $d = is_array($cur) ? array_values($cur) : [];
+      if (in_array($eid, $d, true)) { $dup = true; return null; }
+      $d[] = $eid; if (count($d) > 2000) $d = array_slice($d, -2000);
+      return $d;
+    }, []);
+    if ($dup) return true;
+    $type = (string)($ev['type'] ?? '');
+    if (!in_array($type, ['job.succeeded', 'job.partially_succeeded', 'job.failed', 'job.cancelled'], true)) return true;
+    $ref = (array)($ev['external_ref'] ?? []);
+    $id = (string)($ref['job_id'] ?? '');
+    if (($ref['system'] ?? '') !== 'jtvc' || !self::validId($id)) return true;
+    $e = self::get($id);
+    if (!$e || (string)$e['job_id'] !== (string)($ev['job_id'] ?? '')) return true;   // 只接受自己送出的那件
+    self::patch($id, ['notify_due' => true]);
+    return true;
+  }
+}

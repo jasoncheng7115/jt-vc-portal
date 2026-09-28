@@ -5,10 +5,66 @@ require_once __DIR__ . '/lib/settings.php';
 require_once __DIR__ . '/lib/recordings.php';
 require_once __DIR__ . '/lib/rooms.php';
 require_once __DIR__ . '/lib/layout.php';
+require_once __DIR__ . '/lib/transcripts.php';
 
 $me = Auth::requireLogin();
 $ip = Auth::clientIp();
 $is_admin = ($me['role'] ?? '') === 'admin';
+$tx_on = Settings::transcribeReady() && Transcripts::canUse($me);
+$tx_index = $tx_on ? Transcripts::all() : [];
+
+/** 逐字稿欄：狀態 + 可做的操作（權限在 transcript-action 再檢查一次）。 */
+function tx_cell(array $r, ?array $e, array $me): string {
+  $rid = (string)$r['id'];
+  $can = Transcripts::canRequest($r, $me);
+  $form = function (string $action, string $label, string $icon, string $cls = 'btn btn-secondary btn-sm', string $confirm = '') use ($rid) {
+    return '<form method="POST" action="/transcript-action" style="display:inline;"' . ($confirm !== '' ? ' data-confirm="' . htmlspecialchars($confirm) . '"' : '') . '>'
+      . Auth::csrfField() . '<input type="hidden" name="action" value="' . $action . '"><input type="hidden" name="id" value="' . htmlspecialchars($rid) . '">'
+      . '<input type="hidden" name="back" value="/recordings"><button class="' . $cls . '">' . icon($icon, 14) . htmlspecialchars($label) . '</button></form>';
+  };
+  $st = (string)($e['status'] ?? '');
+  if ($st === '') {
+    if (($r['status'] ?? '') !== 'ok') return '<span class="muted">—</span>';
+    return $can ? $form('request', t('產生逐字稿'), 'file-text') : '<span class="muted">—</span>';
+  }
+  $view = '<a class="btn btn-secondary btn-sm" href="/transcript?id=' . rawurlencode($rid) . '">' . icon('file-text', 14) . th('逐字稿與摘要') . '</a>';
+  switch ($st) {
+    case 'done': return $view;
+    case 'partial': return $view . ' <span class="badge badge-warning" title="' . htmlspecialchars(Jtlw::describe((string)($e['summary_error'] ?? ''))) . '">' . th('摘要失敗') . '</span>';
+    case 'failed':
+    case 'cancelled':
+      $b = '<span class="badge badge-danger" title="' . htmlspecialchars($st === 'failed' ? Jtlw::describe((string)($e['error_code'] ?? ''), (string)($e['error_reason'] ?? '')) : t('已取消')) . '">' . ($st === 'failed' ? th('失敗') : th('已取消')) . '</span>';
+      return $b . ($can ? ' ' . $form('regenerate', t('重新產生'), 'refresh') : '');
+    default:
+      $txt = tx_progress_text($e);
+      return '<span class="badge badge-accent tx-busy" title="' . htmlspecialchars($txt) . '"><span class="spinner-dot"></span>' . htmlspecialchars($txt) . '</span>'
+        . ($can && in_array($st, ['pending', 'queued', 'running'], true) ? ' ' . $form('cancel', t('取消'), 'x', 'btn btn-ghost btn-sm', t('確定取消產生這筆錄影的逐字稿？')) : '');
+  }
+}
+
+/** 進度文字（照 JTLW 說明：queue_position 0＝下一個就是它；GPU 排隊 waiting；asr 用處理到的時間；summary 顯示 detail）。 */
+function tx_progress_text(array $e): string {
+  $st = (string)($e['status'] ?? ''); $p = (array)($e['progress'] ?? []);
+  if ($st === 'pending') return (int)($e['attempts'] ?? 0) > 0 ? t('等待重試') : t('等待送出');
+  if ($st === 'uploading') return t('上傳錄影中');
+  if ($st === 'cancelling') return t('取消中');
+  if ($st === 'queued') {
+    $q = $p['queue_position'] ?? null;
+    return $q === null ? t('排隊中') : ((int)$q === 0 ? t('排隊中（下一個就是它）') : t('排隊中（前面還有 {n} 件）', ['n' => (int)$q]));
+  }
+  if (!empty($p['waiting'])) return t('等候 GPU（前面還有 {n} 件）', ['n' => (int)$p['waiting']]);
+  $stage = (string)($p['stage'] ?? '');
+  if ($stage === 'asr' && !empty($p['total_ms'])) return t('辨識中 {pct}%', ['pct' => (int)floor(100 * (int)$p['processed_ms'] / max(1, (int)$p['total_ms']))]);
+  return match ($stage) {
+    'fetch', 'normalize' => t('準備錄音中'),
+    'asr' => t('辨識中'),
+    'diarization' => t('辨識發言者中'),
+    'correction' => t('校正逐字稿中'),
+    'finalize' => t('整理結果中'),
+    'summary' => ($p['detail'] ?? '') !== '' ? t('產生會議摘要中（{detail}）', ['detail' => $p['detail']]) : t('產生會議摘要中'),
+    default => t('處理中'),
+  };
+}
 
 $msg = $_SESSION['rec_msg'] ?? '';
 $err = $_SESSION['rec_err'] ?? '';
@@ -68,7 +124,7 @@ function rec_dur($s): string {
 render_head(t('錄影記錄'));
 render_topbar($me, $ip);
 ?>
-<main class="container">
+<main class="container rec-page">
   <?= admin_nav('recordings') ?>
 
   <?php if ($msg): ?><div class="alert alert-success"><?= icon('check') ?><span><?= htmlspecialchars($msg) ?></span></div><?php endif; ?>
@@ -125,7 +181,7 @@ render_topbar($me, $ip);
       </div>
       <p class="muted" style="font-size:12px;margin:0 0 8px;"><?= th('點任一列（操作鍵除外）可展開該場參與者。') ?></p>
       <table class="table audit-table">
-        <thead><tr><th class="caret-col no-sort"></th><th><?= th('會議室') ?></th><th><?= th('主持人') ?></th><th><?= th('時間') ?></th><th><?= th('長度') ?></th><th><?= th('大小') ?></th><th><?= th('狀態') ?></th><th style="text-align:right;"><?= th('操作') ?></th></tr></thead>
+        <thead><tr><th class="caret-col no-sort"></th><th><?= th('會議室') ?></th><th><?= th('主持人') ?></th><th><?= th('時間') ?></th><th><?= th('長度') ?></th><th><?= th('大小') ?></th><th><?= th('狀態') ?></th><?php if ($tx_on): ?><th><?= th('逐字稿') ?></th><?php endif; ?><th style="text-align:right;"><?= th('操作') ?></th></tr></thead>
         <tbody>
         <?php foreach ($list as $r):
           $rid = (string)$r['id']; $st = (string)($r['status'] ?? 'ok');
@@ -144,6 +200,7 @@ render_topbar($me, $ip);
             <td class="mono"><?= htmlspecialchars(rec_dur($r['duration'] ?? 0)) ?></td>
             <td class="mono"><?= rec_bytes($r['size']) ?></td>
             <td><?= rec_status_badge($st) ?></td>
+            <?php if ($tx_on): ?><td class="tx-cell" style="white-space:nowrap;"><?= tx_cell($r, $tx_index[$rid] ?? null, $me) ?></td><?php endif; ?>
             <td style="text-align:right;white-space:nowrap;">
               <?php if ($playable): ?>
                 <button type="button" class="btn btn-secondary btn-sm js-play" data-id="<?= htmlspecialchars($rid) ?>" data-room="<?= htmlspecialchars($r['room']) ?>"><?= icon('play', 14) ?><?= th('播放') ?></button>
@@ -160,7 +217,7 @@ render_topbar($me, $ip);
             </td>
           </tr>
           <tr class="row-detail" hidden>
-            <td colspan="8">
+            <td colspan="<?= $tx_on ? 9 : 8 ?>">
               <?php if (!empty($parts)): ?>
               <table class="table" style="margin:0;">
                 <thead><tr><th><?= th('參與者') ?></th><th><?= th('進入') ?></th><th><?= th('離開') ?></th><th><?= th('停留') ?></th></tr></thead>

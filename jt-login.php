@@ -47,7 +47,8 @@ render_topbar(false);
         <?= icon('lock') ?>
         <span><?= t('因多次登入失敗，此來源已被鎖定，請於 {time} 後再試。', ['time' => '<strong>' . date('H:i', $st['until']) . '</strong>']) ?></span>
       </div>
-      <form method="POST" action="/verify" autocomplete="off">
+      <?php /* 鎖定期間只顯示、不可送出：不用 <form>（沒有可送出的內容，也就不需要 CSRF token） */ ?>
+      <div class="login-locked" aria-disabled="true">
         <div class="field">
           <label>Email</label>
           <input type="email" disabled placeholder="<?= th('已鎖定') ?>">
@@ -56,8 +57,8 @@ render_topbar(false);
           <label><?= th('密碼') ?></label>
           <input type="password" disabled placeholder="<?= th('已鎖定') ?>">
         </div>
-        <button type="submit" class="btn btn-primary btn-block" disabled><?= icon('lock') ?><?= th('已鎖定') ?></button>
-      </form>
+        <button type="button" class="btn btn-primary btn-block" disabled><?= icon('lock') ?><?= th('已鎖定') ?></button>
+      </div>
     <?php else: ?>
       <?php if ($sso_on): ?>
         <a class="btn btn-primary btn-block" href="/sso-login"><?= icon('user') ?><?= Oidc::cfg()['display_name'] !== '' ? htmlspecialchars(Oidc::cfg()['display_name']) : th('以公司帳號登入（SSO）') ?></a>

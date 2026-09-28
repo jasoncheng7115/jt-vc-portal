@@ -30,6 +30,7 @@
 - **Email 邀請**：填寫與會者 email，寄送含 `.ics`（METHOD:REQUEST）的邀請信，可一鍵加入行事曆。
 - **多帳號 / 角色 / 2FA**：admin 看全部、host 只看自己建立的會議室；支援 TOTP 雙因素認證。
 - **單一登入（OIDC）**：主持人與管理員可透過 Keycloak / Entra ID 以公司帳號登入（AD 群組對應角色、MFA 由 IdP 負責）；portal 不直接連 AD / LDAP。支援「僅限單一登入」並保留限 IP 的緊急用管理員。設定步驟：[KEYCLOAK-SETUP_zh-TW.md](KEYCLOAK-SETUP_zh-TW.md)。
+- **會議逐字稿與摘要（jt-live-whisper）**：自建 Jibri 錄影完成後，portal 可將錄影交給 [jt-live-whisper](https://github.com/jasoncheng7115/jt-live-whisper)（JTLW）產生標示發言者的逐字稿與會議摘要——重點摘要、決議與待辦、事件、風險、未決問題、議題與誰講了多少，每一條都附錄影中的時間點。依帳號設定權限（不可使用 / 手動 / 自動）、可單場開關，管理員可對任何場次產生。檢視頁提供波形播放器、點時間跳到該處、發言者改名，以及 TXT / SRT / JSON / Markdown 下載。portal 本身不直接連接語言模型。
 - **稽核與安全**：完整行為稽核記錄（登入、建室、邀請、設定變更…）+ 即時外拋 syslog / CEF / GELF；fail2ban 登入鎖定；CSRF；遵循 OWASP Top 10:2025。
 - **錄影調閱**（自建 Jibri）：串接 Jibri 主機的錄影服務，線上列表 / 播放 / 下載 / 刪除、主機容量、保留政策（時間 / 容量 / 殘留，預設停用）；主持人可調閱自己主持會議的錄影。
 - **多語系介面**：portal 介面支援繁體中文、English 與日本語，依瀏覽器語言自動判斷，可從右上帳號選單或個人設定切換；Jitsi 會議語言可設為跟隨介面語言。
@@ -401,6 +402,41 @@ sudo -u www-data php login-path.php reset
 - 於 **系統設定 → 錄製設定 → Jibri 錄影服務** 填入服務 URL 與 token，偵測到後導覽列即出現「錄影記錄」。
 - **保留政策**（預設全部停用）：依時間（保留 N 天）、依容量（保留可用空間 / 錄影總量上限，由舊到新刪）、自動清理殘留 / 未完成錄影。錄製中的檔案永不清理。
 - 服務安裝與 systemd 設定見 **[JIBRI-SETUP_zh-TW.md](JIBRI-SETUP_zh-TW.md)**。
+
+---
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+## 會議逐字稿與摘要（jt-live-whisper）
+
+自建 Jibri 主機上的錄影完成後，portal 可將錄影交給語音服務 **jt-live-whisper（JTLW）**，取回含發言者的逐字稿與會議摘要。結果由 portal 存放在錄影旁。
+
+**需求**
+
+- 已設定錄影調閱（自建 Jibri + `jibri-recordings-api`，見上節）。
+- jt-live-whisper REST API（`api_revision` 2.4 以上），以及給本 portal 使用的 API 金鑰，權限範圍為 `jobs:write`、`jobs:read`、`jobs:cancel`、`profiles:read`。
+- 選用：JTLW 主機需能連到 `<your site>/jtlw-webhook` 以傳送完成通知。沒有也能運作——背景排程每分鐘會查詢一次進度。
+
+**設定步驟**
+
+1. **系統設定 → 逐字稿與摘要**：填入 JTLW 網址（例如 `https://10.0.0.30:8790`）、API 金鑰；若為自簽憑證，貼上其 PEM（依所貼內容信任——絕不關閉憑證驗證；請核對顯示的 SHA-256 指紋）。選擇會議語言（已知就指定——「自動判斷」只看開頭約 30 秒決定）以及是否產生會議摘要。按 **儲存並測試連線**，再按 **註冊 webhook**。
+2. **背景排程**——每分鐘執行一次：
+   - Docker：在主機的 crontab 加入 `* * * * * docker exec -u www-data jaas-auth php /var/www/html/transcribe-worker.php`
+   - 直接安裝：`/etc/cron.d/jtvc-transcribe`，內容為 `* * * * * www-data php /var/www/html/transcribe-worker.php`
+   它會一次上傳一筆錄影、追蹤進度、取回結果，並移除錄影已不存在的結果。同一時間只會執行一個。
+3. **權限——帳號管理 → 逐字稿權限**，逐一設定每位主持人：*不可使用*（預設）、*手動*（可在自己的場次按「產生逐字稿」）或 *自動*（錄影完成後自動產生）。建立會議室時，可使用逐字稿的主持人可單場開關。管理員可對任何場次產生逐字稿。自動產生只處理啟用此功能之後錄的會議。
+
+**運作方式與資料保留**
+
+- portal 將錄影串流上傳到 JTLW、送出單一作業（辨識、發言者、標點校正、摘要），等待 webhook 或輪詢，取回逐字稿與摘要（JSON + Markdown）並寫入磁碟後，才通知 JTLW 刪除其副本。JTLW 處理完後即刪除上傳的錄影。
+- 結果存於資料目錄（`transcripts/<recording id>/`），跟著錄影走：刪除錄影、或 Jibri 保留政策清除錄影時，其逐字稿與摘要也一併刪除。
+- 主持人只看得到自己主持場次的逐字稿；稽核記錄會記下誰產生、檢視、下載或改名——絕不記錄逐字稿內容。
+- 會議摘要支援中文與英文會議；日文與韓文只產生逐字稿。發言者代號（S1、S2…）是聲音分群，不是人名——可在逐字稿頁面改名。
 
 ---
 

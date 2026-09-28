@@ -148,4 +148,5 @@ return [
   '用法：php login-path.php [show|reset|set <path>]' => 'Usage: php login-path.php [show|reset|set <path>]',
   '強制登出此帳號所有已登入的裝置' => 'Sign this account out of all devices',
   '強制登出所有裝置' => 'signed out of all devices',
+  '語言' => 'Language',
 ];

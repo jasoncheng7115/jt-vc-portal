@@ -71,6 +71,7 @@
 - [ ] Sign-out is POST + CSRF only: `GET /logout` does not sign out; the header "Sign out" button and the 2FA page "Cancel and sign in again" work.
 - [ ] Session idle timeout (default 30 minutes) and absolute timeout (default 12 hours) take effect.
 - [ ] Role-based tabs: a host sees only "Meeting Rooms" + (when Jibri is configured) "Recordings"; an admin sees everything.
+- [ ] While the source IP is locked, the login page is display-only: a lock message and disabled fields, no form that posts to `/verify` (v1.12.0).
 
 ### 3.2 Meeting rooms (host)
 - [ ] Create a meeting room: custom name / random name; non-ASCII characters are removed automatically and spaces become `-`.
@@ -143,6 +144,7 @@
 - [ ] The custom confirmation dialog replaces the browser's native confirm (delete account, delete recording, etc.).
 - [ ] Click-to-sort table columns, collapsible cards, top-right account menu (closes on outside click / Esc).
 - [ ] Layout is usable at mobile width.
+- [ ] Language menu (v1.12.0): the top-right switch shows only the current language; clicking opens a menu listing every language with the current one marked; Esc or a click outside closes it; choosing a language switches the interface.
 
 ### 3.11 Single sign-on (SSO / OIDC, from v1.10.0)
 
@@ -178,6 +180,40 @@
 - [ ] S28 Keycloak UI language: with `LOCALES` / `DEFAULT_LOCALE`, the login page follows the browser language (zh-TW → Traditional Chinese `zh-Hant`, ja → Japanese, en → English, unsupported → default), for the portal realm and the master (admin) realm.
 - [ ] S29 Production SSO smoke test (every release, after deploying): temporary directory accounts in the admin group, the host group and no group sign in through the real IdP with OTP enrolment; roles are correct, SSO accounts have no local password / 2FA, sign-out ends both the portal and IdP sessions, the second sign-in needs only OTP, the no-group account is refused; all temporary accounts are removed from the directory, the IdP and the portal afterwards.
 - [ ] S30 Display name: with the display name claim set to `display_name`, the portal account's display name equals the directory `displayName` (e.g. "Jason Cheng", not just the surname) and is refreshed on every SSO sign-in; an account without it falls back to the username. Covered by `tests/run-sso.sh` and the production smoke test (S29).
+
+### 3.12 Meeting transcripts and summaries (jt-live-whisper, from v1.12.0)
+
+- [ ] T01 Transcript layers are joined by seq: times from raw, text from final (raw where final is missing), speakers from the speakers layer; no final layer at all is flagged as uncorrected.
+- [ ] T02 Webhook signature: hex HMAC-SHA256 over "timestamp.body" accepted; wrong secret, altered body, timestamps older than 300 seconds, non-numeric timestamps and base64 (8x8-style) signatures rejected; either signature accepted during secret rotation.
+- [ ] T03 Permission levels: off cannot use transcripts; manual, automatic and administrators can; unknown values count as off.
+- [ ] T04 Manual generation only for meetings the host hosted; administrators for any meeting; hosts with permission off can neither generate nor view.
+- [ ] T05 Automatic generation for accounts set to automatic only.
+- [ ] T06 The per-meeting switch overrides the account default (off wins over automatic, on works for manual) but cannot exceed the account permission (off stays off); disabled accounts are never processed automatically.
+- [ ] T07 Queueing: a pending entry is created once; running or finished recordings are not queued again; invalid recording ids and languages are rejected / replaced by the default.
+- [ ] T08 Meeting hints sent to the speech service: room, host display name, start / end and participants in UTC ISO 8601; no title.
+- [ ] T09 Webhook events: only terminal events of this portal's own job (system jtvc, matching job id) mark a result as ready; each event id is handled once.
+- [ ] T10 Speaker renaming: only S-ids and numeric segment numbers, control characters stripped, 40-character limit.
+- [ ] T11 Deleting results removes the files and the index entry.
+- [ ] T12 Error messages map known codes to readable text; settings keep the API key and webhook secret when left blank, strip `/api/v1`, record the time automatic generation was enabled, and are part of settings export.
+- [ ] T13 Registering the webhook stores the endpoint id and secret.
+- [ ] T14 Manual generation end to end: upload, job, completion; transcript, summary JSON and Markdown saved; JTLW content acknowledged and cleared afterwards; segments carry time, speaker and text; external_ref carries system jtvc and the recording id.
+- [ ] T15 Webhook deliveries from the speech service pass signature verification and are recorded; a bad signature gets 401 and GET gets 405.
+- [ ] T16 Summary failure: partial result with the transcript kept and not yet acknowledged; "Redo summary" completes it.
+- [ ] T17 Recognition failure ends as failed with the error code and is not retried automatically.
+- [ ] T18 Queue full (429): back to pending with a later retry time (backoff).
+- [ ] T19 Cancelling a running job ends as cancelled.
+- [ ] T20 Automatic generation picks up recordings of automatic accounts made after enabling; older recordings and manual accounts are skipped.
+- [ ] T21 Duplicate webhook events do not break the flow.
+- [ ] T22 When a recording disappears, its transcript, summary and index entry are deleted (and the speech-service job record).
+- [ ] T23 Hosts with permission off see no transcript switch or column and get 404 on the transcript page and downloads.
+- [ ] T24 Manual hosts: switch on the create form (off by default), transcript column, link for finished and "Regenerate" for cancelled recordings, no access to other hosts' meetings (404), no delete (404), missing CSRF gets 403.
+- [ ] T25 Transcript page shows the summary with citations for every item and the transcript; clicking a citation highlights the cited segments; no CSP errors.
+- [ ] T26 Renaming a speaker for all segments is saved and survives a reload.
+- [ ] T27 Downloads: text with [mm:ss] and speaker names, SRT, summary Markdown, JSON with speaker names.
+- [ ] T28 Another host gets 404 for a meeting they did not host.
+- [ ] T29 Administrators: any meeting; settings card reachable from the section index; API key not echoed back; account management shows the permission select and a badge.
+- [ ] T30 Audit log records transcript events but never transcript content.
+- [ ] T31 ZAP covers /transcript, /transcript-download, /transcript-action and /jtlw-webhook (High 0, Medium 0).
 
 ## 4. Internationalization (i18n)
 
@@ -300,5 +336,9 @@ Spot-check on every release; test everything for major changes:
 | SSO S01, S05–S07, S11–S21, S23–S25, S27, S28, S30 (real Keycloak + browser, incl. OTP) | `tests/run-sso.sh` (`tests/e2e/sso.cjs`) |
 | SSO S22 | `tests/zap/run-zap.sh` (scan with SSO enabled) |
 | SSO S26 | Manual: KEYCLOAK-SETUP section 7 verification commands |
+| Transcripts T01–T12 (layers, webhook signature, permissions, per-meeting switch, queueing, hints, events, renaming, settings) | `tests/unit/test_transcripts.php` |
+| Transcripts T13–T30 (JTLW mock + stub Jibri + real browser) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
+| Transcripts T31 | `tests/zap/run-zap.sh` |
+| Language menu (collapsed, opens on click, Esc) | `tests/run-e2e.sh` (`tests/e2e/meeting.cjs`) |
 | SSO S29 | Production smoke script run by the maintainer against the live deployment (temporary accounts, cleaned up afterwards) |
 | Vulnerability scan | `tests/zap/run-zap.sh` |

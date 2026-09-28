@@ -6,6 +6,7 @@ require_once __DIR__ . '/lib/mailer.php';
 require_once __DIR__ . '/lib/logship.php';
 require_once __DIR__ . '/lib/usage.php';
 require_once __DIR__ . '/lib/recordings.php';
+require_once __DIR__ . '/lib/transcripts.php';
 require_once __DIR__ . '/lib/layout.php';
 
 $me = Auth::requireAdmin();
@@ -42,6 +43,7 @@ render_topbar($me, $ip);
     ['connection', 'link', t('連線模式設定'), ''],
     ['meeting-custom', 'video', t('會議室自訂'), 'js-card-selfhosted'],
     ['recording', 'video', t('錄製設定'), ''],
+    ['transcribe', 'file-text', t('逐字稿與摘要'), ''],
     ['webhook', 'chart', t('8x8 用量 Webhook'), 'js-card-jaas'],
     ['smtp', 'calendar', t('SMTP 寄信'), ''],
     ['logship', 'upload', t('記錄外拋（SIEM）'), ''],
@@ -456,6 +458,52 @@ render_topbar($me, $ip);
   </div>
 
   <?php /* 8x8 用量 webhook（僅 JaaS 模式；依連線模式下拉即時顯示） */ ?>
+  <?php $tx = Settings::getTranscribe(); $tx_fp = ($tx['jtlw_ca'] !== '' && ($x = @openssl_x509_read($tx['jtlw_ca']))) ? strtoupper(implode(':', str_split(openssl_x509_fingerprint($x, 'sha256'), 2))) : ''; ?>
+  <div id="card-transcribe" class="card settings-card">
+    <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('file-text', 18) ?><?= th('逐字稿與摘要') ?></h1>
+    <p class="subtitle" style="margin:6px 0 12px;"><?= th('錄影完成後，交給語音服務 jt-live-whisper（JTLW）產生逐字稿（含發言者）與會議摘要，結果存在本系統、跟著錄影的保留政策走。本系統不直接連接語言模型。') ?></p>
+    <div class="help" style="margin-bottom:12px;"><?= th('誰可以使用：在「帳號管理」設定每位主持人的「逐字稿權限」（不可使用 / 手動 / 自動）；建立會議室時可單場開關；管理員可以對任何場次手動產生。自動產生只處理啟用之後錄的會議。') ?></div>
+    <?php if (!Settings::hasJibri()): ?><div class="alert alert-error"><?= icon('warning') ?><span><?= th('逐字稿需要自建 Jibri 錄影服務，請先完成錄製設定。') ?></span></div><?php endif; ?>
+    <form method="POST" action="/save-settings">
+      <?= Auth::csrfField() ?>
+      <input type="hidden" name="section" value="transcribe">
+      <div class="field"><label><input type="checkbox" name="enabled" value="1" <?= $tx['enabled'] ? 'checked' : '' ?>> <?= th('啟用逐字稿與摘要') ?></label></div>
+      <div class="field-row">
+        <div class="field"><label><?= th('語音服務（JTLW）網址') ?></label>
+          <input type="url" name="jtlw_url" value="<?= htmlspecialchars($tx['jtlw_url']) ?>" placeholder="https://10.0.0.30:8790"></div>
+        <div class="field"><label><?= th('API 金鑰') ?></label>
+          <input type="password" name="jtlw_key" value="" autocomplete="new-password" placeholder="<?= $tx['jtlw_key'] !== '' ? th('已設定（留空不變更）') : 'jtlw_…' ?>"></div>
+      </div>
+      <div class="field"><label><?= th('語音服務的憑證（自簽憑證請貼 PEM；一律驗證，不關閉檢查）') ?></label>
+        <textarea name="jtlw_ca" rows="4" class="mono" placeholder="-----BEGIN CERTIFICATE-----"><?= htmlspecialchars($tx['jtlw_ca']) ?></textarea>
+        <?php if ($tx_fp !== ''): ?><div class="help mono" style="font-size:11px;"><?= th('SHA-256 指紋：{fp}（請與語音服務提供的指紋核對）', ['fp' => $tx_fp]) ?></div><?php endif; ?></div>
+      <div class="field-row">
+        <div class="field"><label><?= th('會議語言（已知就指定，比自動判斷可靠）') ?></label>
+          <select name="language">
+            <?php foreach (['zh-Hant' => t('中文'), 'en' => t('英文'), 'ja' => t('日文'), 'ko' => t('韓文'), 'auto' => t('自動判斷')] as $lv => $ll): ?>
+              <option value="<?= $lv ?>" <?= $tx['language'] === $lv ? 'selected' : '' ?>><?= htmlspecialchars($ll) ?></option>
+            <?php endforeach; ?>
+          </select>
+          <div class="help"><?= th('「自動判斷」只看開頭約 30 秒決定整場語言，開頭有人先講另一種語言時整場都可能辨識錯。會議摘要只支援中文與英文。') ?></div></div>
+        <div class="field"><label><?= th('辨識模式') ?></label>
+          <input type="text" name="profile_id" value="<?= htmlspecialchars($tx['profile_id']) ?>" placeholder="meeting.balanced">
+          <div class="help"><?= th('meeting.balanced（建議）或 meeting.detailed（較慢較細）。') ?></div></div>
+      </div>
+      <div class="field"><label><input type="checkbox" name="summarize" value="1" <?= $tx['summarize'] ? 'checked' : '' ?>> <?= th('同時產生會議摘要（決議、待辦、風險、議題，附時間點）') ?></label></div>
+      <div class="field"><label><?= th('完成通知（webhook）') ?></label>
+        <input type="text" readonly class="mono" value="<?= htmlspecialchars(rtrim(SITE_URL, '/') . '/jtlw-webhook') ?>">
+        <div class="help"><?= $tx['webhook_endpoint_id'] !== '' ? th('已註冊（{id}）。', ['id' => $tx['webhook_endpoint_id']]) : th('尚未註冊：先儲存金鑰，再按「註冊 webhook」。') ?> <?= th('沒有 webhook 也能運作：排程每分鐘會查詢一次進度。') ?></div></div>
+      <?php if ($tx['enabled'] && !empty(Settings::getSection('transcribe')['auto_since'])): ?>
+        <p class="help"><?= th('自動產生：處理 {t} 之後錄的會議。', ['t' => date('Y-m-d H:i', (int)Settings::getSection('transcribe')['auto_since'])]) ?></p>
+      <?php endif; ?>
+      <div class="btn-row" style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="submit" class="btn btn-primary" name="action" value="save"><?= icon('check') ?><?= th('儲存') ?></button>
+        <button type="submit" class="btn btn-secondary" name="action" value="test"><?= icon('refresh') ?><?= th('儲存並測試連線') ?></button>
+        <button type="submit" class="btn btn-secondary" name="action" value="webhook"><?= icon('link') ?><?= th('註冊 webhook') ?></button>
+      </div>
+    </form>
+  </div>
+
   <div id="card-webhook" class="card settings-card js-card-jaas"<?= $jaas['mode']==='jaas' ? '' : ' style="display:none;"' ?>>
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('chart', 18) ?><?= th('8x8 用量 Webhook') ?></h1>
     <p class="subtitle" style="margin:6px 0 18px;"><?= th('在 8x8 JaaS Console → Webhooks 設定下列 endpoint 與 secret，即可開始計量 MAU。') ?></p>

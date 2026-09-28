@@ -208,6 +208,60 @@ class Settings {
     self::save($d);
   }
 
+  // === 錄影逐字稿與會議摘要（v1.12.0；目前後端：JTLW = jt-live-whisper）===
+  const TRANSCRIBE_DEFAULTS = [
+    'enabled'             => false,
+    'backend'             => 'jtlw',                 // 之後會加 'jtdt'
+    'jtlw_url'            => '',                     // 例：https://10.0.0.30:8790（程式自己接 /api/v1）
+    'jtlw_key'            => '',                     // 金鑰本身（不含 Bearer）；頁面不回填
+    'jtlw_ca'             => '',                     // 自簽憑證 PEM（信任它，不關驗證）
+    'language'            => 'zh-Hant',              // zh-Hant | en | ja | ko | auto
+    'profile_id'          => 'meeting.balanced',
+    'summarize'           => true,
+    'webhook_endpoint_id' => '',
+    'webhook_secret'      => '',                     // 註冊時 JTLW 只給一次；頁面不回填
+  ];
+  const TRANSCRIBE_LANGS = ['zh-Hant', 'en', 'ja', 'ko', 'auto'];
+
+  public static function getTranscribe(): array {
+    $c = self::load()['transcribe'] ?? [];
+    $c = is_array($c) ? $c : [];
+    $o = self::TRANSCRIBE_DEFAULTS;
+    foreach ($o as $k => $def) {
+      if (!array_key_exists($k, $c)) continue;
+      $o[$k] = is_bool($def) ? (bool)$c[$k] : trim((string)$c[$k]);
+    }
+    $o['jtlw_url'] = rtrim(preg_replace('#/api/v1/?$#', '', $o['jtlw_url']), '/');
+    if (!in_array($o['language'], self::TRANSCRIBE_LANGS, true)) $o['language'] = 'zh-Hant';
+    if (!preg_match('/^[a-z0-9._-]{1,64}$/', $o['profile_id'])) $o['profile_id'] = 'meeting.balanced';
+    if ($o['backend'] !== 'jtlw') $o['backend'] = 'jtlw';
+    return $o;
+  }
+
+  /** 儲存；jtlw_key / webhook_secret 空字串＝沿用既有值（頁面不回填密鑰）。$merge=true 只覆寫有給的鍵。 */
+  public static function setTranscribe(array $v, bool $merge = false): void {
+    $d = self::loadForUpdate();
+    $cur = is_array($d['transcribe'] ?? null) ? $d['transcribe'] : [];
+    $o = [];
+    foreach (self::TRANSCRIBE_DEFAULTS as $k => $def) {
+      if ($merge && !array_key_exists($k, $v)) { $o[$k] = $cur[$k] ?? $def; continue; }
+      $o[$k] = is_bool($def) ? !empty($v[$k]) : mb_substr(trim((string)($v[$k] ?? '')), 0, 20000);
+    }
+    foreach (['jtlw_key', 'webhook_secret'] as $k) {
+      if ($o[$k] === '') $o[$k] = (string)($cur[$k] ?? '');
+    }
+    // 自動產生只處理「啟用之後」錄的會議（避免一啟用就把過去所有錄影送出）
+    $o['auto_since'] = (int)($cur['auto_since'] ?? 0);
+    if ($o['enabled'] && $o['auto_since'] === 0) $o['auto_since'] = time();
+    $d['transcribe'] = $o;
+    self::save($d);
+  }
+
+  public static function transcribeReady(): bool {
+    $t = self::getTranscribe();
+    return $t['enabled'] && $t['jtlw_url'] !== '' && $t['jtlw_key'] !== '' && self::hasJibri();
+  }
+
   // === 登入頁路由偽裝 ===
   const DEFAULT_LOGIN_PATH = 'jt-login';
   /** 合法的登入路徑格式（單段、無斜線）。 */
@@ -434,10 +488,10 @@ class Settings {
     'theme', 'webhook_secret', 'plan_mau_limit', 'billing_start_day',
     'meeting_retention_days', 'audit_retention_days', 'guest_poll_seconds', 'meeting_lang',
     'recorder_name', 'jibri_url', 'jibri_token', 'login_path',
-    'meeting_custom', 'smtp', 'logship', 'site', 'jaas', 'oidc',
+    'meeting_custom', 'smtp', 'logship', 'site', 'jaas', 'oidc', 'transcribe',
   ];
   /** 結構鍵：值必須是物件 / 陣列，否則略過（避免匯入錯型把設定弄壞）。 */
-  const EXPORT_ARRAY_KEYS = ['meeting_custom', 'smtp', 'logship', 'site', 'jaas', 'oidc'];
+  const EXPORT_ARRAY_KEYS = ['meeting_custom', 'smtp', 'logship', 'site', 'jaas', 'oidc', 'transcribe'];
 
   /** 匯出用：只輸出白名單內（本版應有）的設定鍵，與匯入範圍一致。 */
   public static function exportData(): array {

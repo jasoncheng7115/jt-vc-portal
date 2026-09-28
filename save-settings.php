@@ -2,6 +2,7 @@
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/settings.php';
+require_once __DIR__ . '/lib/jtlw.php';
 require_once __DIR__ . '/lib/mailer.php';
 require_once __DIR__ . '/lib/logship.php';
 require_once __DIR__ . '/lib/usage.php';
@@ -121,6 +122,45 @@ if ($section === 'oidc') {
     }
   }
   $back('set_msg', t('單一登入設定已儲存。'));
+}
+
+if ($section === 'transcribe') {
+  $v = $_POST;
+  $v['jtlw_url'] = rtrim(preg_replace('#/api/v1/?$#', '', trim((string)($v['jtlw_url'] ?? ''))), '/');
+  $v['summarize'] = !empty($v['summarize']);
+  if ($v['jtlw_url'] !== '' && (!filter_var($v['jtlw_url'], FILTER_VALIDATE_URL) || !preg_match('#^https?://[^/]+$#i', $v['jtlw_url']))) $back('set_err', t('語音服務網址格式不正確（例：https://10.0.0.30:8790）。'));
+  $ca = trim((string)($v['jtlw_ca'] ?? ''));
+  if ($ca !== '' && (!str_contains($ca, 'BEGIN CERTIFICATE') || @openssl_x509_read($ca) === false)) $back('set_err', t('憑證不是有效的 PEM 格式。'));
+  $key = trim((string)($v['jtlw_key'] ?? ''));
+  if (stripos($key, 'bearer ') === 0) $v['jtlw_key'] = trim(substr($key, 7));      // 誤貼「Bearer 」前綴
+  $cur = Settings::getTranscribe();
+  if (!empty($v['enabled']) && ($v['jtlw_url'] === '' || ($v['jtlw_key'] === '' && $cur['jtlw_key'] === ''))) $back('set_err', t('啟用前請填寫語音服務網址與金鑰。'));
+  if (!empty($v['enabled']) && !Settings::hasJibri()) $back('set_err', t('逐字稿需要自建 Jibri 錄影服務，請先完成錄製設定。'));
+  $v['webhook_endpoint_id'] = $cur['webhook_endpoint_id'];                          // 由「註冊 webhook」設定，不從表單改
+  $v['webhook_secret'] = '';
+  $v['backend'] = 'jtlw';
+  Settings::setTranscribe($v);
+  Audit::log('settings_update', t('逐字稿與摘要設定（{state}）', ['state' => !empty($v['enabled']) ? t('啟用') : t('停用')]));
+  if ($action === 'test' || $action === 'webhook') {
+    try {
+      $cap = Jtlw::capabilities();
+      $prof = Jtlw::profiles();
+      $ids = array_map(fn($p) => (string)($p['id'] ?? ''), (array)($prof['profiles'] ?? $prof));
+      $cfg = Settings::getTranscribe();
+      if (!in_array($cfg['profile_id'], $ids, true)) $back('set_err', t('連線成功，但語音服務沒有辨識模式「{p}」（可用：{list}）。', ['p' => $cfg['profile_id'], 'list' => implode(', ', $ids)]));
+      if ($action === 'webhook') {
+        $url = rtrim(SITE_URL, '/') . '/jtlw-webhook';
+        $wh = Jtlw::createWebhook($url);
+        Settings::setTranscribe(['webhook_endpoint_id' => (string)$wh['endpoint_id'], 'webhook_secret' => (string)$wh['secret']], true);
+        Audit::log('settings_update', t('已向語音服務註冊 webhook：{url}', ['url' => $url]));
+        $back('set_msg', t('已註冊 webhook（{url}）。語音服務做完會通知本系統；另有每分鐘的排程保底。', ['url' => $url]));
+      }
+      $back('set_msg', t('連線成功：語音服務 API {rev}，目前排隊 {q} 件。', ['rev' => (string)($cap['api_revision'] ?? '?'), 'q' => (int)($cap['queue']['depth'] ?? 0)]));
+    } catch (JtlwError $e) {
+      $back('set_err', t('連線失敗：{reason}', ['reason' => Jtlw::describe($e->errCode(), $e->reason()) . ($e->status ? ' (HTTP ' . $e->status . ')' : '')]));
+    }
+  }
+  $back('set_msg', t('逐字稿與摘要設定已儲存。'));
 }
 
 if ($section === 'login_path') {

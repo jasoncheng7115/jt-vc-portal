@@ -18,15 +18,14 @@ Delivered as **OIDC single sign-on**: Keycloak (on its own host) federates Activ
 
 - **Direct AD / LDAP binding from the portal will not be implemented**: the portal is Internet-facing, and binding directly would expose AD password checks (and AD account lockouts) to the Internet.
 
-### 2. jt-live-whisper meeting speech transcription integration
+### 2. jt-live-whisper meeting speech transcription integration — transcripts and summaries done in v1.12.0
 
 Integrate with [jt-live-whisper](https://github.com/jasoncheng7115/jt-live-whisper) to provide speech-to-text and follow-up value-added content for meetings.
 
+**Done in v1.12.0**: after a recording finishes, the transcript (with speakers) and the meeting summary are produced by jt-live-whisper and stored next to the recording, with per-account permission, a per-meeting switch and admin generation — see the README section "Meeting transcripts and summaries". Still planned:
+
 - **Live speech transcription**: convert speech to text during the meeting (captions / live transcript).
-- **Transcripts**: produce a complete transcript after the meeting ends, viewable and downloadable in the admin UI.
-- **Meeting summaries**: automatically generate key-point summaries, decisions and action items from the transcript.
-- Integrated with "recording retrieval": transcripts / summaries are stored alongside the corresponding recording, and hosts can access the results of the meetings they hosted.
-- Reuses the existing permission model (hosts can only access their own sessions) and retention policies.
+- A second backend: hand the recording to Jason Tools Doc Tools (jtdt) instead of calling JTLW directly (administrator's choice).
 
 ### 3. More portal interface languages
 

@@ -24,6 +24,9 @@ for i in $(seq 1 30); do curl -s -o /dev/null "$B/" && break; sleep 1; done
 docker exec -i -u www-data $NAME php <<'PHP'
 <?php require '/var/www/html/lib/settings.php';
 Settings::setOidc(['enabled' => true, 'issuer' => 'http://127.0.0.1:9/realms/zap', 'client_id' => 'zap', 'client_secret' => 'zap', 'require_https' => false, 'host_groups' => 'VC-Hosts']);
+// 逐字稿（v1.12.0）：啟用並設 webhook 密鑰，讓 /jtlw-webhook、/transcript*、/transcript-action 納入掃描（T31）
+Settings::setJibri('http://127.0.0.1:9', 'zap');
+Settings::setTranscribe(['enabled' => true, 'jtlw_url' => 'http://127.0.0.1:9', 'jtlw_key' => 'jtlw_zap_x', 'webhook_secret' => 'whsec_zap', 'webhook_endpoint_id' => 'wh_zap']);
 PHP
 # 登入取得 admin session cookie，並預先建立一間會議室讓掃描有內容
 T=$(curl -s -c $JAR -b $JAR $B/jt-login | grep -o 'name="_csrf" value="[^"]*"' | head -1 | sed 's/.*value="//;s/"//')
@@ -56,6 +59,12 @@ jobs:
     parameters: { context: jtvc, url: "$B/room/zap-room", maxDuration: 2 }
   - type: spider
     parameters: { context: jtvc, url: "$B/sso-callback?state=zap&code=zap", maxDuration: 1 }
+  - type: spider
+    parameters: { context: jtvc, url: "$B/transcript?id=zap-rec-0001", maxDuration: 1 }
+  - type: spider
+    parameters: { context: jtvc, url: "$B/transcript-download?id=zap-rec-0001&f=txt", maxDuration: 1 }
+  - type: spider
+    parameters: { context: jtvc, url: "$B/jtlw-webhook", maxDuration: 1 }
   - type: passiveScan-wait
     parameters: { maxDuration: 5 }
   - type: activeScan

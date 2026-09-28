@@ -34,7 +34,7 @@ render_topbar($me, $ip);
           <td class="mono"><?= htmlspecialchars($u['username']) ?><?php if (Users::isSso($u)): ?> <span class="badge badge-sso" title="<?= th('單一登入（SSO）帳號') ?>">SSO</span><?php endif; ?></td>
           <td><?= htmlspecialchars($u['display_name'] ?? '') ?></td>
           <td class="mono"><?= htmlspecialchars($u['email']) ?></td>
-          <td><?= $u['role'] === 'admin' ? th('管理員') : th('主持人') ?></td>
+          <td><?= $u['role'] === 'admin' ? th('管理員') : th('主持人') ?><?php $tp = (string)($u['transcribe'] ?? 'none'); if (in_array($tp, ['manual', 'auto'], true)): ?> <span class="badge badge-muted" title="<?= th('逐字稿權限') ?>"><?= icon('file-text', 11) ?><?= $tp === 'auto' ? th('自動') : th('手動') ?></span><?php endif; ?></td>
           <td><?= !empty($u['totp_enabled']) ? icon('check', 16) : '—' ?></td>
           <td><?= !empty($u['disabled']) ? '<span class="badge badge-muted">' . th('停用') . '</span>' : '<span class="badge badge-success">' . th('啟用') . '</span>' ?></td>
           <td style="text-align:right;white-space:nowrap;">
@@ -62,6 +62,14 @@ render_topbar($me, $ip);
                 <select name="role">
                   <option value="host" <?= $u['role']==='host'?'selected':'' ?>><?= th('主持人') ?></option>
                   <option value="admin" <?= $u['role']==='admin'?'selected':'' ?>><?= th('管理員') ?></option>
+                </select>
+              </div>
+              <div class="field"><label><?= th('逐字稿權限') ?></label>
+                <?php $tp = (string)($u['transcribe'] ?? 'none'); ?>
+                <select name="transcribe">
+                  <option value="none" <?= $tp === 'none' || !in_array($tp, ['manual', 'auto'], true) ? 'selected' : '' ?>><?= th('不可使用') ?></option>
+                  <option value="manual" <?= $tp === 'manual' ? 'selected' : '' ?>><?= th('手動（自己的場次可按「產生逐字稿」）') ?></option>
+                  <option value="auto" <?= $tp === 'auto' ? 'selected' : '' ?>><?= th('自動（錄影完成後自動產生）') ?></option>
                 </select>
               </div>
               <div class="field"><label><?= th('狀態') ?></label>

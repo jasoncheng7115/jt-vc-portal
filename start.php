@@ -3,6 +3,7 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/jaas.php';
 require_once __DIR__ . '/lib/rooms.php';
+require_once __DIR__ . '/lib/transcripts.php';
 require_once __DIR__ . '/lib/mailer.php';
 require_once __DIR__ . '/lib/ical.php';
 require_once __DIR__ . '/lib/invites.php';
@@ -29,6 +30,7 @@ $form_input = [
   'ends_at'   => (string)($_POST['ends_at']   ?? ''),
   'attendees' => (string)($_POST['attendees'] ?? ''),
   'lobby'     => !empty($_POST['lobby']) ? '1' : '',
+  'transcribe' => !empty($_POST['transcribe']) ? '1' : '',
 ];
 $fail = function (string $msg) use ($form_input) {
   $_SESSION['room_error'] = $msg;
@@ -97,6 +99,8 @@ $opts = [
 // 只有「建立表單」才更新 lobby / 與會者；從清單「進入」須保留原值，否則會把先前的設定清掉。
 if (!$entering) {
   $opts['lobby'] = !empty($_POST['lobby']);
+  // 逐字稿單場開關：表單有顯示（使用者可使用逐字稿）才寫入；否則維持 null（依帳號預設）
+  if (!empty($_POST['transcribe_field']) && Settings::transcribeReady() && Transcripts::canUse($me)) $opts['transcribe'] = !empty($_POST['transcribe']);
 } else {
   unset($opts['attendees']);
 }

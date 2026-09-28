@@ -80,15 +80,19 @@ function render_head(string $title): void {
 <?php }
 
 /** 語言切換連結（顯示「另一個」語言；供未登入頁 / 來賓頁的頂列使用）。 */
-function lang_switch_html(string $cls = 'btn btn-ghost btn-sm'): string {
+function lang_switch_html(string $cls = ''): string {
+  // 只顯示目前語言；點了才展開可切換的語言（與右上帳號選單同一套樣式與開關：點外面 / Esc 收合）
   $cur = I18n::lang();
-  $out = '';
+  $items = '';
   foreach (I18n::NAMES as $code => $name) {
-    if ($code === $cur) continue;
-    $out .= '<a class="' . htmlspecialchars($cls) . ' lang-switch" href="' . htmlspecialchars(I18n::switchUrl($code)) . '" hreflang="' . htmlspecialchars($code) . '" lang="' . htmlspecialchars($code) . '">'
-          . icon('globe', 14) . htmlspecialchars($name) . '</a>';
+    $on = $code === $cur;
+    $items .= '<a class="dropdown-item' . ($on ? ' active' : '') . '" role="menuitem" href="' . htmlspecialchars(I18n::switchUrl($code)) . '" hreflang="' . htmlspecialchars($code) . '" lang="' . htmlspecialchars($code) . '"' . ($on ? ' aria-current="true"' : '') . '>'
+            . icon($on ? 'check' : 'globe', 16) . htmlspecialchars($name) . '</a>';
   }
-  return $out;
+  return '<div class="topbar-menu lang-menu">'
+       . '<button type="button" class="topbar-user lang-switch" id="topbarLangBtn" aria-haspopup="true" aria-expanded="false" aria-label="' . th('語言') . '">'
+       . icon('globe', 16) . '<span class="topbar-user-name">' . htmlspecialchars(I18n::NAMES[$cur] ?? $cur) . '</span>' . icon('arrow-right', 14) . '</button>'
+       . '<div class="topbar-dropdown" id="topbarLangMenu" role="menu">' . $items . '</div></div>';
 }
 
 /**
@@ -205,10 +209,10 @@ function render_foot(): void { ?>
   });
 })();
 
-/* Top-right account menu: click avatar / name to open; click outside or Esc to close. */
-(function () {
-  var btn = document.getElementById('topbarUserBtn');
-  var menu = document.getElementById('topbarDropdown');
+/* Top-right account / language menus: click to open; click outside or Esc to close. */
+[['topbarUserBtn', 'topbarDropdown'], ['topbarLangBtn', 'topbarLangMenu']].forEach(function (ids) {
+  var btn = document.getElementById(ids[0]);
+  var menu = document.getElementById(ids[1]);
   if (!btn || !menu) return;
   var wrap = btn.parentElement;
   function close() { wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }
@@ -220,7 +224,7 @@ function render_foot(): void { ?>
   btn.addEventListener('click', toggle);
   document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) close(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
-})();
+});
 
 /* Click a table column header to sort (sorts visible rows; paginated tables sort the current page only). */
 (function () {
@@ -307,6 +311,10 @@ function icon(string $name, int $size = 18): string {
     $paths = [
       // 控制
       'play'        => '<path d="M6 4v16l14-8L6 4z"/>',
+      'pause'       => '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>',
+      'file-text'   => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8M8 9h2"/>',
+      'list'        => '<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>',
+      'sparkles'    => '<path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/>',
       'video'       => '<rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-3v10l-6-3z"/>',
       'link'        => '<path d="M14 9l1.5-1.5a4 4 0 0 1 5.66 5.66L19 15.5"/><path d="M10 15l-1.5 1.5a4 4 0 0 1-5.66-5.66L5 9.5"/><path d="M9 15l6-6"/>',
       'copy'        => '<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>',

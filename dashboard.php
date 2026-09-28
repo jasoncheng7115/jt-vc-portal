@@ -4,6 +4,7 @@ require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/layout.php';
 require_once __DIR__ . '/lib/rooms.php';
 require_once __DIR__ . '/lib/settings.php';
+require_once __DIR__ . '/lib/transcripts.php';
 
 $me = Auth::requireLogin();
 
@@ -48,6 +49,8 @@ $form_starts_at = (string)($form_values['starts_at'] ?? '');
 $form_ends_at   = (string)($form_values['ends_at']   ?? '');
 $form_attendees = (string)($form_values['attendees'] ?? '');
 $form_lobby     = !empty($form_values) ? !empty($form_values['lobby']) : true;  // 新表單預設啟用大廳模式
+$tx_can         = Settings::transcribeReady() && Transcripts::canUse($me);
+$form_tx        = !empty($form_values) ? !empty($form_values['transcribe']) : (Transcripts::perm($me) === 'auto');  // 預設跟帳號權限
 $schedule_open  = ($form_starts_at !== '' || $form_ends_at !== '' || $form_attendees !== '');
 
 $created = $_GET['created'] ?? null;
@@ -188,6 +191,17 @@ render_topbar($me, $ip);
           <span class="help" style="margin:0;"><?= th('主持人進入後自動開啟；之後每位來賓需經主持人允許才能進入會議室。') ?></span>
         </span>
       </label>
+
+      <?php if ($tx_can): ?>
+      <input type="hidden" name="transcribe_field" value="1">
+      <label class="lobby-toggle">
+        <input type="checkbox" name="transcribe" value="1"<?= $form_tx ? ' checked' : '' ?>>
+        <span class="lobby-text">
+          <span class="lobby-title"><?= icon('file-text', 14) ?><?= th('錄影完成後產生逐字稿與摘要') ?></span>
+          <span class="help" style="margin:0;"><?= th('這場會議有錄影時，錄影完成後自動交給語音服務產生逐字稿（含發言者）與會議摘要；之後可在「錄影記錄」查看。') ?></span>
+        </span>
+      </label>
+      <?php endif; ?>
 
       <div class="btn-group">
         <button type="submit" name="mode" value="host" class="btn btn-primary"><?= icon('play') ?><?= th('開始主持會議') ?></button>

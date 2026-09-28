@@ -106,6 +106,11 @@ for i in $(seq 1 10); do login $V hostb wrong-password-$i 10.9.0.$i >/dev/null; 
 login $V hostb Itest-HostB-Pass-1 10.9.1.1 >/dev/null
 has "正確密碼也被帳號層鎖定擋下" "$(curl -s -b $V $B/jt-login)" "temporarily locked"
 chk "admin 不受 hostb 鎖定影響" "$(login "$JAR/a2" jtvc-admin "$ADMIN_PW" 10.9.2.1)" "$B/dashboard"
+echo "== IP 層鎖定畫面：只顯示、沒有可送出的登入表單（v1.12.0，ZAP Anti-CSRF）"
+for i in $(seq 1 5); do login "$JAR/ipl" nobody-$i wrong-password 10.9.8.8 >/dev/null; done
+LP=$(curl -s -H "X-Real-IP: 10.9.8.8" $B/jt-login)
+has "被鎖定的來源看到鎖定訊息" "$LP" 'login-locked'
+hasnt "鎖定畫面沒有送往 /verify 的表單" "$LP" 'action="/verify"'
 
 echo "== 來賓"
 G="$JAR/guest"

@@ -38,6 +38,7 @@ class Rooms {
           'attendees'    => is_array($v['attendees'] ?? null) ? $v['attendees'] : [],
           'lobby'        => !empty($v['lobby']),          // 大廳模式：主持人進場自動開啟
           'ics_seq'      => (int)($v['ics_seq'] ?? 0),     // .ics SEQUENCE（每次寄邀請 / 取消遞增）
+          'transcribe'   => array_key_exists('transcribe', $v) && $v['transcribe'] !== null ? (bool)$v['transcribe'] : null, // 逐字稿單場開關（null＝依帳號預設）
         ];
         if (isset($v['roster']) && is_array($v['roster'])) $out[$name]['roster'] = $v['roster']; // 本次 session 與會者名冊快照
       }
@@ -88,6 +89,7 @@ class Rooms {
       'attendees'  => count($participants),    // 不重複參與者數
       'peak'       => $peak,                    // 尖峰同時人數
       'participants' => $participants,          // [{name,in,out}]，參與者時間軸
+      'transcribe' => $r['transcribe'] ?? null, // 逐字稿單場開關（錄影處理時房間可能已過期，故隨 session 記下）
     ]);
   }
 
@@ -250,6 +252,9 @@ class Rooms {
       }
       if (array_key_exists('lobby', $opts)) {
         $existing['lobby'] = !empty($opts['lobby']);
+      }
+      if (array_key_exists('transcribe', $opts)) {
+        $existing['transcribe'] = $opts['transcribe'] === null ? null : (bool)$opts['transcribe'];
       }
       $rooms[$room] = $existing;
       $out = $existing;
