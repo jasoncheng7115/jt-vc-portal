@@ -6,7 +6,7 @@
 #   1. realm（多語系 LOCALES / DEFAULT_LOCALE、sslRequired=external、暴力破解偵測、事件記錄、OTP 政策、預設要求設定 OTP）
 #   2. LDAP 使用者聯合（AD，LDAPS、唯讀、只納入指定群組成員）+ 群組對應
 #   3. OIDC client「jt-vc-portal」（confidential、授權碼流程 + PKCE S256、固定 redirect URI）
-#      + groups claim mapper（不含完整路徑）
+#      + groups claim mapper（不含完整路徑）+ display_name claim（AD displayName）
 #
 # 用法（在 Keycloak 主機、compose 目錄下）：
 #   cp realm.env.example realm.env && vi realm.env && chmod 600 realm.env
@@ -132,6 +132,19 @@ GM_ARGS=(
 )
 if [ -z "$GM_ID" ]; then $KC create components -r "$REALM" "${GM_ARGS[@]}" >/dev/null; echo "created group mapper vc-groups";
 else $KC update "components/$GM_ID" -r "$REALM" "${GM_ARGS[@]}" >/dev/null; echo "updated group mapper vc-groups"; fi
+
+# 名稱欄位：AD 的名（givenName）與顯示名稱（displayName）。portal 用 displayName（claim display_name）當顯示名稱——
+# Keycloak 的 name claim 是「名 + 空格 + 姓」，中文姓名會變成「小明 陳」，displayName 才是「陳小明」。
+ldap_attr_mapper() {   # $1 名稱  $2 Keycloak 屬性  $3 LDAP 屬性
+  local id; id=$($KC get components -r "$REALM" -q parent="$LDAP_ID" -q name="$1" --fields id --format csv --noquotes 2>/dev/null | head -1 || true)
+  local args=(-s name="$1" -s providerId=user-attribute-ldap-mapper -s providerType=org.keycloak.storage.ldap.mappers.LDAPStorageMapper -s parentId="$LDAP_ID"
+    -s "config.\"user.model.attribute\"=[\"$2\"]" -s "config.\"ldap.attribute\"=[\"$3\"]"
+    -s 'config."read.only"=["true"]' -s 'config."always.read.value.from.ldap"=["true"]' -s 'config."is.mandatory.in.ldap"=["false"]')
+  if [ -z "$id" ]; then $KC create components -r "$REALM" "${args[@]}" >/dev/null; echo "created LDAP mapper $1 ($3 -> $2)";
+  else $KC update "components/$id" -r "$REALM" "${args[@]}" >/dev/null; echo "updated LDAP mapper $1 ($3 -> $2)"; fi
+}
+ldap_attr_mapper "first name" firstName givenName
+ldap_attr_mapper "display name" displayName displayName
 else
   echo "LDAP_URL empty — skipping AD federation (Keycloak local users only)"
   for g in "$ADMIN_GROUP" "$HOST_GROUP"; do
@@ -160,6 +173,23 @@ MAP_ARGS=(-s name=groups -s protocol=openid-connect -s protocolMapper=oidc-group
   -s 'config."id.token.claim"=true' -s 'config."access.token.claim"=false' -s 'config."userinfo.token.claim"=true')
 if [ -z "$MID" ]; then $KC create "clients/$CID/protocol-mappers/models" -r "$REALM" "${MAP_ARGS[@]}" >/dev/null; echo "created groups mapper";
 else $KC update "clients/$CID/protocol-mappers/models/$MID" -r "$REALM" "${MAP_ARGS[@]}" >/dev/null; echo "updated groups mapper"; fi
+
+# display_name claim（使用者屬性 displayName；AD 聯合時來自 AD displayName，本地帳號由管理員在使用者屬性填寫）
+# Keycloak 26 預設不保留使用者設定檔以外的屬性 → 允許「非受管屬性」僅管理員可見 / 可編輯（使用者本人不可改）
+$KC get users/profile -r "$REALM" > /tmp/.kc-up.$$
+python3 - "/tmp/.kc-up.$$" <<'PYEOF'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); d["unmanagedAttributePolicy"] = "ADMIN_EDIT"; json.dump(d, open(p, "w"))
+PYEOF
+# kcadm 在容器內執行，讀不到主機上的檔案 → 用 stdin 傳入
+$KC update users/profile -r "$REALM" -f - < "/tmp/.kc-up.$$" >/dev/null && echo "user profile: unmanaged attributes = ADMIN_EDIT"
+rm -f "/tmp/.kc-up.$$"
+DM_ID=$($KC get "clients/$CID/protocol-mappers/models" -r "$REALM" --fields id,name --format csv --noquotes 2>/dev/null | awk -F, '$2=="display name"{print $1}' | head -1 || true)
+DM_ARGS=(-s 'name=display name' -s protocol=openid-connect -s protocolMapper=oidc-usermodel-attribute-mapper
+  -s 'config."user.attribute"=displayName' -s 'config."claim.name"=display_name' -s 'config."jsonType.label"=String'
+  -s 'config."id.token.claim"=true' -s 'config."access.token.claim"=false' -s 'config."userinfo.token.claim"=true')
+if [ -z "$DM_ID" ]; then $KC create "clients/$CID/protocol-mappers/models" -r "$REALM" "${DM_ARGS[@]}" >/dev/null; echo "created display_name mapper";
+else $KC update "clients/$CID/protocol-mappers/models/$DM_ID" -r "$REALM" "${DM_ARGS[@]}" >/dev/null; echo "updated display_name mapper"; fi
 
 SECRET=$($KC get "clients/$CID/client-secret" -r "$REALM" --fields value --format csv --noquotes)
 echo

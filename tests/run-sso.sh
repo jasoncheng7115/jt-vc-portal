@@ -68,6 +68,7 @@ for u in alice:VC-Admins bob:VC-Hosts carol: dave:VC-Hosts; do
   n=${u%%:*}; g=${u#*:}
   $KC create users -r jtvc -s username=$n -s enabled=true -s email=$n@example.com -s emailVerified=true -s firstName=$n -s lastName=Test >/dev/null
   $KC set-password -r jtvc --username $n --new-password "$USER_PW" >/dev/null
+  [ "$n" = alice ] && { AUID=$($KC get users -r jtvc -q username=alice --fields id --format csv --noquotes); $KC update users/$AUID -r jtvc -s 'attributes.displayName=["陳愛麗"]' >/dev/null; }
   if [ -n "$g" ]; then
     UID_=$($KC get users -r jtvc -q username=$n --fields id --format csv --noquotes); GID=$($KC get groups -r jtvc -q search=$g --fields id --format csv --noquotes | head -1)
     $KC update users/$UID_/groups/$GID -r jtvc -s realm=jtvc -s userId=$UID_ -s groupId=$GID -n >/dev/null
@@ -83,10 +84,21 @@ for i in $(seq 1 30); do curl -s -o /dev/null http://127.0.0.1:$PPORT/ && break;
 docker exec -u www-data $PN php -r "
 require '/var/www/html/lib/settings.php'; require '/var/www/html/lib/users.php';
 Settings::setSection('jaas', ['_v'=>2,'mode'=>'jaas','app_id'=>'vpaas-magic-cookie-test','kid'=>'t','domain'=>'8x8.vc','site_url'=>'http://127.0.0.1:$PPORT']);
-Settings::setOidc(['enabled'=>true,'issuer'=>'http://kc.test:$KCPORT/realms/jtvc','client_id'=>'jt-vc-portal','client_secret'=>'$SECRET','require_https'=>false,'admin_groups'=>'VC-Admins','host_groups'=>'VC-Hosts']);
+Settings::setOidc(['enabled'=>true,'issuer'=>'http://kc.test:$KCPORT/realms/jtvc','client_id'=>'jt-vc-portal','client_secret'=>'$SECRET','require_https'=>false,'admin_groups'=>'VC-Admins','host_groups'=>'VC-Hosts','name_claim'=>'display_name']);
 Users::bootstrap();
 Users::create(['username'=>'dave','email'=>'dave-local@example.com','password'=>'Local-Dave-12345','role'=>'host']);
 "
 export PN KCN
 PW_MOD=${PLAYWRIGHT_MODULE:-/opt/jt-ipam/frontend/node_modules/.pnpm/playwright@1.60.0/node_modules/playwright}
-PLAYWRIGHT_MODULE=$PW_MOD node "$ROOT/tests/e2e/sso.cjs" "http://127.0.0.1:$PPORT" "http://kc.test:$KCPORT" "$USER_PW" "$ADMIN_PW"
+PLAYWRIGHT_MODULE=$PW_MOD node "$ROOT/tests/e2e/sso.cjs" "http://127.0.0.1:$PPORT" "http://kc.test:$KCPORT" "$USER_PW" "$ADMIN_PW" | tee "$WORK/e2e.out"
+rc=${PIPESTATUS[0]}
+echo "== S30 顯示名稱：Keycloak 使用者屬性 displayName → claim display_name → portal 顯示名稱"
+DN=$(docker exec $PN php -r '$d=json_decode(file_get_contents("/var/jaas-data/users.json"),true); foreach($d["users"] as $u) if($u["username"]==="alice") echo $u["display_name"];')
+BN=$(docker exec $PN php -r '$d=json_decode(file_get_contents("/var/jaas-data/users.json"),true); foreach($d["users"] as $u) if($u["username"]==="bob") echo $u["display_name"];')
+[ "$DN" = "陳愛麗" ] && echo "  ok   S30 alice 顯示名稱取自 display_name（$DN）" || { echo "  FAIL S30 alice display_name=$DN"; rc=1; }
+[ "$BN" = "bob" ] && echo "  ok   S30 沒有 displayName 的 bob 退回帳號名稱" || { echo "  FAIL S30 bob display_name=$BN"; rc=1; }
+# 最後一行統一輸出總計（run-all.sh 只取最後一行）：sso.cjs 的結果 + S30 的 2 項
+P=$(grep -oE '^[0-9]+ passed' "$WORK/e2e.out" | grep -oE '^[0-9]+'); F=$(grep -oE '[0-9]+ failed' "$WORK/e2e.out" | tail -1 | grep -oE '^[0-9]+')
+S30F=$([ "$DN" = "陳愛麗" ] && echo 0 || echo 1); S30F=$((S30F + $([ "$BN" = "bob" ] && echo 0 || echo 1)))
+echo "SSO: $(( ${P:-0} + 2 - S30F )) passed, $(( ${F:-1} + S30F )) failed"
+exit $rc

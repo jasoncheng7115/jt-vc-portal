@@ -74,8 +74,13 @@ function watch(page, bag) {
     await hp.goto(BASE + '/dashboard'); await hp.goto(BASE + '/settings#sso'); await hp.waitForTimeout(500);
     ok('設定目錄：直接開 /settings#sso 只顯示該卡片', JSON.stringify(await visibleCards()) === '["sso"]');
     ok('設定目錄：以 #id 開啟時目錄仍在畫面內', await hp.evaluate(() => document.querySelector('.settings-toc').getBoundingClientRect().top >= 0));
+    await hp.evaluate(() => { location.hash = '#smtp'; }); await hp.waitForTimeout(300);
+    ok('設定目錄：只改網址 # 也會切換卡片', JSON.stringify(await visibleCards()) === '["smtp"]');
     await hp.click('.settings-toc-item[data-toc="all"]');
     ok('設定目錄：「全部」還原所有卡片', (await visibleCards()).length === tocInfo.cards.length);
+    await hp.goto(BASE + '/recordings');
+    { const hrefs = await hp.$$eval('main a', as => as.filter(a => !a.closest('.nav-row')).map(a => a.getAttribute('href')).filter(h => h && h.startsWith('/settings')));
+      ok('錄影頁的「系統設定 → 錄製設定」連結指向 #recording', hrefs.length > 0 && hrefs.every(h => h === '/settings#recording'), JSON.stringify(hrefs)); }
     ok('設定頁無 CSP 錯誤', hv.length === 0, hv.slice(0, 2).join(' | '));
     await Promise.all([hp.waitForURL(/jt-login/), hp.click('form[action="/logout"] button')]);
     ok('登出按鈕（POST）', hp.url().includes('/jt-login'));

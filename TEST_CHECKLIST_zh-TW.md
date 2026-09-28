@@ -177,6 +177,7 @@
 - [ ] S27 `configure-realm.sh` 設了 `KC_ADMIN_URL`：master realm 的 Frontend URL（與其 issuer）改為內網管理網址，第一次帶此設定執行也能成功（變更後重新登入 kcadm），對外 realm 的 issuer 與 client secret 不變。
 - [ ] S28 Keycloak 介面語言：設定 `LOCALES` / `DEFAULT_LOCALE` 後，登入頁依瀏覽器語言顯示（zh-TW → 繁中 `zh-Hant`、ja → 日文、en → 英文、不支援的語言 → 預設），portal realm 與 master（管理員）realm 皆然。
 - [ ] S29 正式環境 SSO 冒煙測試（每次發版、部署後）：以目錄服務建立的臨時帳號（管理員群組、主持人群組、無群組）經真實 IdP 登入並綁定 OTP；角色正確、SSO 帳號沒有本地密碼 / 2FA、登出同時結束 portal 與 IdP session、第二次登入只需 OTP、無群組帳號被拒；結束後臨時帳號從目錄服務、IdP 與 portal 全部移除。
+- [ ] S30 顯示名稱：顯示名稱 claim 設為 `display_name` 時，portal 帳號的顯示名稱等於目錄服務的 `displayName`（例如「Jason Cheng」，不是只有姓），每次 SSO 登入都會更新；沒有 displayName 的帳號退回帳號名稱。由 `tests/run-sso.sh` 與正式環境冒煙測試（S29）涵蓋。
 
 ## 4. 多語系（i18n）
 
@@ -296,7 +297,7 @@
 | Jibri 錄影 API 授權 / Range / 路徑穿越 | `tests/test-jibri-api.sh` |
 | SSO S02–S20（驗簽、聲明、state、PKCE URL、群組、佈建、僅限 SSO、登出網址、設定） | `tests/unit/test_oidc.php` |
 | SSO S02 / S05 / S08 / S10（迷你 IdP：token 交換、userinfo、fail-closed） | `tests/unit/test_oidc_flow.php` |
-| SSO S01、S05–S07、S11–S21、S23–S25、S27、S28（真實 Keycloak + 瀏覽器，含 OTP） | `tests/run-sso.sh`（`tests/e2e/sso.cjs`） |
+| SSO S01、S05–S07、S11–S21、S23–S25、S27、S28、S30（真實 Keycloak + 瀏覽器，含 OTP） | `tests/run-sso.sh`（`tests/e2e/sso.cjs`） |
 | SSO S22 | `tests/zap/run-zap.sh`（啟用 SSO 掃描） |
 | SSO S26 | 手動：KEYCLOAK-SETUP 第 7 節驗證指令 |
 | SSO S29 | 維護者對正式環境執行的冒煙測試腳本（臨時帳號，結束後清除） |

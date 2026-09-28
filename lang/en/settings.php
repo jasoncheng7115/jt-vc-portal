@@ -295,4 +295,7 @@ return [
   '稽核記錄保留天數' => 'Audit log retention (days)',
   '目前未啟用 JWT：任何知道會議室名稱的人都能直接連到 Jitsi 網域進入會議，繞過本系統的等候、具名與排程控管。建議改為「需要 JWT」。' => 'JWT is not enabled: anyone who knows a room name can join directly on the Jitsi domain, bypassing this portal\'s waiting room, name requirement and schedule. Switching to "JWT required" is recommended.',
   '設定目錄' => 'Settings sections',
+  '單一登入（SSO）' => 'Single sign-on (SSO)',
+  'SMTP 寄信' => 'SMTP email',
+  '記錄外拋（SIEM）' => 'Log forwarding (SIEM)',
 ];

@@ -172,19 +172,19 @@ async function ssoLogin(page, user, { expectOtpSetup = false } = {}) {
   // S15：無本地管理員時不可開啟僅限 SSO（以設定頁送出驗證）
   phpc(`require '/var/www/html/lib/users.php'; foreach (Users::all() as $u) if (($u['auth'] ?? 'local') !== 'oidc' && $u['role'] === 'admin') Users::update($u['id'], ['role' => 'host']);`);
   await p2.goto(PORTAL + '/settings');
-  const t2 = await p2.evaluate(() => (document.querySelector('#sso input[name=_csrf]') || {}).value);
+  const t2 = await p2.evaluate(() => (document.querySelector('#card-sso input[name=_csrf]') || {}).value);
   r = await p2.request.post(PORTAL + '/save-settings', { form: { _csrf: t2, section: 'oidc', enabled: '1', issuer: KC + '/realms/jtvc', client_id: 'jt-vc-portal', admin_groups: 'VC-Admins', host_groups: 'VC-Hosts', sso_only: '1', local_login_cidrs: '' }, maxRedirects: 0 });
   await p2.goto(PORTAL + '/settings');
   ok('S15 沒有本地管理員時不可開啟僅限 SSO', (await p2.content()).includes('alert-error'));
   r = await p2.request.post(PORTAL + '/save-settings', { form: { _csrf: t2, section: 'oidc', enabled: '1', issuer: KC + '/realms/jtvc', client_id: 'jt-vc-portal', admin_groups: 'VC-Admins', host_groups: 'VC-Hosts', sso_only: '', require_https: '' }, maxRedirects: 0 });
   phpc(`require '/var/www/html/lib/users.php'; $u = Users::findByLogin('jtvc-admin'); Users::update($u['id'], ['role' => 'admin']);`);
   await p2.goto(PORTAL + '/settings');
-  const t3 = await p2.evaluate(() => (document.querySelector('#sso input[name=_csrf]') || {}).value);
+  const t3 = await p2.evaluate(() => (document.querySelector('#card-sso input[name=_csrf]') || {}).value);
   r = await p2.request.post(PORTAL + '/save-settings', { form: { _csrf: t3, section: 'oidc', action: 'test', enabled: '1', issuer: KC + '/realms/jtvc', client_id: 'jt-vc-portal', admin_groups: 'VC-Admins', host_groups: 'VC-Hosts', local_login_cidrs: 'not-an-ip', sso_only: '1' }, maxRedirects: 0 });
   await p2.goto(PORTAL + '/settings');
   ok('S15 CIDR 格式錯誤被擋', (await p2.content()).includes('alert-error'));
   await p2.goto(PORTAL + '/settings');
-  const t4 = await p2.evaluate(() => (document.querySelector('#sso input[name=_csrf]') || {}).value);
+  const t4 = await p2.evaluate(() => (document.querySelector('#card-sso input[name=_csrf]') || {}).value);
   r = await p2.request.post(PORTAL + '/save-settings', { form: { _csrf: t4, section: 'oidc', action: 'test', enabled: '1', issuer: KC + '/realms/jtvc', client_id: 'jt-vc-portal', admin_groups: 'VC-Admins', host_groups: 'VC-Hosts' }, maxRedirects: 0 });
   await p2.goto(PORTAL + '/settings');
   ok('S20 儲存並測試連線成功（取得 JWKS）', (await p2.content()).includes('alert-success'));

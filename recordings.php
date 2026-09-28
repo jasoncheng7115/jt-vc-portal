@@ -82,7 +82,7 @@ render_topbar($me, $ip);
       <?php if ($is_admin): ?>
       <div class="alert alert-info" style="align-items:flex-start;">
         <?= icon('warning') ?>
-        <span><?= t('尚未設定 Jibri 錄影服務。請至 {link} 填入服務 URL 與 token。', ['link' => '<a href="/settings">' . th('系統設定 → 錄製設定') . '</a>']) ?></span>
+        <span><?= t('尚未設定 Jibri 錄影服務。請至 {link} 填入服務 URL 與 token。', ['link' => '<a href="/settings#recording">' . th('系統設定 → 錄製設定') . '</a>']) ?></span>
       </div>
       <?php else: ?>
       <div class="alert alert-info"><?= icon('warning') ?><span><?= th('錄影服務尚未啟用。') ?></span></div>
@@ -113,7 +113,7 @@ render_topbar($me, $ip);
         <?= Auth::csrfField() ?>
         <input type="hidden" name="action" value="cleanup">
         <button class="btn btn-secondary btn-sm"><?= icon('trash', 14) ?><?= th('依保留政策立即清理') ?></button>
-        <span class="help" style="margin-left:8px;"><?= t('保留政策於 {link} 調整。', ['link' => '<a href="/settings">' . th('系統設定 → 錄製設定') . '</a>']) ?></span>
+        <span class="help" style="margin-left:8px;"><?= t('保留政策於 {link} 調整。', ['link' => '<a href="/settings#recording">' . th('系統設定 → 錄製設定') . '</a>']) ?></span>
       </form>
       <?php endif; ?>
 

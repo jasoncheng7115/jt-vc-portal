@@ -2,6 +2,12 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.11.1 — Settings sidebar, SSO display name, fixes
+
+- **Settings page**: the section index is now a sidebar on the left (one entry per line, short labels, stays in place while scrolling; a scrollable row on narrow screens). Changing only the `#` part of the URL switches the card too.
+- **Recordings page**: the "System settings → Recording settings" links open the recording settings card directly.
+- **SSO display name**: `configure-realm.sh` now maps AD `givenName` and `displayName` and sends `display_name`; set the portal's display name claim to `display_name` to show the directory display name (previously only the surname could appear). New test S30.
+
 ## v1.11.0 — Settings section index; Keycloak kit improvements
 
 - **Settings page section index**: a row of chips at the top lists every settings card; click one to show only that card (the URL becomes `/settings#id`, so it can be bookmarked or shared), "All" shows everything. The selection survives reloads and saving. Cards hidden by the connection mode are hidden in the index too.

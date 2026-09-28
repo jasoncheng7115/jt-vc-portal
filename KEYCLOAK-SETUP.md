@@ -602,7 +602,7 @@ Sign in to the portal as an administrator → **Settings** → card **Single sig
 | **Administrator groups (comma-separated)** | `VC-Admins` |
 | **Host groups (comma-separated)** | `VC-Hosts` |
 | **The IdP must use HTTPS (keep this checked)** | checked |
-| Advanced: scopes and claim names | defaults: scopes `openid email profile`, groups claim `groups`, username claim `preferred_username`, email claim `email`, display name claim `name` |
+| Advanced: scopes and claim names | defaults: scopes `openid email profile`, groups claim `groups`, username claim `preferred_username`, email claim `email`, display name claim `name`. **With this kit set the display name claim to `display_name`**: `configure-realm.sh` maps AD `displayName` (and `givenName`) and sends it as `display_name`. Keycloak's `name` is "first + space + last", which turns Chinese names such as 陳小明 into "小明 陳" (and is only the surname if the first-name mapping is missing) |
 
 Click **Save and test connection**. The portal fetches the discovery document and the signing keys (JWKS); success shows "Connected: retrieved the IdP configuration and N signing key(s)". Errors are shown (and audited) with a short reason — see [Troubleshooting](#11-troubleshooting).
 

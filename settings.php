@@ -27,7 +27,7 @@ $webhook_url = ($jaas['site_url'] ?: SITE_URL) . '/webhooks/usage';
 render_head(t('系統設定'));
 render_topbar($me, $ip);
 ?>
-<main class="container">
+<main class="container settings-page">
   <?= admin_nav('settings') ?>
   <?php if ($msg): ?><div class="alert alert-success"><?= icon('check') ?><span><?= htmlspecialchars($msg) ?></span></div><?php endif; ?>
   <?php if ($err): ?><div class="alert alert-error"><?= icon('warning') ?><span><?= htmlspecialchars($err) ?></span></div><?php endif; ?>
@@ -37,19 +37,20 @@ render_topbar($me, $ip);
   $toc = [
     ['site', 'home', t('站台設定'), ''],
     ['login-path', 'lock', t('登入頁路徑'), ''],
-    ['sso', 'user', t('單一登入（SSO / OIDC）'), ''],
+    ['sso', 'user', t('單一登入（SSO）'), ''],
     ['meeting-ui', 'video', t('會議室介面'), ''],
     ['connection', 'link', t('連線模式設定'), ''],
     ['meeting-custom', 'video', t('會議室自訂'), 'js-card-selfhosted'],
     ['recording', 'video', t('錄製設定'), ''],
     ['webhook', 'chart', t('8x8 用量 Webhook'), 'js-card-jaas'],
-    ['smtp', 'calendar', t('SMTP 寄信（會議邀請 .ics）'), ''],
-    ['logship', 'upload', t('登入記錄外拋（SIEM）'), ''],
+    ['smtp', 'calendar', t('SMTP 寄信'), ''],
+    ['logship', 'upload', t('記錄外拋（SIEM）'), ''],
     ['theme', 'edit', t('外觀主題'), ''],
     ['backup', 'upload', t('設定匯出 / 匯入'), ''],
   ];
   $toc_hidden = fn($cls) => ($cls === 'js-card-selfhosted' && $jaas['mode'] !== 'selfhosted') || ($cls === 'js-card-jaas' && $jaas['mode'] !== 'jaas');
   ?>
+  <div class="settings-layout">
   <nav class="settings-toc" aria-label="<?= th('設定目錄') ?>">
     <a href="#all" class="settings-toc-item" data-toc="all"><?= th('全部') ?></a>
     <?php foreach ($toc as [$tid, $ticon, $tlabel, $tcls]): ?>
@@ -77,9 +78,11 @@ render_topbar($me, $ip);
       try { saved = sessionStorage.getItem(KEY) || ''; } catch (e) {}
       show(h || saved || 'all', false);
     });
+    window.addEventListener('hashchange', function () { show(location.hash.replace('#', '') || 'all', false); window.scrollTo(0, 0); });
     // cards use id="card-<id>" so the URL #<id> never triggers the browser's own anchor jump (the index stays visible)
   })();
   </script>
+  <div class="settings-main">
 
   <?php /* 站台設定 */ ?>
   <?php $brand = site_brand(); ?>
@@ -646,6 +649,7 @@ render_topbar($me, $ip);
       })();
     </script>
   </div>
+  </div></div>
 </main>
 
 <div id="flash" class="copy-flash"><?= icon('check', 14) ?><?= th('已複製') ?></div>

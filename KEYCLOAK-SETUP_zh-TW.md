@@ -602,7 +602,7 @@ curl -s https://sso.example.com/realms/jtvc/.well-known/openid-configuration | j
 | **管理員群組（逗號分隔）** | `VC-Admins` |
 | **主持人群組（逗號分隔）** | `VC-Hosts` |
 | **IdP 必須使用 HTTPS（建議保持勾選）** | 勾選 |
-| 進階：Scopes 與 claim 名稱 | 預設：scopes `openid email profile`、群組 claim `groups`、帳號名稱 claim `preferred_username`、Email claim `email`、顯示名稱 claim `name` |
+| 進階：Scopes 與 claim 名稱 | 預設：scopes `openid email profile`、群組 claim `groups`、帳號名稱 claim `preferred_username`、Email claim `email`、顯示名稱 claim `name`。**使用本範本時請把顯示名稱 claim 改成 `display_name`**：`configure-realm.sh` 會對應 AD 的 `displayName`（與 `givenName`），並以 `display_name` 帶給 portal。Keycloak 的 `name` 是「名＋空格＋姓」，中文姓名「陳小明」會變成「小明 陳」（沒對應到名時甚至只剩姓） |
 
 按「**儲存並測試連線**」。portal 會取得 discovery 文件與簽章金鑰（JWKS）；成功時顯示「連線成功：已取得 IdP 設定與 N 把簽章金鑰。」。失敗時會顯示（並記入稽核）簡短原因——見[疑難排解](#十一疑難排解)。
 
