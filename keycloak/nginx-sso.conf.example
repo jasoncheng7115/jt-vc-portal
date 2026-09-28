@@ -10,6 +10,9 @@ server {
     add_header Strict-Transport-Security "max-age=31536000" always;
     add_header X-Content-Type-Options nosniff always;
 
+    # master realm（Keycloak 管理員登入）只走內網管理網址，對外一律拒絕（必須放在其他 /realms 規則之前）
+    location ~ ^/realms/master(/|$) { return 404; }
+
     # 登入請求限速（防暴力破解的第一道：每 IP 每分鐘 20 次登入 POST）
     # 需在 http {} 內宣告：limit_req_zone $binary_remote_addr zone=kc_login:10m rate=20r/m;
     location ~ ^/realms/[^/]+/login-actions/authenticate {
@@ -24,7 +27,7 @@ server {
         include /etc/nginx/snippets/kc-proxy.conf;
     }
 
-    # 其餘（含 /admin、/metrics、/health、根目錄）一律拒絕
+    # 其餘（含 /admin、/metrics、/health、根目錄、/realms/master）一律拒絕
     location / { return 404; }
 }
 

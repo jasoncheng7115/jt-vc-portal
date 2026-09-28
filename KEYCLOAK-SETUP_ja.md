@@ -60,8 +60,8 @@
 ┌────────────────────────────────┐   ┌──────────────────────────┐
 │ Keycloak ホスト（VM / LXC）    │   │ jt-vc-portal ホスト      │
 │ 10.0.0.20                      │   │（コンテナー jaas-auth）  │
-│  keycloak :8080（プロキシ＋    │◄──┤ OIDC：discovery・token・ │
-│                  管理）        │   │ JWKS はすべて            │
+│  keycloak :8080（プロキシのみ）│◄──┤ OIDC：discovery・token・ │
+│  keycloak :8443（管理 HTTPS）  │   │ JWKS はすべて            │
 │  keycloak :9000（ヘルス、      │   │ https://sso.example.com  │
 │                  localhost）   │   │ 経由                     │
 │  postgres（内部ネットワーク）  │   └──────────────────────────┘
@@ -74,7 +74,7 @@
 │ グループ VC-Admins / VC-Hosts  │
 └────────────────────────────────┘
 
-管理ネットワーク（例：10.0.1.0/24）──HTTP 8080──► Keycloak 管理コンソール（プロキシは経由しない）
+管理ネットワーク（例：10.0.1.0/24）──HTTPS 8443──► Keycloak 管理コンソール（プロキシは経由しない）
 ```
 
 **設計上の判断**
@@ -137,13 +137,14 @@ pct reboot 120
 | 送信元 | 宛先 | ポート | 用途 |
 |---|---|---|---|
 | リバースプロキシ（例：10.0.0.10） | Keycloak 10.0.0.20 | TCP 8080 | ログインページ / OIDC |
-| 管理ネットワーク（例：10.0.1.0/24） | Keycloak 10.0.0.20 | TCP 8080 | 管理コンソール |
+| 管理ネットワーク（例：10.0.1.0/24） | Keycloak 10.0.0.20 | TCP 8443 | 管理コンソール（HTTPS） |
 | Keycloak 10.0.0.20 | DC `dc1.example.com` | TCP 636 | LDAPS |
 | jt-vc-portal | `sso.example.com`（プロキシ） | TCP 443 | Discovery、token、JWKS |
 
 ### ファイアウォールの推奨
 
-- **8080**：リバースプロキシと管理ネットワークからのみ許可。
+- **8080**（HTTP）：リバースプロキシからのみ許可。
+- **8443**（HTTPS、管理コンソール）：管理ネットワークからのみ許可。
 - **9000**（ヘルス / 管理）：`docker-compose.yml` で `127.0.0.1` にバインド済み。絶対に公開しないこと。
 - **PostgreSQL**：一切公開しない（Docker 内部ネットワークのみ）。
 - Keycloak ホストの外向き通信：DC への 636 と、DNS / NTP / パッケージ更新のみ。
@@ -153,8 +154,9 @@ pct reboot 120
 > ```bash
 > # ルールは先頭に挿入されるため、DROP を先に、ACCEPT を後に挿入する
 > iptables -I DOCKER-USER -p tcp -m conntrack --ctorigdstport 8080 --ctdir ORIGINAL -j DROP
-> iptables -I DOCKER-USER -p tcp -m conntrack --ctorigdstport 8080 --ctdir ORIGINAL -s 10.0.1.0/24 -j ACCEPT
+> iptables -I DOCKER-USER -p tcp -m conntrack --ctorigdstport 8443 --ctdir ORIGINAL -j DROP
 > iptables -I DOCKER-USER -p tcp -m conntrack --ctorigdstport 8080 --ctdir ORIGINAL -s 10.0.0.10 -j ACCEPT
+> iptables -I DOCKER-USER -p tcp -m conntrack --ctorigdstport 8443 --ctdir ORIGINAL -s 10.0.1.0/24 -j ACCEPT
 > apt install -y iptables-persistent && netfilter-persistent save
 > ```
 
@@ -286,13 +288,13 @@ Keycloak は DC の LDAPS 証明書に署名した CA を信頼する必要が�
 
 | ファイル | 用途 |
 |---|---|
-| `docker-compose.yml` | PostgreSQL 17 + Keycloak（`start`、本番モード）。Keycloak は 8080（プロキシ＋内部管理）と 9000（ヘルス、`127.0.0.1` にバインド）で待ち受け。`./truststores` を読み取り専用でマウントし、中の PEM をすべて信頼（`KC_TRUSTSTORE_PATHS`）。データベースは `./data/postgres`。 |
+| `docker-compose.yml` | PostgreSQL 17 + Keycloak（`start`、本番モード）。Keycloak は 8080（HTTP、プロキシ用）、8443（HTTPS、内部管理コンソール、証明書は `./certs`）、9000（ヘルス、`127.0.0.1` にバインド）で待ち受け。`./truststores` と `./certs` を読み取り専用でマウントし、中の PEM をすべて信頼（`KC_TRUSTSTORE_PATHS`）。データベースは `./data/postgres`。 |
 | `docker-compose.bootstrap.yml` | 一時管理者の変数を追加。初回起動時のみ使用（セクション 4〜5）。 |
 | `.env.example` | `.env` のテンプレート（バージョン、URL、パスワード）。 |
 | `realm.env.example` | `realm.env` のテンプレート（`configure-realm.sh` のパラメーター）。 |
 | `configure-realm.sh` | realm・AD フェデレーション・OIDC クライアントを作成 / 更新する冪等なスクリプト（セクション 6）。 |
 | `nginx-sso.conf.example` | リバースプロキシの例（セクション 7）。 |
-| `.gitignore` | `.env`、`realm.env`、`client-secret.txt`、`data/`、`truststores/*.pem` をバージョン管理から除外。 |
+| `.gitignore` | `.env`、`realm.env`、`client-secret.txt`、`data/`、`certs/`、`truststores/*.pem` をバージョン管理から除外。 |
 
 ### インストール
 
@@ -312,7 +314,17 @@ install -m 644 ad-ca.pem /opt/keycloak/truststores/ad-ca.pem
 
 # この CA で本ホストから LDAPS を確認（"Verify return code: 0 (ok)" になること）
 openssl s_client -connect dc1.example.com:636 -CAfile /opt/keycloak/truststores/ad-ca.pem </dev/null 2>/dev/null | grep 'Verify return code'
+
+# 内部管理コンソール（8443 番）用の HTTPS 証明書。自己署名で構いません。
+# subjectAltName にはブラウザーで入力する IP / 名前を入れてください。
+install -d -m 750 /opt/keycloak/certs
+openssl req -x509 -newkey rsa:3072 -nodes -days 3650 -subj "/CN=keycloak admin" \
+  -addext "subjectAltName=IP:10.0.0.20,DNS:keycloak1" \
+  -keyout /opt/keycloak/certs/tls.key -out /opt/keycloak/certs/tls.crt
+chown -R 1000:0 /opt/keycloak/certs && chmod 600 /opt/keycloak/certs/tls.key   # コンテナーは uid 1000 で動作
 ```
+
+> **なぜ管理コンソールは HTTPS なのか？** Keycloak 26 の管理コンソールにはブラウザーの *secure context*（PKCE 用の Web Crypto）が必要です。素の `http://<IP>:8080` で開くと **「Something went wrong」** としか表示されません。`http://localhost` なら動きますが、IP やホスト名では動かないため、管理コンソールはこの証明書で 8443 番から提供します。自己署名証明書についてブラウザーが一度警告します（または管理用端末で `tls.crt` を信頼済みとしてインポートしてください）。
 
 ### `.env`
 
@@ -328,8 +340,8 @@ vi .env
 |---|---|---|
 | `KC_VERSION` | `26.4` | Keycloak イメージのタグ（固定すること。[アップグレード](#アップグレード)参照） |
 | `KC_PUBLIC_URL` | `https://sso.example.com` | 利用者のブラウザーから見える URL（プロキシ経由）。issuer のベースになります。 |
-| `KC_ADMIN_URL` | `http://10.0.0.20:8080` | 管理コンソールの URL（内部ネットワークのみ） |
-| `KC_BIND_ADDR` | `0.0.0.0`（または `10.0.0.20`） | 8080 番を公開するアドレス |
+| `KC_ADMIN_URL` | `https://10.0.0.20:8443` | 管理コンソールの URL（内部ネットワークのみ）。**必ず `https://…:8443`**（上記参照）。 |
+| `KC_BIND_ADDR` | `0.0.0.0`（または `10.0.0.20`） | 8080 / 8443 番を公開するアドレス |
 | `KC_DB_PASSWORD` | （乱数） | PostgreSQL のパスワード（データベース初回起動時に適用） |
 | `KC_BOOTSTRAP_ADMIN_USERNAME` | `temp-admin` | 初回起動専用の一時管理者 |
 | `KC_BOOTSTRAP_ADMIN_PASSWORD` | （乱数） | そのパスワード。セクション 5 で削除します。 |
@@ -345,7 +357,7 @@ docker compose ps
 
 初回起動は 1～2 分かかります（データベーススキーマの作成）。ログ：`docker compose logs -f keycloak`。
 
-管理ネットワークから管理コンソール `http://10.0.0.20:8080/admin/` にアクセスできるようになります。
+管理ネットワークから管理コンソール `https://10.0.0.20:8443/admin/` にアクセスできるようになります。
 
 ---
 
@@ -393,7 +405,7 @@ sed -i '/^KC_BOOTSTRAP_ADMIN_/d' /opt/keycloak/.env
 docker compose up -d   # from now on always without docker-compose.bootstrap.yml
 ```
 
-恒久的な管理者の資格情報は**パスワードマネージャー**に保管してください。`http://10.0.0.20:8080/admin/` に一度ログインして確認します（OTP も登録）。
+恒久的な管理者の資格情報は**パスワードマネージャー**に保管してください。`https://10.0.0.20:8443/admin/` に一度ログインして確認します（OTP も登録）。
 
 ---
 
@@ -427,6 +439,7 @@ vi realm.env
 | `LDAP_GROUPS_DN` | `CN=Groups,DC=example,DC=com` | 2 つのグループがあるコンテナー |
 | `ADMIN_GROUP` / `HOST_GROUP` | `VC-Admins` / `VC-Hosts` | グループ名（CN） |
 | `LOCKOUT_FAILURES` | `5` | Keycloak のブルートフォース閾値。**AD のロックアウト閾値より小さくすること** |
+| `KC_ADMIN_URL` | `https://10.0.0.20:8443` | `.env` と同じ値。スクリプトはこれを **master realm の Frontend URL** に設定するため、Keycloak 管理者のログインページは常に内部の管理 URL から提供されます（プロキシが `/realms/master` を拒否する `sso.example.com` からは提供されません）。 |
 | `KC_ADMIN_USER` / `KC_ADMIN_PASSWORD` | （master の管理者） | スクリプトのログイン用。実行後は空にしてください（または 2 行とも `realm.env` から削除してシェルで `export` する。`realm.env` の空の値は export した値を上書きします）。 |
 
 任意の上書き（環境変数）：`KCADM`——kcadm を実行するコマンド（既定 `docker compose exec -T keycloak /opt/keycloak/bin/kcadm.sh`）、`KC_SERVER`——kcadm から見たサーバー URL（既定 `http://localhost:8080`）、`SECRET_OUT`——クライアントシークレットの出力先（既定 `client-secret.txt`）。
@@ -503,7 +516,7 @@ Redirect URI  : https://vc.example.com/sso-callback
 
 ### LDAP bind パスワードの設定（空欄にした場合）
 
-管理コンソール（`http://10.0.0.20:8080/admin/`）→ realm **jtvc** → **User federation** → **ad** → **Bind credentials** → `svc-keycloak` のパスワードを入力 → **Save** → **Test connection** と **Test authentication** をクリック。
+管理コンソール（`https://10.0.0.20:8443/admin/`）→ realm **jtvc** → **User federation** → **ad** → **Bind credentials** → `svc-keycloak` のパスワードを入力 → **Save** → **Test connection** と **Test authentication** をクリック。
 
 グループメンバーだけが見えることを確認：realm **jtvc** → **Users** → メンバー（例：`alice`）を検索すると見つかり、メンバー以外は見つからないこと。（ユーザーは初回の検索 / ログイン時にインポートされ、定期同期はありません。）
 
@@ -521,6 +534,7 @@ Redirect URI  : https://vc.example.com/sso-callback
 `keycloak/nginx-sso.conf.example` は `sso.example.com` 用の nginx server ブロックです：
 
 - **`/realms/…` と `/resources/…` のみ** `http://10.0.0.20:8080` に転送します。それ以外（`/admin`、`/metrics`、`/health`、`/` を含む）はすべて **404** を返します。
+- **`/realms/master` も 404 を返します**：master realm（Keycloak 管理者）は内部の管理 URL からのみ使用します。このルールは他の `/realms` location より前に置く必要があります。
 - ログインフォームの POST（`/realms/<realm>/login-actions/authenticate`）は送信元 IP ごとに**レート制限**（`limit_req`、毎分 20 回、burst 10）され、パスワード推測に対する最初の防御線になります。zone は `http {}` コンテキストで宣言する必要があります。
 - **HSTS** と `X-Content-Type-Options: nosniff` を付加します。
 - 共通スニペット `kc-proxy.conf` は `Host`、`X-Forwarded-Host`、`X-Forwarded-Proto https`、`X-Forwarded-Port 443`、`X-Forwarded-For` を設定し（Keycloak は `KC_PROXY_HEADERS=xforwarded` で動作）、**プロキシバッファーを拡大**します（Keycloak の応答は大きなヘッダー / Cookie を含むため、既定のバッファーでは `502 upstream sent too big header` になります）。
@@ -732,7 +746,7 @@ curl -sf http://127.0.0.1:9000/health/ready && echo OK     # Keycloak ホスト�
 
 ## 10. セキュリティチェックリスト
 
-- [ ] 管理コンソールに**インターネットから到達できない**（`https://sso.example.com/admin/` → 404）。8080 番はプロキシと管理ネットワークからのみ、9000 番はローカルホストのみ。
+- [ ] 管理コンソールに**インターネットから到達できない**（`https://sso.example.com/admin/` と `https://sso.example.com/realms/master/` → 404）。8080 番はプロキシからのみ、8443 番（管理、HTTPS）は管理ネットワークからのみ、9000 番はローカルホストのみ。
 - [ ] **ブートストラップ管理者を削除**し、`.env` から `KC_BOOTSTRAP_ADMIN_*` の 2 行を削除し、`docker-compose.bootstrap.yml` なしで稼働、パスワードマネージャーに保管。
 - [ ] **OTP 必須**（必須アクション *Configure OTP* が有効かつ既定）。
 - [ ] Keycloak の**ブルートフォース閾値（`LOCKOUT_FAILURES`）< AD のロックアウト閾値**。可能なら AD のロックアウトを有効化済み。
@@ -770,7 +784,9 @@ curl -sf http://127.0.0.1:9000/health/ready && echo OK     # Keycloak ホスト�
 | **全員がログインできない**（Keycloak または AD が停止、SSO のみが有効） | portal ホストで `docker exec -u www-data jaas-auth php /var/www/html/sso-cli.php disable-sso-only` を実行し、ローカルの緊急用管理者でログイン。 |
 | パスワード誤りの後に **Keycloak アカウントがロックされた** | ブルートフォース検知：待つ（5 分から最大 30 分）か、管理コンソール → **Users** → 対象ユーザー → *Temporarily locked* をオフ。 |
 | プロキシで `502 Bad Gateway` / `upstream sent too big header` | プロキシバッファー設定（`kc-proxy.conf`）がありません。 |
-| 管理コンソールがループする / 「HTTPS required」と表示される | **プライベート**アドレスから `KC_ADMIN_URL` 経由でアクセスしてください（master realm は `sslRequired=external`）。または管理 URL を内部 TLS の背後に置く。 |
+| 管理コンソールに **「Something went wrong」** と表示される | 素の HTTP で開いています（例：`http://10.0.0.20:8080/admin/`）。Keycloak 26 には secure context が必要です。`https://10.0.0.20:8443/admin/` を使ってください（セクション 4、証明書は `certs/`）。 |
+| 管理コンソールが**ずっと読み込み中** / ブラウザーのコンソールに `sso.example.com/realms/master/…` へのリクエスト失敗が出る | master realm のログインページがまだ公開 URL を使っています（まだ名前解決できない、またはプロキシに拒否される）。`realm.env` に `KC_ADMIN_URL` を設定して `./configure-realm.sh` を再実行してください（master realm の Frontend URL を設定します）。 |
+| 管理コンソールがループする / 「HTTPS required」と表示される | **プライベート**アドレスから `KC_ADMIN_URL` 経由でアクセスしてください（master realm は `sslRequired=external`）。 |
 
 ---
 
@@ -783,7 +799,7 @@ curl -sf http://127.0.0.1:9000/health/ready && echo OK     # Keycloak ホスト�
 
 ## 12. テスト方法
 
-- **`tests/run-sso.sh`**——本番システムには一切触れないエンドツーエンドの統合テストです。使い捨ての Keycloak を起動し、**同じ `configure-realm.sh`** をローカルユーザーモード（`LDAP_URL` 空、`KCADM` / `KC_SERVER` / `SECRET_OUT` の上書きを使用）で実行して設定し、`VC-Admins`・`VC-Hosts`・どのグループにも属さないテストユーザーを作成、使い捨ての portal をビルドして起動し、Playwright で **45 項目のブラウザー / 統合チェック**を実行します。内容：初回ログインでの OTP 登録と TOTP ログイン、グループ → ロール、許可グループ外ユーザーの拒否、認可リクエストの PKCE S256 / `state` / `nonce`、固定リダイレクト URI、コールバック再送の拒否、ローカルアカウントとのユーザー名衝突、無効化アカウント（既存セッションの即時失効）、SSO のみモードの IP 許可リストとローカル管理者保護、保存して接続テスト、fail2ban ロック、Keycloak のブルートフォースロック、PKCE なしや未登録リダイレクト URI のリクエストを Keycloak が拒否すること、RP-initiated logout、`sso-cli.php` コマンド。
+- **`tests/run-sso.sh`**——本番システムには一切触れないエンドツーエンドの統合テストです。使い捨ての Keycloak を起動し、**同じ `configure-realm.sh`** をローカルユーザーモード（`LDAP_URL` 空、`KCADM` / `KC_SERVER` / `SECRET_OUT` の上書きを使用）で実行して設定し、`VC-Admins`・`VC-Hosts`・どのグループにも属さないテストユーザーを作成、使い捨ての portal をビルドして起動し、Playwright で **47 項目のブラウザー / 統合チェック**を実行します。内容：初回ログインでの OTP 登録と TOTP ログイン、グループ → ロール、許可グループ外ユーザーの拒否、認可リクエストの PKCE S256 / `state` / `nonce`、固定リダイレクト URI、コールバック再送の拒否、ローカルアカウントとのユーザー名衝突、無効化アカウント（既存セッションの即時失効）、SSO のみモードの IP 許可リストとローカル管理者保護、保存して接続テスト、fail2ban ロック、Keycloak のブルートフォースロック、PKCE なしや未登録リダイレクト URI のリクエストを Keycloak が拒否すること、RP-initiated logout、`sso-cli.php` コマンド、スクリプトの再実行（冪等性）、`KC_ADMIN_URL` が公開 issuer を変えずに master realm の Frontend URL を設定すること。
 - **`tests/unit/test_oidc.php`**——`lib/oidc.php` の単体テスト。テスト内で RSA 鍵を生成し ID トークンを偽造して検証します：署名とアルゴリズムのホワイトリスト（`none` / `HS*` を拒否）、`iss` / `aud` / `azp` / `exp` / `iat` / `nonce` / `sub` の検査、JWK → PEM 変換、グループ → ロール、アカウント作成と衝突ルール、IdP エンドポイントの HTTPS / ホスト制限。
 
 リリースのたびに、他のテスト（`tests/run-unit.sh`、`tests/run-sso.sh`）とあわせて実行してください。

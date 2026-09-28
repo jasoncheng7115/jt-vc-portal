@@ -2,6 +2,10 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## Unreleased
+
+- **Keycloak kit / SOP**: the Keycloak 26 admin console needs a browser secure context and showed "Something went wrong" over `http://<IP>:8080`. It is now served over **HTTPS on 8443** (self-signed certificate in `keycloak/certs/`); `KC_ADMIN_URL` in `realm.env` makes `configure-realm.sh` set the **master realm Frontend URL** to the internal admin URL, and the nginx example refuses `/realms/master`. New test S27. The portal itself is unchanged (still v1.10.0).
+
 ## v1.10.0 — Single sign-on (OIDC) with Keycloak
 
 - **OIDC single sign-on** for hosts and admins (Keycloak, Microsoft Entra ID or any OIDC IdP): Authorization Code + PKCE S256, state and nonce, id_token signature verification against the IdP's JWKS (RS256/384/512 only), iss / aud / azp / exp / nonce checks. Design follows the sibling projects jt-doc-tools and jt-ipam.

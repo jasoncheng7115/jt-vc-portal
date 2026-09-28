@@ -60,10 +60,11 @@
 ┌────────────────────────────────┐   ┌──────────────────────────┐
 │ Keycloak 主機（VM / LXC）      │   │ jt-vc-portal 主機        │
 │ 10.0.0.20                      │   │（容器 jaas-auth）        │
-│  keycloak :8080（代理＋管理）  │◄──┤ OIDC：discovery、token、 │
-│  keycloak :9000（健康檢查，    │   │ JWKS，一律經由           │
-│                  僅本機）      │   │ https://sso.example.com  │
-│  postgres（內部網路）          │   └──────────────────────────┘
+│  keycloak :8080（僅限代理）    │◄──┤ OIDC：discovery、token、 │
+│  keycloak :8443（管理 HTTPS）  │   │ JWKS，一律經由           │
+│  keycloak :9000（健康檢查，    │   │ https://sso.example.com  │
+│                  僅本機）      │   └──────────────────────────┘
+│  postgres（內部網路）          │
 └───────────────┬────────────────┘
                 │ LDAPS 636（唯讀 bind：svc-keycloak）
                 ▼
@@ -73,7 +74,7 @@
 │ 群組 VC-Admins / VC-Hosts      │
 └────────────────────────────────┘
 
-管理網段（例：10.0.1.0/24）──HTTP 8080──► Keycloak 管理介面（絕不經反向代理）
+管理網段（例：10.0.1.0/24）──HTTPS 8443──► Keycloak 管理介面（絕不經反向代理）
 ```
 
 **設計決策**
@@ -136,13 +137,14 @@ pct reboot 120
 | 來源 | 目的 | 埠 | 用途 |
 |---|---|---|---|
 | 反向代理（例：10.0.0.10） | Keycloak 10.0.0.20 | TCP 8080 | 登入頁 / OIDC |
-| 管理網段（例：10.0.1.0/24） | Keycloak 10.0.0.20 | TCP 8080 | 管理介面 |
+| 管理網段（例：10.0.1.0/24） | Keycloak 10.0.0.20 | TCP 8443 | 管理介面（HTTPS） |
 | Keycloak 10.0.0.20 | 網域控制站 `dc1.example.com` | TCP 636 | LDAPS |
 | jt-vc-portal | `sso.example.com`（反向代理） | TCP 443 | Discovery、token、JWKS |
 
 ### 防火牆建議
 
-- **8080**：只允許反向代理與管理網段。
+- **8080**（HTTP）：只允許反向代理。
+- **8443**（HTTPS，管理介面）：只允許管理網段。
 - **9000**（健康檢查 / 管理）：`docker-compose.yml` 已綁 `127.0.0.1`；絕不對外開放。
 - **PostgreSQL**：完全不對外發佈（只在 Docker 內部網路）。
 - Keycloak 主機對外連線：只需到網域控制站的 636，以及 DNS / NTP / 套件更新。
@@ -152,8 +154,9 @@ pct reboot 120
 > ```bash
 > # 規則會插在最上面，所以先插 DROP，再插 ACCEPT
 > iptables -I DOCKER-USER -p tcp -m conntrack --ctorigdstport 8080 --ctdir ORIGINAL -j DROP
-> iptables -I DOCKER-USER -p tcp -m conntrack --ctorigdstport 8080 --ctdir ORIGINAL -s 10.0.1.0/24 -j ACCEPT
+> iptables -I DOCKER-USER -p tcp -m conntrack --ctorigdstport 8443 --ctdir ORIGINAL -j DROP
 > iptables -I DOCKER-USER -p tcp -m conntrack --ctorigdstport 8080 --ctdir ORIGINAL -s 10.0.0.10 -j ACCEPT
+> iptables -I DOCKER-USER -p tcp -m conntrack --ctorigdstport 8443 --ctdir ORIGINAL -s 10.0.1.0/24 -j ACCEPT
 > apt install -y iptables-persistent && netfilter-persistent save
 > ```
 
@@ -285,13 +288,13 @@ Keycloak 必須信任簽發網域控制站 LDAPS 憑證的 CA，且該憑證必�
 
 | 檔案 | 用途 |
 |---|---|
-| `docker-compose.yml` | PostgreSQL 17 + Keycloak（`start`，正式模式）。Keycloak 聽 8080（反向代理＋內網管理）與 9000（健康檢查，綁 `127.0.0.1`）。以唯讀掛載 `./truststores` 並信任其中所有 PEM（`KC_TRUSTSTORE_PATHS`）。資料庫在 `./data/postgres`。 |
+| `docker-compose.yml` | PostgreSQL 17 + Keycloak（`start`，正式模式）。Keycloak 聽 8080（HTTP，給反向代理）、8443（HTTPS，內網管理介面，憑證取自 `./certs`）與 9000（健康檢查，綁 `127.0.0.1`）。以唯讀掛載 `./truststores` 與 `./certs` 並信任其中所有 PEM（`KC_TRUSTSTORE_PATHS`）。資料庫在 `./data/postgres`。 |
 | `docker-compose.bootstrap.yml` | 加上暫時管理員變數——只在第一次啟動時使用（第四、五節）。 |
 | `.env.example` | `.env` 範本（版本、網址、密碼）。 |
 | `realm.env.example` | `realm.env` 範本（`configure-realm.sh` 的參數）。 |
 | `configure-realm.sh` | 可重複執行的腳本，建立 / 更新 realm、AD 聯合與 OIDC client（第六節）。 |
 | `nginx-sso.conf.example` | 反向代理範例（第七節）。 |
-| `.gitignore` | 不讓 `.env`、`realm.env`、`client-secret.txt`、`data/`、`truststores/*.pem` 進版控。 |
+| `.gitignore` | 不讓 `.env`、`realm.env`、`client-secret.txt`、`data/`、`certs/`、`truststores/*.pem` 進版控。 |
 
 ### 安裝
 
@@ -311,7 +314,17 @@ install -m 644 ad-ca.pem /opt/keycloak/truststores/ad-ca.pem
 
 # 用這張 CA 從本機測 LDAPS（應出現 "Verify return code: 0 (ok)"）
 openssl s_client -connect dc1.example.com:636 -CAfile /opt/keycloak/truststores/ad-ca.pem </dev/null 2>/dev/null | grep 'Verify return code'
+
+# 內網管理介面（8443 埠）用的 HTTPS 憑證。自簽即可；
+# subjectAltName 請填您會在瀏覽器輸入的 IP / 名稱。
+install -d -m 750 /opt/keycloak/certs
+openssl req -x509 -newkey rsa:3072 -nodes -days 3650 -subj "/CN=keycloak admin" \
+  -addext "subjectAltName=IP:10.0.0.20,DNS:keycloak1" \
+  -keyout /opt/keycloak/certs/tls.key -out /opt/keycloak/certs/tls.crt
+chown -R 1000:0 /opt/keycloak/certs && chmod 600 /opt/keycloak/certs/tls.key   # 容器以 uid 1000 執行
 ```
+
+> **為什麼管理介面要走 HTTPS？** Keycloak 26 的管理介面需要瀏覽器的 *secure context*（PKCE 要用 Web Crypto）。以純 `http://<IP>:8080` 開啟只會顯示 **「Something went wrong」**。`http://localhost` 可以，但 IP 或主機名稱不行——所以管理介面改由 8443 搭配這張憑證提供。瀏覽器會對自簽憑證警告一次（或在管理用電腦把 `tls.crt` 匯入為信任憑證）。
 
 ### `.env`
 
@@ -327,8 +340,8 @@ vi .env
 |---|---|---|
 | `KC_VERSION` | `26.4` | Keycloak 映像檔 tag（請固定版本，見[升級](#升級)） |
 | `KC_PUBLIC_URL` | `https://sso.example.com` | 使用者瀏覽器看到的網址（經反向代理），也是 issuer 的前綴 |
-| `KC_ADMIN_URL` | `http://10.0.0.20:8080` | 管理介面網址，只在內網使用 |
-| `KC_BIND_ADDR` | `0.0.0.0`（或 `10.0.0.20`） | 8080 埠發佈在哪個位址 |
+| `KC_ADMIN_URL` | `https://10.0.0.20:8443` | 管理介面網址，只在內網使用。**必須是 `https://…:8443`**（見上方說明）。 |
+| `KC_BIND_ADDR` | `0.0.0.0`（或 `10.0.0.20`） | 8080 / 8443 埠發佈在哪個位址 |
 | `KC_DB_PASSWORD` | （隨機） | PostgreSQL 密碼（資料庫首次啟動時套用） |
 | `KC_BOOTSTRAP_ADMIN_USERNAME` | `temp-admin` | 只在首次啟動使用的暫時管理員 |
 | `KC_BOOTSTRAP_ADMIN_PASSWORD` | （隨機） | 其密碼——於第五節清除 |
@@ -344,7 +357,7 @@ docker compose ps
 
 首次啟動需一兩分鐘（建立資料庫結構）。查看日誌：`docker compose logs -f keycloak`。
 
-此時可從管理網段開啟管理介面 `http://10.0.0.20:8080/admin/`。
+此時可從管理網段開啟管理介面 `https://10.0.0.20:8443/admin/`。
 
 ---
 
@@ -392,7 +405,7 @@ sed -i '/^KC_BOOTSTRAP_ADMIN_/d' /opt/keycloak/.env
 docker compose up -d   # from now on always without docker-compose.bootstrap.yml
 ```
 
-正式管理員的帳密請存進**密碼管理工具**。到 `http://10.0.0.20:8080/admin/` 登入一次確認（並完成 OTP 綁定）。
+正式管理員的帳密請存進**密碼管理工具**。到 `https://10.0.0.20:8443/admin/` 登入一次確認（並完成 OTP 綁定）。
 
 ---
 
@@ -426,6 +439,7 @@ vi realm.env
 | `LDAP_GROUPS_DN` | `CN=Groups,DC=example,DC=com` | 兩個群組所在的容器 |
 | `ADMIN_GROUP` / `HOST_GROUP` | `VC-Admins` / `VC-Hosts` | 群組名稱（CN） |
 | `LOCKOUT_FAILURES` | `5` | Keycloak 暴力破解門檻——**必須小於 AD 的帳號鎖定門檻** |
+| `KC_ADMIN_URL` | `https://10.0.0.20:8443` | 與 `.env` 相同。腳本會把它設為 **master realm 的 Frontend URL**，讓 Keycloak 管理員登入頁一律由內網管理網址提供（絕不經 `sso.example.com`，反向代理會拒絕 `/realms/master`）。 |
 | `KC_ADMIN_USER` / `KC_ADMIN_PASSWORD` | （您的 master 管理員） | 腳本登入用。執行後請清空（或把這兩行從 `realm.env` 刪掉、改在 shell 以 `export` 提供——`realm.env` 中的空白值會覆蓋 export 的值）。 |
 
 可選的覆寫（環境變數）：`KCADM`——執行 kcadm 的指令（預設 `docker compose exec -T keycloak /opt/keycloak/bin/kcadm.sh`）；`KC_SERVER`——kcadm 看到的伺服器網址（預設 `http://localhost:8080`）；`SECRET_OUT`——client secret 輸出位置（預設 `client-secret.txt`）。
@@ -502,7 +516,7 @@ client secret 寫在 `client-secret.txt`（權限 600），第八節要貼到 po
 
 ### 設定 LDAP bind 密碼（若先前留空）
 
-管理介面（`http://10.0.0.20:8080/admin/`）→ realm **jtvc** → **User federation** → **ad** → **Bind credentials** → 輸入 `svc-keycloak` 的密碼 → **Save** → 按 **Test connection** 與 **Test authentication**。
+管理介面（`https://10.0.0.20:8443/admin/`）→ realm **jtvc** → **User federation** → **ad** → **Bind credentials** → 輸入 `svc-keycloak` 的密碼 → **Save** → 按 **Test connection** 與 **Test authentication**。
 
 確認只看得到群組成員：realm **jtvc** → **Users** → 搜尋某位成員（如 `alice`）——找得到；搜尋非成員——找不到。（使用者在首次搜尋 / 登入時匯入，不做定期同步。）
 
@@ -520,6 +534,7 @@ client secret 寫在 `client-secret.txt`（權限 600），第八節要貼到 po
 `keycloak/nginx-sso.conf.example` 是 `sso.example.com` 的 nginx server 區塊：
 
 - **只把 `/realms/…` 與 `/resources/…` 轉送**到 `http://10.0.0.20:8080`。其餘一律回 **404**，包括 `/admin`、`/metrics`、`/health` 與 `/`。
+- **`/realms/master` 也回 404**：master realm（Keycloak 管理員）只從內網管理網址使用。這條規則必須放在其他 `/realms` location 之前。
 - 登入表單 POST（`/realms/<realm>/login-actions/authenticate`）依來源 IP **限速**（`limit_req`，每分鐘 20 次、burst 10），作為防猜密碼的第一道防線。zone 需宣告在 `http {}` 內。
 - 加上 **HSTS** 與 `X-Content-Type-Options: nosniff`。
 - 共用片段 `kc-proxy.conf` 設定 `Host`、`X-Forwarded-Host`、`X-Forwarded-Proto https`、`X-Forwarded-Port 443`、`X-Forwarded-For`（Keycloak 以 `KC_PROXY_HEADERS=xforwarded` 執行），並**加大 proxy buffer**（Keycloak 的回應帶有很大的標頭 / cookie，預設 buffer 會造成 `502 upstream sent too big header`）。
@@ -731,7 +746,7 @@ curl -sf http://127.0.0.1:9000/health/ready && echo OK     # 只能在 Keycloak 
 
 ## 十、資安檢查清單
 
-- [ ] 管理介面**無法從網際網路存取**（`https://sso.example.com/admin/` → 404）；8080 埠只允許反向代理與管理網段；9000 埠只綁本機。
+- [ ] 管理介面**無法從網際網路存取**（`https://sso.example.com/admin/` 與 `https://sso.example.com/realms/master/` → 404）；8080 埠只允許反向代理，8443 埠（管理介面，HTTPS）只允許管理網段；9000 埠只綁本機。
 - [ ] **bootstrap 管理員已刪除**，`.env` 已移除 `KC_BOOTSTRAP_ADMIN_*` 兩行，容器不帶 `docker-compose.bootstrap.yml` 運行；正式管理員啟用 OTP，帳密存於密碼管理工具。
 - [ ] **強制 OTP**（必要動作 *Configure OTP* 已啟用且為預設）。
 - [ ] Keycloak **暴力破解門檻（`LOCKOUT_FAILURES`）< AD 帳號鎖定門檻**；可行的話已啟用 AD 帳號鎖定。
@@ -769,7 +784,9 @@ curl -sf http://127.0.0.1:9000/health/ready && echo OK     # 只能在 Keycloak 
 | **所有人都無法登入**（Keycloak 或 AD 故障，且已啟用僅限單一登入） | 在 portal 主機執行：`docker exec -u www-data jaas-auth php /var/www/html/sso-cli.php disable-sso-only`，再以本地緊急管理員登入。 |
 | 輸錯密碼後 **Keycloak 帳號被鎖** | 暴力破解偵測：等待（5 分鐘起，最長 30 分鐘），或在管理介面 → **Users** → 該使用者 → 關閉 *Temporarily locked*。 |
 | 反向代理回 `502 Bad Gateway` / `upstream sent too big header` | 缺少 proxy buffer 設定（`kc-proxy.conf`）。 |
-| 管理介面一直重導或顯示「HTTPS required」 | 請從**私有**位址經 `KC_ADMIN_URL` 存取（master realm 為 `sslRequired=external`），或替管理網址加上內網 TLS。 |
+| 管理介面顯示 **「Something went wrong」** | 以純 HTTP 開啟了（例如 `http://10.0.0.20:8080/admin/`）。Keycloak 26 需要 secure context：請改用 `https://10.0.0.20:8443/admin/`（第四節，憑證在 `certs/`）。 |
+| 管理介面**一直轉圈** / 瀏覽器主控台顯示對 `sso.example.com/realms/master/…` 的請求失敗 | master realm 的登入頁仍使用公開網址（尚無法解析，或被反向代理拒絕）。在 `realm.env` 設定 `KC_ADMIN_URL` 後重跑 `./configure-realm.sh`（它會設定 master realm 的 Frontend URL）。 |
+| 管理介面一直重導或顯示「HTTPS required」 | 請從**私有**位址經 `KC_ADMIN_URL` 存取（master realm 為 `sslRequired=external`）。 |
 
 ---
 
@@ -782,7 +799,7 @@ curl -sf http://127.0.0.1:9000/health/ready && echo OK     # 只能在 Keycloak 
 
 ## 十二、測試方式
 
-- **`tests/run-sso.sh`**——端對端整合測試，不碰任何正式系統。它會啟動拋棄式 Keycloak，以**同一支 `configure-realm.sh`** 在本地帳號模式（`LDAP_URL` 留空，並使用 `KCADM` / `KC_SERVER` / `SECRET_OUT` 覆寫）完成設定，建立分屬 `VC-Admins`、`VC-Hosts` 與不屬任何群組的測試使用者，建置並啟動拋棄式 portal，再以 Playwright 跑 **45 項瀏覽器 / 整合檢查**，包括：首次登入綁定 OTP 與 TOTP 登入、群組 → 角色、不在允許群組者被拒、授權請求帶 PKCE S256 / `state` / `nonce`、固定 redirect URI、重放回呼被拒、與本地帳號同名衝突、停用帳號（既有 session 立即失效）、僅限單一登入模式的 IP 允許清單與本地管理員保護、儲存並測試連線、fail2ban 鎖定、Keycloak 暴力破解鎖定、Keycloak 拒絕未帶 PKCE 或未註冊 redirect URI 的請求、RP-initiated logout，以及 `sso-cli.php` 指令。
+- **`tests/run-sso.sh`**——端對端整合測試，不碰任何正式系統。它會啟動拋棄式 Keycloak，以**同一支 `configure-realm.sh`** 在本地帳號模式（`LDAP_URL` 留空，並使用 `KCADM` / `KC_SERVER` / `SECRET_OUT` 覆寫）完成設定，建立分屬 `VC-Admins`、`VC-Hosts` 與不屬任何群組的測試使用者，建置並啟動拋棄式 portal，再以 Playwright 跑 **47 項瀏覽器 / 整合檢查**，包括：首次登入綁定 OTP 與 TOTP 登入、群組 → 角色、不在允許群組者被拒、授權請求帶 PKCE S256 / `state` / `nonce`、固定 redirect URI、重放回呼被拒、與本地帳號同名衝突、停用帳號（既有 session 立即失效）、僅限單一登入模式的 IP 允許清單與本地管理員保護、儲存並測試連線、fail2ban 鎖定、Keycloak 暴力破解鎖定、Keycloak 拒絕未帶 PKCE 或未註冊 redirect URI 的請求、RP-initiated logout、`sso-cli.php` 指令、重跑腳本（冪等），以及 `KC_ADMIN_URL` 會設定 master realm 的 Frontend URL 且不改變公開 issuer。
 - **`tests/unit/test_oidc.php`**——`lib/oidc.php` 的單元測試，在測試內產生 RSA 金鑰並偽造 ID token：簽章與演算法白名單（拒絕 `none` / `HS*`）、`iss` / `aud` / `azp` / `exp` / `iat` / `nonce` / `sub` 檢查、JWK → PEM 轉換、群組 → 角色、帳號建立與衝突規則、IdP 端點的 HTTPS / 主機限制。
 
 每次發版前請與其他測試（`tests/run-unit.sh`、`tests/run-sso.sh`）一起執行。

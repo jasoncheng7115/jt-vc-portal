@@ -34,6 +34,10 @@ services:
       # 管理介面只走內網網址（反向代理不轉送 /admin）
       KC_HOSTNAME_ADMIN: ${KC_ADMIN_URL}
       KC_HTTP_ENABLED: "true"
+      # 管理介面走 HTTPS（8443）：Keycloak 26 管理介面需瀏覽器安全環境（Web Crypto），純 HTTP 會顯示 Something went wrong。
+      # 憑證放 ./certs/tls.crt、tls.key（自簽即可，產生方式見 SOP；檔案須可被容器內 uid 1000 讀取）
+      KC_HTTPS_CERTIFICATE_FILE: /opt/keycloak/conf/certs/tls.crt
+      KC_HTTPS_CERTIFICATE_KEY_FILE: /opt/keycloak/conf/certs/tls.key
       KC_PROXY_HEADERS: xforwarded
       KC_HEALTH_ENABLED: "true"
       # 信任 AD 的 LDAPS 憑證（UCS / AD CA）
@@ -44,9 +48,11 @@ services:
       # 首次啟動的暫時管理員另放在 docker-compose.bootstrap.yml（只在第一次啟動時加上 -f 使用）
     volumes:
       - ./truststores:/opt/keycloak/conf/truststores:ro
+      - ./certs:/opt/keycloak/conf/certs:ro
     ports:
-      # 8080 = HTTP（反向代理與內網管理用）；9000 = 健康檢查（僅本機）
+      # 8080 = HTTP（僅供反向代理）；8443 = HTTPS（內網管理介面）；9000 = 健康檢查（僅本機）
       - "${KC_BIND_ADDR:-0.0.0.0}:8080:8080"
+      - "${KC_BIND_ADDR:-0.0.0.0}:8443:8443"
       - "127.0.0.1:9000:9000"
     networks: [kc]
 

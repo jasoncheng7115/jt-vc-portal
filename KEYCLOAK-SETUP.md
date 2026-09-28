@@ -60,10 +60,11 @@ This guide deploys **Keycloak on a dedicated host** as the OIDC identity provide
 ┌────────────────────────────────┐   ┌──────────────────────────┐
 │ Keycloak host (VM / LXC)       │   │ jt-vc-portal host        │
 │ 10.0.0.20                      │   │ (container jaas-auth)    │
-│  keycloak :8080  (proxy+admin) │◄──┤ OIDC: discovery, token,  │
-│  keycloak :9000  (health,      │   │ JWKS via                 │
-│                   localhost)   │   │ https://sso.example.com  │
-│  postgres  (internal network)  │   └──────────────────────────┘
+│  keycloak :8080  (proxy only)  │◄──┤ OIDC: discovery, token,  │
+│  keycloak :8443  (admin HTTPS) │   │ JWKS via                 │
+│  keycloak :9000  (health,      │   │ https://sso.example.com  │
+│                   localhost)   │   └──────────────────────────┘
+│  postgres  (internal network)  │
 └───────────────┬────────────────┘
                 │ LDAPS 636 (read-only bind: svc-keycloak)
                 ▼
@@ -73,7 +74,7 @@ This guide deploys **Keycloak on a dedicated host** as the OIDC identity provide
 │ groups VC-Admins / VC-Hosts    │
 └────────────────────────────────┘
 
-Admin network (e.g. 10.0.1.0/24) ──HTTP 8080──► Keycloak admin console (never via the proxy)
+Admin network (e.g. 10.0.1.0/24) ──HTTPS 8443──► Keycloak admin console (never via the proxy)
 ```
 
 **Design decisions**
@@ -136,13 +137,14 @@ pct reboot 120
 | From | To | Port | Purpose |
 |---|---|---|---|
 | Reverse proxy (e.g. 10.0.0.10) | Keycloak 10.0.0.20 | TCP 8080 | Login pages / OIDC |
-| Admin network (e.g. 10.0.1.0/24) | Keycloak 10.0.0.20 | TCP 8080 | Admin console |
+| Admin network (e.g. 10.0.1.0/24) | Keycloak 10.0.0.20 | TCP 8443 | Admin console (HTTPS) |
 | Keycloak 10.0.0.20 | DC `dc1.example.com` | TCP 636 | LDAPS |
 | jt-vc-portal | `sso.example.com` (proxy) | TCP 443 | Discovery, token, JWKS |
 
 ### Firewall recommendations
 
-- **8080**: allow only from the reverse proxy and the admin network.
+- **8080** (HTTP): allow only from the reverse proxy.
+- **8443** (HTTPS, admin console): allow only from the admin network.
 - **9000** (health / management): bound to `127.0.0.1` by `docker-compose.yml`; never expose it.
 - **PostgreSQL**: not published at all (internal Docker network only).
 - Keycloak host outbound: only 636 to the DCs, plus DNS / NTP / package updates.
@@ -152,8 +154,9 @@ pct reboot 120
 > ```bash
 > # Rules are inserted at the top, so insert the DROP first and the ACCEPTs after it
 > iptables -I DOCKER-USER -p tcp -m conntrack --ctorigdstport 8080 --ctdir ORIGINAL -j DROP
-> iptables -I DOCKER-USER -p tcp -m conntrack --ctorigdstport 8080 --ctdir ORIGINAL -s 10.0.1.0/24 -j ACCEPT
+> iptables -I DOCKER-USER -p tcp -m conntrack --ctorigdstport 8443 --ctdir ORIGINAL -j DROP
 > iptables -I DOCKER-USER -p tcp -m conntrack --ctorigdstport 8080 --ctdir ORIGINAL -s 10.0.0.10 -j ACCEPT
+> iptables -I DOCKER-USER -p tcp -m conntrack --ctorigdstport 8443 --ctdir ORIGINAL -s 10.0.1.0/24 -j ACCEPT
 > apt install -y iptables-persistent && netfilter-persistent save
 > ```
 
@@ -285,13 +288,13 @@ You will place it as `truststores/ad-ca.pem` in the next section.
 
 | File | Purpose |
 |---|---|
-| `docker-compose.yml` | PostgreSQL 17 + Keycloak (`start`, production mode). Keycloak listens on 8080 (proxy + internal admin) and 9000 (health, bound to `127.0.0.1`). Mounts `./truststores` read-only and trusts every PEM in it (`KC_TRUSTSTORE_PATHS`). Database in `./data/postgres`. |
+| `docker-compose.yml` | PostgreSQL 17 + Keycloak (`start`, production mode). Keycloak listens on 8080 (HTTP, for the proxy), 8443 (HTTPS, internal admin console, certificate from `./certs`) and 9000 (health, bound to `127.0.0.1`). Mounts `./truststores` and `./certs` read-only and trusts every PEM in it (`KC_TRUSTSTORE_PATHS`). Database in `./data/postgres`. |
 | `docker-compose.bootstrap.yml` | Adds the temporary admin variables — used only for the very first start (Section 4–5). |
 | `.env.example` | Template for `.env` (version, URLs, passwords). |
 | `realm.env.example` | Template for `realm.env` (parameters of `configure-realm.sh`). |
 | `configure-realm.sh` | Idempotent script that creates / updates the realm, AD federation and OIDC client (Section 6). |
 | `nginx-sso.conf.example` | Reverse-proxy example (Section 7). |
-| `.gitignore` | Keeps `.env`, `realm.env`, `client-secret.txt`, `data/` and `truststores/*.pem` out of version control. |
+| `.gitignore` | Keeps `.env`, `realm.env`, `client-secret.txt`, `data/`, `certs/` and `truststores/*.pem` out of version control. |
 
 ### Install
 
@@ -311,7 +314,17 @@ install -m 644 ad-ca.pem /opt/keycloak/truststores/ad-ca.pem
 
 # Check LDAPS from this host with that CA (expect "Verify return code: 0 (ok)")
 openssl s_client -connect dc1.example.com:636 -CAfile /opt/keycloak/truststores/ad-ca.pem </dev/null 2>/dev/null | grep 'Verify return code'
+
+# HTTPS certificate for the internal admin console (port 8443). Self-signed is fine;
+# put the IP / name you will type in the browser into subjectAltName.
+install -d -m 750 /opt/keycloak/certs
+openssl req -x509 -newkey rsa:3072 -nodes -days 3650 -subj "/CN=keycloak admin" \
+  -addext "subjectAltName=IP:10.0.0.20,DNS:keycloak1" \
+  -keyout /opt/keycloak/certs/tls.key -out /opt/keycloak/certs/tls.crt
+chown -R 1000:0 /opt/keycloak/certs && chmod 600 /opt/keycloak/certs/tls.key   # container runs as uid 1000
 ```
+
+> **Why HTTPS for the admin console?** Keycloak 26's admin console needs a browser *secure context* (Web Crypto for PKCE). Opened over plain `http://<IP>:8080` it only shows **"Something went wrong"**. `http://localhost` would work, but not an IP or host name — so the admin console is served on 8443 with this certificate. Your browser will warn about the self-signed certificate once (or import `tls.crt` as trusted on admin workstations).
 
 ### `.env`
 
@@ -327,8 +340,8 @@ vi .env
 |---|---|---|
 | `KC_VERSION` | `26.4` | Keycloak image tag (pin it; see [Upgrades](#upgrades)) |
 | `KC_PUBLIC_URL` | `https://sso.example.com` | URL users' browsers see (through the proxy). Becomes the issuer base. |
-| `KC_ADMIN_URL` | `http://10.0.0.20:8080` | Admin console URL, internal network only |
-| `KC_BIND_ADDR` | `0.0.0.0` (or `10.0.0.20`) | Address port 8080 is published on |
+| `KC_ADMIN_URL` | `https://10.0.0.20:8443` | Admin console URL, internal network only. **Must be `https://…:8443`** (see above). |
+| `KC_BIND_ADDR` | `0.0.0.0` (or `10.0.0.20`) | Address ports 8080 / 8443 are published on |
 | `KC_DB_PASSWORD` | *(random)* | PostgreSQL password (used at the database's first start) |
 | `KC_BOOTSTRAP_ADMIN_USERNAME` | `temp-admin` | Temporary admin for the first start only |
 | `KC_BOOTSTRAP_ADMIN_PASSWORD` | *(random)* | Its password — removed in Section 5 |
@@ -344,7 +357,7 @@ docker compose ps
 
 The first start takes a minute or two (database schema creation). Logs: `docker compose logs -f keycloak`.
 
-The admin console is now at `http://10.0.0.20:8080/admin/` from the admin network.
+The admin console is now at `https://10.0.0.20:8443/admin/` from the admin network.
 
 ---
 
@@ -392,7 +405,7 @@ sed -i '/^KC_BOOTSTRAP_ADMIN_/d' /opt/keycloak/.env
 docker compose up -d   # from now on always without docker-compose.bootstrap.yml
 ```
 
-Store the permanent admin credentials in your **password manager**. Log in once at `http://10.0.0.20:8080/admin/` to verify (and enrol OTP).
+Store the permanent admin credentials in your **password manager**. Log in once at `https://10.0.0.20:8443/admin/` to verify (and enrol OTP).
 
 ---
 
@@ -426,6 +439,7 @@ vi realm.env
 | `LDAP_GROUPS_DN` | `CN=Groups,DC=example,DC=com` | Container holding the two groups |
 | `ADMIN_GROUP` / `HOST_GROUP` | `VC-Admins` / `VC-Hosts` | Group names (CN) |
 | `LOCKOUT_FAILURES` | `5` | Keycloak brute-force threshold — **must be lower than the AD lockout threshold** |
+| `KC_ADMIN_URL` | `https://10.0.0.20:8443` | Same as in `.env`. The script sets it as the **master realm's Frontend URL**, so the Keycloak admin login page is always served from the internal admin URL (never from `sso.example.com`, where the proxy refuses `/realms/master`). |
 | `KC_ADMIN_USER` / `KC_ADMIN_PASSWORD` | *(your master admin)* | Used by the script to log in. Clear them after running (or delete both lines from `realm.env` and `export` them in the shell — a blank line in `realm.env` would override the exported value). |
 
 Optional overrides (environment variables): `KCADM` — the kcadm command (default `docker compose exec -T keycloak /opt/keycloak/bin/kcadm.sh`); `KC_SERVER` — server URL as seen by kcadm (default `http://localhost:8080`); `SECRET_OUT` — where to write the client secret (default `client-secret.txt`).
@@ -502,7 +516,7 @@ In local-users-only mode (`LDAP_URL` empty) the script instead creates local gro
 
 ### Set the LDAP bind password (if you left it empty)
 
-Admin console (`http://10.0.0.20:8080/admin/`) → realm **jtvc** → **User federation** → **ad** → **Bind credentials** → enter the `svc-keycloak` password → **Save** → click **Test connection** and **Test authentication**.
+Admin console (`https://10.0.0.20:8443/admin/`) → realm **jtvc** → **User federation** → **ad** → **Bind credentials** → enter the `svc-keycloak` password → **Save** → click **Test connection** and **Test authentication**.
 
 Check that only group members are visible: realm **jtvc** → **Users** → search for a member (e.g. `alice`) — found; search for a non-member — not found. (Users are imported on first search / login; nothing is synchronised periodically.)
 
@@ -520,6 +534,7 @@ Check that only group members are visible: realm **jtvc** → **Users** → sear
 `keycloak/nginx-sso.conf.example` is an nginx server block for `sso.example.com`:
 
 - **Only `/realms/…` and `/resources/…` are forwarded** to `http://10.0.0.20:8080`. Everything else — including `/admin`, `/metrics`, `/health` and `/` — returns **404**.
+- **`/realms/master` also returns 404**: the master realm (Keycloak administrators) is only used from the internal admin URL. This rule must come before the other `/realms` locations.
 - The login form POST (`/realms/<realm>/login-actions/authenticate`) is **rate-limited** per client IP (`limit_req`, 20 per minute, burst 10) as a first line against password guessing. The zone must be declared in the `http {}` context.
 - **HSTS** and `X-Content-Type-Options: nosniff` are added.
 - The shared snippet `kc-proxy.conf` sets `Host`, `X-Forwarded-Host`, `X-Forwarded-Proto https`, `X-Forwarded-Port 443`, `X-Forwarded-For` (Keycloak runs with `KC_PROXY_HEADERS=xforwarded`), and **larger proxy buffers** (Keycloak's responses carry large headers/cookies; the default buffers cause `502 upstream sent too big header`).
@@ -731,7 +746,7 @@ Check it from your monitoring agent on the host (port 9000 is bound to localhost
 
 ## 10. Security checklist
 
-- [ ] The admin console is **not reachable from the Internet** (`https://sso.example.com/admin/` → 404); port 8080 only from the proxy and the admin network; port 9000 localhost only.
+- [ ] The admin console is **not reachable from the Internet** (`https://sso.example.com/admin/` and `https://sso.example.com/realms/master/` → 404); port 8080 only from the proxy, port 8443 (admin, HTTPS) only from the admin network; port 9000 localhost only.
 - [ ] The **bootstrap admin is deleted**, the `KC_BOOTSTRAP_ADMIN_*` lines are removed from `.env` and the container runs without `docker-compose.bootstrap.yml`; the permanent admin uses OTP and is stored in a password manager.
 - [ ] **OTP is required** (required action *Configure OTP* enabled + default).
 - [ ] Keycloak **brute-force threshold (`LOCKOUT_FAILURES`) < AD lockout threshold**; AD lockout enabled if possible.
@@ -769,7 +784,9 @@ Check it from your monitoring agent on the host (port 9000 is bound to localhost
 | **Everyone locked out** (Keycloak or AD down, SSO only enabled) | On the portal host: `docker exec -u www-data jaas-auth php /var/www/html/sso-cli.php disable-sso-only`, then sign in with the local emergency admin. |
 | **Keycloak account locked** after wrong passwords | Brute-force detection: wait (5 min, growing up to 30 min) or unlock in the admin console → **Users** → user → toggle *Temporarily locked* off. |
 | `502 Bad Gateway` / `upstream sent too big header` at the proxy | Missing proxy buffer settings (`kc-proxy.conf`). |
-| Admin console loops or shows "HTTPS required" | Access it through `KC_ADMIN_URL` from a **private** address (the master realm has `sslRequired=external`), or put the admin URL behind internal TLS. |
+| Admin console shows **"Something went wrong"** | It was opened over plain HTTP (e.g. `http://10.0.0.20:8080/admin/`). Keycloak 26 needs a secure context: use `https://10.0.0.20:8443/admin/` (Section 4, certificate in `certs/`). |
+| Admin console **spins forever** / browser console shows a failed request to `sso.example.com/realms/master/…` | The master realm's login page still uses the public URL (not resolvable yet, or refused by the proxy). Set `KC_ADMIN_URL` in `realm.env` and re-run `./configure-realm.sh` (it sets the master realm Frontend URL). |
+| Admin console loops or shows "HTTPS required" | Access it through `KC_ADMIN_URL` from a **private** address (the master realm has `sslRequired=external`). |
 
 ---
 
@@ -782,7 +799,7 @@ Check it from your monitoring agent on the host (port 9000 is bound to localhost
 
 ## 12. How this is tested
 
-- **`tests/run-sso.sh`** — end-to-end integration test that touches no production system. It starts a throw-away Keycloak, configures it with **the same `configure-realm.sh`** in local-users mode (`LDAP_URL` empty, using the `KCADM` / `KC_SERVER` / `SECRET_OUT` overrides), creates test users in `VC-Admins`, `VC-Hosts` and no group, builds and starts a throw-away portal, and runs **45 browser / integration checks** (Playwright), including: OTP enrolment on first login and TOTP login, group → role mapping, refusal of users in no allowed group, PKCE S256 / `state` / `nonce` in the authorization request, fixed redirect URI, callback replay refusal, username conflicts with local accounts, disabled accounts (existing session invalidated), SSO-only mode with the IP allow-list and the local-admin safeguard, save-and-test connection, fail2ban lockout, Keycloak brute-force lockout, Keycloak rejecting requests without PKCE or with an unregistered redirect URI, RP-initiated logout, and the `sso-cli.php` commands.
+- **`tests/run-sso.sh`** — end-to-end integration test that touches no production system. It starts a throw-away Keycloak, configures it with **the same `configure-realm.sh`** in local-users mode (`LDAP_URL` empty, using the `KCADM` / `KC_SERVER` / `SECRET_OUT` overrides), creates test users in `VC-Admins`, `VC-Hosts` and no group, builds and starts a throw-away portal, and runs **47 browser / integration checks** (Playwright), including: OTP enrolment on first login and TOTP login, group → role mapping, refusal of users in no allowed group, PKCE S256 / `state` / `nonce` in the authorization request, fixed redirect URI, callback replay refusal, username conflicts with local accounts, disabled accounts (existing session invalidated), SSO-only mode with the IP allow-list and the local-admin safeguard, save-and-test connection, fail2ban lockout, Keycloak brute-force lockout, Keycloak rejecting requests without PKCE or with an unregistered redirect URI, RP-initiated logout, the `sso-cli.php` commands, re-running the script (idempotent) and `KC_ADMIN_URL` setting the master realm Frontend URL without changing the public issuer.
 - **`tests/unit/test_oidc.php`** — unit tests of `lib/oidc.php` with locally generated RSA keys and forged ID tokens: signature and algorithm whitelist (`none` / `HS*` refused), `iss` / `aud` / `azp` / `exp` / `iat` / `nonce` / `sub` checks, JWK → PEM conversion, group → role mapping, account provisioning and conflict rules, HTTPS / host restrictions for IdP endpoints.
 
 Run them before every release together with the rest of the test suite (`tests/run-unit.sh`, `tests/run-sso.sh`).

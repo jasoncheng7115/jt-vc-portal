@@ -2,6 +2,10 @@
 
 > English: [CHANGELOG.md](CHANGELOG.md) · 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md)
 
+## 未リリース
+
+- **Keycloak キット / SOP**：Keycloak 26 の管理コンソールはブラウザのセキュアコンテキストが必要で、`http://<IP>:8080` では「Something went wrong」と表示されていました。**HTTPS 8443**（自己署名証明書を `keycloak/certs/` に配置）で提供するように変更。`realm.env` に `KC_ADMIN_URL` を設定すると `configure-realm.sh` が **master realm の Frontend URL** を内部の管理 URL に設定し、nginx の例は `/realms/master` を拒否します。テスト S27 を追加。ポータル本体は変更なし（v1.10.0 のまま）。
+
 ## v1.10.0 — OIDC シングルサインオン（Keycloak）
 
 - ホスト・管理者向けの **OIDC シングルサインオン**（Keycloak、Microsoft Entra ID など任意の OIDC IdP）：認可コードフロー + PKCE S256、state と nonce、IdP の JWKS による id_token 署名検証（RS256/384/512 のみ）、iss / aud / azp / exp / nonce の検証。設計は姉妹プロジェクト jt-doc-tools と jt-ipam に準拠。

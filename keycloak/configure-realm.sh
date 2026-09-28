@@ -2,6 +2,7 @@
 # 建立 / 更新 jt-vc-portal 用的 Keycloak realm（可重複執行）。說明見 KEYCLOAK-SETUP.md。
 #
 # 做的事：
+#   0. master realm frontendUrl（設了 KC_ADMIN_URL 時）：管理員登入只走內網管理網址
 #   1. realm（sslRequired=external、暴力破解偵測、事件記錄、OTP 政策、預設要求設定 OTP）
 #   2. LDAP 使用者聯合（AD，LDAPS、唯讀、只納入指定群組成員）+ 群組對應
 #   3. OIDC client「jt-vc-portal」（confidential、授權碼流程 + PKCE S256、固定 redirect URI）
@@ -28,6 +29,15 @@ LDAP_BIND_CREDENTIAL=${LDAP_BIND_CREDENTIAL:-}
 
 KC=${KCADM:-docker compose exec -T keycloak /opt/keycloak/bin/kcadm.sh}
 $KC config credentials --server "${KC_SERVER:-http://localhost:8080}" --realm master --user "$KC_ADMIN_USER" --password "$KC_ADMIN_PASSWORD" >/dev/null
+
+# ---------- 0. master realm：管理員登入頁走內網管理網址 ----------
+# 否則 master 登入頁會用對外網址（KC_HOSTNAME），管理介面在對外網址未上線 / 反代拒絕 master 時卡住。
+if [ -n "${KC_ADMIN_URL:-}" ]; then
+  $KC update realms/master -s "attributes.frontendUrl=$KC_ADMIN_URL" >/dev/null
+  echo "master realm frontendUrl = $KC_ADMIN_URL"
+  # 改了 frontendUrl 後，先前取得的管理 token（issuer 不同）會被拒（401），需重新登入
+  $KC config credentials --server "${KC_SERVER:-http://localhost:8080}" --realm master --user "$KC_ADMIN_USER" --password "$KC_ADMIN_PASSWORD" >/dev/null
+fi
 
 # ---------- 1. realm ----------
 if ! $KC get "realms/$REALM" >/dev/null 2>&1; then

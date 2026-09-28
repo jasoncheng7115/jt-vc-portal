@@ -41,6 +41,13 @@ echo "== S25 SOP 腳本可重複執行（client secret 不變、設定不壞）"
 KCADM="docker exec -i $KCN /opt/keycloak/bin/kcadm.sh" KC_SERVER=http://localhost:$KCPORT SECRET_OUT="$WORK/secret2" \
   bash "$WORK/configure-realm.sh" >/dev/null || { echo "  FAIL S25 second run failed"; exit 1; }
 [ "$(cat "$WORK/secret2")" = "$SECRET" ] && echo "  ok   S25 重跑 configure-realm.sh：成功且 client secret 不變" || { echo "  FAIL S25 client secret changed"; exit 1; }
+echo "== S27 KC_ADMIN_URL：master realm 登入頁走內網管理網址，jtvc 對外 issuer 不變"
+KCADM="docker exec -i $KCN /opt/keycloak/bin/kcadm.sh" KC_SERVER=http://localhost:$KCPORT SECRET_OUT="$WORK/secret3" KC_ADMIN_URL=https://kc-admin.test:8443 \
+  bash "$WORK/configure-realm.sh" > "$WORK/s27.log" 2>&1 || { tail -5 "$WORK/s27.log"; echo "  FAIL S27 run with KC_ADMIN_URL failed"; exit 1; }
+iss() { curl -s "http://127.0.0.1:$KCPORT/realms/$1/.well-known/openid-configuration" | python3 -c 'import sys,json;print(json.load(sys.stdin)["issuer"])'; }
+MI=$(iss master); JI=$(iss jtvc)
+[ "$MI" = "https://kc-admin.test:8443/realms/master" ] && echo "  ok   S27 master issuer = 管理網址（$MI）" || { echo "  FAIL S27 master issuer $MI"; exit 1; }
+[ "$JI" = "http://kc.test:$KCPORT/realms/jtvc" ] && [ "$(cat "$WORK/secret3")" = "$SECRET" ] && echo "  ok   S27 jtvc issuer 不受影響、client secret 不變" || { echo "  FAIL S27 jtvc issuer $JI"; exit 1; }
 KC="docker exec -i $KCN /opt/keycloak/bin/kcadm.sh"
 for u in alice:VC-Admins bob:VC-Hosts carol: dave:VC-Hosts; do
   n=${u%%:*}; g=${u#*:}

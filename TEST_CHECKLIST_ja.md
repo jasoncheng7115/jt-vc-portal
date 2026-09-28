@@ -172,7 +172,8 @@
 - [ ] S23 Keycloak：初回ログインで OTP 登録を強制、以降は TOTP が必要、同じ時間枠内で同じコードを再利用できないこと。
 - [ ] S24 Keycloak：5 回連続失敗で一時ロック（AD のしきい値より低い）。クライアントは PKCE S256 必須・認可コードフローのみ・コンフィデンシャル。PKCE なしや未登録 redirect_uri のリクエストは拒否されること。
 - [ ] S25 `configure-realm.sh` を再実行しても成功し、クライアントシークレットが変わらず、AD のバインドパスワードが保持されること。
-- [ ] S26 本番：Keycloak の管理コンソール（`/admin`）がインターネットから 404、ディスカバリーの issuer が公開 https URL、VC-Admins / VC-Hosts のメンバーだけがログインできること。
+- [ ] S26 本番：Keycloak の管理コンソール（`/admin`）がインターネットから 404、ディスカバリーの issuer が公開 https URL、VC-Admins / VC-Hosts のメンバーだけがログインできること。`/realms/master` がインターネットから 404 で、管理ネットワークから `https://<Keycloak ホスト>:8443/admin/` の管理コンソールにログインできること（「Something went wrong」が出ない）。
+- [ ] S27 `KC_ADMIN_URL` を設定した `configure-realm.sh`：master realm の Frontend URL（とその issuer）が内部の管理 URL になり、この設定での初回実行も成功し（変更後に kcadm へ再ログイン）、公開 realm の issuer とクライアントシークレットが変わらないこと。
 
 ## 4. 多言語対応（i18n）
 
@@ -291,7 +292,7 @@
 | Jibri 録画 API の認証 / Range / パストラバーサル | `tests/test-jibri-api.sh` |
 | SSO S02–S20（署名、クレーム、state、PKCE URL、グループ、プロビジョニング、SSO のみ、ログアウト URL、設定） | `tests/unit/test_oidc.php` |
 | SSO S02 / S05 / S08 / S10（ミニ IdP：トークン交換、userinfo、fail-closed） | `tests/unit/test_oidc_flow.php` |
-| SSO S01、S05–S07、S11–S21、S23–S25（実 Keycloak + ブラウザ、OTP を含む） | `tests/run-sso.sh`（`tests/e2e/sso.cjs`） |
+| SSO S01、S05–S07、S11–S21、S23–S25、S27（実 Keycloak + ブラウザ、OTP を含む） | `tests/run-sso.sh`（`tests/e2e/sso.cjs`） |
 | SSO S22 | `tests/zap/run-zap.sh`（SSO を有効にしてスキャン） |
 | SSO S26 | 手動：KEYCLOAK-SETUP 第 7 節の確認コマンド |
 | 脆弱性スキャン | `tests/zap/run-zap.sh` |

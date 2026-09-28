@@ -2,6 +2,10 @@
 
 > English: [CHANGELOG.md](CHANGELOG.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## 未發佈
+
+- **Keycloak 部署範本 / SOP**：Keycloak 26 管理介面需要瀏覽器安全環境，用 `http://<IP>:8080` 開會顯示「Something went wrong」。改為 **HTTPS 8443**（自簽憑證放 `keycloak/certs/`）；`realm.env` 設 `KC_ADMIN_URL` 後，`configure-realm.sh` 會把 **master realm 的 Frontend URL** 設為內網管理網址，nginx 範例也拒絕 `/realms/master`。新增測試 S27。portal 本身沒有變更（仍為 v1.10.0）。
+
 ## v1.10.0 — OIDC 單一登入（Keycloak）
 
 - **OIDC 單一登入**（主持人與管理員；Keycloak、Microsoft Entra ID 或任何 OIDC IdP）：授權碼流程 + PKCE S256、state 與 nonce，id_token 以 IdP 的 JWKS 驗簽（僅 RS256/384/512），檢查 iss / aud / azp / exp / nonce。設計參考同系列專案 jt-doc-tools 與 jt-ipam。
