@@ -214,6 +214,12 @@
 - [ ] T29 管理員：任何場次皆可；可從目錄進入設定卡片；API 金鑰不回填；帳號管理顯示權限選單與徽章。
 - [ ] T30 稽核記錄會記下逐字稿事件，但絕不記錄逐字稿內容。
 - [ ] T31 ZAP 涵蓋 /transcript、/transcript-download、/transcript-action 與 /jtlw-webhook（High 0、Medium 0）。
+- [ ] T32 主要發言者時間軸清理：去控制字元、名稱長度上限，沒有名稱、結束早於開始或未來時間的項目丟棄，依開始時間排序。
+- [ ] T33 心跳帶時間軸時存進房間暫存；主持人離開時寫進會議紀錄，剪進 session 範圍，最後一段未結束的算到散會，房間暫存清掉。會議頁監聽 Jitsi 的 dominantSpeakerChanged。
+- [ ] T34 發言者建議：每個代號對到重疊時間最多的參與者；錄影開始時間差幾秒也對得上（在 ±10 秒內找偏移）。
+- [ ] T35 分不清時列出多人（較多的在前）；沒有時間軸或重疊太少時不建議；參與者名單去重。
+- [ ] T36 逐字稿頁顯示建議區塊（例如「Amy 100%」），改名輸入框可挑參與者，「全部套用最可能的人」會改掉每位發言者且重新整理後仍在，已套用的建議有標示。
+- [ ] T37 沒有時間軸的場次不顯示建議區塊，改顯示可手動挑選名稱的提示。
 
 ## 4. 多語系（i18n）
 
@@ -336,8 +342,8 @@
 | SSO S01、S05–S07、S11–S21、S23–S25、S27、S28、S30（真實 Keycloak + 瀏覽器，含 OTP） | `tests/run-sso.sh`（`tests/e2e/sso.cjs`） |
 | SSO S22 | `tests/zap/run-zap.sh`（啟用 SSO 掃描） |
 | SSO S26 | 手動：KEYCLOAK-SETUP 第 7 節驗證指令 |
-| 逐字稿 T01–T12（分層、webhook 簽章、權限、單場開關、排隊、提示、事件、改名、設定） | `tests/unit/test_transcripts.php` |
-| 逐字稿 T13–T30（JTLW 模擬 + stub Jibri + 真實瀏覽器） | `tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`） |
+| 逐字稿 T01–T12、T32–T35（分層、webhook 簽章、權限、單場開關、排隊、提示、事件、改名、設定） | `tests/unit/test_transcripts.php` |
+| 逐字稿 T13–T30、T36–T37（JTLW 模擬 + stub Jibri + 真實瀏覽器） | `tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`） |
 | 逐字稿 T31 | `tests/zap/run-zap.sh` |
 | 語言選單（收合、點擊開啟、Esc） | `tests/run-e2e.sh`（`tests/e2e/meeting.cjs`） |
 | SSO S29 | 維護者對正式環境執行的冒煙測試腳本（臨時帳號，結束後清除） |

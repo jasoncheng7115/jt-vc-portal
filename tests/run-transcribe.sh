@@ -56,7 +56,9 @@ Users::bootstrap();
 Users::update(\$man['id'], ['transcribe'=>'manual']); Users::update(\$auto['id'], ['transcribe'=>'auto']); Users::update(\$oth['id'], ['transcribe'=>'manual']);
 \$now = $NOW;
 foreach ([['room-man', \$man['id']], ['room-auto', \$auto['id']], ['room-other', \$oth['id']]] as [\$room, \$owner]) {
-  Store::appendLine(Rooms::MEETINGS_FILE, ['ts'=>\$now-50,'room'=>\$room,'start'=>\$now-100000-3600,'end'=>\$now-50,'dur'=>1,'owner'=>\$owner,'owner_name'=>\$room,'attendees'=>1,'peak'=>1,'participants'=>[['name'=>'Amy','in'=>\$now-3000,'out'=>\$now-60]],'transcribe'=>null]);
+  // room-man 有 Jitsi 主要發言者時間軸（整場都是 Amy）→ 逐字稿頁應建議 Amy；其他房間沒有 → 顯示「沒有時間軸」提示
+  \$talk = \$room === 'room-man' ? [['n'=>'Amy','s'=>(\$now-100000-3600)*1000,'e'=>(\$now-50)*1000]] : [];
+  Store::appendLine(Rooms::MEETINGS_FILE, ['ts'=>\$now-50,'room'=>\$room,'start'=>\$now-100000-3600,'end'=>\$now-50,'dur'=>1,'owner'=>\$owner,'owner_name'=>\$room,'attendees'=>1,'peak'=>1,'participants'=>[['name'=>'Amy','in'=>\$now-3000,'out'=>\$now-60],['name'=>'Ben','in'=>\$now-3000,'out'=>\$now-60]],'transcribe'=>null,'talk'=>\$talk]);
 }
 Settings::setTranscribe(['enabled'=>true,'jtlw_url'=>'http://jtlw:8990','jtlw_key'=>'$KEY','language'=>'zh-Hant','profile_id'=>'meeting.balanced','summarize'=>true]);
 // auto_since：讓 rec-old01（很久以前錄的）不在自動範圍內

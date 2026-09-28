@@ -151,4 +151,11 @@ return [
   '下載逐字稿' => 'Download transcript',
   '逐字稿發言者改名' => 'Rename transcript speaker',
   '錄影中沒有辨識到任何說話內容（可能是沒有人說話，或麥克風沒有收到聲音）。' => 'No speech was recognised in the recording (nobody spoke, or the microphone picked up no sound).',
+  '發言者對應建議' => 'Speaker suggestions',
+  '全部套用最可能的人' => 'Apply the most likely person to all',
+  '依會議中 Jitsi 偵測的「目前發言者」時間軸，與逐字稿的發言者代號比對重疊時間。只是建議：人多、同時說話或聲音相近時可能不準，請確認後再套用。' => 'Based on the "current speaker" timeline Jitsi detected during the meeting, matched against the transcript speaker ids by overlapping time. These are suggestions only: with many people, overlapping speech or similar voices they may be wrong — check before applying.',
+  '這場會議沒有記錄到發言時間軸（v1.13.0 之前的會議，或主持人的會議頁沒有全程開著），無法自動建議；改名時可以從參與者名單挑選。' => 'No speaker timeline was recorded for this meeting (a meeting before v1.13.0, or the host\'s meeting page was not open the whole time), so there are no automatic suggestions; when renaming you can pick from the participant list.',
+  '套用' => 'Apply',
+  '已套用' => 'Applied',
+  '逐字稿中有 {0}% 的發言時間對得到' => '{0}% of this speaker\'s time matched',
 ];

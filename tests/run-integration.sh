@@ -82,9 +82,13 @@ chk "非擁有者離開 → 403" "$(code -b $HB --data-urlencode "_csrf=$TB" -d 
 T=$(csrf $A /dashboard)
 chk "擁有者心跳 → 204" "$(code -b $A -H "X-CSRF-Token: $T" -H 'Content-Type: application/json' -d '{"roster":[]}' -X POST "$B/host-heartbeat?room=itest-room")" 204
 has "心跳後主持人在線" "$(curl -s -b $A "$B/room-status?room=itest-room")" '"host_joined":true'
+NOWMS=$(( $(date +%s) * 1000 ))
+chk "心跳帶主要發言者時間軸 → 204" "$(code -b $A -H "X-CSRF-Token: $T" -H 'Content-Type: application/json' -d "{\"roster\":[],\"talk\":[{\"n\":\"Amy\",\"s\":$((NOWMS-5000)),\"e\":null}]}" -X POST "$B/host-heartbeat?room=itest-room")" 204
+has "時間軸存進房間暫存（v1.13.0）" "$(docker exec $NAME cat /var/jaas-data/auto-allow.json)" '"n": "Amy"'
 chk "擁有者離開 → 204" "$(code -b $A --data-urlencode "_csrf=$T" -d room=itest-room $B/host-left)" 204
 chk "擁有者從清單進入 → /meeting" "$(loc -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-room&enter=1' $B/start)" "$B/meeting"
 has "會議頁帶心跳 CSRF token" "$(curl -s -b $A $B/meeting)" "X-CSRF-Token"
+has "會議頁記錄 Jitsi 主要發言者事件（v1.13.0）" "$(curl -s -b $A $B/meeting)" "dominantSpeakerChanged"
 code -b $A --data-urlencode "_csrf=$T" -d room=itest-room $B/host-left >/dev/null
 chk "hostb 進入他人房間 → 擋下" "$(loc -b $HB -c $HB --data-urlencode "_csrf=$TB" -d 'room=itest-room&enter=1' $B/start)" "$B/dashboard"
 

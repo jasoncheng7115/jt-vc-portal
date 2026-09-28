@@ -373,6 +373,64 @@ class Transcripts {
     return ['segments' => $out, 'uncorrected' => $out && !$final];
   }
 
+  // ── 發言者建議（v1.13.0）：Jitsi 主要發言者時間軸 × 逐字稿發言者代號 ──
+  /**
+   * 回傳 ['offset_ms' => 採用的時間偏移, 'speakers' => ['S1' => ['coverage' => 0–100, 'names' => [['name','pct']...]], ...]]。
+   * 錄影開始時間 = 錄影檔時間 − 長度（誤差數秒），所以在 ±10 秒內找「每個代號最主要的人」重疊總和最大的偏移。
+   * 只給建議：覆蓋不足（<20% 或 <3 秒）不建議；每個代號最多列 3 人、比例 ≥10%。
+   */
+  public static function suggestSpeakers(array $segments, array $talk, int $recStartMs): array {
+    $segs = [];
+    foreach ($segments as $x) {
+      if (($x['speaker'] ?? '') === '' || !isset($x['start_ms'], $x['end_ms']) || $x['end_ms'] <= $x['start_ms']) continue;
+      $segs[] = [(string)$x['speaker'], (int)$x['start_ms'], (int)$x['end_ms']];
+    }
+    $iv = [];
+    foreach ($talk as $t) { if (isset($t['n'], $t['s'], $t['e']) && $t['e'] > $t['s']) $iv[] = [(string)$t['n'], (int)$t['s'], (int)$t['e']]; }
+    if (!$segs || !$iv) return ['offset_ms' => 0, 'speakers' => (object)[]];
+    usort($segs, fn($a, $b) => $a[1] <=> $b[1]);
+    usort($iv, fn($a, $b) => $a[1] <=> $b[1]);
+    $speech = []; foreach ($segs as [$sp, $a, $b]) $speech[$sp] = ($speech[$sp] ?? 0) + ($b - $a);
+    $overlap = function (int $off) use ($segs, $iv, $recStartMs): array {
+      $acc = []; $j = 0; $m = count($iv);
+      foreach ($segs as [$sp, $a, $b]) {
+        $a += $recStartMs + $off; $b += $recStartMs + $off;
+        while ($j < $m && $iv[$j][2] <= $a) $j++;
+        for ($k = $j; $k < $m && $iv[$k][1] < $b; $k++) {
+          $o = min($b, $iv[$k][2]) - max($a, $iv[$k][1]);
+          if ($o > 0) $acc[$sp][$iv[$k][0]] = ($acc[$sp][$iv[$k][0]] ?? 0) + $o;
+        }
+      }
+      return $acc;
+    };
+    $best = 0; $bestScore = -1; $bestAcc = [];
+    for ($off = -10000; $off <= 10000; $off += 1000) {
+      $acc = $overlap($off); $score = 0;
+      foreach ($acc as $names) $score += max($names);
+      if ($score > $bestScore || ($score === $bestScore && abs($off) < abs($best))) { $bestScore = $score; $best = $off; $bestAcc = $acc; }
+    }
+    $out = [];
+    foreach ($bestAcc as $sp => $names) {
+      $tot = array_sum($names);
+      $cov = $speech[$sp] > 0 ? $tot / $speech[$sp] : 0;
+      if ($tot < 3000 || $cov < 0.2) continue;
+      arsort($names);
+      $list = [];
+      foreach ($names as $n => $ms) { $pct = (int)round(100 * $ms / $tot); if ($pct < 10) break; $list[] = ['name' => $n, 'pct' => $pct]; if (count($list) >= 3) break; }
+      if ($list) $out[$sp] = ['coverage' => (int)round(100 * min(1, $cov)), 'names' => $list];
+    }
+    ksort($out, SORT_NATURAL);
+    return ['offset_ms' => $best, 'speakers' => (object)$out];
+  }
+
+  /** 這場會議的參與者名稱（去重、保持出現順序），改名下拉選單用。 */
+  public static function participantNames(?array $sess): array {
+    $names = [];
+    foreach ((array)($sess['participants'] ?? []) as $p) { $n = trim((string)($p['name'] ?? '')); if ($n !== '' && !in_array($n, $names, true)) $names[] = $n; }
+    foreach ((array)($sess['talk'] ?? []) as $t) { $n = trim((string)($t['n'] ?? '')); if ($n !== '' && !in_array($n, $names, true)) $names[] = $n; }
+    return array_slice($names, 0, 200);
+  }
+
   // ── 讀取結果（頁面用）──
   public static function result(string $id): ?array {
     $p = self::dir($id) . '/transcript.json';

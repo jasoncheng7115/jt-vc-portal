@@ -2,6 +2,12 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.13.0 — Speaker suggestions from Jitsi
+
+- **Who is S1?** During the meeting the host's page records Jitsi's own "current speaker" (dominant speaker) timeline and stores it with the meeting. On the transcript page each speaker id (S1, S2…) gets suggested participant names with the share of overlapping time (e.g. "Amy 86%"); click one, or "Apply the most likely person to all". The recording start is estimated from the file time, so the best offset within ±10 seconds is searched automatically. Suggestions only — nothing is renamed until you click.
+- **Pick from the participant list** when renaming a speaker.
+- Tests T32–T37 (timeline cleaning, storing with the meeting, alignment with a time offset, ambiguous and missing timelines, suggestion panel, apply all).
+
 ## v1.12.0 — Meeting transcripts and summaries (jt-live-whisper)
 
 - **Transcripts and meeting summaries**: finished Jibri recordings can be sent to jt-live-whisper (JTLW, `api_revision` 2.4) — streamed upload, one job for recognition, speakers, correction and summary, webhook (hex HMAC-SHA256, 300-second window, deduplicated by event id) with a per-minute background worker as fallback, results written to disk before JTLW is told to delete its copy. Summary: key points, decisions and action items, events, risks, open questions, topic timeline and speaking time, every item citing the recording time.

@@ -41,6 +41,7 @@ class Rooms {
           'transcribe'   => array_key_exists('transcribe', $v) && $v['transcribe'] !== null ? (bool)$v['transcribe'] : null, // 逐字稿單場開關（null＝依帳號預設）
         ];
         if (isset($v['roster']) && is_array($v['roster'])) $out[$name]['roster'] = $v['roster']; // 本次 session 與會者名冊快照
+        if (isset($v['talk']) && is_array($v['talk'])) $out[$name]['talk'] = $v['talk'];       // 本次 session 主要發言者時間軸（v1.13.0）
       }
     }
     return $out;
@@ -67,7 +68,7 @@ class Rooms {
     $seen = $r['host_seen_at'] ?? null;
     if ($seen === null || ($now - (int)$seen) <= self::HOST_STALE_SECONDS) return false;
     self::recordSession($room, $r, (int)$seen);
-    unset($r['host_joined_at'], $r['roster']);
+    unset($r['host_joined_at'], $r['roster'], $r['talk']);
     $r['host_joined'] = false;
     return true;
   }
@@ -90,6 +91,7 @@ class Rooms {
       'peak'       => $peak,                    // 尖峰同時人數
       'participants' => $participants,          // [{name,in,out}]，參與者時間軸
       'transcribe' => $r['transcribe'] ?? null, // 逐字稿單場開關（錄影處理時房間可能已過期，故隨 session 記下）
+      'talk'       => self::clipTalk($r['talk'] ?? null, $start, $end), // 主要發言者時間軸 [{n,s,e}]（毫秒），逐字稿對應發言者用
     ]);
   }
 
@@ -155,16 +157,44 @@ class Rooms {
       if (!isset($rooms[$room]) || !is_array($rooms[$room])) return false;
       $r = $rooms[$room];
       if (!empty($r['host_joined_at'])) self::recordSession($room, $r, time());
-      unset($rooms[$room]['roster'], $rooms[$room]['host_seen_at'], $rooms[$room]['host_joined_at']);
+      unset($rooms[$room]['roster'], $rooms[$room]['talk'], $rooms[$room]['host_seen_at'], $rooms[$room]['host_joined_at']);
       $rooms[$room]['host_joined'] = false;
       return true;
     });
   }
 
-  /** 主持人心跳：寫入 host_seen_at（並確保 host_joined=true、記下 session 起始）；可附帶與會者名冊快照 */
-  public static function recordHostHeartbeat(string $room, ?array $roster = null): void {
+  const TALK_MAX = 5000;   // 主要發言者時間軸上限（約 2 小時會議、每 1.5 秒換一次人）
+
+  /** 清理主持人頁送來的主要發言者時間軸：[{n: 名稱, s: 開始 ms, e: 結束 ms|null}]，依開始時間排序、去掉不合理的值。 */
+  public static function cleanTalk(array $talk, int $nowMs): array {
+    $out = [];
+    foreach (array_slice($talk, -self::TALK_MAX) as $t) {
+      if (!is_array($t)) continue;
+      $s = (int)($t['s'] ?? 0); $e = isset($t['e']) && $t['e'] !== null ? (int)$t['e'] : null;
+      $n = mb_substr(trim(preg_replace('/[\x00-\x1F\x7F]/u', '', (string)($t['n'] ?? ''))), 0, 64);
+      if ($s <= 0 || $s > $nowMs + 60000 || $n === '') continue;
+      if ($e !== null && $e < $s) continue;
+      $out[] = ['n' => $n, 's' => $s, 'e' => $e];
+    }
+    usort($out, fn($a, $b) => $a['s'] <=> $b['s']);
+    return $out;
+  }
+
+  /** 結算：把時間軸剪進 session 範圍（秒 → 毫秒），最後一段未結束的算到散會。 */
+  private static function clipTalk($talk, int $start, int $end): array {
+    if (!is_array($talk) || !$talk) return [];
+    $s0 = $start * 1000; $e0 = $end * 1000; $out = [];
+    foreach ($talk as $t) {
+      $s = max((int)$t['s'], $s0); $e = min($t['e'] === null ? $e0 : (int)$t['e'], $e0);
+      if ($e > $s) $out[] = ['n' => (string)$t['n'], 's' => $s, 'e' => $e];
+    }
+    return $out;
+  }
+
+  /** 主持人心跳：寫入 host_seen_at（並確保 host_joined=true、記下 session 起始）；可附帶與會者名冊與主要發言者時間軸快照 */
+  public static function recordHostHeartbeat(string $room, ?array $roster = null, ?array $talk = null): void {
     $now = time();
-    self::mutate(function (array &$rooms) use ($room, $roster, $now) {
+    self::mutate(function (array &$rooms) use ($room, $roster, $talk, $now) {
       if (!isset($rooms[$room]) || !is_array($rooms[$room])) return false;
       $r = &$rooms[$room];
       self::closeStaleSession($room, $r, $now);   // 上一段逾時未收尾 → 先結算，本次重新起算
@@ -185,6 +215,7 @@ class Rooms {
         }
         $r['roster'] = $clean;
       }
+      if (is_array($talk)) $r['talk'] = self::cleanTalk($talk, $now * 1000);
       unset($r);
       return true;
     });

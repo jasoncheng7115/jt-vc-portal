@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.11.1 — Meeting Management System
+# jt-vc-portal v1.13.0 — Meeting Management System
 
 > 繁體中文: [README_zh-TW.md](README_zh-TW.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -205,14 +205,14 @@ Don't want to build it yourself? Download the packaged image (`linux/amd64`) att
 
 ```bash
 # 1) Download the image and checksum file from the Release page (use the latest version number)
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.11.1/jt-vc-portal-1.11.1-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.11.1/jt-vc-portal-1.11.1-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.13.0/jt-vc-portal-1.13.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.13.0/jt-vc-portal-1.13.0-docker-amd64.tar.gz.sha256
 
 # 2) Verify integrity (should print OK)
-sha256sum -c jt-vc-portal-1.11.1-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.13.0-docker-amd64.tar.gz.sha256
 
-# 3) Load the image (creates the jt-vc-portal:1.11.1 and :latest tags)
-docker load < jt-vc-portal-1.11.1-docker-amd64.tar.gz
+# 3) Load the image (creates the jt-vc-portal:1.13.0 and :latest tags)
+docker load < jt-vc-portal-1.13.0-docker-amd64.tar.gz
 
 # 4) Prepare persistent directories on the host (www-data UID defaults to 33)
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -437,6 +437,7 @@ After a recording on the self-hosted Jibri host finishes, the portal can hand it
 - Results live in the data directory (`transcripts/<recording id>/`) and follow the recording: deleting a recording, or the Jibri retention policy removing it, deletes its transcript and summary too.
 - Hosts only see transcripts of meetings they hosted; the audit log records who generated, viewed, downloaded or renamed — never the transcript content.
 - Summaries are available for Chinese and English meetings; for Japanese and Korean only the transcript is produced. Speaker ids (S1, S2…) are voice clusters, not names — rename them on the transcript page.
+- **Speaker suggestions (v1.13.0)**: the host's meeting page records Jitsi's "current speaker" timeline; the transcript page suggests which participant each speaker id is (with the share of overlapping time) and lets you apply it with one click or pick from the participant list. Keep the host's meeting page open for the whole meeting so the timeline is complete.
 
 ---
 

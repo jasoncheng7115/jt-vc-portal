@@ -14,12 +14,13 @@ $room = Rooms::sanitize((string)($_GET['room'] ?? $_POST['room'] ?? ''));
 if ($room === '') { http_response_code(400); exit; }
 if (!Rooms::canHost(Rooms::get($room), $me)) { http_response_code(403); exit; }
 
-// 可選：JSON body 帶與會者名冊快照 { roster: [{name,in,out}] }
-$roster = null;
-$raw = file_get_contents('php://input', false, null, 0, 262144);   // 上限 256KB
+// 可選：JSON body 帶與會者名冊快照 { roster: [{name,in,out}], talk: [{n,s,e}] }（talk＝主要發言者時間軸，毫秒）
+$roster = null; $talk = null;
+$raw = file_get_contents('php://input', false, null, 0, 524288);   // 上限 512KB（名冊＋主要發言者時間軸）
 if (is_string($raw) && $raw !== '') {
   $j = json_decode($raw, true);
   if (is_array($j) && isset($j['roster']) && is_array($j['roster'])) $roster = $j['roster'];
+  if (is_array($j) && isset($j['talk']) && is_array($j['talk'])) $talk = $j['talk'];   // 主要發言者時間軸（v1.13.0）
 }
-Rooms::recordHostHeartbeat($room, $roster);
+Rooms::recordHostHeartbeat($room, $roster, $talk);
 http_response_code(204);

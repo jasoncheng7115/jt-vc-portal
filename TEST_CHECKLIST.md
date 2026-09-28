@@ -214,6 +214,12 @@
 - [ ] T29 Administrators: any meeting; settings card reachable from the section index; API key not echoed back; account management shows the permission select and a badge.
 - [ ] T30 Audit log records transcript events but never transcript content.
 - [ ] T31 ZAP covers /transcript, /transcript-download, /transcript-action and /jtlw-webhook (High 0, Medium 0).
+- [ ] T32 Dominant-speaker timeline cleaning: control characters removed, name length limited, entries without a name, ending before they start or in the future dropped, sorted by start.
+- [ ] T33 A heartbeat with the timeline stores it with the room; when the host leaves it is written to the meeting record, clipped to the session, an open last entry ending at the end of the meeting; the room's copy is cleared. The meeting page listens to Jitsi's dominantSpeakerChanged.
+- [ ] T34 Speaker suggestions: each speaker id maps to the participant with the most overlapping time, including when the recording start is off by a few seconds (offset search within ±10 s).
+- [ ] T35 Ambiguous speakers list several names (largest first); no timeline or too little overlap gives no suggestion; the participant list is de-duplicated.
+- [ ] T36 Transcript page shows the suggestion panel (e.g. "Amy 100%"), the rename box offers the participant list, "Apply the most likely person to all" renames every speaker and survives a reload, applied suggestions are marked.
+- [ ] T37 Meetings without a timeline show no suggestion panel and a note that names can be picked manually.
 
 ## 4. Internationalization (i18n)
 
@@ -336,8 +342,8 @@ Spot-check on every release; test everything for major changes:
 | SSO S01, S05–S07, S11–S21, S23–S25, S27, S28, S30 (real Keycloak + browser, incl. OTP) | `tests/run-sso.sh` (`tests/e2e/sso.cjs`) |
 | SSO S22 | `tests/zap/run-zap.sh` (scan with SSO enabled) |
 | SSO S26 | Manual: KEYCLOAK-SETUP section 7 verification commands |
-| Transcripts T01–T12 (layers, webhook signature, permissions, per-meeting switch, queueing, hints, events, renaming, settings) | `tests/unit/test_transcripts.php` |
-| Transcripts T13–T30 (JTLW mock + stub Jibri + real browser) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
+| Transcripts T01–T12, T32–T35 (layers, webhook signature, permissions, per-meeting switch, queueing, hints, events, renaming, settings) | `tests/unit/test_transcripts.php` |
+| Transcripts T13–T30, T36–T37 (JTLW mock + stub Jibri + real browser) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
 | Transcripts T31 | `tests/zap/run-zap.sh` |
 | Language menu (collapsed, opens on click, Esc) | `tests/run-e2e.sh` (`tests/e2e/meeting.cjs`) |
 | SSO S29 | Production smoke script run by the maintainer against the live deployment (temporary accounts, cleaned up afterwards) |

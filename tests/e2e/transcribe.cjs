@@ -75,6 +75,16 @@ const status = async (p, path) => (await p.request.get(BASE + path, { maxRedirec
   const js = JSON.parse(await (await pm.request.get(BASE + '/transcript-download?id=rec-ok01&f=json')).text());
   ok('T27 下載 JSON 帶 speaker_name', js.segments && js.segments[0].speaker_name === '陳副理');
 
+  // ---- 發言者對應建議（v1.13.0）----
+  await pm.goto(BASE + '/transcript?id=rec-ok01');
+  ok('T36 有 Jitsi 時間軸：顯示發言者對應建議（Amy 100%）', await pm.isVisible('#txSuggest') && (await pm.textContent('#txSuggestRows')).includes('Amy 100%'));
+  ok('T36 改名輸入框可從參與者名單挑選（datalist）', (await pm.$$eval('#txPeople option', o => o.map(x => x.value))).join(',') === 'Amy,Ben');
+  await Promise.all([pm.waitForResponse(r => r.url().includes('/transcript-action') && r.request().method() === 'POST'), pm.click('#txApplyAll')]);
+  await pm.reload();
+  const after = await pm.$$eval('#txSegs .mt-row .mt-s', els => [...new Set(els.map(e => e.textContent))]);
+  ok('T36 「全部套用」後每位發言者都改成建議的人，重新整理仍在', after.length === 1 && after[0] === 'Amy', JSON.stringify(after));
+  ok('T36 套用後建議標示為已套用', (await pm.$$eval('.tx-suggest-chip.on', e => e.length)) > 0);
+
   // ---- 別的主持人（manual）不可看 hman 的場次 ----
   const po = await login(b, 'hother', HPW);
   ok('T28 別的主持人開 hman 的逐字稿 → 404', (await status(po, '/transcript?id=rec-ok01')) === 404);
@@ -82,6 +92,8 @@ const status = async (p, path) => (await p.request.get(BASE + path, { maxRedirec
   // ---- 管理員 ----
   const pa = await login(b, 'jtvc-admin', APW);
   ok('T29 管理員可看任何場次', (await status(pa, '/transcript?id=rec-ok01')) === 200);
+  await pa.goto(BASE + '/transcript?id=rec-auto01');
+  ok('T37 沒有時間軸的場次：不顯示建議、顯示可手動挑選的提示', !(await pa.isVisible('#txSuggest')) && await pa.isVisible('#txNoTalk'));
   await pa.goto(BASE + '/settings#transcribe');
   ok('T29 系統設定有逐字稿卡片（目錄可切換）', await pa.isVisible('#card-transcribe') && !(await pa.isVisible('#card-sso')));
   ok('T29 設定頁不回填 JTLW 金鑰', (await pa.inputValue('#card-transcribe input[name=jtlw_key]')) === '');

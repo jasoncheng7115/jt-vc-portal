@@ -166,6 +166,20 @@ window.addEventListener('load', () => {
   api.addEventListener('participantLeft', (e) => { if (e && e.id && roster[e.id]) roster[e.id].out = nowSec(); });
   api.addEventListener('displayNameChange', (e) => { if (e && e.id && roster[e.id]) roster[e.id].name = e.displayname || e.displayName || roster[e.id].name; });
 
+  // === Dominant-speaker timeline (v1.13.0): who is talking when, from Jitsi's own speaker detection.
+  // Used after the meeting to suggest which transcript speaker (S1, S2…) is which participant. Names are
+  // resolved when sending, so later display-name changes still apply.
+  const talk = [];              // {id, s, e} in ms
+  api.addEventListener('dominantSpeakerChanged', (e) => {
+    if (!e || !e.id) return;
+    const t = Date.now(), last = talk[talk.length - 1];
+    if (last && last.id === e.id && last.e === null) return;
+    if (last && last.e === null) last.e = t;
+    talk.push({ id: e.id, s: t, e: null });
+    if (talk.length > 5000) talk.shift();
+  });
+  const talkArr = () => talk.map((x) => ({ n: (roster[x.id] && roster[x.id].name) || '', s: x.s, e: x.e })).filter((x) => x.n);
+
   // === Host heartbeat: report every 15 s so the server knows the host is present (with a roster snapshot) ===
   const csrf = <?= json_encode(Auth::csrfToken()) ?>;
   const heartbeatUrl = '/host-heartbeat?room=' + encodeURIComponent(room);
@@ -173,7 +187,7 @@ window.addEventListener('load', () => {
     fetch(heartbeatUrl, {
       method: 'POST', cache: 'no-store', keepalive: true, credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
-      body: JSON.stringify({ roster: rosterArr() })
+      body: JSON.stringify({ roster: rosterArr(), talk: talkArr() })
     }).catch(() => {});
   };
   beat();

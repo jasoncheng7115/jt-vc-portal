@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.11.1 — 会議管理システム
+# jt-vc-portal v1.13.0 — 会議管理システム
 
 > English: [README.md](README.md) · 繁體中文: [README_zh-TW.md](README_zh-TW.md)
 
@@ -205,14 +205,14 @@ server {
 
 ```bash
 # 1) Release ページからイメージとチェックサムファイルをダウンロード（最新のバージョン番号を使用）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.11.1/jt-vc-portal-1.11.1-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.11.1/jt-vc-portal-1.11.1-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.13.0/jt-vc-portal-1.13.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.13.0/jt-vc-portal-1.13.0-docker-amd64.tar.gz.sha256
 
 # 2) 完全性を検証（OK と表示されるはず）
-sha256sum -c jt-vc-portal-1.11.1-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.13.0-docker-amd64.tar.gz.sha256
 
-# 3) イメージを読み込む（jt-vc-portal:1.11.1 と :latest のタグが作成される）
-docker load < jt-vc-portal-1.11.1-docker-amd64.tar.gz
+# 3) イメージを読み込む（jt-vc-portal:1.13.0 と :latest のタグが作成される）
+docker load < jt-vc-portal-1.13.0-docker-amd64.tar.gz
 
 # 4) ホスト側で永続ディレクトリを準備（www-data の UID は既定で 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -437,6 +437,7 @@ sudo -u www-data php login-path.php reset
 - 結果はデータディレクトリ（`transcripts/<recording id>/`）に保存され、録画に連動します。録画を削除した場合や、Jibri の保持ポリシーで録画が削除された場合は、その文字起こしと要約も削除されます。
 - ホストが見られるのは自分が主催した会議の文字起こしのみです。監査ログには誰が生成・閲覧・ダウンロード・名前変更したかが記録されますが、文字起こしの内容は記録されません。
 - 要約は中国語と英語の会議で利用できます。日本語と韓国語では文字起こしのみ生成されます。発言者 ID（S1、S2…）は声のクラスターであり、名前ではありません。文字起こし画面で名前を変更できます。
+- **発言者の候補（v1.13.0）**：ホストの会議画面が Jitsi の「現在の発言者」タイムラインを記録し、文字起こし画面で各発言者 ID がどの参加者かを候補として表示します（重なった時間の割合付き）。クリック 1 回で適用するか、参加者一覧から選べます。タイムラインを完全にするため、ホストの会議画面は会議中ずっと開いたままにしてください。
 
 ---
 

@@ -157,6 +157,52 @@ test('T12 設定：金鑰與 webhook 密鑰留空沿用；首次啟用記下 aut
   ok(in_array('transcribe', Settings::EXPORTABLE_KEYS, true));
 });
 
+test('T32 發言時間軸清理：去控制字元、名稱上限、無名稱 / 結束早於開始 / 未來時間丟棄、依開始排序', function () {
+  $now = 1790000000000;
+  $c = Rooms::cleanTalk([['n' => "B\x07ob", 's' => $now - 5000, 'e' => $now - 1000], ['n' => 'Amy', 's' => $now - 9000, 'e' => null],
+    ['n' => '', 's' => $now - 100, 'e' => null], ['n' => 'X', 's' => $now - 100, 'e' => $now - 200], ['n' => 'Y', 's' => $now + 3600000, 'e' => null], 'bad'], $now);
+  eq(array_column($c, 'n'), ['Amy', 'Bob']);
+  eq($c[0]['e'], null);
+});
+
+test('T33 心跳帶時間軸 → 散會時寫進 meetings.jsonl（剪進 session 範圍、最後一段算到散會）', function () {
+  Rooms::upsert('talk-room', ['owner' => 'u1', 'owner_name' => 'u1']);
+  Rooms::recordHostHeartbeat('talk-room', [['name' => 'Amy', 'in' => time() - 30, 'out' => null]],
+    [['n' => 'Amy', 's' => (time() - 3600) * 1000, 'e' => (time() - 20) * 1000], ['n' => 'Bob', 's' => (time() - 20) * 1000, 'e' => null]]);
+  ok(!empty(Rooms::get('talk-room')['talk']), '心跳存下時間軸');
+  Store::update(AUTO_ALLOW_FILE, function ($d) { $d["talk-room"]["host_joined_at"] = time() - 600; return $d; }, []);   // 讓 session 有長度
+  Rooms::setHostLeft('talk-room');
+  $sess = null; foreach (Rooms::meetingSessions(0, time() + 60) as $x) if ($x['room'] === 'talk-room') $sess = $x;
+  ok($sess && count($sess['talk']) === 2, '寫進會議紀錄');
+  ok($sess['talk'][0]['s'] >= $sess['start'] * 1000, '開始剪到 session 起點');
+  ok($sess['talk'][1]['e'] === $sess['end'] * 1000, '未結束的算到散會');
+  ok(empty(Rooms::get('talk-room')['talk']), '散會後房間暫存清掉');
+});
+
+test('T34 對齊建議：每個代號對到重疊最多的人；錄影時間有幾秒誤差也對得上', function () {
+  $R = 1790000000000;
+  $segs = [['speaker' => 'S1', 'start_ms' => 0, 'end_ms' => 10000], ['speaker' => 'S2', 'start_ms' => 10000, 'end_ms' => 20000], ['speaker' => 'S1', 'start_ms' => 20000, 'end_ms' => 30000]];
+  $shift = 4000;   // Jitsi 時間軸比錄影推算的開始晚 4 秒
+  $talk = [['n' => 'Amy', 's' => $R + $shift, 'e' => $R + $shift + 10000], ['n' => 'Bob', 's' => $R + $shift + 10000, 'e' => $R + $shift + 20000], ['n' => 'Amy', 's' => $R + $shift + 20000, 'e' => $R + $shift + 30000]];
+  $r = Transcripts::suggestSpeakers($segs, $talk, $R);
+  $sp = (array)$r['speakers'];
+  eq($r['offset_ms'], 4000, '找到偏移');
+  eq($sp['S1']['names'][0], ['name' => 'Amy', 'pct' => 100]);
+  eq($sp['S2']['names'][0]['name'], 'Bob');
+});
+
+test('T35 對齊建議：分不清時列出多人；沒有時間軸或覆蓋不足時不建議', function () {
+  $R = 1790000000000;
+  $segs = [['speaker' => 'S1', 'start_ms' => 0, 'end_ms' => 20000]];
+  $mix = [['n' => 'Amy', 's' => $R, 'e' => $R + 11000], ['n' => 'Bob', 's' => $R + 11000, 'e' => $R + 20000]];
+  $n = (array)Transcripts::suggestSpeakers($segs, $mix, $R)['speakers'];
+  eq(array_column($n['S1']['names'], 'name'), ['Amy', 'Bob'], '兩人都列出，較多的在前');
+  eq((array)Transcripts::suggestSpeakers($segs, [], $R)['speakers'], [], '沒有時間軸');
+  $tiny = [['n' => 'Amy', 's' => $R + 60000, 'e' => $R + 61000]];
+  eq((array)Transcripts::suggestSpeakers($segs, $tiny, $R)['speakers'], [], '重疊太少不建議');
+  eq(Transcripts::participantNames(['participants' => [['name' => 'Amy'], ['name' => 'Amy'], ['name' => ' ']], 'talk' => [['n' => 'Bob']]]), ['Amy', 'Bob']);
+});
+
 $t = $GLOBALS['__t'];
 echo "\n{$t['pass']} passed, {$t['fail']} failed\n";
 exit($t['fail'] ? 1 : 0);

@@ -1767,3 +1767,16 @@ body.is-dark .tx-item { background: rgba(255,255,255,0.03); }
 main.rec-page { max-width: 1240px; }
 main.rec-page .audit-table { min-width: 100%; }
 @media (max-width: 1100px) { main.rec-page .card { overflow-x: auto; } }
+
+/* 發言者對應建議（v1.13.0） */
+.tx-suggest { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin: 10px 0; background: var(--bg-muted); }
+.tx-suggest-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.tx-suggest-head strong { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+.tx-suggest-note { font-size: 12px; margin: 6px 0 8px; }
+.tx-suggest-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 5px 0; border-top: 1px solid var(--border); font-size: 13px; }
+.tx-suggest-row .mt-s { min-width: 34px; }
+.tx-suggest-cur { min-width: 120px; }
+.tx-suggest-chips { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.tx-suggest-chip.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.tx-suggest-cov { font-size: 12px; margin-left: auto; }
+body.is-dark .tx-suggest { background: rgba(255,255,255,0.04); }

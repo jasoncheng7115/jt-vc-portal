@@ -29,12 +29,18 @@ Audit::log('transcript_view', t('檢視逐字稿與摘要：會議室「{room}�
 $msg = $_SESSION['rec_msg'] ?? ''; $err = $_SESSION['rec_err'] ?? '';
 unset($_SESSION['rec_msg'], $_SESSION['rec_err']);
 
+$recStartMs = ((int)($rec['mtime'] ?? 0) - (int)($rec['duration'] ?? 0)) * 1000;
+$sug = Transcripts::suggestSpeakers($tr['segments'], (array)($sess['talk'] ?? []), $recStartMs);
+$pnames = Transcripts::participantNames($sess);
 $data = [
   'id' => $id,
   'segments' => $tr['segments'],
   'speaker_names' => (object)$tr['speaker_names'],
   'speaker_overrides' => (object)$tr['speaker_overrides'],
   'size' => (int)($rec['size'] ?? 0),
+  'suggest' => $sug['speakers'],
+  'participants' => $pnames,
+  'has_talk' => !empty($sess['talk']),
   'summary' => $sum ? [
     'text' => (string)($sum['summary']['text'] ?? ''),
     'grounded' => (bool)($sum['summary']['grounded'] ?? true),
@@ -126,6 +132,14 @@ render_topbar($me, $ip);
     </div>
     <video id="txMedia" class="tx-video" preload="metadata" playsinline hidden src="/recordings-file?id=<?= rawurlencode($id) ?>"></video>
     <p class="muted tx-err" id="txMediaErr" hidden><?= th('錄影檔已經不在了，或是這個格式瀏覽器放不出來。') ?></p>
+    <div class="tx-suggest" id="txSuggest" hidden>
+      <div class="tx-suggest-head"><strong><?= icon('user', 14) ?><?= th('發言者對應建議') ?></strong>
+        <button type="button" class="btn btn-secondary btn-sm" id="txApplyAll"><?= icon('check', 14) ?><?= th('全部套用最可能的人') ?></button></div>
+      <p class="muted tx-suggest-note"><?= th('依會議中 Jitsi 偵測的「目前發言者」時間軸，與逐字稿的發言者代號比對重疊時間。只是建議：人多、同時說話或聲音相近時可能不準，請確認後再套用。') ?></p>
+      <div id="txSuggestRows"></div>
+    </div>
+    <p class="muted tx-suggest-note" id="txNoTalk" hidden><?= th('這場會議沒有記錄到發言時間軸（v1.13.0 之前的會議，或主持人的會議頁沒有全程開著），無法自動建議；改名時可以從參與者名單挑選。') ?></p>
+    <datalist id="txPeople"><?php foreach ($pnames as $pn): ?><option value="<?= htmlspecialchars($pn) ?>"></option><?php endforeach; ?></datalist>
     <p class="muted mt-tip"><?= th('點發言者的名字可以改名 —— 預設同一位全部一起改；點時間可以跳到那裡播放。') ?></p>
     <div id="txSegs" class="mt-segs"></div>
   </div>
@@ -140,7 +154,7 @@ render_topbar($me, $ip);
     'segs' => t('共 {0} 段，{1} 位發言者'), 'none' => t('沒有找到'), 'owner' => t('負責：{0}'), 'due' => t('期限：{0}'),
     'jump' => t('跳到這裡播放'), 'rename' => t('點一下改名字'), 'all' => t('全部 {0}'), 'saveFail' => t('名字存不起來'),
     'copied' => t('已複製'), 'copyFail' => t('複製失敗，請手動選取'), 'check' => t('摘要裡有些數字或詞在逐字稿裡找不到，請核對：{0}'),
-    'spk' => t('發言者'), 'turns' => t('發言次數'), 'chars' => t('字數'), 'time' => t('發言時間'), 'decision' => t('決議'), 'action' => t('待辦'),
+    'apply' => t('套用'), 'applied' => t('已套用'), 'cover' => t('逐字稿中有 {0}% 的發言時間對得到'), 'spk' => t('發言者'), 'turns' => t('發言次數'), 'chars' => t('字數'), 'time' => t('發言時間'), 'decision' => t('決議'), 'action' => t('待辦'),
   ], JSON_UNESCAPED_UNICODE) ?>;
   function fmt(s) { var a = arguments; return s.replace(/\{(\d)\}/g, function (_, i) { return a[+i + 1]; }); }
   function mmss(ms) { if (ms == null) return ''; var t = Math.round(ms / 1000); return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); }
@@ -158,7 +172,7 @@ render_topbar($me, $ip);
   function editSpeaker(cell, s) {
     if (cell.querySelector('input')) return;
     var before = cell.textContent; cell.textContent = '';
-    var inp = document.createElement('input'); inp.className = 'mt-name-edit'; inp.value = before; inp.maxLength = 40;
+    var inp = document.createElement('input'); inp.className = 'mt-name-edit'; inp.value = before; inp.maxLength = 40; inp.setAttribute('list', 'txPeople');
     var scope = document.createElement('label'); scope.className = 'mt-scope';
     var cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = true;
     scope.appendChild(cb); scope.appendChild(document.createTextNode(fmt(T.all, s.speaker || '')));
@@ -361,7 +375,45 @@ render_topbar($me, $ip);
   wave.addEventListener('click', function (e) { var dur = media.duration || 0; if (!dur) return; var r = wave.getBoundingClientRect(); seekTo((e.clientX - r.left) / r.width * dur); });
   window.addEventListener('resize', drawWave);
 
-  render(); renderSummary(); drawWave();
+  // ---- speaker suggestions (v1.13.0): Jitsi dominant-speaker timeline vs transcript speaker ids ----
+  function applyName(sp, name) {
+    data.speaker_names = data.speaker_names || {};
+    data.speaker_names[sp] = name;
+    render(); renderSummary(); renderSuggest(); saveSpeakers();
+  }
+  function renderSuggest() {
+    var sg = data.suggest || {}, keys = Object.keys(sg), box = el('txSuggestRows');
+    el('txSuggest').hidden = !keys.length;
+    el('txNoTalk').hidden = keys.length > 0 || data.has_talk || !segs.some(function (s) { return s.speaker; });
+    box.textContent = '';
+    keys.forEach(function (sp) {
+      var row = document.createElement('div'); row.className = 'tx-suggest-row'; row.dataset.sp = sp;
+      var ci = sIdx(sp);
+      var code = document.createElement('span'); code.className = 'mt-s' + (ci >= 0 ? ' mt-c' + ci : ''); code.textContent = sp;
+      var cur = document.createElement('span'); cur.className = 'tx-suggest-cur'; cur.textContent = '→ ' + nameOf(sp);
+      var chips = document.createElement('span'); chips.className = 'tx-suggest-chips';
+      sg[sp].names.forEach(function (c) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'tx-cite tx-suggest-chip';
+        var on = (data.speaker_names || {})[sp] === c.name;
+        if (on) b.classList.add('on');
+        b.textContent = c.name + ' ' + c.pct + '%' + (on ? ' ✓' : '');
+        b.title = on ? T.applied : T.apply;
+        b.addEventListener('click', function () { applyName(sp, c.name); });
+        chips.appendChild(b);
+      });
+      var cov = document.createElement('span'); cov.className = 'muted tx-suggest-cov'; cov.textContent = fmt(T.cover, String(sg[sp].coverage));
+      row.appendChild(code); row.appendChild(cur); row.appendChild(chips); row.appendChild(cov);
+      box.appendChild(row);
+    });
+  }
+  el('txApplyAll').addEventListener('click', function () {
+    var sg = data.suggest || {};
+    data.speaker_names = data.speaker_names || {};
+    Object.keys(sg).forEach(function (sp) { if (sg[sp].names[0]) data.speaker_names[sp] = sg[sp].names[0].name; });
+    render(); renderSummary(); renderSuggest(); saveSpeakers();
+  });
+
+  render(); renderSummary(); renderSuggest(); drawWave();
   buildPeaks().then(function (p) { peaks = p; drawWave(); });
 })();
 </script>

@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.11.1 — 會議管理系統
+# jt-vc-portal v1.13.0 — 會議管理系統
 
 > English: [README.md](README.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -205,14 +205,14 @@ server {
 
 ```bash
 # 1) 從 Release 頁下載映像與校驗檔（請改用最新版本號）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.11.1/jt-vc-portal-1.11.1-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.11.1/jt-vc-portal-1.11.1-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.13.0/jt-vc-portal-1.13.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.13.0/jt-vc-portal-1.13.0-docker-amd64.tar.gz.sha256
 
 # 2) 驗證完整性（應顯示 OK）
-sha256sum -c jt-vc-portal-1.11.1-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.13.0-docker-amd64.tar.gz.sha256
 
-# 3) 載入映像（會建立 jt-vc-portal:1.11.1 與 :latest 標籤）
-docker load < jt-vc-portal-1.11.1-docker-amd64.tar.gz
+# 3) 載入映像（會建立 jt-vc-portal:1.13.0 與 :latest 標籤）
+docker load < jt-vc-portal-1.13.0-docker-amd64.tar.gz
 
 # 4) 主機端準備持久化目錄（www-data UID 預設 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -437,6 +437,7 @@ sudo -u www-data php login-path.php reset
 - 結果存於資料目錄（`transcripts/<recording id>/`），跟著錄影走：刪除錄影、或 Jibri 保留政策清除錄影時，其逐字稿與摘要也一併刪除。
 - 主持人只看得到自己主持場次的逐字稿；稽核記錄會記下誰產生、檢視、下載或改名——絕不記錄逐字稿內容。
 - 會議摘要支援中文與英文會議；日文與韓文只產生逐字稿。發言者代號（S1、S2…）是聲音分群，不是人名——可在逐字稿頁面改名。
+- **發言者建議（v1.13.0）**：主持人的會議頁會記錄 Jitsi 的「目前發言者」時間軸；逐字稿頁會建議每個發言者代號是哪位參與者（附重疊時間比例），按一下即可套用，也可從參與者名單挑選。請讓主持人的會議頁全程開著，時間軸才會完整。
 
 ---
 
