@@ -203,6 +203,18 @@ test('T35 對齊建議：分不清時列出多人；沒有時間軸或覆蓋不�
   eq(Transcripts::participantNames(['participants' => [['name' => 'Amy'], ['name' => 'Amy'], ['name' => ' ']], 'talk' => [['n' => 'Bob']]]), ['Amy', 'Bob']);
 });
 
+test('T38 已送件後連不上 JTLW：24 小時內繼續等；超過 24 小時標失敗（jtlw_unreachable）', function () {
+  Jtlw::$cfgOverride = array_merge(Settings::getTranscribe(), ['jtlw_url' => 'http://127.0.0.1:9', 'jtlw_key' => 'k']);
+  Store::update(Transcripts::INDEX_FILE, function ($d) {
+    $d['rec-dddd1'] = ['rec_id' => 'rec-dddd1', 'status' => 'running', 'job_id' => 'job_Z', 'room' => 'r', 'attempts' => 0, 'last_ok_poll_at' => time() - 3600];
+    $d['rec-dddd2'] = ['rec_id' => 'rec-dddd2', 'status' => 'running', 'job_id' => 'job_Y', 'room' => 'r', 'attempts' => 0, 'last_ok_poll_at' => time() - 90000];
+    return $d; }, []);
+  ok(!Transcripts::poll('rec-dddd1')); eq(Transcripts::get('rec-dddd1')['status'], 'running', '1 小時：繼續等');
+  ok(Transcripts::poll('rec-dddd2')); eq(Transcripts::get('rec-dddd2')['status'], 'failed'); eq(Transcripts::get('rec-dddd2')['error_code'], 'jtlw_unreachable');
+  ok(!str_contains(Jtlw::describe('jtlw_unreachable'), 'jtlw_unreachable'), '有白話說明');
+  Jtlw::$cfgOverride = null;
+});
+
 $t = $GLOBALS['__t'];
 echo "\n{$t['pass']} passed, {$t['fail']} failed\n";
 exit($t['fail'] ? 1 : 0);

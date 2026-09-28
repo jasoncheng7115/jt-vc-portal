@@ -28,6 +28,8 @@ class Transcripts {
   const TAIL_GAP_HINT_MS = 60000;           // 錄影尾端超過 60 秒沒有文字：只提示、不判失敗（jtdt 同）
   const MAX_ATTEMPTS = 6;
   const BACKOFF = [60, 120, 300, 600, 1800, 3600];
+  const UNREACHABLE_LIMIT = 86400;           // 已送件後連續這麼久查不到 JTLW → 標失敗（不永遠卡在處理中）
+  const SUMMARY_RETRY = [600, 1800, 3600];    // 摘要因 LLM 暫時故障失敗 → 10 / 30 / 60 分鐘後自動重做
 
   // ── 權限 ──
   public static function perm(?array $u): string {
@@ -168,7 +170,15 @@ class Transcripts {
       break;
     }
 
-    // 4. 查詢進行中的作業；到終態就取回
+    // 4. 摘要自動重做（排定時間到了、還沒 ACK）
+    foreach (self::all() as $id => $e) {
+      if (($e['status'] ?? '') !== 'partial' || empty($e['summary_retry_at']) || (int)$e['summary_retry_at'] > time()) continue;
+      $n = (int)($e['summary_retries'] ?? 0) + 1;
+      self::patch((string)$id, ['summary_retries' => $n, 'summary_retry_at' => 0]);
+      if (self::retrySummary((string)$id)) Audit::log('transcript_request', t('自動重做會議摘要（第 {n} 次）：會議室「{room}」錄影 {id}', ['n' => $n, 'room' => $e['room'] ?? '', 'id' => $id]), ['actor' => 'system']);
+    }
+
+    // 5. 查詢進行中的作業；到終態就取回
     foreach (self::all() as $id => $e) {
       if (!in_array($e['status'] ?? '', ['queued', 'running', 'cancelling'], true) || empty($e['job_id'])) continue;
       $stats['polled']++;
@@ -272,8 +282,12 @@ class Transcripts {
     try { $job = Jtlw::getJob((string)$e['job_id']); }
     catch (JtlwError $ex) {
       if ($ex->status === 404) { self::fail($id, 'job_missing', false); return true; }
-      return false;                                   // 連不上：下一輪再查（撐過 JTLW 重啟）
+      // 連不上：下一輪再查（撐過 JTLW 重啟）；但連續 24 小時都查不到就停止等候，讓使用者重新產生
+      $since = (int)($e['last_ok_poll_at'] ?? $e['submitted_at'] ?? time());
+      if (time() - $since > self::UNREACHABLE_LIMIT) { self::patch($id, ['attempts' => self::MAX_ATTEMPTS]); self::fail($id, 'jtlw_unreachable', false); return true; }
+      return false;
     }
+    self::patch($id, ['last_ok_poll_at' => time()]);
     $st = (string)($job['status'] ?? '');
     if (in_array($st, ['queued', 'running', 'cancelling'], true)) {
       self::patch($id, ['status' => $st, 'progress' => self::progressOf($job), 'notify_due' => false]);
@@ -340,9 +354,12 @@ class Transcripts {
     if ($summary !== null) self::writeFile("$dir/summary.json", json_encode($summary, JSON_UNESCAPED_UNICODE));
     if ($md !== null) self::writeFile("$dir/summary.md", $md);
     $status = ($summaryStatus === 'failed') ? 'partial' : 'done';
+    // LLM 暫時故障（可重試）→ 排定自動重做摘要（10 / 30 / 60 分鐘後），都失敗才停在「摘要失敗」等人處理
+    $n = (int)($e['summary_retries'] ?? 0); $retryAt = 0;
+    if ($status === 'partial' && in_array($sumErr, ['llm_unavailable', 'llm_failed', 'summarize_failed', ''], true) && $n < count(self::SUMMARY_RETRY)) $retryAt = time() + self::SUMMARY_RETRY[$n];
     self::patch($id, ['status' => $status, 'summary_status' => $summaryStatus, 'summary_error' => $sumErr,
                       'progress' => null, 'done_at' => time(), 'notify_due' => false,
-                      'segments' => count($tr['segments']), 'uncorrected' => $tr['uncorrected']]);
+                      'segments' => count($tr['segments']), 'uncorrected' => $tr['uncorrected'], 'summary_retry_at' => $retryAt]);
     // 摘要可重做（retry）時先不 ACK——ACK 之後 JTLW 就沒有逐字稿可以重做摘要
     if ($status === 'done') { try { Jtlw::ack($jid); self::patch($id, ['acked' => true]); } catch (JtlwError $x) {} }
     Audit::log('transcript_done', t('逐字稿已產生：會議室「{room}」錄影 {id}（{n} 段；摘要：{s}）', ['room' => $e['room'] ?? '', 'id' => $id, 'n' => count($tr['segments']), 's' => $summaryStatus]), ['actor' => 'system']);

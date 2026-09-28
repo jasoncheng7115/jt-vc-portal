@@ -158,4 +158,10 @@ return [
   '套用' => 'Apply',
   '已套用' => 'Applied',
   '逐字稿中有 {0}% 的發言時間對得到' => '{0}% of this speaker\'s time matched',
+  '產生失敗' => 'Failed',
+  '連續 24 小時連不上語音服務（JTLW），已停止等候；可以按「重新產生」再試一次。' => 'Could not reach the speech service (JTLW) for 24 hours, so this was stopped; press "Regenerate" to try again.',
+  '摘要將自動重試（第 {n} 次）' => 'The summary will be retried automatically (attempt {n})',
+  '自動重做會議摘要（第 {n} 次）：會議室「{room}」錄影 {id}' => 'Automatically redo meeting summary (attempt {n}): room "{room}", recording {id}',
+  '逐字稿：{why}' => 'Transcript: {why}',
+  '查看逐字稿與摘要' => 'View transcript & summary',
 ];

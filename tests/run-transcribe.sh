@@ -25,14 +25,16 @@ fi
 docker run -d --name $JN --network $NET --network-alias jtlw -v "$MOCK":/mock:ro -w /mock -e JTLW_MOCK_API_KEY=$KEY jtvc-jtlw-mock python mock_server.py --port 8990 --speed 20 >/dev/null
 NOW=$(date +%s)
 mkrec() { head -c 20000 /dev/urandom > "$JDATA/$1.mp4"; }
-for r in rec-ok01 rec-sum01 rec-fail01 rec-q01 rec-slow01 rec-auto01 rec-old01 rec-dup01 rec-gone01 rec-other01; do mkrec $r; done
+for r in rec-live01 rec-ok01 rec-sum01 rec-sum02 rec-fail01 rec-q01 rec-slow01 rec-auto01 rec-old01 rec-dup01 rec-gone01 rec-other01; do mkrec $r; done
 python3 - "$JDATA" "$NOW" <<'PY'
 import json,sys
 d,now=sys.argv[1],int(sys.argv[2])
 rows=[("rec-ok01","room-man",now-200),("rec-sum01","room-man",now-190),("rec-fail01","room-man",now-180),("rec-q01","room-man",now-170),
       ("rec-slow01","room-man",now-160),("rec-auto01","room-auto",now-150),("rec-old01","room-auto",now-100000),("rec-dup01","room-man",now-140),
-      ("rec-gone01","room-man",now-130),("rec-other01","room-other",now-120)]
-json.dump([{"id":i,"room":r,"file":f"{r}.mp4","size":20000,"mtime":m,"status":"ok","duration":120} for i,r,m in rows],open(f"{d}/recs.json","w"))
+      ("rec-gone01","room-man",now-130),("rec-sum02","room-man",now-125),("rec-other01","room-other",now-120)]
+recs=[{"id":i,"room":r,"file":f"{r}.mp4","size":20000,"mtime":m,"status":"ok","duration":120} for i,r,m in rows]
+recs.append({"id":"rec-live01","room":"room-man","file":"room-man-live.mp4","size":4000,"mtime":now-5,"status":"recording","duration":0})
+json.dump(recs,open(f"{d}/recs.json","w"))
 PY
 chmod -R a+rwX "$JDATA"
 docker run -d --name $BN --network $NET --network-alias jibri -v "$ROOT/tests/stub":/stub:ro -v "$JDATA":/data php:8.4-cli php -S 0.0.0.0:9080 /stub/jibri.php >/dev/null
@@ -119,6 +121,15 @@ chk "T16 partial 先不 ACK（才能重做摘要）" "$(status rec-sum01 acked)"
 RS=$(docker exec -u www-data $PN php -r "require '/var/www/html/config.php'; require_once '/var/www/html/lib/transcripts.php'; echo Transcripts::retrySummary('rec-sum01') ? 'ok':'no';")
 chk "T16 retry 送出" "$RS" ok
 chk "T16 重做後 done" "$(until_done rec-sum01 success)" done
+
+echo "== T39 摘要因 LLM 暫時故障失敗 → 排定自動重做 → 時間到自動重做 → 完成"
+enq rec-sum02 >/dev/null
+chk "T39 先是 partial" "$(until_done rec-sum02 summary_failed)" partial
+RA=$(docker exec -u www-data $PN php -r "require '/var/www/html/config.php'; require_once '/var/www/html/lib/transcripts.php'; echo Transcripts::get('rec-sum02')['summary_retry_at'] > time() ? 'scheduled':'no';")
+chk "T39 已排定自動重做" "$RA" scheduled
+docker exec -u www-data $PN php -r "require '/var/www/html/config.php'; require_once '/var/www/html/lib/transcripts.php'; Store::update(Transcripts::INDEX_FILE, function (\$d) { \$d['rec-sum02']['summary_retry_at'] = time() - 1; return \$d; }, []);"
+chk "T39 時間到自動重做後完成" "$(until_done rec-sum02 success)" done
+chk "T39 記錄自動重做次數" "$(status rec-sum02 summary_retries)" 1
 
 echo "== T17 辨識失敗 → failed、不自動重送"
 enq rec-fail01 >/dev/null

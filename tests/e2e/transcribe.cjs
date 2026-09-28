@@ -38,6 +38,17 @@ const status = async (p, path) => (await p.request.get(BASE + path, { maxRedirec
   ok('T24 manual：已完成的場次有「逐字稿與摘要」連結', !!(await pm.$('a[href="/transcript?id=rec-ok01"]')));
   ok('T24 manual：已取消的場次有「重新產生」', !!(await pm.$('form[action="/transcript-action"]:has(input[value="rec-slow01"]) input[name=action][value=regenerate]')));
   ok('T24 manual：看不到別人主持的場次', !html.includes('rec-other01'));
+  const qRow = pm.locator('tr:has(input[value="rec-q01"])');
+  ok('T43 處理中：取消是標籤右端的 ✕（有提示文字）', (await qRow.locator('.tx-chip-busy .tx-chip-x').count()) === 1 && ((await qRow.locator('.tx-chip-x').getAttribute('title')) || '').length > 0);
+  const failRow = pm.locator('tr:has(input[value="rec-fail01"])');
+  ok('T40 失敗狀態：與按鈕同高的「產生失敗」標籤，原因在滑過提示', (await failRow.locator('.tx-chip-fail').count()) === 1 && ((await failRow.locator('.tx-cell-row').getAttribute('title')) || '').trim().length > 0);
+  const mids = await failRow.evaluate(r => [...r.children].map(td => { const el = td.querySelector('.tx-chip, .btn, .badge, strong, svg') || td; const b = el.getBoundingClientRect(); return b.top + b.height / 2; }));
+  ok('T40 同一列各欄垂直置中（偏差 ≤ 2px）', Math.max(...mids) - Math.min(...mids) <= 2, mids.map(Math.round).join(','));
+  await failRow.locator('td').nth(1).click();
+  ok('T40 展開該列會完整顯示失敗原因', await pm.locator('tr.row-detail:not([hidden]) .tx-detail-why').first().isVisible());
+  const chipH = await failRow.locator('.tx-chip-fail').evaluate(e => e.getBoundingClientRect().height);
+  const btnH = await failRow.locator('.tx-cell-row .btn').first().evaluate(e => e.getBoundingClientRect().height);
+  ok('T40 標籤高度與按鈕一致', Math.abs(chipH - btnH) <= 2, chipH + ' vs ' + btnH);
   const csrf = await pm.evaluate(() => (document.querySelector('input[name=_csrf]') || {}).value);
   const r1 = await pm.request.post(BASE + '/transcript-action', { form: { _csrf: csrf, action: 'request', id: 'rec-other01' }, maxRedirects: 0 });
   ok('T24 manual：對別人的場次送「產生」→ 404', r1.status() === 404, r1.status());
@@ -94,6 +105,17 @@ const status = async (p, path) => (await p.request.get(BASE + path, { maxRedirec
   ok('T29 管理員可看任何場次', (await status(pa, '/transcript?id=rec-ok01')) === 200);
   await pa.goto(BASE + '/transcript?id=rec-auto01');
   ok('T37 沒有時間軸的場次：不顯示建議、顯示可手動挑選的提示', !(await pa.isVisible('#txSuggest')) && await pa.isVisible('#txNoTalk'));
+  await pa.goto(BASE + '/recordings');
+  ok('T43 已完成＝綠底「查看逐字稿與摘要」、未產生＝虛線「產生逐字稿」，外觀不同', (await pa.$$eval('a.tx-view', e => e.length)) > 0 && (await pa.$$eval('button.tx-gen', e => e.length)) > 0
+    && await pa.$eval('a.tx-view', e => getComputedStyle(e).backgroundColor) !== await pa.$eval('button.tx-gen', e => getComputedStyle(e).backgroundColor)
+    && await pa.$eval('button.tx-gen', e => getComputedStyle(e).borderStyle) === 'dashed');
+  const live = pa.locator('tr.row-main:has-text("room-man-live"), tr.row-main').filter({ has: pa.locator('.rec-live-actions') });
+  ok('T41 錄製中：播放、下載、刪除三個按鈕都反灰', (await live.count()) === 1 && (await live.locator('.rec-live-actions button:disabled').count()) === 3);
+  ok('T41 錄製中：串流 / 下載請求被擋（409）', (await status(pa, '/recordings-file?id=rec-live01')) === 409 && (await status(pa, '/recordings-file?id=rec-live01&dl=1')) === 409);
+  const csrfA = await pa.evaluate(() => (document.querySelector('input[name=_csrf]') || {}).value);
+  await pa.request.post(BASE + '/recordings-action', { form: { _csrf: csrfA, action: 'delete', id: 'rec-live01' }, maxRedirects: 0 });
+  await pa.goto(BASE + '/recordings');
+  ok('T41 錄製中：刪除請求被擋，錄影仍在並顯示原因', (await pa.locator('.rec-live-actions').count()) === 1 && (await pa.content()).includes('錄製中不可刪除'));
   await pa.goto(BASE + '/settings#transcribe');
   ok('T29 系統設定有逐字稿卡片（目錄可切換）', await pa.isVisible('#card-transcribe') && !(await pa.isVisible('#card-sso')));
   ok('T29 設定頁不回填 JTLW 金鑰', (await pa.inputValue('#card-transcribe input[name=jtlw_key]')) === '');

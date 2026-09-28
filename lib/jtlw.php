@@ -146,6 +146,7 @@ class Jtlw {
       'llm_unavailable', 'llm_failed' => t('產生會議摘要時語言模型服務忙碌或中斷，可以按「重做摘要」再試一次。'),
       'local_file_missing', 'recording_missing' => t('錄影檔已經不在了（可能已被保留政策清除）。'),
       'asr_failed', 'unsupported_media' => t('辨識失敗：錄影可能沒有聲音或檔案損壞。'),
+      'jtlw_unreachable'       => t('連續 24 小時連不上語音服務（JTLW），已停止等候；可以按「重新產生」再試一次。'),
       'empty_transcript'       => t('錄影中沒有辨識到任何說話內容（可能是沒有人說話，或麥克風沒有收到聲音）。'),
       default                  => t('處理失敗（{code}）。', ['code' => $code !== '' ? $code : 'unknown']),
     };

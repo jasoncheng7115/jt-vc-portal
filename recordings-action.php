@@ -19,6 +19,9 @@ $action = $_POST['action'] ?? '';
 
 if ($action === 'delete') {
   $id = (string)($_POST['id'] ?? '');
+  foreach (Recordings::listRecordings() as $r) {           // 錄製中不可刪除（畫面反灰，這裡再擋一次）
+    if ((string)($r['id'] ?? '') === $id && ($r['status'] ?? '') === 'recording') $back('rec_err', t('錄製中不可刪除，請等會議結束、錄影完成後再刪除。'));
+  }
   if ($id !== '' && Recordings::delete($id)) {
     Audit::log('recording_delete', t('刪除錄影 {id}', ['id' => $id]));
     if (Transcripts::validId($id) && Transcripts::get($id)) Transcripts::purge($id, 'recording_deleted');   // 逐字稿跟著錄影走

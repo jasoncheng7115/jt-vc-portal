@@ -17,29 +17,52 @@ $tx_index = $tx_on ? Transcripts::all() : [];
 function tx_cell(array $r, ?array $e, array $me): string {
   $rid = (string)$r['id'];
   $can = Transcripts::canRequest($r, $me);
-  $form = function (string $action, string $label, string $icon, string $cls = 'btn btn-secondary btn-sm', string $confirm = '') use ($rid) {
+  $form = function (string $action, string $label, string $icon, string $cls = 'btn btn-secondary btn-sm', string $confirm = '', string $tip = '') use ($rid) {
     return '<form method="POST" action="/transcript-action" style="display:inline;"' . ($confirm !== '' ? ' data-confirm="' . htmlspecialchars($confirm) . '"' : '') . '>'
       . Auth::csrfField() . '<input type="hidden" name="action" value="' . $action . '"><input type="hidden" name="id" value="' . htmlspecialchars($rid) . '">'
-      . '<input type="hidden" name="back" value="/recordings"><button class="' . $cls . '">' . icon($icon, 14) . htmlspecialchars($label) . '</button></form>';
+      . '<input type="hidden" name="back" value="/recordings"><button class="' . $cls . '" title="' . htmlspecialchars($tip !== '' ? $tip : $label) . '">' . icon($icon, 14) . htmlspecialchars($label) . '</button></form>';
   };
   $st = (string)($e['status'] ?? '');
   if ($st === '') {
     if (($r['status'] ?? '') !== 'ok') return '<span class="muted">—</span>';
-    return $can ? $form('request', t('產生逐字稿'), 'file-text') : '<span class="muted">—</span>';
+    return $can ? $form('request', t('產生逐字稿'), 'sparkles', 'btn btn-sm tx-gen', '', t('把這筆錄影交給語音服務產生逐字稿與會議摘要')) : '<span class="muted">—</span>';
   }
-  $view = '<a class="btn btn-secondary btn-sm" href="/transcript?id=' . rawurlencode($rid) . '">' . icon('file-text', 14) . th('逐字稿與摘要') . '</a>';
+  // 已完成（綠底、打勾）與尚未產生（白底虛線、星形）外觀刻意區分，一眼分得出來
+  $view = '<a class="btn btn-sm tx-view" title="' . th('查看逐字稿與會議摘要') . '" href="/transcript?id=' . rawurlencode($rid) . '">' . icon('check', 14) . th('查看逐字稿與摘要') . '</a>';
+  // 狀態標籤：與按鈕同高、圖示＋文字；失敗原因以小字顯示在下方（過長截斷，滑過看完整）
+  $chip = fn(string $cls, string $ic, string $label) => '<span class="tx-chip ' . $cls . '">' . $ic . '<span>' . htmlspecialchars($label) . '</span></span>';
+  // 單行呈現（與同列其他欄垂直對齊）：原因放在標籤的滑過提示；點該列展開時也會完整顯示（tx_reason）
+  $row = fn(string $inner, string $why = '') => '<div class="tx-cell-row"' . ($why !== '' ? ' title="' . htmlspecialchars($why) . '"' : '') . '>' . $inner . '</div>';
   switch ($st) {
     case 'done': return $view;
-    case 'partial': return $view . ' <span class="badge badge-warning" title="' . htmlspecialchars(Jtlw::describe((string)($e['summary_error'] ?? ''))) . '">' . th('摘要失敗') . '</span>';
+    case 'partial':
+      $why = !empty($e['summary_retry_at']) ? t('摘要將自動重試（第 {n} 次）', ['n' => (int)($e['summary_retries'] ?? 0) + 1]) : Jtlw::describe((string)($e['summary_error'] ?? ''));
+      return $row($view . $chip('tx-chip-warn', icon('warning', 13), t('摘要失敗')), $why);
     case 'failed':
+      return $row($chip('tx-chip-fail', icon('warning', 13), t('產生失敗')) . ($can ? $form('regenerate', t('重新產生'), 'refresh', 'btn btn-secondary btn-sm', '', t('重新上傳錄影並產生逐字稿與摘要')) : ''),
+                  Jtlw::describe((string)($e['error_code'] ?? ''), (string)($e['error_reason'] ?? '')));
     case 'cancelled':
-      $b = '<span class="badge badge-danger" title="' . htmlspecialchars($st === 'failed' ? Jtlw::describe((string)($e['error_code'] ?? ''), (string)($e['error_reason'] ?? '')) : t('已取消')) . '">' . ($st === 'failed' ? th('失敗') : th('已取消')) . '</span>';
-      return $b . ($can ? ' ' . $form('regenerate', t('重新產生'), 'refresh') : '');
+      return $row($chip('tx-chip-muted', icon('x', 13), t('已取消')) . ($can ? $form('regenerate', t('重新產生'), 'refresh', 'btn btn-secondary btn-sm', '', t('重新上傳錄影並產生逐字稿與摘要')) : ''));
     default:
       $txt = tx_progress_text($e);
-      return '<span class="badge badge-accent tx-busy" title="' . htmlspecialchars($txt) . '"><span class="spinner-dot"></span>' . htmlspecialchars($txt) . '</span>'
-        . ($can && in_array($st, ['pending', 'queued', 'running'], true) ? ' ' . $form('cancel', t('取消'), 'x', 'btn btn-ghost btn-sm', t('確定取消產生這筆錄影的逐字稿？')) : '');
+      // 處理中：取消鈕做成標籤右端的小 ✕（可移除標籤的樣式），不另外放一顆按鈕
+      $x = ($can && in_array($st, ['pending', 'queued', 'running'], true))
+        ? '<form method="POST" action="/transcript-action" class="tx-chip-x-form" data-confirm="' . th('確定取消產生這筆錄影的逐字稿？') . '">' . Auth::csrfField()
+          . '<input type="hidden" name="action" value="cancel"><input type="hidden" name="id" value="' . htmlspecialchars($rid) . '"><input type="hidden" name="back" value="/recordings">'
+          . '<button class="tx-chip-x" title="' . th('取消產生這筆錄影的逐字稿') . '" aria-label="' . th('取消產生這筆錄影的逐字稿') . '">' . icon('x', 12) . '</button></form>'
+        : '';
+      return $row('<span class="tx-chip tx-chip-busy' . ($x !== '' ? ' has-x' : '') . '"><span class="spinner-dot"></span><span>' . htmlspecialchars($txt) . '</span>' . $x . '</span>',
+        ($st === 'pending' && (int)($e['attempts'] ?? 0) > 0) ? Jtlw::describe((string)($e['error_code'] ?? '')) : '');
   }
+}
+
+/** 逐字稿失敗 / 摘要失敗 / 重試中的原因（展開列顯示用）；沒有就回空字串。 */
+function tx_reason(?array $e): string {
+  $st = (string)($e['status'] ?? '');
+  if ($st === 'failed') return Jtlw::describe((string)($e['error_code'] ?? ''), (string)($e['error_reason'] ?? ''));
+  if ($st === 'partial') return !empty($e['summary_retry_at']) ? t('摘要將自動重試（第 {n} 次）', ['n' => (int)($e['summary_retries'] ?? 0) + 1]) : Jtlw::describe((string)($e['summary_error'] ?? ''));
+  if ($st === 'pending' && (int)($e['attempts'] ?? 0) > 0) return Jtlw::describe((string)($e['error_code'] ?? ''));
+  return '';
 }
 
 /** 進度文字（照 JTLW 說明：queue_position 0＝下一個就是它；GPU 排隊 waiting；asr 用處理到的時間；summary 顯示 detail）。 */
@@ -200,24 +223,35 @@ render_topbar($me, $ip);
             <td class="mono"><?= htmlspecialchars(rec_dur($r['duration'] ?? 0)) ?></td>
             <td class="mono"><?= rec_bytes($r['size']) ?></td>
             <td><?= rec_status_badge($st) ?></td>
-            <?php if ($tx_on): ?><td class="tx-cell" style="white-space:nowrap;"><?= tx_cell($r, $tx_index[$rid] ?? null, $me) ?></td><?php endif; ?>
-            <td style="text-align:right;white-space:nowrap;">
+            <?php if ($tx_on): ?><td class="tx-cell" title="" style="white-space:nowrap;"><?= tx_cell($r, $tx_index[$rid] ?? null, $me) ?></td><?php endif; ?>
+            <td title="" style="text-align:right;white-space:nowrap;">
+              <?php if ($st === 'recording'): /* 錄製中：播放、下載、刪除都不可用（伺服器端也擋） */ $live_tip = t('錄製中，會議結束、錄影完成後才能播放、下載或刪除'); ?>
+                <span class="rec-live-actions" title="<?= htmlspecialchars($live_tip) ?>">
+                  <button type="button" class="btn btn-secondary btn-sm" disabled><?= icon('play', 14) ?><?= th('播放') ?></button>
+                  <button type="button" class="btn btn-secondary btn-sm" disabled><?= icon('download', 14) ?><?= th('下載') ?></button>
+                  <?php if ($is_admin): ?><button type="button" class="btn btn-ghost btn-sm" disabled><?= icon('trash', 14) ?><?= th('刪除') ?></button><?php endif; ?>
+                </span>
+              <?php else: ?>
               <?php if ($playable): ?>
-                <button type="button" class="btn btn-secondary btn-sm js-play" data-id="<?= htmlspecialchars($rid) ?>" data-room="<?= htmlspecialchars($r['room']) ?>"><?= icon('play', 14) ?><?= th('播放') ?></button>
-                <a class="btn btn-secondary btn-sm" href="/recordings-file?id=<?= rawurlencode($rid) ?>&dl=1"><?= icon('download', 14) ?><?= th('下載') ?></a>
+                <button type="button" class="btn btn-secondary btn-sm js-play" title="<?= th('線上播放錄影') ?>" data-id="<?= htmlspecialchars($rid) ?>" data-room="<?= htmlspecialchars($r['room']) ?>"><?= icon('play', 14) ?><?= th('播放') ?></button>
+                <a class="btn btn-secondary btn-sm" title="<?= th('下載錄影檔') ?>" href="/recordings-file?id=<?= rawurlencode($rid) ?>&dl=1"><?= icon('download', 14) ?><?= th('下載') ?></a>
               <?php endif; ?>
               <?php if ($is_admin): ?>
               <form method="POST" action="/recordings-action" style="display:inline;" data-confirm="<?= th('確定刪除此錄影？此動作無法復原。') ?>">
                 <?= Auth::csrfField() ?>
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="id" value="<?= htmlspecialchars($rid) ?>">
-                <button class="btn btn-ghost btn-sm"><?= icon('trash', 14) ?><?= th('刪除') ?></button>
+                <button class="btn btn-ghost btn-sm" title="<?= th('刪除這筆錄影（逐字稿與摘要一併刪除）') ?>"><?= icon('trash', 14) ?><?= th('刪除') ?></button>
               </form>
+              <?php endif; ?>
               <?php endif; ?>
             </td>
           </tr>
           <tr class="row-detail" hidden>
             <td colspan="<?= $tx_on ? 9 : 8 ?>">
+              <?php if ($tx_on && ($why = tx_reason($tx_index[$rid] ?? null)) !== ''): ?>
+                <div class="tx-detail-why"><?= icon('warning', 14) ?><span><?= th('逐字稿：{why}', ['why' => $why]) ?></span></div>
+              <?php endif; ?>
               <?php if (!empty($parts)): ?>
               <table class="table" style="margin:0;">
                 <thead><tr><th><?= th('參與者') ?></th><th><?= th('進入') ?></th><th><?= th('離開') ?></th><th><?= th('停留') ?></th></tr></thead>
@@ -233,7 +267,7 @@ render_topbar($me, $ip);
                 </tbody>
               </table>
               <?php else: ?>
-                <span class="muted" style="font-size:13px;"><?= th('無對應的參與者記錄（此場可能在參與者統計功能上線前錄製，或主持人未在場回報）。') ?></span>
+                <span class="muted" style="font-size:13px;"><?= $st === 'recording' ? th('錄製中，會議結束後才會有參與者記錄。') : th('無對應的參與者記錄（此場可能在參與者統計功能上線前錄製，或主持人未在場回報）。') ?></span>
               <?php endif; ?>
             </td>
           </tr>

@@ -2,6 +2,16 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.13.1 — Transcript resilience and status display
+
+- **JTLW unreachable while processing**: after 24 hours without reaching the speech service a job is marked failed (with a readable reason) instead of staying "processing" for ever; "Regenerate" starts again.
+- **Summary auto-retry**: when the summary fails because the language model is temporarily unavailable, it is redone automatically after 10, 30 and 60 minutes (transcript kept, no re-recognition); only after that does it wait for a manual "Redo summary".
+- **Recordings list**: transcript status shown as chips the same height as the buttons (failed, waiting, cancelled, processing), every column vertically centred, the reason on hover and in the expanded row.
+- **Recordings in progress**: play, download and delete are greyed out while a recording is still being made (the server refuses them too); the expanded row explains that the participant record comes after the meeting.
+- **Easier to tell apart**: a finished transcript is a green "✓ View transcript & summary" button, one not yet produced is a dashed "✦ Generate transcript" button; cancelling a job in progress is a small ✕ at the end of its status chip.
+- **Tooltips**: each action button in the recordings list shows its own tooltip (it used to show the row's "click to expand").
+- Tests T38–T41; a production meeting simulation (two speakers, Jibri recording, real transcript and summary, speaker suggestions) is now part of every release check.
+
 ## v1.13.0 — Speaker suggestions from Jitsi
 
 - **Who is S1?** During the meeting the host's page records Jitsi's own "current speaker" (dominant speaker) timeline and stores it with the meeting. On the transcript page each speaker id (S1, S2…) gets suggested participant names with the share of overlapping time (e.g. "Amy 86%"); click one, or "Apply the most likely person to all". The recording start is estimated from the file time, so the best offset within ±10 seconds is searched automatically. Suggestions only — nothing is renamed until you click.

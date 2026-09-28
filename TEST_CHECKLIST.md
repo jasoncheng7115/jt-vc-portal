@@ -220,6 +220,12 @@
 - [ ] T35 Ambiguous speakers list several names (largest first); no timeline or too little overlap gives no suggestion; the participant list is de-duplicated.
 - [ ] T36 Transcript page shows the suggestion panel (e.g. "Amy 100%"), the rename box offers the participant list, "Apply the most likely person to all" renames every speaker and survives a reload, applied suggestions are marked.
 - [ ] T37 Meetings without a timeline show no suggestion panel and a note that names can be picked manually.
+- [ ] T38 After a job is submitted, the speech service being unreachable keeps it waiting for up to 24 hours; after that it is marked failed (jtlw_unreachable) with a readable reason.
+- [ ] T39 A summary that failed because the language model was temporarily unavailable is scheduled for automatic redo and completes when redone; the number of automatic redos is recorded.
+- [ ] T40 Recordings list: the failed status is a chip the same height as the buttons, the reason is in the hover text and in the expanded row, and every column of the row is vertically centred.
+- [ ] T41 A recording in progress: play, download and delete are disabled in the list, streaming / download requests get 409 and a delete request is refused with a message; each action button has its own tooltip.
+- [ ] T42 Production meeting simulation (maintainer, every release): two participants talk in a real meeting while Jibri records; the recording is transcribed and summarised by the real speech service; the transcript has two speakers and the key content, the summary lists decisions and action items, and the speaker suggestions name both participants.
+- [ ] T43 Recordings list: a finished transcript (green "View transcript & summary") and one not yet produced (dashed "Generate transcript") look clearly different; a job in progress is cancelled with the ✕ at the end of its status chip, which has a tooltip.
 
 ## 4. Internationalization (i18n)
 
@@ -342,9 +348,10 @@ Spot-check on every release; test everything for major changes:
 | SSO S01, S05–S07, S11–S21, S23–S25, S27, S28, S30 (real Keycloak + browser, incl. OTP) | `tests/run-sso.sh` (`tests/e2e/sso.cjs`) |
 | SSO S22 | `tests/zap/run-zap.sh` (scan with SSO enabled) |
 | SSO S26 | Manual: KEYCLOAK-SETUP section 7 verification commands |
-| Transcripts T01–T12, T32–T35 (layers, webhook signature, permissions, per-meeting switch, queueing, hints, events, renaming, settings) | `tests/unit/test_transcripts.php` |
-| Transcripts T13–T30, T36–T37 (JTLW mock + stub Jibri + real browser) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
+| Transcripts T01–T12, T32–T35, T38 (layers, webhook signature, permissions, per-meeting switch, queueing, hints, events, renaming, settings) | `tests/unit/test_transcripts.php` |
+| Transcripts T13–T30, T36–T37, T39–T41, T43 (JTLW mock + stub Jibri + real browser) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
 | Transcripts T31 | `tests/zap/run-zap.sh` |
+| Transcripts T42 | `tests/prod-meeting-sim.sh` (maintainer, production) |
 | Language menu (collapsed, opens on click, Esc) | `tests/run-e2e.sh` (`tests/e2e/meeting.cjs`) |
 | SSO S29 | Production smoke script run by the maintainer against the live deployment (temporary accounts, cleaned up afterwards) |
 | Vulnerability scan | `tests/zap/run-zap.sh` |
