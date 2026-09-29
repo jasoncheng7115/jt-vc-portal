@@ -226,6 +226,13 @@
 - [ ] T41 A recording in progress: play, download and delete are disabled in the list, streaming / download requests get 409 and a delete request is refused with a message; each action button has its own tooltip.
 - [ ] T42 Production meeting simulation (maintainer, every release): two participants talk in a real meeting while Jibri records; the recording is transcribed and summarised by the real speech service; the transcript has two speakers and the key content, the summary lists decisions and action items, and the speaker suggestions name both participants.
 - [ ] T43 Recordings list: a finished transcript (green "View transcript & summary") and one not yet produced (dashed "Generate transcript") look clearly different; a job in progress is cancelled with the ✕ at the end of its status chip, which has a tooltip.
+- [ ] T44 Meeting minutes export: on the transcript page PDF, Word (.docx) and ODT download the full minutes (`<room>-<date>-meeting.<ext>`) for anyone who can view the transcript; others get 404.
+- [ ] T45 Export content: meeting details, key points, decisions & action items (owner / due date, sources with time and speaker), events, risks, open questions, topic timeline, who spoke how much, and the full transcript with renamed speakers and speaker colours. The PDF shows Chinese / Japanese correctly, its text can be selected and searched, and only the glyphs used are embedded (small file); the .docx opens in Microsoft Word and the .odt in LibreOffice without a repair prompt.
+- [ ] T46 Export language: labels and separators follow the interface language; control characters that are not allowed in XML are removed so the files never come out corrupted.
+- [ ] T47 Requirements check: System settings lists any missing PHP extension (openssl, curl, mbstring, fileinfo, json, zlib) or bundled font and what it affects; exporting on a server without zlib gives a readable message instead of an error 500.
+- [ ] T48 Transcript page: three buttons PDF / Word / ODT; the other formats (plain text, SRT, JSON, Markdown) are in an "Other formats" menu that opens only on click and closes on an outside click or Esc.
+- [ ] T49 Playback failure message: when the login has timed out, pressing play says so ("your login has timed out…") with a sign-in link and keeps the player; a deleted file, an unplayable format and an unreachable recording service each get their own message. `/session-check` only returns whether you are signed in.
+- [ ] T50 Background job check: with transcripts enabled, System settings warns when the transcription worker has not run for more than 10 minutes and shows the cron line for Docker and for a direct install.
 
 ## 4. Internationalization (i18n)
 
@@ -349,7 +356,8 @@ Spot-check on every release; test everything for major changes:
 | SSO S22 | `tests/zap/run-zap.sh` (scan with SSO enabled) |
 | SSO S26 | Manual: KEYCLOAK-SETUP section 7 verification commands |
 | Transcripts T01–T12, T32–T35, T38 (layers, webhook signature, permissions, per-meeting switch, queueing, hints, events, renaming, settings) | `tests/unit/test_transcripts.php` |
-| Transcripts T13–T30, T36–T37, T39–T41, T43 (JTLW mock + stub Jibri + real browser) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
+| Meeting minutes export T44–T47 (PDF structure, cross-reference, font subset, ToUnicode, line breaking; .docx / .odt ZIP and XML, renaming, language, requirements) | `tests/unit/test_txexport.php` |
+| Transcripts T13–T30, T36–T37, T39–T41, T43–T45, T48–T50 (JTLW mock + stub Jibri + real browser) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
 | Transcripts T31 | `tests/zap/run-zap.sh` |
 | Transcripts T42 | `tests/prod-meeting-sim.sh` (maintainer, production) |
 | Language menu (collapsed, opens on click, Esc) | `tests/run-e2e.sh` (`tests/e2e/meeting.cjs`) |

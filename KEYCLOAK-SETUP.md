@@ -59,7 +59,7 @@ This guide deploys **Keycloak on a dedicated host** as the OIDC identity provide
                         ▼                      ▼
 ┌────────────────────────────────┐   ┌──────────────────────────┐
 │ Keycloak host (VM / LXC)       │   │ jt-vc-portal host        │
-│ 10.0.0.20                      │   │ (container jaas-auth)    │
+│ 10.0.0.20                      │   │ (container jt-vc-portal) │
 │  keycloak :8080  (proxy only)  │◄──┤ OIDC: discovery, token,  │
 │  keycloak :8443  (admin HTTPS) │   │ JWKS via                 │
 │  keycloak :9000  (health,      │   │ https://sso.example.com  │
@@ -631,9 +631,9 @@ When SSO works, you can check **SSO only: regular accounts can no longer sign in
 **Recovery CLI** (on the portal host; not reachable from the web — returns 404):
 
 ```bash
-docker exec -u www-data jaas-auth php /var/www/html/sso-cli.php show               # current SSO settings
-docker exec -u www-data jaas-auth php /var/www/html/sso-cli.php disable-sso-only   # keep SSO, re-allow local password sign-in
-docker exec -u www-data jaas-auth php /var/www/html/sso-cli.php disable            # turn SSO off completely
+docker exec -u www-data jt-vc-portal php /var/www/html/sso-cli.php show               # current SSO settings
+docker exec -u www-data jt-vc-portal php /var/www/html/sso-cli.php disable-sso-only   # keep SSO, re-allow local password sign-in
+docker exec -u www-data jt-vc-portal php /var/www/html/sso-cli.php disable            # turn SSO off completely
 ```
 
 Both changes keep the stored client secret and are written to the audit log (actor `cli`).
@@ -775,14 +775,14 @@ Check it from your monitoring agent on the host (port 9000 is bound to localhost
 |---|---|
 | Portal: **"Discovery issuer mismatch"** | The issuer returned by Keycloak differs from the Issuer field. Paste exactly the output of `curl -s https://sso.example.com/realms/jtvc/.well-known/openid-configuration \| jq -r .issuer` (no `/.well-known/…` or other trailing path, same realm name and case). If Keycloak itself reports `http://`, an internal IP or a port, fix `KC_PUBLIC_URL` and the proxy's `X-Forwarded-*` headers, then `docker compose up -d`. |
 | Portal: **"IdP endpoint must use https"** | The issuer (or an endpoint in the discovery document) is `http://`. Use the HTTPS URL through the proxy. Unchecking "The IdP must use HTTPS" is only for isolated test environments. |
-| Portal: **"IdP connection failed (curl …)"** | The portal host cannot resolve / reach `sso.example.com:443`, or the certificate is not publicly trusted. Test from the portal host: `docker exec jaas-auth curl -sI https://sso.example.com/realms/jtvc`. |
+| Portal: **"IdP connection failed (curl …)"** | The portal host cannot resolve / reach `sso.example.com:443`, or the certificate is not publicly trusted. Test from the portal host: `docker exec jt-vc-portal curl -sI https://sso.example.com/realms/jtvc`. |
 | **LDAPS certificate errors** in the Keycloak log (`PKIX path building failed`, `SSLHandshakeException`, hostname mismatch) | The CA is missing from `truststores/` (must be PEM, readable, file mode 644), or the DC certificate does not contain the name used in `LDAP_URL`. Verify with the `openssl s_client` command in Section 4, then `docker compose restart keycloak`. |
 | **Users not found** (login says invalid username or password; *Test authentication* works) | The user is not a **direct** member of the groups, or the custom filter does not match: check that `LDAP_GROUPS_DN` is exactly the container of the groups and the group CNs match (`samba-tool group show` / `Get-ADGroup`). Then re-run `./configure-realm.sh`. |
 | **Groups missing in the token** → portal: "user not in any allowed group" (audit log) | The `vc-groups` LDAP group mapper or the client's `groups` protocol mapper is missing / wrong (re-run the script). Check the group names in the portal (**Administrator groups** / **Host groups**) and that the groups claim is `groups`. Users in neither group are denied by design. |
 | **OTP code rejected** | Clock drift: sync time on the Keycloak host (`timedatectl`, chrony / systemd-timesyncd) and on the phone. A code **cannot be reused** — wait for the next 30-second code. |
 | Portal: **"username or email conflicts with an existing account"** (audit log) | A **local** portal account with the same username or e-mail exists. Rename or delete that local account (SSO accounts are never merged with local ones), then log in again. |
 | Portal: **"account disabled"** | The portal account was disabled in Account management — enable it there. |
-| **Everyone locked out** (Keycloak or AD down, SSO only enabled) | On the portal host: `docker exec -u www-data jaas-auth php /var/www/html/sso-cli.php disable-sso-only`, then sign in with the local emergency admin. |
+| **Everyone locked out** (Keycloak or AD down, SSO only enabled) | On the portal host: `docker exec -u www-data jt-vc-portal php /var/www/html/sso-cli.php disable-sso-only`, then sign in with the local emergency admin. |
 | **Keycloak account locked** after wrong passwords | Brute-force detection: wait (5 min, growing up to 30 min) or unlock in the admin console → **Users** → user → toggle *Temporarily locked* off. |
 | `502 Bad Gateway` / `upstream sent too big header` at the proxy | Missing proxy buffer settings (`kc-proxy.conf`). |
 | Admin console shows **"Something went wrong"** | It was opened over plain HTTP (e.g. `http://10.0.0.20:8080/admin/`). Keycloak 26 needs a secure context: use `https://10.0.0.20:8443/admin/` (Section 4, certificate in `certs/`). |

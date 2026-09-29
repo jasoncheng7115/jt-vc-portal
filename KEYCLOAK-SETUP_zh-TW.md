@@ -59,7 +59,7 @@
                         ▼                      ▼
 ┌────────────────────────────────┐   ┌──────────────────────────┐
 │ Keycloak 主機（VM / LXC）      │   │ jt-vc-portal 主機        │
-│ 10.0.0.20                      │   │（容器 jaas-auth）        │
+│ 10.0.0.20                      │   │（容器 jt-vc-portal）     │
 │  keycloak :8080（僅限代理）    │◄──┤ OIDC：discovery、token、 │
 │  keycloak :8443（管理 HTTPS）  │   │ JWKS，一律經由           │
 │  keycloak :9000（健康檢查，    │   │ https://sso.example.com  │
@@ -631,9 +631,9 @@ SSO 運作正常後，可勾選「**僅限單一登入：一般帳號不能再�
 **緊急還原 CLI**（在 portal 主機上執行；網頁存取一律 404）：
 
 ```bash
-docker exec -u www-data jaas-auth php /var/www/html/sso-cli.php show               # 顯示目前 SSO 設定
-docker exec -u www-data jaas-auth php /var/www/html/sso-cli.php disable-sso-only   # 保留 SSO，恢復本地密碼登入
-docker exec -u www-data jaas-auth php /var/www/html/sso-cli.php disable            # 完全停用 SSO
+docker exec -u www-data jt-vc-portal php /var/www/html/sso-cli.php show               # 顯示目前 SSO 設定
+docker exec -u www-data jt-vc-portal php /var/www/html/sso-cli.php disable-sso-only   # 保留 SSO，恢復本地密碼登入
+docker exec -u www-data jt-vc-portal php /var/www/html/sso-cli.php disable            # 完全停用 SSO
 ```
 
 兩種變更都會保留已存的 client secret，並寫入稽核記錄（行為人 `cli`）。
@@ -775,14 +775,14 @@ curl -sf http://127.0.0.1:9000/health/ready && echo OK     # 只能在 Keycloak 
 |---|---|
 | portal：**「Discovery issuer mismatch」** | Keycloak 回傳的 issuer 與 Issuer 欄位不同。請把 `curl -s https://sso.example.com/realms/jtvc/.well-known/openid-configuration \| jq -r .issuer` 的輸出原封不動貼上（不要帶 `/.well-known/…` 等路徑，realm 名稱大小寫須一致）。若 Keycloak 自己回報 `http://`、內網 IP 或埠號，請修正 `KC_PUBLIC_URL` 與反向代理的 `X-Forwarded-*` 標頭，再 `docker compose up -d`。 |
 | portal：**「IdP endpoint must use https」** | issuer（或 discovery 內的某個端點）是 `http://`。請改用經反向代理的 HTTPS 網址。取消勾選「IdP 必須使用 HTTPS」只適用於隔離的測試環境。 |
-| portal：**「IdP connection failed (curl …)」** | portal 主機無法解析 / 連到 `sso.example.com:443`，或憑證不是公開信任的。在 portal 主機測試：`docker exec jaas-auth curl -sI https://sso.example.com/realms/jtvc`。 |
+| portal：**「IdP connection failed (curl …)」** | portal 主機無法解析 / 連到 `sso.example.com:443`，或憑證不是公開信任的。在 portal 主機測試：`docker exec jt-vc-portal curl -sI https://sso.example.com/realms/jtvc`。 |
 | Keycloak 日誌出現 **LDAPS 憑證錯誤**（`PKIX path building failed`、`SSLHandshakeException`、主機名稱不符） | `truststores/` 缺 CA（須為 PEM、可讀、權限 644），或網域控制站憑證不含 `LDAP_URL` 使用的名稱。用第四節的 `openssl s_client` 驗證後 `docker compose restart keycloak`。 |
 | **找不到使用者**（登入顯示帳號或密碼錯誤，但 *Test authentication* 正常） | 使用者不是群組的**直接**成員，或自訂篩選對不上：確認 `LDAP_GROUPS_DN` 正是群組所在容器、群組 CN 相符（`samba-tool group show` / `Get-ADGroup`），然後重跑 `./configure-realm.sh`。 |
 | **token 裡沒有群組** → portal 稽核：「user not in any allowed group」 | LDAP 群組對應 `vc-groups` 或 client 的 `groups` protocol mapper 遺失 / 錯誤（重跑腳本）。確認 portal 的「**管理員群組**」/「**主持人群組**」名稱，以及群組 claim 為 `groups`。不在任一群組的使用者依設計會被拒絕。 |
 | **OTP 驗證碼被拒** | 時間偏差：校正 Keycloak 主機（`timedatectl`、chrony / systemd-timesyncd）與手機的時間。同一組驗證碼**不能重複使用**——請等 30 秒後的下一組。 |
 | portal 稽核：**「username or email conflicts with an existing account」** | portal 已有相同帳號名稱或 email 的**本地**帳號。把該本地帳號改名或刪除（SSO 帳號絕不與本地帳號合併）後再登入。 |
 | portal：**「account disabled」** | portal 帳號在「帳號管理」被停用——請在該處啟用。 |
-| **所有人都無法登入**（Keycloak 或 AD 故障，且已啟用僅限單一登入） | 在 portal 主機執行：`docker exec -u www-data jaas-auth php /var/www/html/sso-cli.php disable-sso-only`，再以本地緊急管理員登入。 |
+| **所有人都無法登入**（Keycloak 或 AD 故障，且已啟用僅限單一登入） | 在 portal 主機執行：`docker exec -u www-data jt-vc-portal php /var/www/html/sso-cli.php disable-sso-only`，再以本地緊急管理員登入。 |
 | 輸錯密碼後 **Keycloak 帳號被鎖** | 暴力破解偵測：等待（5 分鐘起，最長 30 分鐘），或在管理介面 → **Users** → 該使用者 → 關閉 *Temporarily locked*。 |
 | 反向代理回 `502 Bad Gateway` / `upstream sent too big header` | 缺少 proxy buffer 設定（`kc-proxy.conf`）。 |
 | 管理介面顯示 **「Something went wrong」** | 以純 HTTP 開啟了（例如 `http://10.0.0.20:8080/admin/`）。Keycloak 26 需要 secure context：請改用 `https://10.0.0.20:8443/admin/`（第四節，憑證在 `certs/`）。 |

@@ -66,7 +66,7 @@ render_topbar($me, $ip);
   <?php if ($msg): ?><div class="alert alert-success"><?= icon('check') ?><span><?= htmlspecialchars($msg) ?></span></div><?php endif; ?>
   <?php if ($err): ?><div class="alert alert-error"><?= icon('warning') ?><span><?= htmlspecialchars($err) ?></span></div><?php endif; ?>
 
-  <div class="card">
+  <div class="card tx-head-card">
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('file-text', 18) ?><?= th('逐字稿與摘要') ?></h1>
     <div class="tx-meta">
       <span><?= icon('video', 14) ?><strong><?= htmlspecialchars((string)($rec['room'] ?? '')) ?></strong></span>
@@ -75,10 +75,19 @@ render_topbar($me, $ip);
       <span class="muted" id="txCount"></span>
     </div>
     <div class="tx-actions">
-      <a class="btn btn-secondary btn-sm" href="/transcript-download?id=<?= rawurlencode($id) ?>&amp;f=txt"><?= icon('download', 14) ?><?= th('逐字稿（純文字）') ?></a>
-      <a class="btn btn-secondary btn-sm" href="/transcript-download?id=<?= rawurlencode($id) ?>&amp;f=srt"><?= icon('download', 14) ?><?= th('字幕（SRT）') ?></a>
-      <a class="btn btn-secondary btn-sm" href="/transcript-download?id=<?= rawurlencode($id) ?>&amp;f=json"><?= icon('download', 14) ?>JSON</a>
-      <?php if ($sum): ?><a class="btn btn-secondary btn-sm" href="/transcript-download?id=<?= rawurlencode($id) ?>&amp;f=md"><?= icon('download', 14) ?><?= th('摘要（Markdown）') ?></a><?php endif; ?>
+      <?php $dl = fn(string $f) => '/transcript-download?id=' . rawurlencode($id) . '&amp;f=' . $f; ?>
+      <a class="btn btn-secondary btn-sm tx-dl" href="<?= $dl('pdf') ?>" title="<?= th('整份會議記錄（會議資訊、摘要與逐字稿）') ?>"><?= icon('download', 14) ?>PDF</a>
+      <a class="btn btn-secondary btn-sm tx-dl" href="<?= $dl('docx') ?>" title="<?= th('整份會議記錄（會議資訊、摘要與逐字稿）') ?>"><?= icon('download', 14) ?>Word</a>
+      <a class="btn btn-secondary btn-sm tx-dl" href="<?= $dl('odt') ?>" title="<?= th('整份會議記錄（會議資訊、摘要與逐字稿）') ?>"><?= icon('download', 14) ?>ODT</a>
+      <div class="tx-more" id="txMore">
+        <button type="button" class="btn btn-secondary btn-sm" id="txMoreBtn" aria-haspopup="true" aria-expanded="false"><?= th('其他格式') ?><?= icon('chevron-down', 14) ?></button>
+        <div class="tx-more-menu" id="txMoreMenu" hidden>
+          <a href="<?= $dl('txt') ?>"><?= th('逐字稿（純文字）') ?></a>
+          <a href="<?= $dl('srt') ?>"><?= th('字幕（SRT）') ?></a>
+          <a href="<?= $dl('json') ?>"><?= th('逐字稿（JSON）') ?></a>
+          <?php if ($sum): ?><a href="<?= $dl('md') ?>"><?= th('摘要（Markdown）') ?></a><?php endif; ?>
+        </div>
+      </div>
       <button type="button" class="btn btn-secondary btn-sm" id="txCopy"><?= icon('copy', 14) ?><?= th('複製純文字') ?></button>
       <span class="tx-actions-sep"></span>
       <?php if ($can_req && ($e['status'] ?? '') === 'partial' && empty($e['acked'])): ?><?= $action_form('retry_summary', t('重做摘要'), 'refresh') ?><?php endif; ?>
@@ -131,7 +140,7 @@ render_topbar($me, $ip);
       <button class="btn btn-ghost btn-sm" id="txShowVideo" type="button"><?= icon('video', 14) ?><span><?= th('顯示畫面') ?></span></button>
     </div>
     <video id="txMedia" class="tx-video" preload="metadata" playsinline hidden src="/recordings-file?id=<?= rawurlencode($id) ?>"></video>
-    <p class="muted tx-err" id="txMediaErr" hidden><?= th('錄影檔已經不在了，或是這個格式瀏覽器放不出來。') ?></p>
+    <p class="muted tx-err" id="txMediaErr" hidden></p>
     <div class="tx-suggest" id="txSuggest" hidden>
       <div class="tx-suggest-head"><strong><?= icon('user', 14) ?><?= th('發言者對應建議') ?></strong>
         <button type="button" class="btn btn-secondary btn-sm" id="txApplyAll"><?= icon('check', 14) ?><?= th('全部套用最可能的人') ?></button></div>
@@ -150,11 +159,17 @@ render_topbar($me, $ip);
   var el = function (id) { return document.getElementById(id); };
   var data = JSON.parse(el('txData').textContent);
   var CSRF = <?= json_encode(Auth::csrfToken()) ?>;
+  var LOGIN = <?= json_encode(Settings::loginUrl()) ?>;
   var T = <?= json_encode([
     'segs' => t('共 {0} 段，{1} 位發言者'), 'none' => t('沒有找到'), 'owner' => t('負責：{0}'), 'due' => t('期限：{0}'),
     'jump' => t('跳到這裡播放'), 'rename' => t('點一下改名字'), 'all' => t('全部 {0}'), 'saveFail' => t('名字存不起來'),
     'copied' => t('已複製'), 'copyFail' => t('複製失敗，請手動選取'), 'check' => t('摘要裡有些數字或詞在逐字稿裡找不到，請核對：{0}'),
     'apply' => t('套用'), 'applied' => t('已套用'), 'cover' => t('逐字稿中有 {0}% 的發言時間對得到'), 'spk' => t('發言者'), 'turns' => t('發言次數'), 'chars' => t('字數'), 'time' => t('發言時間'), 'decision' => t('決議'), 'action' => t('待辦'),
+    'media_login' => t('登入已逾時（閒置超過 {n} 分鐘會自動登出），請重新登入後再播放。', ['n' => intdiv(SESSION_IDLE_SECONDS, 60)]),
+    'media_gone' => t('錄影檔已經不在了（可能已被刪除，或依保留政策清除）。'),
+    'media_format' => t('瀏覽器無法播放這個錄影檔，請改用下載後播放。'),
+    'media_server' => t('暫時連不到錄影服務，請稍後重新整理再試。'),
+    'relogin' => t('重新登入'),
   ], JSON_UNESCAPED_UNICODE) ?>;
   function fmt(s) { var a = arguments; return s.replace(/\{(\d)\}/g, function (_, i) { return a[+i + 1]; }); }
   function mmss(ms) { if (ms == null) return ''; var t = Math.round(ms / 1000); return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); }
@@ -167,7 +182,20 @@ render_topbar($me, $ip);
   async function saveSpeakers() {
     var r = await fetch('/transcript-action', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
       body: JSON.stringify({ action: 'speakers', id: data.id, map: data.speaker_names || {}, overrides: data.speaker_overrides || {} }) });
-    if (!r.ok) alert(T.saveFail);
+    if (!r.ok) alert(await sessionOk() ? T.saveFail : T.media_login);
+  }
+  async function sessionOk() {
+    try { var r = await fetch('/session-check', { cache: 'no-store', credentials: 'same-origin' }); return !!(await r.json()).login; }
+    catch (e) { return true; }
+  }
+  async function whyFailed() {
+    try {
+      if (!await sessionOk()) return 'login';
+      var r = await fetch('/recordings-file?id=' + encodeURIComponent(data.id), { headers: { Range: 'bytes=0-1' }, cache: 'no-store', credentials: 'same-origin' });
+      if (r.status === 404) return 'gone';
+      if (r.ok) return 'format';
+    } catch (e) {}
+    return 'server';
   }
   function editSpeaker(cell, s) {
     if (cell.querySelector('input')) return;
@@ -223,6 +251,14 @@ render_topbar($me, $ip);
   function asPlainText() {
     return segs.map(function (s) { var n = segName(s); return (s.start_ms == null ? '' : '[' + mmss(s.start_ms) + '] ') + (n ? n + '\uFF1A' : '') + s.text; }).join('\n');
   }
+  (function () {
+    var btn = el('txMoreBtn'), menu = el('txMoreMenu');
+    function show(on) { menu.hidden = !on; btn.setAttribute('aria-expanded', on ? 'true' : 'false'); }
+    btn.addEventListener('click', function (e) { e.stopPropagation(); show(menu.hidden); });
+    menu.addEventListener('click', function () { show(false); });
+    document.addEventListener('click', function (e) { if (!el('txMore').contains(e.target)) show(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') show(false); });
+  })();
   el('txCopy').addEventListener('click', async function () {
     try { await navigator.clipboard.writeText(asPlainText()); this.classList.add('ok'); setTimeout(function () { el('txCopy').classList.remove('ok'); }, 1200); }
     catch (e) { alert(T.copyFail); }
@@ -364,7 +400,16 @@ render_topbar($me, $ip);
   }
   function clock() { el('txNow').textContent = mmss((media.currentTime || 0) * 1000); el('txTot').textContent = mmss((media.duration || 0) * 1000); }
   function syncIcon() { var p = !media.paused && !media.ended; el('txIcPlay').hidden = p; el('txIcPause').hidden = !p; }
-  media.addEventListener('error', function () { el('txPlayer').hidden = true; el('txMediaErr').hidden = false; });
+  media.addEventListener('error', async function () {
+    // the stream answers 404 both when the file is gone and when the login timed out, so ask why before saying anything
+    var why = await whyFailed();
+    var box = el('txMediaErr'); box.textContent = '';
+    box.appendChild(document.createTextNode(T['media_' + why]));
+    if (why === 'login') { var a = document.createElement('a'); a.href = LOGIN; a.textContent = T.relogin; box.appendChild(document.createTextNode(' ')); box.appendChild(a); }
+    box.hidden = false;
+    el('txPlayer').hidden = why !== 'login' && media.readyState === 0;   // after a login timeout the player must still work once signed in again
+  });
+  media.addEventListener('playing', function () { el('txMediaErr').hidden = true; });
   media.addEventListener('play', syncIcon); media.addEventListener('pause', syncIcon); media.addEventListener('ended', syncIcon);
   media.addEventListener('timeupdate', function () { clock(); drawWave(); highlight(); });
   media.addEventListener('loadedmetadata', function () { clock(); drawWave(); });

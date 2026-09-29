@@ -325,6 +325,7 @@ function icon(string $name, int $size = 18): string {
       'chart'       => '<path d="M4 4v16h16"/><rect x="7" y="12" width="2.6" height="5" rx="0.6"/><rect x="11.7" y="9" width="2.6" height="8" rx="0.6"/><rect x="16.4" y="6" width="2.6" height="11" rx="0.6"/>',
       'refresh'     => '<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/>',
       'x'           => '<path d="M6 6l12 12"/><path d="M18 6L6 18"/>',
+      'chevron-down' => '<path d="M6 9l6 6 6-6"/>',
       'share'       => '<circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 11l8-4"/><path d="M8 13l8 4"/>',
       'qr'          => '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2"/>',
       'calendar'    => '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="M3 10h18"/>',

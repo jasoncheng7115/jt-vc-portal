@@ -1,16 +1,18 @@
 <?php
 /**
- * 逐字稿 / 摘要下載（GET /transcript-download?id=&f=json|txt|srt|md|summary）：可檢視者才可下載。
+ * 逐字稿 / 摘要下載（GET /transcript-download?id=&f=pdf|docx|odt|json|txt|srt|md|summary）：可檢視者才可下載。
+ * pdf / docx / odt 為整份會議記錄（會議資訊＋摘要＋逐字稿，lib/txexport.php）。
  * 純文字與 SRT 帶時間與發言者名稱（套用改名）；Markdown 為 JTLW 產生的會議摘要。
  */
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/transcripts.php';
+require_once __DIR__ . '/lib/txexport.php';
 
 $me = Auth::requireLogin();
 $id = (string)($_GET['id'] ?? '');
 $f = (string)($_GET['f'] ?? 'json');
-if (!Transcripts::validId($id) || !in_array($f, ['json', 'txt', 'srt', 'md', 'summary'], true)) Auth::notFound();
+if (!Transcripts::validId($id) || !in_array($f, ['pdf', 'docx', 'odt', 'json', 'txt', 'srt', 'md', 'summary'], true)) Auth::notFound();
 $rec = null;
 foreach (Recordings::listRecordings() as $r) { if ((string)($r['id'] ?? '') === $id) { $rec = $r; break; } }
 if (!$rec || !Transcripts::canView($rec, $me)) Auth::notFound();
@@ -35,6 +37,19 @@ $send = function (string $body, string $type, string $fname) {
   exit;
 };
 Audit::log('transcript_download', t('下載逐字稿 / 摘要（{f}）：會議室「{room}」錄影 {id}', ['f' => $f, 'room' => $rec['room'] ?? '', 'id' => $id]));
+
+if (isset(TxExport::FORMATS[$f])) {
+  if ($miss = TxExport::missing()) {
+    // 直接安裝的舊站升級後可能少了 zlib 擴充；給看得懂的訊息，不要吐 500
+    http_response_code(503); header('Content-Type: text/plain; charset=utf-8');
+    echo t('這台主機缺少匯出需要的元件：{0}。請管理員依 README「系統需求」安裝後再試。', [implode(', ', $miss)]);
+    exit;
+  }
+  $sum = Transcripts::summary($id);
+  $title = t('會議記錄：{room}', ['room' => $rec['room'] ?? '']) . ' ' . date('Y-m-d H:i', (int)($rec['mtime'] ?? 0) - (int)($rec['duration'] ?? 0));
+  $body = TxExport::render($f, TxExport::model($rec, $tr, $sum, Transcripts::sessionOf($rec)), $title, (string)($tr['language'] ?? 'zh-Hant'));
+  $send($body, TxExport::FORMATS[$f], "$base-meeting.$f");
+}
 
 switch ($f) {
   case 'json':

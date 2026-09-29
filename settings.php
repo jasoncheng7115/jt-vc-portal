@@ -7,6 +7,7 @@ require_once __DIR__ . '/lib/logship.php';
 require_once __DIR__ . '/lib/usage.php';
 require_once __DIR__ . '/lib/recordings.php';
 require_once __DIR__ . '/lib/transcripts.php';
+require_once __DIR__ . '/lib/requirements.php';
 require_once __DIR__ . '/lib/layout.php';
 
 $me = Auth::requireAdmin();
@@ -32,6 +33,10 @@ render_topbar($me, $ip);
   <?= admin_nav('settings') ?>
   <?php if ($msg): ?><div class="alert alert-success"><?= icon('check') ?><span><?= htmlspecialchars($msg) ?></span></div><?php endif; ?>
   <?php if ($err): ?><div class="alert alert-error"><?= icon('warning') ?><span><?= htmlspecialchars($err) ?></span></div><?php endif; ?>
+  <?php if ($req_miss = Requirements::missing()): ?>
+    <div class="alert alert-error" id="reqMissing"><?= icon('warning') ?><span><?= th('這台主機缺少部分必要元件，相關功能無法使用。請依 README「系統需求」安裝（例如 Debian / Ubuntu：apt install php-curl php-mbstring），再重新啟動 Apache：') ?>
+      <?php foreach ($req_miss as $n => $use): ?><br><strong class="mono"><?= htmlspecialchars($n) ?></strong> — <?= htmlspecialchars($use) ?><?php endforeach; ?></span></div>
+  <?php endif; ?>
 
   <?php
   /* 設定目錄：點選只顯示該卡片（#id），「全部」顯示全部；依連線模式隱藏的卡片，目錄項目一併隱藏 */
@@ -464,6 +469,11 @@ render_topbar($me, $ip);
     <p class="subtitle" style="margin:6px 0 12px;"><?= th('錄影完成後，交給語音服務 jt-live-whisper（JTLW）產生逐字稿（含發言者）與會議摘要，結果存在本系統、跟著錄影的保留政策走。本系統不直接連接語言模型。') ?></p>
     <div class="help" style="margin-bottom:12px;"><?= th('誰可以使用：在「帳號管理」設定每位主持人的「逐字稿權限」（不可使用 / 手動 / 自動）；建立會議室時可單場開關；管理員可以對任何場次手動產生。自動產生只處理啟用之後錄的會議。') ?></div>
     <?php if (!Settings::hasJibri()): ?><div class="alert alert-error"><?= icon('warning') ?><span><?= th('逐字稿需要自建 Jibri 錄影服務，請先完成錄製設定。') ?></span></div><?php endif; ?>
+    <?php if ($tx['enabled'] && Requirements::workerLastRun() < time() - 600): ?>
+      <div class="alert alert-error" id="txWorkerDown"><?= icon('warning') ?><span><?= th('背景排程沒有在執行（超過 10 分鐘沒有動靜），逐字稿不會送出也不會取回。請在主機加入每分鐘執行的排程（見 README「會議逐字稿與摘要」）：') ?>
+        <br>Docker: <code>* * * * * root docker exec -u www-data jt-vc-portal php /var/www/html/transcribe-worker.php</code>
+        <br><?= th('直接安裝') ?>: <code>* * * * * www-data php <?= htmlspecialchars(__DIR__) ?>/transcribe-worker.php</code></span></div>
+    <?php endif; ?>
     <form method="POST" action="/save-settings">
       <?= Auth::csrfField() ?>
       <input type="hidden" name="section" value="transcribe">

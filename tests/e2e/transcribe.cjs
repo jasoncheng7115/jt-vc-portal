@@ -1,4 +1,4 @@
-// 逐字稿與摘要的瀏覽器測試（T23–T30），由 tests/run-transcribe.sh 在資料都準備好之後呼叫。
+// 逐字稿與摘要的瀏覽器測試（T23–T30、T36–T37、T40–T45、T48–T50），由 tests/run-transcribe.sh 在資料都準備好之後呼叫。
 // 用法：node transcribe.cjs <portal-url> <admin-password> <host-password>
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const [,, BASE, APW, HPW] = process.argv;
@@ -15,6 +15,17 @@ async function login(b, user, pw) {
   return p;
 }
 const status = async (p, path) => (await p.request.get(BASE + path, { maxRedirects: 0 })).status();
+/** 從 ZIP（本系統產生的 docx / odt）取出一個檔案的內容。 */
+function unzipEntry(buf, name) {
+  const zlib = require('zlib'); let p = 0;
+  while (buf.readUInt32LE(p) === 0x04034b50) {
+    const method = buf.readUInt16LE(p + 8), csize = buf.readUInt32LE(p + 18), nlen = buf.readUInt16LE(p + 26), xlen = buf.readUInt16LE(p + 28);
+    const n = buf.slice(p + 30, p + 30 + nlen).toString(), raw = buf.slice(p + 30 + nlen + xlen, p + 30 + nlen + xlen + csize);
+    if (n === name) return (method === 8 ? zlib.inflateRawSync(raw) : raw).toString('utf8');
+    p += 30 + nlen + xlen + csize;
+  }
+  return '';
+}
 
 (async () => {
   const b = await chromium.launch();
@@ -85,6 +96,38 @@ const status = async (p, path) => (await p.request.get(BASE + path, { maxRedirec
   ok('T27 下載摘要 Markdown', md.status() === 200 && (md.headers()['content-type'] || '').includes('markdown'));
   const js = JSON.parse(await (await pm.request.get(BASE + '/transcript-download?id=rec-ok01&f=json')).text());
   ok('T27 下載 JSON 帶 speaker_name', js.segments && js.segments[0].speaker_name === '陳副理');
+  // ---- 會議記錄匯出 PDF / Word / ODT（T44–T45）----
+  for (const [f, type, magic] of [['pdf', 'application/pdf', '%PDF-'], ['docx', 'wordprocessingml.document', 'PK\x03\x04'], ['odt', 'opendocument.text', 'PK\x03\x04']]) {
+    const r = await pm.request.get(BASE + '/transcript-download?id=rec-ok01&f=' + f);
+    const buf = await r.body();
+    ok(`T44 下載會議記錄 ${f.toUpperCase()}：200、類型、檔名、檔頭`, r.status() === 200 && (r.headers()['content-type'] || '').includes(type)
+      && (r.headers()['content-disposition'] || '').includes('-meeting.' + f) && buf.slice(0, magic.length).toString('latin1') === magic, r.status() + ' ' + r.headers()['content-type']);
+    if (f !== 'pdf') {
+      const doc = unzipEntry(buf, f === 'docx' ? 'word/document.xml' : 'content.xml');
+      ok(`T45 ${f.toUpperCase()} 內容套用改名、含摘要與逐字稿`, doc.includes('陳副理') && doc.includes('重點摘要') && doc.includes('逐字稿'));
+    } else {
+      ok('T45 PDF 內嵌字型子集、可複製（ToUnicode）', buf.includes('/ToUnicode') && buf.includes('+NotoSansTC-Regular') && buf.length < 1024 * 1024, buf.length);
+    }
+  }
+  ok('T44 沒有逐字稿權限 → 匯出 404', (await status(pn, '/transcript-download?id=rec-ok01&f=pdf')) === 404);
+  await pm.goto(BASE + '/transcript?id=rec-ok01');
+  ok('T48 檢視頁：PDF / Word / ODT 三個下載按鈕', (await pm.$$eval('a.tx-dl', e => e.map(x => x.textContent.trim()).join(','))) === 'PDF,Word,ODT');
+  ok('T48 「其他格式」選單預設收起', !(await pm.isVisible('#txMoreMenu')));
+  await pm.click('#txMoreBtn');
+  ok('T48 點「其他格式」才展開（純文字 / SRT / JSON / Markdown）', await pm.isVisible('#txMoreMenu') && (await pm.$$eval('#txMoreMenu a', e => e.length)) === 4);
+  await pm.click('.tx-meta');
+  ok('T48 點外面收起', !(await pm.isVisible('#txMoreMenu')));
+  ok('T49 /session-check：登入中 → login=true', (await (await pm.request.get(BASE + '/session-check')).json()).login === true);
+  // 登入逾時後按播放：要說「登入已逾時」並給重新登入連結，不能說檔案不在
+  const pt = await login(b, 'hman', HPW);
+  await pt.goto(BASE + '/transcript?id=rec-ok01');
+  await pt.context().clearCookies();
+  ok('T49 /session-check：未登入 → login=false', (await (await pt.request.get(BASE + '/session-check')).json()).login === false);
+  await pt.evaluate(() => { const m = document.getElementById('txMedia'); m.src = m.src + '&r=1'; m.load(); });
+  await pt.waitForFunction(() => !document.getElementById('txMediaErr').hidden, null, { timeout: 10000 }).catch(() => {});
+  const why = (await pt.textContent('#txMediaErr')) || '';
+  ok('T49 登入逾時時播放：顯示「登入已逾時」與重新登入連結', why.includes('登入已逾時') && (await pt.getAttribute('#txMediaErr a', 'href')) === '/jt-login', why);
+  ok('T49 登入逾時時播放器不隱藏（重新登入後可繼續）', await pt.isVisible('#txPlayer'));
 
   // ---- 發言者對應建議（v1.13.0）----
   await pm.goto(BASE + '/transcript?id=rec-ok01');
@@ -119,6 +162,15 @@ const status = async (p, path) => (await p.request.get(BASE + path, { maxRedirec
   await pa.goto(BASE + '/settings#transcribe');
   ok('T29 系統設定有逐字稿卡片（目錄可切換）', await pa.isVisible('#card-transcribe') && !(await pa.isVisible('#card-sso')));
   ok('T29 設定頁不回填 JTLW 金鑰', (await pa.inputValue('#card-transcribe input[name=jtlw_key]')) === '');
+  // 背景排程（cron）沒在跑要提醒：舊版升級者最常漏掉
+  const { execSync } = require('child_process');
+  execSync(`docker exec ${process.env.PN} touch -d '-20 min' /var/jaas-data/transcribe-worker.lock`);
+  await pa.reload();
+  ok('T50 排程超過 10 分鐘沒執行 → 逐字稿卡片顯示警示與排程指令', await pa.isVisible('#txWorkerDown') && (await pa.textContent('#txWorkerDown')).includes('transcribe-worker.php'));
+  execSync(`docker exec ${process.env.PN} touch /var/jaas-data/transcribe-worker.lock`);
+  await pa.reload();
+  ok('T50 排程正常 → 不警示', !(await pa.isVisible('#txWorkerDown')));
+  ok('T50 必要元件齊全 → 沒有「缺少元件」警示', !(await pa.$('#reqMissing')));
   await pa.goto(BASE + '/accounts');
   ok('T29 帳號管理有逐字稿權限選項', (await pa.$$('select[name=transcribe]')).length > 0);
   ok('T29 帳號清單標示逐字稿權限', (await pa.content()).includes('badge-muted'));

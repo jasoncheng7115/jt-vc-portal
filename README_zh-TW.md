@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.13.1 — 會議管理系統
+# jt-vc-portal v1.14.0 — 會議管理系統
 
 > English: [README.md](README.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -53,7 +53,7 @@
 |---|---|---|
 | PHP | 8.2 | **8.4** |
 | Web 伺服器 | Apache + `mod_rewrite`（`AllowOverride All`） | 同左 |
-| PHP 擴充 | `openssl`、`fileinfo`、`json`、`mbstring` | 同左 |
+| PHP 擴充 | `openssl`、`fileinfo`、`json`、`mbstring`、`curl`、`zlib` | 同左 |
 | 其他 | 可寫入的資料目錄；JaaS 模式需 8x8 私鑰 | Docker 24+ |
 
 > 自建 Jitsi Meet 模式另需一台可用的 Jitsi Meet 伺服器（詳見「連線模式」）。
@@ -205,14 +205,14 @@ server {
 
 ```bash
 # 1) 從 Release 頁下載映像與校驗檔（請改用最新版本號）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.13.1/jt-vc-portal-1.13.1-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.13.1/jt-vc-portal-1.13.1-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.14.0/jt-vc-portal-1.14.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.14.0/jt-vc-portal-1.14.0-docker-amd64.tar.gz.sha256
 
 # 2) 驗證完整性（應顯示 OK）
-sha256sum -c jt-vc-portal-1.13.1-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.14.0-docker-amd64.tar.gz.sha256
 
-# 3) 載入映像（會建立 jt-vc-portal:1.13.1 與 :latest 標籤）
-docker load < jt-vc-portal-1.13.1-docker-amd64.tar.gz
+# 3) 載入映像（會建立 jt-vc-portal:1.14.0 與 :latest 標籤）
+docker load < jt-vc-portal-1.14.0-docker-amd64.tar.gz
 
 # 4) 主機端準備持久化目錄（www-data UID 預設 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -246,6 +246,18 @@ docker run -d --restart unless-stopped \
 ## 更新 / 升級
 
 > 所有設定與資料（帳號、會議室、稽核記錄、用量等）都存在 `DATA_DIR`（直接安裝）或掛載卷（Docker），**更新不會遺失**；JSON 結構會自動相容升級。建議更新前仍先備份資料目錄與 `keys/`。
+
+### 升級前：各版本需要補的東西
+
+Docker 映像與 Release 映像已經內含所有元件，不必另外安裝。**直接安裝**的站台請看跨過的版本：
+
+| 從哪個版本升級 | 需要補上 |
+|---|---|
+| v1.10.0 以前 | 單一登入（選用）需要 PHP `curl`、`openssl` 擴充（Debian / Ubuntu：`apt install php-curl`）。 |
+| v1.12.0 以前 | 逐字稿與摘要（選用）需要 `curl`，以及**每分鐘執行一次的背景排程**，見「會議逐字稿與摘要」。Docker 安裝也要在主機加排程。 |
+| v1.14.0 以前 | 會議記錄匯出 PDF / Word / ODT 需要 PHP `zlib` 擴充（Debian / Ubuntu 的 PHP 套件已內建），以及隨附字型 `lib/fonts/NotoSansTC-Regular.ttf`（`git pull` 會一起取得）。 |
+
+可用 `php -m | grep -iE 'curl|mbstring|openssl|zlib|fileinfo|json'` 檢查。升級後打開**系統設定**：缺少的元件會列在最上方；背景排程沒在執行時，「逐字稿與摘要」卡片會警示。
 
 ### 方法一：直接安裝更新
 
@@ -377,9 +389,9 @@ docker run -d --restart unless-stopped \
 
 ```bash
 # Docker 部署
-docker exec -u www-data jaas-auth php /var/www/html/login-path.php show     # 顯示目前路徑
-docker exec -u www-data jaas-auth php /var/www/html/login-path.php reset    # 還原為 /jt-login
-docker exec -u www-data jaas-auth php /var/www/html/login-path.php set xxx  # 直接指定新路徑
+docker exec -u www-data jt-vc-portal php /var/www/html/login-path.php show     # 顯示目前路徑
+docker exec -u www-data jt-vc-portal php /var/www/html/login-path.php reset    # 還原為 /jt-login
+docker exec -u www-data jt-vc-portal php /var/www/html/login-path.php set xxx  # 直接指定新路徑
 
 # 直接安裝（Apache + PHP）：在專案根目錄執行
 sudo -u www-data php login-path.php reset
@@ -426,8 +438,8 @@ sudo -u www-data php login-path.php reset
 
 1. **系統設定 → 逐字稿與摘要**：填入 JTLW 網址（例如 `https://10.0.0.30:8790`）、API 金鑰；若為自簽憑證，貼上其 PEM（依所貼內容信任——絕不關閉憑證驗證；請核對顯示的 SHA-256 指紋）。選擇會議語言（已知就指定——「自動判斷」只看開頭約 30 秒決定）以及是否產生會議摘要。按 **儲存並測試連線**，再按 **註冊 webhook**。
 2. **背景排程**——每分鐘執行一次：
-   - Docker：在主機的 crontab 加入 `* * * * * docker exec -u www-data jaas-auth php /var/www/html/transcribe-worker.php`
-   - 直接安裝：`/etc/cron.d/jtvc-transcribe`，內容為 `* * * * * www-data php /var/www/html/transcribe-worker.php`
+   - Docker：在主機的 crontab 加入 `* * * * * docker exec -u www-data jt-vc-portal php /var/www/html/transcribe-worker.php`
+   - 直接安裝：`/etc/cron.d/jtvc-transcribe`，內容為 `* * * * * www-data php /var/www/jt-vc-portal/transcribe-worker.php`（換成你的安裝目錄）
    它會一次上傳一筆錄影、追蹤進度、取回結果，並移除錄影已不存在的結果。同一時間只會執行一個。
 3. **權限——帳號管理 → 逐字稿權限**，逐一設定每位主持人：*不可使用*（預設）、*手動*（可在自己的場次按「產生逐字稿」）或 *自動*（錄影完成後自動產生）。建立會議室時，可使用逐字稿的主持人可單場開關。管理員可對任何場次產生逐字稿。自動產生只處理啟用此功能之後錄的會議。
 
@@ -437,6 +449,7 @@ sudo -u www-data php login-path.php reset
 - 結果存於資料目錄（`transcripts/<recording id>/`），跟著錄影走：刪除錄影、或 Jibri 保留政策清除錄影時，其逐字稿與摘要也一併刪除。
 - 主持人只看得到自己主持場次的逐字稿；稽核記錄會記下誰產生、檢視、下載或改名——絕不記錄逐字稿內容。
 - 會議摘要支援中文與英文會議；日文與韓文只產生逐字稿。發言者代號（S1、S2…）是聲音分群，不是人名——可在逐字稿頁面改名。
+- **匯出會議記錄（v1.14.0）**：逐字稿頁可下載整份會議記錄——會議資訊、摘要（決議與待辦含出處、風險、未決問題、議題、誰講了多少）與套用改名的逐字稿——格式有 **PDF、Word（.docx）、ODT**；純文字、SRT 字幕、JSON 與 Markdown 摘要收在「其他格式」。全部由 portal 自己產生（主機不需要 LibreOffice 或瀏覽器引擎）；PDF 只嵌入用到的字（隨附 Noto Sans TC 字型，SIL Open Font License），中日文正常顯示且可搜尋。這個字型不含韓文。
 - **發言者建議（v1.13.0）**：主持人的會議頁會記錄 Jitsi 的「目前發言者」時間軸；逐字稿頁會建議每個發言者代號是哪位參與者（附重疊時間比例），按一下即可套用，也可從參與者名單挑選。請讓主持人的會議頁全程開著，時間軸才會完整。
 
 ---
@@ -480,6 +493,8 @@ sudo -u www-data php login-path.php reset
 本專案以 [GNU 通用公共授權條款第 3 版（GPL-3.0）](LICENSE) 釋出（GPL-3.0-only）。
 
 > v1.7.0（含）以前的版本以 Apache License 2.0 發佈；自 v1.8.0 起改以 GPL-3.0 授權。
+
+隨附字型 `lib/fonts/NotoSansTC-Regular.ttf`（Noto Sans TC，PDF 匯出用）採 SIL Open Font License 1.1 授權，全文見 `lib/fonts/OFL.txt`。
 
 <br>
 <br>

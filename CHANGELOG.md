@@ -2,6 +2,15 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.14.0 — Export meeting minutes as PDF / Word / ODT
+
+- **Export meeting minutes**: the transcript page downloads the whole record — meeting details, summary (decisions and action items with owner, due date and sources; events, risks, open questions; topic timeline; who spoke how much) and the full transcript with renamed speakers and speaker colours — as **PDF**, **Word (.docx)** or **ODT**. Plain text, SRT, JSON and the Markdown summary moved into an "Other formats" menu.
+- Generated entirely by the portal in PHP — no LibreOffice or browser engine on the server, no new package in the Docker image. The PDF embeds only the characters it uses from the bundled Noto Sans TC font (SIL OFL 1.1), so Chinese and Japanese display correctly and the text can be selected and searched.
+- **Clear playback errors**: when the login has timed out, pressing play now says so and offers a sign-in link (it used to say the recording file was gone). A deleted file, an unplayable format and an unreachable recording service each get their own message.
+- **Upgrade checks**: System settings lists missing PHP extensions (openssl, curl, mbstring, fileinfo, json, zlib) and what they affect, and the Transcripts card warns when the background job has not run for 10 minutes. The README has a per-version upgrade table for direct installs, lists `curl` and `zlib` in the requirements, and the cron line for direct installs points to the installation directory.
+- Docs: example commands use the container name `jt-vc-portal` (as in the `docker run` examples) instead of `jaas-auth`.
+- Tests T44–T50.
+
 ## v1.13.1 — Transcript resilience and status display
 
 - **JTLW unreachable while processing**: after 24 hours without reaching the speech service a job is marked failed (with a readable reason) instead of staying "processing" for ever; "Regenerate" starts again.

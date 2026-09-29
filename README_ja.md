@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.13.1 — 会議管理システム
+# jt-vc-portal v1.14.0 — 会議管理システム
 
 > English: [README.md](README.md) · 繁體中文: [README_zh-TW.md](README_zh-TW.md)
 
@@ -53,7 +53,7 @@
 |---|---|---|
 | PHP | 8.2 | **8.4** |
 | Web サーバー | Apache + `mod_rewrite`（`AllowOverride All`） | 同左 |
-| PHP 拡張 | `openssl`、`fileinfo`、`json`、`mbstring` | 同左 |
+| PHP 拡張 | `openssl`、`fileinfo`、`json`、`mbstring`、`curl`、`zlib` | 同左 |
 | その他 | 書き込み可能なデータディレクトリ、JaaS モードでは 8x8 の秘密鍵 | Docker 24+ |
 
 > 自前ホストの Jitsi Meet モードでは、別途稼働中の Jitsi Meet サーバーが必要です（「接続モード」を参照）。
@@ -205,14 +205,14 @@ server {
 
 ```bash
 # 1) Release ページからイメージとチェックサムファイルをダウンロード（最新のバージョン番号を使用）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.13.1/jt-vc-portal-1.13.1-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.13.1/jt-vc-portal-1.13.1-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.14.0/jt-vc-portal-1.14.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.14.0/jt-vc-portal-1.14.0-docker-amd64.tar.gz.sha256
 
 # 2) 完全性を検証（OK と表示されるはず）
-sha256sum -c jt-vc-portal-1.13.1-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.14.0-docker-amd64.tar.gz.sha256
 
-# 3) イメージを読み込む（jt-vc-portal:1.13.1 と :latest のタグが作成される）
-docker load < jt-vc-portal-1.13.1-docker-amd64.tar.gz
+# 3) イメージを読み込む（jt-vc-portal:1.14.0 と :latest のタグが作成される）
+docker load < jt-vc-portal-1.14.0-docker-amd64.tar.gz
 
 # 4) ホスト側で永続ディレクトリを準備（www-data の UID は既定で 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -246,6 +246,18 @@ docker run -d --restart unless-stopped \
 ## 更新 / アップグレード
 
 > すべての設定とデータ（アカウント、会議室、監査ログ、使用量など）は `DATA_DIR`（直接インストール）またはマウントボリューム（Docker）に保存されるため、**更新してもデータは失われません**。JSON の構造は互換性を保ったまま自動的にアップグレードされます。それでも、更新前にデータディレクトリと `keys/` をバックアップすることを推奨します。
+
+### アップグレードの前に：各バージョンで必要なもの
+
+Docker イメージと Release イメージにはすべて含まれているため、追加のインストールは不要です。**直接インストール**の場合は、飛ばすバージョンの行を確認してください：
+
+| アップグレード元 | 追加が必要なもの |
+|---|---|
+| v1.10.0 より前 | シングルサインオン（任意）には PHP の `curl`、`openssl` 拡張が必要です（Debian / Ubuntu：`apt install php-curl`）。 |
+| v1.12.0 より前 | 文字起こしと要約（任意）には `curl` と**毎分実行するバックグラウンドジョブ**が必要です。「会議の文字起こしと要約」を参照してください。Docker の場合もホストにジョブを追加します。 |
+| v1.14.0 より前 | 議事録の PDF / Word / ODT エクスポートには PHP の `zlib` 拡張（Debian / Ubuntu の PHP パッケージには組み込み済み）と、同梱フォント `lib/fonts/NotoSansTC-Regular.ttf`（`git pull` で取得されます）が必要です。 |
+
+`php -m | grep -iE 'curl|mbstring|openssl|zlib|fileinfo|json'` で確認できます。アップグレード後に**システム設定**を開くと、不足しているコンポーネントが上部に表示され、バックグラウンドジョブが動いていない場合は「文字起こしと要約」カードに警告が出ます。
 
 ### 方法 1：直接インストールの更新
 
@@ -377,9 +389,9 @@ docker run -d --restart unless-stopped \
 
 ```bash
 # Docker でのデプロイ
-docker exec -u www-data jaas-auth php /var/www/html/login-path.php show     # 現在のパスを表示
-docker exec -u www-data jaas-auth php /var/www/html/login-path.php reset    # /jt-login に戻す
-docker exec -u www-data jaas-auth php /var/www/html/login-path.php set xxx  # 新しいパスを直接設定
+docker exec -u www-data jt-vc-portal php /var/www/html/login-path.php show     # 現在のパスを表示
+docker exec -u www-data jt-vc-portal php /var/www/html/login-path.php reset    # /jt-login に戻す
+docker exec -u www-data jt-vc-portal php /var/www/html/login-path.php set xxx  # 新しいパスを直接設定
 
 # 直接インストール（Apache + PHP）：プロジェクトのルートディレクトリで実行
 sudo -u www-data php login-path.php reset
@@ -426,8 +438,8 @@ sudo -u www-data php login-path.php reset
 
 1. **システム設定 → 文字起こしと要約**：JTLW の URL（例：`https://10.0.0.30:8790`）と API キーを入力し、自己署名証明書の場合はその PEM を貼り付けます（貼り付けたものがそのまま信頼されます。証明書の検証を無効にすることはありません。表示される SHA-256 フィンガープリントを照合してください）。会議の言語（分かっている場合は指定してください。「自動判定」は冒頭約 30 秒で決めます）と、要約を生成するかどうかを選びます。**保存して接続テスト**を押し、続いて **webhook を登録**を押します。
 2. **バックグラウンドワーカー** — 毎分実行します：
-   - Docker：ホストの crontab に `* * * * * docker exec -u www-data jaas-auth php /var/www/html/transcribe-worker.php` を追加
-   - 直接インストール：`/etc/cron.d/jtvc-transcribe` に `* * * * * www-data php /var/www/html/transcribe-worker.php`
+   - Docker：ホストの crontab に `* * * * * docker exec -u www-data jt-vc-portal php /var/www/html/transcribe-worker.php` を追加
+   - 直接インストール：`/etc/cron.d/jtvc-transcribe` に `* * * * * www-data php /var/www/jt-vc-portal/transcribe-worker.php`（インストール先に置き換え）
    録画を 1 件ずつアップロードし、進捗を追跡し、結果を取得し、録画がなくなった結果を削除します。同時に実行されるのは 1 つだけです。
 3. **権限 — アカウント管理 → 文字起こし権限**をホストごとに設定します：*利用不可*（既定）、*手動*（自分の会議で「文字起こしを生成」を押せる）、*自動*（録画完了時に生成）。会議室の作成時、文字起こしを利用できるホストはその会議ごとにオン / オフを設定できます。管理者はどの会議でも文字起こしを生成できます。自動生成は、機能を有効にした後に録画された会議のみが対象です。
 
@@ -437,6 +449,7 @@ sudo -u www-data php login-path.php reset
 - 結果はデータディレクトリ（`transcripts/<recording id>/`）に保存され、録画に連動します。録画を削除した場合や、Jibri の保持ポリシーで録画が削除された場合は、その文字起こしと要約も削除されます。
 - ホストが見られるのは自分が主催した会議の文字起こしのみです。監査ログには誰が生成・閲覧・ダウンロード・名前変更したかが記録されますが、文字起こしの内容は記録されません。
 - 要約は中国語と英語の会議で利用できます。日本語と韓国語では文字起こしのみ生成されます。発言者 ID（S1、S2…）は声のクラスターであり、名前ではありません。文字起こし画面で名前を変更できます。
+- **議事録のエクスポート（v1.14.0）**：文字起こし画面から議事録一式（会議情報、要約（出典付きの決定事項と ToDo、リスク、未解決の質問、トピック、発言量）、名前の変更を反映した文字起こし）を **PDF、Word（.docx）、ODT** でダウンロードできます。プレーンテキスト、SRT 字幕、JSON、Markdown の要約は「その他の形式」にあります。すべて portal 自身が生成します（サーバーに LibreOffice やブラウザーエンジンは不要）。PDF には同梱の Noto Sans TC フォント（SIL Open Font License）から使用した文字だけを埋め込むため、中国語と日本語が正しく表示され、検索もできます。このフォントには韓国語は含まれません。
 - **発言者の候補（v1.13.0）**：ホストの会議画面が Jitsi の「現在の発言者」タイムラインを記録し、文字起こし画面で各発言者 ID がどの参加者かを候補として表示します（重なった時間の割合付き）。クリック 1 回で適用するか、参加者一覧から選べます。タイムラインを完全にするため、ホストの会議画面は会議中ずっと開いたままにしてください。
 
 ---
@@ -480,6 +493,8 @@ OWASP Top 10:2025 に項目ごとに準拠しています。
 本プロジェクトは [GNU General Public License v3.0](LICENSE)（GPL-3.0-only）の下で公開されています。
 
 > v1.7.0 までのバージョンは Apache License 2.0 で公開されていました。v1.8.0 以降は GPL-3.0 でライセンスされています。
+
+同梱フォント `lib/fonts/NotoSansTC-Regular.ttf`（Noto Sans TC、PDF エクスポート用）は SIL Open Font License 1.1 でライセンスされています。全文は `lib/fonts/OFL.txt` を参照してください。
 
 <br>
 <br>

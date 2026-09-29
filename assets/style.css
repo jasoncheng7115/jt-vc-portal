@@ -1694,6 +1694,13 @@ main.tx-page { max-width: 1100px; }
 .tx-meta > span { display: inline-flex; align-items: center; gap: 6px; }
 .tx-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 4px; }
 .tx-actions-sep { flex: 1; }
+.tx-more { position: relative; display: inline-block; }
+.card.tx-head-card { overflow: visible; position: relative; z-index: 5; }
+.tx-more-menu { position: absolute; top: calc(100% + 4px); left: 0; z-index: 30; min-width: 190px; padding: 6px; background: var(--surface, #fff); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 10px 30px rgba(15,23,42,.14); }
+.tx-more-menu[hidden] { display: none; }
+.tx-more-menu a { display: block; padding: 7px 10px; border-radius: 6px; color: var(--text); text-decoration: none; font-size: 13px; white-space: nowrap; }
+.tx-more-menu a:hover { background: rgba(37,99,235,.08); color: var(--primary, #2563eb); }
+body.is-dark .tx-more-menu { background: #1e293b; }
 .tx-actions .btn.ok { border-color: var(--success); color: var(--success); }
 .tx-hint { font-size: 13px; margin: 10px 0 0; }
 .tx-sum-note { font-size: 13px; margin: 4px 0 10px; }
@@ -1725,6 +1732,7 @@ main.tx-page { max-width: 1100px; }
 .tx-model { font-size: 12px; margin: 14px 0 0; }
 .tx-video { width: 100%; max-height: 420px; background: #000; border-radius: 10px; margin: 0 0 10px; }
 .tx-err { font-size: 13px; }
+.mt-player[hidden] { display: none; }
 .mt-segs { max-height: 560px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
 .mt-row { display: grid; grid-template-columns: 52px 120px 1fr; gap: 8px; padding: 6px 10px; border-bottom: 1px solid #f1f5f9; font-size: 14px; line-height: 1.6; }
 .mt-row:last-child { border-bottom: none; }

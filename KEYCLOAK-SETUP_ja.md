@@ -59,7 +59,7 @@
                         ▼                      ▼
 ┌────────────────────────────────┐   ┌──────────────────────────┐
 │ Keycloak ホスト（VM / LXC）    │   │ jt-vc-portal ホスト      │
-│ 10.0.0.20                      │   │（コンテナー jaas-auth）  │
+│ 10.0.0.20                      │   │（コンテナ jt-vc-portal） │
 │  keycloak :8080（プロキシのみ）│◄──┤ OIDC：discovery・token・ │
 │  keycloak :8443（管理 HTTPS）  │   │ JWKS はすべて            │
 │  keycloak :9000（ヘルス、      │   │ https://sso.example.com  │
@@ -631,9 +631,9 @@ SSO が正常に動いたら、「**SSO のみ：通常のアカウントはロ�
 **復旧用 CLI**（portal ホスト上で実行。Web からのアクセスは 404）：
 
 ```bash
-docker exec -u www-data jaas-auth php /var/www/html/sso-cli.php show               # 現在の SSO 設定を表示
-docker exec -u www-data jaas-auth php /var/www/html/sso-cli.php disable-sso-only   # SSO は維持し、ローカルパスワードログインを再許可
-docker exec -u www-data jaas-auth php /var/www/html/sso-cli.php disable            # SSO を完全に無効化
+docker exec -u www-data jt-vc-portal php /var/www/html/sso-cli.php show               # 現在の SSO 設定を表示
+docker exec -u www-data jt-vc-portal php /var/www/html/sso-cli.php disable-sso-only   # SSO は維持し、ローカルパスワードログインを再許可
+docker exec -u www-data jt-vc-portal php /var/www/html/sso-cli.php disable            # SSO を完全に無効化
 ```
 
 どちらの変更も保存済みのクライアントシークレットを維持し、監査ログ（実行者 `cli`）に記録されます。
@@ -775,14 +775,14 @@ curl -sf http://127.0.0.1:9000/health/ready && echo OK     # Keycloak ホスト�
 |---|---|
 | portal：**「Discovery issuer mismatch」** | Keycloak が返す issuer と Issuer 欄が異なります。`curl -s https://sso.example.com/realms/jtvc/.well-known/openid-configuration \| jq -r .issuer` の出力をそのまま貼り付けてください（`/.well-known/…` などのパスを付けない、realm 名の大文字小文字も一致させる）。Keycloak 自体が `http://`、内部 IP、ポート番号を返す場合は、`KC_PUBLIC_URL` とプロキシの `X-Forwarded-*` ヘッダーを修正して `docker compose up -d`。 |
 | portal：**「IdP endpoint must use https」** | issuer（または discovery 内のエンドポイント）が `http://` です。プロキシ経由の HTTPS URL を使ってください。「IdP は HTTPS 必須」のチェックを外すのは隔離されたテスト環境だけにしてください。 |
-| portal：**「IdP connection failed (curl …)」** | portal ホストが `sso.example.com:443` を名前解決 / 到達できない、または証明書が公的に信頼されていません。portal ホストで確認：`docker exec jaas-auth curl -sI https://sso.example.com/realms/jtvc`。 |
+| portal：**「IdP connection failed (curl …)」** | portal ホストが `sso.example.com:443` を名前解決 / 到達できない、または証明書が公的に信頼されていません。portal ホストで確認：`docker exec jt-vc-portal curl -sI https://sso.example.com/realms/jtvc`。 |
 | Keycloak のログに **LDAPS 証明書エラー**（`PKIX path building failed`、`SSLHandshakeException`、ホスト名不一致） | `truststores/` に CA がない（PEM 形式・読み取り可能・パーミッション 644 であること）、または DC の証明書に `LDAP_URL` の名前が含まれていません。セクション 4 の `openssl s_client` で確認し、`docker compose restart keycloak`。 |
 | **ユーザーが見つからない**（ログインでユーザー名またはパスワードが無効と表示、*Test authentication* は成功） | ユーザーがグループの**直接**メンバーでない、またはカスタムフィルターが一致しません。`LDAP_GROUPS_DN` がグループのコンテナーそのものか、グループの CN が一致するか（`samba-tool group show` / `Get-ADGroup`）を確認し、`./configure-realm.sh` を再実行。 |
 | **トークンにグループがない** → portal の監査：「user not in any allowed group」 | LDAP グループマッパー `vc-groups` またはクライアントの `groups` プロトコルマッパーがない / 誤り（スクリプトを再実行）。portal の「**管理者グループ**」/「**ホストグループ**」の名前と、グループクレームが `groups` であることを確認。どちらのグループにも属さないユーザーは仕様どおり拒否されます。 |
 | **OTP コードが拒否される** | 時刻のずれ：Keycloak ホスト（`timedatectl`、chrony / systemd-timesyncd）とスマートフォンの時刻を同期。同じコードは**再利用できません**。30 秒後の次のコードを待ってください。 |
 | portal の監査：**「username or email conflicts with an existing account」** | 同じユーザー名またはメールアドレスの**ローカル** portal アカウントがあります。そのローカルアカウントの名前を変更するか削除してから（SSO アカウントはローカルアカウントと決して統合されません）再度ログイン。 |
 | portal：**「account disabled」** | portal のアカウントが「アカウント管理」で無効化されています。そこで有効化してください。 |
-| **全員がログインできない**（Keycloak または AD が停止、SSO のみが有効） | portal ホストで `docker exec -u www-data jaas-auth php /var/www/html/sso-cli.php disable-sso-only` を実行し、ローカルの緊急用管理者でログイン。 |
+| **全員がログインできない**（Keycloak または AD が停止、SSO のみが有効） | portal ホストで `docker exec -u www-data jt-vc-portal php /var/www/html/sso-cli.php disable-sso-only` を実行し、ローカルの緊急用管理者でログイン。 |
 | パスワード誤りの後に **Keycloak アカウントがロックされた** | ブルートフォース検知：待つ（5 分から最大 30 分）か、管理コンソール → **Users** → 対象ユーザー → *Temporarily locked* をオフ。 |
 | プロキシで `502 Bad Gateway` / `upstream sent too big header` | プロキシバッファー設定（`kc-proxy.conf`）がありません。 |
 | 管理コンソールに **「Something went wrong」** と表示される | 素の HTTP で開いています（例：`http://10.0.0.20:8080/admin/`）。Keycloak 26 には secure context が必要です。`https://10.0.0.20:8443/admin/` を使ってください（セクション 4、証明書は `certs/`）。 |

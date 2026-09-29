@@ -9,6 +9,7 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/transcripts.php';
 
 $lock = @fopen(DATA_DIR . '/transcribe-worker.lock', 'c');
+@touch(DATA_DIR . '/transcribe-worker.lock');                       // 排程有在跑的證據（系統設定頁會檢查；上一輪還沒跑完也算）
 if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) exit(0);           // 上一輪還在跑（例如大檔上傳中）
 $verbose = in_array('-v', $argv, true);
 $stats = Transcripts::runWorker(function ($m) use ($verbose) { if ($verbose) fwrite(STDOUT, date('c') . " $m\n"); });

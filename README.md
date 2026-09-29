@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.13.1 — Meeting Management System
+# jt-vc-portal v1.14.0 — Meeting Management System
 
 > 繁體中文: [README_zh-TW.md](README_zh-TW.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -53,7 +53,7 @@
 |---|---|---|
 | PHP | 8.2 | **8.4** |
 | Web server | Apache + `mod_rewrite` (`AllowOverride All`) | Same |
-| PHP extensions | `openssl`, `fileinfo`, `json`, `mbstring` | Same |
+| PHP extensions | `openssl`, `fileinfo`, `json`, `mbstring`, `curl`, `zlib` | Same |
 | Other | A writable data directory; the 8x8 private key for JaaS mode | Docker 24+ |
 
 > Self-hosted Jitsi Meet mode additionally requires a working Jitsi Meet server (see "Connection modes").
@@ -205,14 +205,14 @@ Don't want to build it yourself? Download the packaged image (`linux/amd64`) att
 
 ```bash
 # 1) Download the image and checksum file from the Release page (use the latest version number)
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.13.1/jt-vc-portal-1.13.1-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.13.1/jt-vc-portal-1.13.1-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.14.0/jt-vc-portal-1.14.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.14.0/jt-vc-portal-1.14.0-docker-amd64.tar.gz.sha256
 
 # 2) Verify integrity (should print OK)
-sha256sum -c jt-vc-portal-1.13.1-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.14.0-docker-amd64.tar.gz.sha256
 
-# 3) Load the image (creates the jt-vc-portal:1.13.1 and :latest tags)
-docker load < jt-vc-portal-1.13.1-docker-amd64.tar.gz
+# 3) Load the image (creates the jt-vc-portal:1.14.0 and :latest tags)
+docker load < jt-vc-portal-1.14.0-docker-amd64.tar.gz
 
 # 4) Prepare persistent directories on the host (www-data UID defaults to 33)
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -246,6 +246,18 @@ docker run -d --restart unless-stopped \
 ## Updating / Upgrading
 
 > All settings and data (accounts, rooms, audit log, usage, etc.) are stored in `DATA_DIR` (direct install) or the mounted volume (Docker), so **updates do not lose data**; JSON structures are upgraded automatically and compatibly. It is still recommended to back up the data directory and `keys/` before updating.
+
+### Before you upgrade: what each version needs
+
+The Docker image and the Release image already contain everything — nothing to install. For a **direct install**, check the rows for the versions you are skipping over:
+
+| Upgrading from | What to add |
+|---|---|
+| before v1.10.0 | Single sign-on (optional) needs the PHP `curl` and `openssl` extensions (Debian / Ubuntu: `apt install php-curl`). |
+| before v1.12.0 | Transcripts and summaries (optional) need `curl` and a **background job that runs every minute** — see "Meeting transcripts and summaries". Docker installs need it too (on the host). |
+| before v1.14.0 | Exporting meeting minutes as PDF / Word / ODT needs the PHP `zlib` extension (built into the Debian / Ubuntu PHP packages) and the bundled font `lib/fonts/NotoSansTC-Regular.ttf`, which comes with `git pull`. |
+
+Check with `php -m | grep -iE 'curl|mbstring|openssl|zlib|fileinfo|json'`. After upgrading, open **System settings**: any missing component is listed at the top, and the Transcripts card warns if the background job is not running.
 
 ### Method 1: Updating a direct install
 
@@ -377,9 +389,9 @@ The default login entry point is `/jt-login`. In **System Settings → Login pag
 
 ```bash
 # Docker deployment
-docker exec -u www-data jaas-auth php /var/www/html/login-path.php show     # show the current path
-docker exec -u www-data jaas-auth php /var/www/html/login-path.php reset    # restore to /jt-login
-docker exec -u www-data jaas-auth php /var/www/html/login-path.php set xxx  # set a new path directly
+docker exec -u www-data jt-vc-portal php /var/www/html/login-path.php show     # show the current path
+docker exec -u www-data jt-vc-portal php /var/www/html/login-path.php reset    # restore to /jt-login
+docker exec -u www-data jt-vc-portal php /var/www/html/login-path.php set xxx  # set a new path directly
 
 # Direct install (Apache + PHP): run in the project root directory
 sudo -u www-data php login-path.php reset
@@ -426,8 +438,8 @@ After a recording on the self-hosted Jibri host finishes, the portal can hand it
 
 1. **System Settings → Transcripts and summaries**: enter the JTLW URL (e.g. `https://10.0.0.30:8790`), the API key and, for a self-signed certificate, its PEM (it is trusted as given — certificate verification is never turned off; compare the SHA-256 fingerprint shown). Choose the meeting language (set it when known — "auto" decides from roughly the first 30 seconds) and whether to produce summaries. Click **Save and test connection**, then **Register webhook**.
 2. **Background worker** — run it every minute:
-   - Docker: add to the host's crontab `* * * * * docker exec -u www-data jaas-auth php /var/www/html/transcribe-worker.php`
-   - Direct install: `/etc/cron.d/jtvc-transcribe` with `* * * * * www-data php /var/www/html/transcribe-worker.php`
+   - Docker: add to the host's crontab `* * * * * docker exec -u www-data jt-vc-portal php /var/www/html/transcribe-worker.php`
+   - Direct install: `/etc/cron.d/jtvc-transcribe` with `* * * * * www-data php /var/www/jt-vc-portal/transcribe-worker.php` (your installation directory)
    It uploads recordings one at a time, follows progress, retrieves the results and removes results whose recording is gone. Only one instance runs at a time.
 3. **Permissions — Account management → Transcript permission** for each host: *off* (default), *manual* (can press "Generate transcript" on their own meetings) or *automatic* (generated when their recordings finish). When creating a room, a host who may use transcripts can switch it on or off for that meeting. Administrators can generate transcripts for any meeting. Automatic generation only processes meetings recorded after the feature was enabled.
 
@@ -437,6 +449,7 @@ After a recording on the self-hosted Jibri host finishes, the portal can hand it
 - Results live in the data directory (`transcripts/<recording id>/`) and follow the recording: deleting a recording, or the Jibri retention policy removing it, deletes its transcript and summary too.
 - Hosts only see transcripts of meetings they hosted; the audit log records who generated, viewed, downloaded or renamed — never the transcript content.
 - Summaries are available for Chinese and English meetings; for Japanese and Korean only the transcript is produced. Speaker ids (S1, S2…) are voice clusters, not names — rename them on the transcript page.
+- **Export meeting minutes (v1.14.0)**: the transcript page downloads the whole record — meeting details, summary (decisions and action items with their sources, risks, open questions, topics, who spoke how much) and the transcript with renamed speakers — as **PDF, Word (.docx) or ODT**. Plain text, SRT subtitles, JSON and the Markdown summary are under "Other formats". Everything is generated by the portal itself (no LibreOffice or browser engine on the server); the PDF embeds only the characters it uses from the bundled Noto Sans TC font (SIL Open Font License), so Chinese and Japanese display correctly and the text can be searched. Korean characters are not in that font.
 - **Speaker suggestions (v1.13.0)**: the host's meeting page records Jitsi's "current speaker" timeline; the transcript page suggests which participant each speaker id is (with the share of overlapping time) and lets you apply it with one click or pick from the participant list. Keep the host's meeting page open for the whole meeting so the timeline is complete.
 
 ---
@@ -480,6 +493,8 @@ Follows OWASP Top 10:2025, item by item:
 This project is released under the [GNU General Public License v3.0](LICENSE) (GPL-3.0-only).
 
 > Versions up to and including v1.7.0 were published under the Apache License 2.0; starting with v1.8.0 the project is licensed under GPL-3.0.
+
+The bundled font `lib/fonts/NotoSansTC-Regular.ttf` (Noto Sans TC, used for PDF export) is licensed under the SIL Open Font License 1.1 — see `lib/fonts/OFL.txt`.
 
 <br>
 <br>
