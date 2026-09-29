@@ -298,7 +298,7 @@ return [
   '單一登入（SSO）' => 'Single sign-on (SSO)',
   'SMTP 寄信' => 'SMTP email',
   '記錄外拋（SIEM）' => 'Log forwarding (SIEM)',
-  '會議記錄匯出 PDF / Word / ODT' => 'Meeting minutes export (PDF / Word / ODT)',
+  '會議記錄匯出 PDF / DOCX / ODT' => 'Meeting minutes export (PDF / DOCX / ODT)',
   '會議記錄匯出 PDF' => 'Meeting minutes export (PDF)',
   'JaaS 簽章、單一登入（SSO）驗證' => 'JaaS token signing, single sign-on (SSO) verification',
   '錄影調閱、逐字稿與摘要、單一登入（SSO）' => 'Recordings, transcripts and summaries, single sign-on (SSO)',

@@ -1,6 +1,6 @@
 <?php
 /**
- * 會議記錄匯出 PDF / Word / ODT（v1.14.0）單元測試。項目 T44–T47 ↔ TEST_CHECKLIST 3.12 節。
+ * 會議記錄匯出 PDF / Word / ODT（v1.14.0）/ HTML（v1.15.0）單元測試。項目 T44–T47 ↔ TEST_CHECKLIST 3.12 節。
  * 產出的檔案直接拆開檢查：ZIP 結構與 XML 合法、PDF 交叉索引正確、字型子集與 ToUnicode、改名套用、斷行。
  */
 require __DIR__ . '/../bootstrap.php';
@@ -98,6 +98,10 @@ test('T45 Word（.docx）：ZIP 結構、各部分 XML 合法、改名 / 負責�
   ok(str_contains($doc, '出處：00:04 陳工程師'), '引用要換成名字');
   ok(str_contains($doc, '<w:tblHeader/>'), '逐字稿表格標題列要每頁重複');
   ok(str_contains($z['word/styles.xml'][0], 'Microsoft JhengHei'));
+  // 標題左側藍條（段落框線）畫在縮排左邊 6pt 間距 + 3pt 線寬處；沒縮排會跑出左邊界（v1.14.1）
+  preg_match('#<w:style [^>]*w:styleId="Heading1".*?</w:style>#s', $z['word/styles.xml'][0], $h);
+  ok(preg_match('#<w:ind w:left="(\d+)"/>#', $h[0], $ind) && (int)$ind[1] >= (6 + 3) * 20, '標題要縮排 ≥ 9pt，藍條才在版心內');
+  ok(strpos($h[0], '<w:pBdr>') < strpos($h[0], '<w:spacing') && strpos($h[0], '<w:spacing') < strpos($h[0], '<w:ind'), 'pPr 元素順序要照 Word 規範');
 });
 
 test('T45 ODT：mimetype 為第一個且不壓縮、各部分 XML 合法、日文會議用日文字型', function () {
@@ -127,6 +131,21 @@ test('T46 內容與語言：英文介面標籤與分隔用英文、XML 不允許
   ok(!str_contains($z['word/document.xml'][0], "\x01"));
 });
 
+test('T45 HTML：單一檔案（樣式內嵌、沒有 script、不連外部）、內容全部跳脫、語言屬性、改名套用', function () {
+  [$rec, $tr, $sum, $sess] = sample();
+  $tr['segments'][0]['text'] = '<script>alert(1)</script><img src=x onerror=alert(2)>';
+  $html = TxExport::render('html', TxExport::model($rec, $tr, $sum, $sess), '會議記錄', 'ja');
+  ok(str_starts_with($html, '<!DOCTYPE html>'));
+  ok(str_contains($html, '<html lang="ja">') && str_contains($html, '<meta charset="utf-8">'));
+  ok(str_contains($html, '&lt;script&gt;alert(1)&lt;/script&gt;'), '逐字稿內容要跳脫');
+  ok(str_contains($html, '林小姐') && str_contains($html, '負責：王經理/陳工程師') && str_contains($html, '發言統計'));
+  ok(!preg_match('/@import|url\\(/i', $html), '樣式不可載入外部資源');
+  $d = new DOMDocument(); ok(@$d->loadHTML('<?xml encoding="utf-8"?>' . $html) === true);
+  $x = new DOMXPath($d);
+  eq($x->query('//script|//img|//link|//iframe|//object|//embed|//form|//a')->length, 0, '不可有 script / 外部資源 / 連結');
+  eq($x->query('//@*[starts-with(name(), "on")]|//@src|//@href')->length, 0, '不可有事件屬性或外部位址');
+});
+
 test('T47 執行環境檢查：映像內擴充與字型齊全；排程最後執行時間取自 worker 鎖檔', function () {
   eq(Requirements::missing(), []);
   eq(TxExport::missing(), []);
@@ -137,3 +156,7 @@ test('T47 執行環境檢查：映像內擴充與字型齊全；排程最後執�
   touch(DATA_DIR . '/transcribe-worker.lock');
   ok(Requirements::workerLastRun() >= time() - 2);
 });
+
+$t = $GLOBALS['__t'];
+echo "\n{$t['pass']} passed, {$t['fail']} failed\n";
+exit($t['fail'] ? 1 : 0);

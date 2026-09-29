@@ -16,7 +16,7 @@ This document tracks planned features for jt-vc-portal. For features already rel
 
 Delivered as **OIDC single sign-on**: Keycloak (on its own host) federates Active Directory over LDAPS and jt-vc-portal trusts Keycloak via OIDC — see [KEYCLOAK-SETUP.md](KEYCLOAK-SETUP.md). AD groups map to admin / host roles, accounts are created on first sign-in, MFA and brute-force protection live in Keycloak.
 
-- **Direct AD / LDAP binding from the portal will not be implemented**: the portal is Internet-facing, and binding directly would expose AD password checks (and AD account lockouts) to the Internet.
+- **Direct AD / LDAP binding from the portal will not be implemented**: the portal's sign-in page is reachable from the Internet. If the portal itself checked the entered username and password against AD, anyone could use that page to guess passwords for company AD accounts — and a few deliberate wrong attempts would trigger AD account lockout, locking employees out of their computers, mail and every other system too. Authentication is therefore left to an identity provider such as Keycloak, which adds MFA and brute-force protection (with a threshold below the AD lockout threshold); the portal never handles AD passwords at all.
 
 ### 2. jt-live-whisper meeting speech transcription integration — transcripts and summaries done in v1.12.0
 

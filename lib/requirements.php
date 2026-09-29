@@ -13,7 +13,7 @@ final class Requirements {
       'mbstring' => [function_exists('mb_substr'), t('中日文字串處理')],
       'fileinfo' => [class_exists('finfo'), t('站台 logo 上傳')],
       'json'     => [function_exists('json_encode'), t('所有資料存取')],
-      'zlib'     => [function_exists('gzcompress'), t('會議記錄匯出 PDF / Word / ODT')],
+      'zlib'     => [function_exists('gzcompress'), t('會議記錄匯出 PDF / DOCX / ODT')],
     ];
   }
 

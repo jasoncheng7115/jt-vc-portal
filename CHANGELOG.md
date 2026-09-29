@@ -2,9 +2,19 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
-## v1.14.0 — Export meeting minutes as PDF / Word / ODT
+## v1.15.0 — HTML export, transcripts setup guide and Pages refresh
 
-- **Export meeting minutes**: the transcript page downloads the whole record — meeting details, summary (decisions and action items with owner, due date and sources; events, risks, open questions; topic timeline; who spoke how much) and the full transcript with renamed speakers and speaker colours — as **PDF**, **Word (.docx)** or **ODT**. Plain text, SRT, JSON and the Markdown summary moved into an "Other formats" menu.
+- **HTML export**: the meeting minutes can also be downloaded as a single HTML file (styles inline, no scripts, no external resources) that opens in any browser, reads well on a phone and prints cleanly.
+- **DOCX export**: the blue bar left of each section heading was drawn outside the left page margin; headings are now indented so the bar sits inside the margin (Word and LibreOffice).
+- The "Who spoke how much" section is now called "Speaker statistics" (page and exports).
+- Download buttons show only the file extension: PDF / DOCX / ODT / HTML.
+- The restore command shown under System settings → Login path now uses the container name `jt-vc-portal`, matching the docs.
+- **Docs**: new [TRANSCRIPTS-SETUP.md](TRANSCRIPTS-SETUP.md) (complete setup guide for transcripts and meeting summaries: JTLW key and certificate, background job, permissions, export, troubleshooting); Pages now covers single sign-on, transcripts and summaries, speaker suggestions and minutes export, the comparison table adds transcripts / summary / export, all screenshots were retaken with fictional demo data plus four new ones; the security section uses the official OWASP Top 10:2025 category names and covers the SSO, transcript and export controls; "atomic writes" are explained; the ROADMAP reason for not binding AD / LDAP directly is rewritten.
+- Test T45 also checks the heading indent, element order and HTML safety; `test_txexport.php` now prints its totals and exit code (a failure there used to not fail the unit tests).
+
+## v1.14.0 — Export meeting minutes as PDF / DOCX / ODT
+
+- **Export meeting minutes**: the transcript page downloads the whole record — meeting details, summary (decisions and action items with owner, due date and sources; events, risks, open questions; topic timeline; who spoke how much) and the full transcript with renamed speakers and speaker colours — as **PDF**, **DOCX** or **ODT**. Plain text, SRT, JSON and the Markdown summary moved into an "Other formats" menu.
 - Generated entirely by the portal in PHP — no LibreOffice or browser engine on the server, no new package in the Docker image. The PDF embeds only the characters it uses from the bundled Noto Sans TC font (SIL OFL 1.1), so Chinese and Japanese display correctly and the text can be selected and searched.
 - **Clear playback errors**: when the login has timed out, pressing play now says so and offers a sign-in link (it used to say the recording file was gone). A deleted file, an unplayable format and an unreachable recording service each get their own message.
 - **Upgrade checks**: System settings lists missing PHP extensions (openssl, curl, mbstring, fileinfo, json, zlib) and what they affect, and the Transcripts card warns when the background job has not run for 10 minutes. The README has a per-version upgrade table for direct installs, lists `curl` and `zlib` in the requirements, and the cron line for direct installs points to the installation directory.

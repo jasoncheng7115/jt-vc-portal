@@ -39,7 +39,7 @@
   - [ ] No real JaaS tenant (`vpaas-magic-cookie-` followed by a real ID), internal domains, internal IPs, real email addresses, or real passwords / tokens (example values must be obviously fake).
   - [ ] Screenshots have accounts, IPs, meeting room names and other identifying information masked.
 - [ ] No secrets inside the Docker image: `docker run --rm --entrypoint sh <image> -c 'find / \( -name private.key -o -name "*.json" -path "*jaas*" -o -name users.json \) 2>/dev/null'` returns no results.
-- [ ] README / every `.md` (English, `_zh-TW` and `_ja`) / Pages match this release's features, and the version number has been updated.
+- [ ] README / every `.md` (English, `_zh-TW` and `_ja`) / Pages match this release's features, and the version number has been updated; new features have a Pages feature card, a row in the JaaS / self-hosted comparison and a setup guide; **screenshots of changed screens have been retaken with the screenshot script (fictional data)**, and no screenshot shows real accounts, site names, addresses or IPs.
 
 ## 1. Automated tests
 
@@ -226,11 +226,11 @@
 - [ ] T41 A recording in progress: play, download and delete are disabled in the list, streaming / download requests get 409 and a delete request is refused with a message; each action button has its own tooltip.
 - [ ] T42 Production meeting simulation (maintainer, every release): two participants talk in a real meeting while Jibri records; the recording is transcribed and summarised by the real speech service; the transcript has two speakers and the key content, the summary lists decisions and action items, and the speaker suggestions name both participants.
 - [ ] T43 Recordings list: a finished transcript (green "View transcript & summary") and one not yet produced (dashed "Generate transcript") look clearly different; a job in progress is cancelled with the ✕ at the end of its status chip, which has a tooltip.
-- [ ] T44 Meeting minutes export: on the transcript page PDF, Word (.docx) and ODT download the full minutes (`<room>-<date>-meeting.<ext>`) for anyone who can view the transcript; others get 404.
-- [ ] T45 Export content: meeting details, key points, decisions & action items (owner / due date, sources with time and speaker), events, risks, open questions, topic timeline, who spoke how much, and the full transcript with renamed speakers and speaker colours. The PDF shows Chinese / Japanese correctly, its text can be selected and searched, and only the glyphs used are embedded (small file); the .docx opens in Microsoft Word and the .odt in LibreOffice without a repair prompt.
+- [ ] T44 Meeting minutes export: on the transcript page PDF, DOCX, ODT and HTML (v1.15.0) download the full minutes (`<room>-<date>-meeting.<ext>`) for anyone who can view the transcript; others get 404.
+- [ ] T45 Export content: meeting details, key points, decisions & action items (owner / due date, sources with time and speaker), events, risks, open questions, topic timeline, speaker statistics, and the full transcript with renamed speakers and speaker colours. The PDF shows Chinese / Japanese correctly, its text can be selected and searched, and only the glyphs used are embedded (small file); the heading bars stay inside the page margin in Word and LibreOffice; the .docx opens in Microsoft Word and the .odt in LibreOffice without a repair prompt; the HTML is a single file (styles inline, no scripts, no external resources, all content escaped) that reads well on a phone and prints cleanly.
 - [ ] T46 Export language: labels and separators follow the interface language; control characters that are not allowed in XML are removed so the files never come out corrupted.
 - [ ] T47 Requirements check: System settings lists any missing PHP extension (openssl, curl, mbstring, fileinfo, json, zlib) or bundled font and what it affects; exporting on a server without zlib gives a readable message instead of an error 500.
-- [ ] T48 Transcript page: three buttons PDF / Word / ODT; the other formats (plain text, SRT, JSON, Markdown) are in an "Other formats" menu that opens only on click and closes on an outside click or Esc.
+- [ ] T48 Transcript page: four buttons PDF / DOCX / ODT / HTML; the other formats (plain text, SRT, JSON, Markdown) are in an "Other formats" menu that opens only on click and closes on an outside click or Esc.
 - [ ] T49 Playback failure message: when the login has timed out, pressing play says so ("your login has timed out…") with a sign-in link and keeps the player; a deleted file, an unplayable format and an unreachable recording service each get their own message. `/session-check` only returns whether you are signed in.
 - [ ] T50 Background job check: with transcripts enabled, System settings warns when the transcription worker has not run for more than 10 minutes and shows the cron line for Docker and for a direct install.
 
@@ -250,7 +250,7 @@
 - [ ] Default email / .ics templates follow the sender's language; custom templates are used as-is.
 - [ ] `tests/check-i18n.php`: every `t()` key has a translation in every language (English, Japanese) with matching placeholders, Japanese contains no Traditional-only characters, and there are no Chinese strings in the code that are not wrapped in `t()`.
 - [ ] Every `.md` has an English (default), a `_zh-TW.md` and a `_ja.md` version; each header's language line links the other two.
-- [ ] GitHub Pages: Chinese / English / Japanese switching, automatic detection by browser language, and `?lang=` can specify the language and is remembered; each appendix doc card shows exactly one button for the current language, both cards are equal height with buttons aligned at the bottom.
+- [ ] GitHub Pages: Chinese / English / Japanese switching, automatic detection by browser language, and `?lang=` can specify the language and is remembered; each appendix doc card shows exactly one button for the current language, the cards are laid out 2×2, cards in a row are equal height with buttons aligned at the bottom.
 
 ## 5. Security tests
 

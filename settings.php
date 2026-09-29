@@ -152,7 +152,7 @@ render_topbar($me, $ip);
     <div class="alert alert-info" style="align-items:flex-start;margin-top:14px;">
       <?= icon('warning') ?>
       <span><?= th('請務必記住新路徑——忘記時只能從伺服器端用 CLI 還原：') ?><br>
-        <span class="mono">docker exec -u www-data jaas-auth php /var/www/html/login-path.php reset</span></span>
+        <span class="mono">docker exec -u www-data jt-vc-portal php /var/www/html/login-path.php reset</span></span>
     </div>
   </div>
 

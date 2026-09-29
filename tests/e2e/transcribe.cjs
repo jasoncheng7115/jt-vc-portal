@@ -97,12 +97,15 @@ function unzipEntry(buf, name) {
   const js = JSON.parse(await (await pm.request.get(BASE + '/transcript-download?id=rec-ok01&f=json')).text());
   ok('T27 下載 JSON 帶 speaker_name', js.segments && js.segments[0].speaker_name === '陳副理');
   // ---- 會議記錄匯出 PDF / Word / ODT（T44–T45）----
-  for (const [f, type, magic] of [['pdf', 'application/pdf', '%PDF-'], ['docx', 'wordprocessingml.document', 'PK\x03\x04'], ['odt', 'opendocument.text', 'PK\x03\x04']]) {
+  for (const [f, type, magic] of [['pdf', 'application/pdf', '%PDF-'], ['docx', 'wordprocessingml.document', 'PK\x03\x04'], ['odt', 'opendocument.text', 'PK\x03\x04'], ['html', 'text/html', '<!DOCTYPE html>']]) {
     const r = await pm.request.get(BASE + '/transcript-download?id=rec-ok01&f=' + f);
     const buf = await r.body();
     ok(`T44 下載會議記錄 ${f.toUpperCase()}：200、類型、檔名、檔頭`, r.status() === 200 && (r.headers()['content-type'] || '').includes(type)
       && (r.headers()['content-disposition'] || '').includes('-meeting.' + f) && buf.slice(0, magic.length).toString('latin1') === magic, r.status() + ' ' + r.headers()['content-type']);
-    if (f !== 'pdf') {
+    if (f === 'html') {
+      const t = buf.toString('utf8');
+      ok('T45 HTML 單一檔案：沒有 script、內容套用改名、含摘要與逐字稿', !/<script/i.test(t) && t.includes('陳副理') && t.includes('重點摘要') && t.includes('發言統計'));
+    } else if (f !== 'pdf') {
       const doc = unzipEntry(buf, f === 'docx' ? 'word/document.xml' : 'content.xml');
       ok(`T45 ${f.toUpperCase()} 內容套用改名、含摘要與逐字稿`, doc.includes('陳副理') && doc.includes('重點摘要') && doc.includes('逐字稿'));
     } else {
@@ -111,7 +114,7 @@ function unzipEntry(buf, name) {
   }
   ok('T44 沒有逐字稿權限 → 匯出 404', (await status(pn, '/transcript-download?id=rec-ok01&f=pdf')) === 404);
   await pm.goto(BASE + '/transcript?id=rec-ok01');
-  ok('T48 檢視頁：PDF / Word / ODT 三個下載按鈕', (await pm.$$eval('a.tx-dl', e => e.map(x => x.textContent.trim()).join(','))) === 'PDF,Word,ODT');
+  ok('T48 檢視頁：PDF / DOCX / ODT / HTML 四個下載按鈕', (await pm.$$eval('a.tx-dl', e => e.map(x => x.textContent.trim()).join(','))) === 'PDF,DOCX,ODT,HTML');
   ok('T48 「其他格式」選單預設收起', !(await pm.isVisible('#txMoreMenu')));
   await pm.click('#txMoreBtn');
   ok('T48 點「其他格式」才展開（純文字 / SRT / JSON / Markdown）', await pm.isVisible('#txMoreMenu') && (await pm.$$eval('#txMoreMenu a', e => e.length)) === 4);

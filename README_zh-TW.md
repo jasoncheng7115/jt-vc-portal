@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.14.0 — 會議管理系統
+# jt-vc-portal v1.15.0 — 會議管理系統
 
 > English: [README.md](README.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -30,7 +30,7 @@
 - **Email 邀請**：填寫與會者 email，寄送含 `.ics`（METHOD:REQUEST）的邀請信，可一鍵加入行事曆。
 - **多帳號 / 角色 / 2FA**：admin 看全部、host 只看自己建立的會議室；支援 TOTP 雙因素認證。
 - **單一登入（OIDC）**：主持人與管理員可透過 Keycloak / Entra ID 以公司帳號登入（AD 群組對應角色、MFA 由 IdP 負責）；portal 不直接連 AD / LDAP。支援「僅限單一登入」並保留限 IP 的緊急用管理員。設定步驟：[KEYCLOAK-SETUP_zh-TW.md](KEYCLOAK-SETUP_zh-TW.md)。
-- **會議逐字稿與摘要（jt-live-whisper）**：自建 Jibri 錄影完成後，portal 可將錄影交給 [jt-live-whisper](https://github.com/jasoncheng7115/jt-live-whisper)（JTLW）產生標示發言者的逐字稿與會議摘要——重點摘要、決議與待辦、事件、風險、未決問題、議題與誰講了多少，每一條都附錄影中的時間點。依帳號設定權限（不可使用 / 手動 / 自動）、可單場開關，管理員可對任何場次產生。檢視頁提供波形播放器、點時間跳到該處、發言者改名，以及 TXT / SRT / JSON / Markdown 下載。portal 本身不直接連接語言模型。
+- **會議逐字稿與摘要（jt-live-whisper）**：自建 Jibri 錄影完成後，portal 可將錄影交給 [jt-live-whisper](https://github.com/jasoncheng7115/jt-live-whisper)（JTLW）產生標示發言者的逐字稿與會議摘要——重點摘要、決議與待辦、事件、風險、未決問題、議題與發言統計，每一條都附錄影中的時間點。依帳號設定權限（不可使用 / 手動 / 自動）、可單場開關，管理員可對任何場次產生。檢視頁提供波形播放器、點時間跳到該處、發言者改名與發言者對應建議（依 Jitsi 發言時間軸），整份會議記錄可匯出 PDF / DOCX / ODT / HTML（另有 TXT / SRT / JSON / Markdown）。portal 本身不直接連接語言模型。完整設定見 [TRANSCRIPTS-SETUP_zh-TW.md](TRANSCRIPTS-SETUP_zh-TW.md)。
 - **稽核與安全**：完整行為稽核記錄（登入、建室、邀請、設定變更…）+ 即時外拋 syslog / CEF / GELF；fail2ban 登入鎖定；CSRF；遵循 OWASP Top 10:2025。
 - **錄影調閱**（自建 Jibri）：串接 Jibri 主機的錄影服務，線上列表 / 播放 / 下載 / 刪除、主機容量、保留政策（時間 / 容量 / 殘留，預設停用）；主持人可調閱自己主持會議的錄影。
 - **多語系介面**：portal 介面支援繁體中文、English 與日本語，依瀏覽器語言自動判斷，可從右上帳號選單或個人設定切換；Jitsi 會議語言可設為跟隨介面語言。
@@ -205,14 +205,14 @@ server {
 
 ```bash
 # 1) 從 Release 頁下載映像與校驗檔（請改用最新版本號）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.14.0/jt-vc-portal-1.14.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.14.0/jt-vc-portal-1.14.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.15.0/jt-vc-portal-1.15.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.15.0/jt-vc-portal-1.15.0-docker-amd64.tar.gz.sha256
 
 # 2) 驗證完整性（應顯示 OK）
-sha256sum -c jt-vc-portal-1.14.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.15.0-docker-amd64.tar.gz.sha256
 
-# 3) 載入映像（會建立 jt-vc-portal:1.14.0 與 :latest 標籤）
-docker load < jt-vc-portal-1.14.0-docker-amd64.tar.gz
+# 3) 載入映像（會建立 jt-vc-portal:1.15.0 與 :latest 標籤）
+docker load < jt-vc-portal-1.15.0-docker-amd64.tar.gz
 
 # 4) 主機端準備持久化目錄（www-data UID 預設 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -255,7 +255,7 @@ Docker 映像與 Release 映像已經內含所有元件，不必另外安裝。*
 |---|---|
 | v1.10.0 以前 | 單一登入（選用）需要 PHP `curl`、`openssl` 擴充（Debian / Ubuntu：`apt install php-curl`）。 |
 | v1.12.0 以前 | 逐字稿與摘要（選用）需要 `curl`，以及**每分鐘執行一次的背景排程**，見「會議逐字稿與摘要」。Docker 安裝也要在主機加排程。 |
-| v1.14.0 以前 | 會議記錄匯出 PDF / Word / ODT 需要 PHP `zlib` 擴充（Debian / Ubuntu 的 PHP 套件已內建），以及隨附字型 `lib/fonts/NotoSansTC-Regular.ttf`（`git pull` 會一起取得）。 |
+| v1.14.0 以前 | 會議記錄匯出 PDF / DOCX / ODT 需要 PHP `zlib` 擴充（Debian / Ubuntu 的 PHP 套件已內建），以及隨附字型 `lib/fonts/NotoSansTC-Regular.ttf`（`git pull` 會一起取得）。 |
 
 可用 `php -m | grep -iE 'curl|mbstring|openssl|zlib|fileinfo|json'` 檢查。升級後打開**系統設定**：缺少的元件會列在最上方；背景排程沒在執行時，「逐字稿與摘要」卡片會警示。
 
@@ -359,6 +359,10 @@ docker run -d --restart unless-stopped \
 | 網域 | `8x8.vc` | 你的 Jitsi 網域 |
 | 必填 | App ID、Key ID(kid)、RS256 私鑰 | 服務網域；（選）JWT app_id + HS256 密鑰 |
 | 計費 | 免費 Dev 方案（25 MAU/月），超過依 8x8 方案計費 | 自行維運 |
+| 錄影 | 8x8 內建（依方案） | 搭配自建 Jibri（本系統可調閱、播放、下載） |
+| 逐字稿 | 8x8 另計費的即時字幕（依分鐘計費、檔案只保留 24 小時，不會存回本系統）；本系統預設關閉以免意外計費 | 搭配 Jibri 錄影 + 自架 jt-live-whisper：會後產生含發言者的逐字稿，存在本系統，資料不出自家機房 |
+| 會議摘要 | 不提供 | 由 jt-live-whisper 以自架語言模型整理：重點、決議與待辦、風險、議題、發言統計，每條附錄影時間點 |
+| 會議記錄匯出 | 不提供 | PDF / DOCX / ODT / HTML，另有純文字、SRT、JSON、Markdown |
 
 自建 Jitsi Meet 若採 JWT，需在 prosody 啟用 token 驗證，且 app_id / app_secret 與本系統一致。
 
@@ -426,6 +430,8 @@ sudo -u www-data php login-path.php reset
 
 ## 會議逐字稿與摘要（jt-live-whisper）
 
+> **完整設定指南**（JTLW 端金鑰與憑證、portal 設定、排程、權限、匯出、疑難排解）見 **[TRANSCRIPTS-SETUP_zh-TW.md](TRANSCRIPTS-SETUP_zh-TW.md)**。
+
 自建 Jibri 主機上的錄影完成後，portal 可將錄影交給語音服務 **jt-live-whisper（JTLW）**，取回含發言者的逐字稿與會議摘要。結果由 portal 存放在錄影旁。
 
 **需求**
@@ -449,7 +455,7 @@ sudo -u www-data php login-path.php reset
 - 結果存於資料目錄（`transcripts/<recording id>/`），跟著錄影走：刪除錄影、或 Jibri 保留政策清除錄影時，其逐字稿與摘要也一併刪除。
 - 主持人只看得到自己主持場次的逐字稿；稽核記錄會記下誰產生、檢視、下載或改名——絕不記錄逐字稿內容。
 - 會議摘要支援中文與英文會議；日文與韓文只產生逐字稿。發言者代號（S1、S2…）是聲音分群，不是人名——可在逐字稿頁面改名。
-- **匯出會議記錄（v1.14.0）**：逐字稿頁可下載整份會議記錄——會議資訊、摘要（決議與待辦含出處、風險、未決問題、議題、誰講了多少）與套用改名的逐字稿——格式有 **PDF、Word（.docx）、ODT**；純文字、SRT 字幕、JSON 與 Markdown 摘要收在「其他格式」。全部由 portal 自己產生（主機不需要 LibreOffice 或瀏覽器引擎）；PDF 只嵌入用到的字（隨附 Noto Sans TC 字型，SIL Open Font License），中日文正常顯示且可搜尋。這個字型不含韓文。
+- **匯出會議記錄（v1.14.0）**：逐字稿頁可下載整份會議記錄——會議資訊、摘要（決議與待辦含出處、風險、未決問題、議題、發言統計）與套用改名的逐字稿——格式有 **PDF、DOCX、ODT、HTML**（HTML 自 v1.15.0 起，單一檔案，任何瀏覽器都能開、可直接列印）；純文字、SRT 字幕、JSON 與 Markdown 摘要收在「其他格式」。全部由 portal 自己產生（主機不需要 LibreOffice 或瀏覽器引擎）；PDF 只嵌入用到的字（隨附 Noto Sans TC 字型，SIL Open Font License），中日文正常顯示且可搜尋。這個字型不含韓文。
 - **發言者建議（v1.13.0）**：主持人的會議頁會記錄 Jitsi 的「目前發言者」時間軸；逐字稿頁會建議每個發言者代號是哪位參與者（附重疊時間比例），按一下即可套用，也可從參與者名單挑選。請讓主持人的會議頁全程開著，時間軸才會完整。
 
 ---
@@ -465,16 +471,16 @@ sudo -u www-data php login-path.php reset
 
 遵循 OWASP Top 10:2025，逐項對應：
 
-- **A01 存取控制**：未授權頁面回 404、會議室依擁有者隔離（含主持人心跳 / 離開與錄影調閱）、所有狀態變更皆為 POST + CSRF token。
-- **A02 安全設定**：關閉錯誤顯示與版本洩漏、安全標頭、敏感路徑拒絕存取。
-- **A03 供應鏈**：零外部 PHP 套件；前端 CDN 資源加 SRI 完整性驗證；Jitsi IFrame API（`external_api.js`）改為內附釘版並加 SRI，不再即時從第三方載入；映像建置時套用最新 OS 安全更新。
-- **A04 加密**：bcrypt 密碼、JWT 簽章、webhook HMAC、安全 session cookie。
-- **A05 注入**：輸出跳脫、輸入清洗、Email header injection 防護、全站（含會議頁）以 nonce 為基礎的內容安全政策（不允許 inline script）。
-- **A06 安全設計**：閘道式架構、預設安全（來賓須具名、主持人在線上才放行）、角色最小權限。
-- **A07 認證**：TOTP 2FA、fail2ban 登入鎖定（依真實來源 IP）**＋依帳號鎖定**（防分散 IP 猜密碼）、session 閒置 / 絕對逾時、可選的登入頁路徑偽裝（不會被轉址洩漏）。
-- **A08 資料完整性**：所有資料檔原子寫入並加鎖（並發不遺失更新）；webhook 以 HMAC 簽章驗證來源，並用 idempotency key 去除重複事件。
-- **A09 記錄與告警**：完整稽核記錄 + 即時 SIEM 外拋。
-- **A10 例外處理**：失敗安全降級——讀取失敗回預設、寄信 / 外拋失敗不阻斷主流程、錯誤不外洩。
+- **A01 權限控制失效**：未授權頁面一律回 404（不暴露入口）；會議室、錄影、逐字稿依擁有者隔離，主持人只看得到自己主持的場次；逐字稿另有帳號權限（不可使用 / 手動 / 自動）與單場開關；單一登入使用者的角色只由 IdP 群組決定，不在指定群組者一律拒絕；所有狀態變更皆為 POST + CSRF token。
+- **A02 安全設定錯誤**：關閉錯誤顯示與版本洩漏；每個回應都帶內容安全政策（預設最嚴格，頁面再換成 nonce 版）與安全標頭；敏感路徑（`lib/`、`keys/`、`*.json`）拒絕存取；只採信白名單反向代理帶來的 `X-Real-IP`；設定頁不回填任何密鑰；系統設定頁會列出缺少的元件與沒有在執行的背景排程。
+- **A03 軟體供應鏈失效**：零外部 PHP 套件：OIDC、PDF / DOCX / ODT 產生與 ZIP 都自行實作，不需 LibreOffice 等大型套件；前端 CDN 資源加 SRI 完整性驗證；Jitsi IFrame API（`external_api.js`）內附釘版並加 SRI，不即時從第三方載入；PDF 字型隨附（SIL OFL）；映像建置時套用最新 OS 安全更新；Release 映像由 CI 從 tag 原始碼建置並附 sha256。
+- **A04 加密機制失效**：密碼以 bcrypt 雜湊；JWT 以 RS256 / HS256 簽章並設效期；單一登入的 id_token 以 IdP 公開金鑰（JWKS）驗簽，只接受 RS256 / RS384 / RS512，拒絕 `none` 與演算法混淆；連語音服務一律驗證 TLS 憑證（自簽憑證以貼上的 PEM 信任，從不關閉驗證）；webhook 以 HMAC 簽章；session cookie 為 HttpOnly、SameSite、Secure。
+- **A05 注入攻擊**：輸出一律跳脫、輸入清洗；Email header injection、CSV 公式注入防護；外拋 syslog 剝除換行防偽造；匯出的 DOCX / ODT / HTML 內容全部跳脫並去除控制字元；全站（含會議頁）以 nonce 為基礎的內容安全政策，不允許 inline script。
+- **A06 不安全設計**：閘道式架構、預設安全（來賓須具名、主持人在線上才放行）、角色最小權限；portal 從不經手 AD 密碼——企業帳號一律經 OIDC 身分提供者，MFA 與暴力破解防護在那一層；portal 也不直接連語言模型，逐字稿與摘要交給自架的語音服務，結果存回本系統後即通知對方刪除。
+- **A07 身分驗證失效**：OIDC 單一登入：Authorization Code + PKCE（S256）+ state + nonce，以 iss + sub 綁定帳號、絕不以 email 自動合併本地帳號；「僅限單一登入」模式搭配限定 IP 的緊急本地管理員；本地帳號支援 TOTP 雙因素（防重放）、依真實來源 IP **＋依帳號**的登入鎖定（防分散 IP 猜密碼）；session 閒置 / 絕對逾時，改密碼或管理員強制登出立即失效；可選的登入頁路徑偽裝（不會被轉址洩漏）。
+- **A08 軟體或資料完整性失效**：所有資料檔採「原子寫入」——先完整寫到暫存檔，再一次換上正式檔名，寫到一半斷電或當機也只會留下舊的完整檔案，不會壞掉；同時「加鎖」讓同一時間的多筆修改依序進行，不會互相蓋掉；webhook（8x8 用量、語音服務）以 HMAC 簽章與時間窗驗證，並以 idempotency key / 事件 ID 去除重複；送給語音服務的作業帶 Idempotency-Key，重送也不會重複處理；結果寫入磁碟後才通知對方刪除；設定匯入採白名單。
+- **A09 安全記錄與告警失效**：完整稽核記錄：登入、單一登入成功 / 失敗、會議室、帳號、設定、錄影與逐字稿的每項操作（不記逐字稿內容）；每筆即時外拋 SIEM（syslog / CEF / GELF），並剝除換行防止偽造記錄。
+- **A10 例外狀況處理不當**：失敗安全降級：讀取失敗回預設、寄信 / 外拋失敗不阻斷主流程、錯誤不外洩；單一登入任一檢查失敗一律拒絕（fail-closed）；語音服務連不上會退避重試，超過 24 小時標示失敗並說明原因，摘要失敗會自動重做；缺少元件時回應白話訊息而不是錯誤 500；播放失敗會分辨登入逾時、檔案不在或服務中斷。
 - 私鑰、設定與執行資料皆存於掛載卷，**不進版控**（見 `.gitignore`）。
 - **已知限制（Jitsi 設計使然）**：會議室名稱是邀請連結的一部分，敏感會議請用亂數名稱或大廳模式；自建模式未啟用 JWT 時，知道房名的人可直接連 Jitsi 網域進入（請啟用 JWT，設定頁會提示）；來賓一旦取得會議 token，在效期內（6 小時）可直接重新連入——在意的話請用大廳模式。
 - 每次發版都必須通過單元、整合、瀏覽器 e2e 測試與 OWASP ZAP 弱掃（**High / Medium 皆為 0**），詳見 [TEST_CHECKLIST_zh-TW.md](TEST_CHECKLIST_zh-TW.md)。

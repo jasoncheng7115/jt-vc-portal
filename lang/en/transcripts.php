@@ -42,7 +42,7 @@ return [
   '風險' => 'Risks',
   '未決問題' => 'Open questions',
   '議題時間軸' => 'Topic timeline',
-  '誰講了多少' => 'Who spoke how much',
+  '發言統計' => 'Speaker statistics',
   '摘要模型：{m}' => 'Summary model: {m}',
   '逐字稿' => 'Transcript',
   '播放 / 暫停' => 'Play / pause',

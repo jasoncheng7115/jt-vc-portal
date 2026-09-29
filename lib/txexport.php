@@ -1,7 +1,7 @@
 <?php
 /**
- * 會議記錄匯出：PDF / Word（.docx）/ ODF 文字文件（.odt）。
- * 三種格式共用同一份內容（model()）：會議資訊 → 摘要（重點、決議與待辦、事件與影響、風險、未決問題、議題時間軸、誰講了多少）→ 逐字稿，
+ * 會議記錄匯出：PDF / DOCX / ODT / HTML（單一檔案）。
+ * 三種格式共用同一份內容（model()）：會議資訊 → 摘要（重點、決議與待辦、事件與影響、風險、未決問題、議題時間軸、發言統計）→ 逐字稿，
  * 內容與順序比照網頁；發言者名字套用改名。全部純 PHP 產生，只需要 zlib（見 README「系統需求」）。
  */
 require_once __DIR__ . '/zipwriter.php';
@@ -10,7 +10,8 @@ require_once __DIR__ . '/pdfwriter.php';
 final class TxExport {
   public const FORMATS = ['pdf' => 'application/pdf',
                           'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                          'odt' => 'application/vnd.oasis.opendocument.text'];
+                          'odt' => 'application/vnd.oasis.opendocument.text',
+                          'html' => 'text/html; charset=utf-8'];
   public const FONT = __DIR__ . '/fonts/NotoSansTC-Regular.ttf';
   /** 發言者配色（同網頁 .mt-c* / .mt-b*）。 */
   private const FG = ['2563eb', 'c2410c', '15803d', '7c3aed', 'be123c', '0f766e', 'a16207', '4338ca'];
@@ -104,7 +105,7 @@ final class TxExport {
           [0.2, 0.65, 0.15]];
       }
       if (!empty($sum['speakers'])) {
-        $b[] = ['h', t('誰講了多少')];
+        $b[] = ['h', t('發言統計')];
         $b[] = ['table', [t('發言者'), t('發言時間'), t('發言次數'), t('字數')],
           array_map(fn($s) => [$nameOf((string)($s['speaker_id'] ?? '')), self::mmss((int)($s['speaking_ms'] ?? 0)) . sprintf(' (%.1f%%)', (float)($s['percentage'] ?? 0)),
                                (string)(int)($s['turn_count'] ?? 0), (int)($s['chars'] ?? 0) . sprintf(' (%.1f%%)', (float)($s['char_pct'] ?? 0))], (array)$sum['speakers']),
@@ -121,7 +122,7 @@ final class TxExport {
   }
 
   public static function render(string $fmt, array $blocks, string $title, string $lang): string {
-    return match ($fmt) { 'pdf' => self::pdf($blocks, $title), 'docx' => self::docx($blocks, $title, $lang), 'odt' => self::odt($blocks, $title, $lang) };
+    return match ($fmt) { 'pdf' => self::pdf($blocks, $title), 'docx' => self::docx($blocks, $title, $lang), 'odt' => self::odt($blocks, $title, $lang), 'html' => self::html($blocks, $title, $lang) };
   }
 
   // ------------------------------------------------------------------ PDF
@@ -298,13 +299,14 @@ final class TxExport {
     $doc = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . "\n"
       . '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' . $body
       . '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr></w:body></w:document>';
+    // Heading1 的左框線畫在「縮排位置往左 間距 6pt + 線寬 3pt」處，標題要縮排 10pt（200 twips），藍條才不會跑出版心
     $styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . "\n"
       . '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
       . '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="' . $ea . '" w:cs="Arial"/><w:sz w:val="21"/><w:szCs w:val="21"/><w:lang w:val="' . $x($lang) . '" w:eastAsia="' . $x($lang) . '"/></w:rPr></w:rPrDefault>'
       . '<w:pPrDefault><w:pPr><w:spacing w:after="80" w:line="300" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>'
       . '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:rPr><w:color w:val="0F172A"/></w:rPr></w:style>'
       . '<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:after="160"/></w:pPr><w:rPr><w:b/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr></w:style>'
-      . '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:pBdr><w:left w:val="single" w:sz="24" w:space="6" w:color="2563EB"/></w:pBdr><w:spacing w:before="320" w:after="120"/><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:sz w:val="26"/><w:szCs w:val="26"/></w:rPr></w:style>'
+      . '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:pBdr><w:left w:val="single" w:sz="24" w:space="6" w:color="2563EB"/></w:pBdr><w:spacing w:before="320" w:after="120"/><w:ind w:left="200"/><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:sz w:val="26"/><w:szCs w:val="26"/></w:rPr></w:style>'
       . '</w:styles>';
     $z = new ZipWriter();
     $z->add('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . "\n"
@@ -419,5 +421,62 @@ final class TxExport {
     $z->add('styles.xml', $styles);
     $z->add('meta.xml', $meta);
     return $z->build();
+  }
+
+  // ------------------------------------------------------------------ HTML（單一檔案）
+  /**
+   * 自成一檔：樣式內嵌、沒有 script、不連外部資源，離線打開、轉寄、列印都一樣。
+   * 所有內容一律跳脫；下載時是附件（Content-Disposition: attachment），不會在本站網域執行。
+   */
+  private static function html(array $blocks, string $title, string $lang): string {
+    $e = fn(string $s) => htmlspecialchars($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $h = '';
+    foreach ($blocks as $bl) {
+      switch ($bl[0]) {
+        case 'title': $h .= '<h1>' . $e($bl[1]) . "</h1>\n"; break;
+        case 'meta':
+          $h .= '<table class="meta">';
+          foreach ($bl[1] as [$k, $v]) $h .= '<tr><th>' . $e($k) . '</th><td>' . $e($v) . '</td></tr>';
+          $h .= "</table>\n"; break;
+        case 'h': $h .= '<h2>' . $e($bl[1]) . "</h2>\n"; break;
+        case 'p': $h .= '<p>' . nl2br($e($bl[1])) . "</p>\n"; break;
+        case 'warn': $h .= '<p class="warn">' . $e($bl[1]) . "</p>\n"; break;
+        case 'item':
+          [, $kind, $tag, $text, $meta, $cites] = $bl;
+          $h .= '<div class="item">' . ($tag !== '' ? '<span class="tag tag-' . ($kind === 'd' ? 'd' : 'a') . '">' . $e($tag) . '</span>' : '<span class="dot"></span>')
+            . '<div><div>' . $e($text) . '</div>' . ($meta !== '' ? '<div class="small meta-line">' . $e($meta) . '</div>' : '')
+            . ($cites !== '' ? '<div class="small">' . $e($cites) . '</div>' : '') . "</div></div>\n";
+          break;
+        case 'table':
+          [, $head, $rows, $ratio] = $bl;
+          $h .= '<table class="grid"><colgroup>' . implode('', array_map(fn($r) => '<col style="width:' . round($r * 100, 1) . '%">', $ratio)) . '</colgroup><thead><tr>';
+          foreach ($head as $c) $h .= '<th>' . $e($c) . '</th>';
+          $h .= '</tr></thead><tbody>';
+          foreach ($rows as $row) { $h .= '<tr>'; foreach ($row as $c) $h .= '<td>' . $e((string)$c) . '</td>'; $h .= '</tr>'; }
+          $h .= "</tbody></table>\n"; break;
+        case 'segs':
+          $h .= '<table class="grid segs"><colgroup><col style="width:9%"><col style="width:16%"><col></colgroup><thead><tr><th>' . $e(t('時間')) . '</th><th>' . $e(t('發言者')) . '</th><th>' . $e(t('內容')) . '</th></tr></thead><tbody>';
+          foreach ($bl[1] as [$time, $name, $text, $ci]) {
+            $h .= '<tr' . ($ci >= 0 ? ' class="b' . $ci . '"' : '') . '><td class="time">' . $e($time) . '</td><td class="spk' . ($ci >= 0 ? ' c' . $ci : '') . '">' . $e($name) . '</td><td>' . $e($text) . '</td></tr>';
+          }
+          $h .= "</tbody></table>\n"; break;
+        case 'foot': $h .= '<p class="foot">' . $e($bl[1]) . "</p>\n"; break;
+      }
+    }
+    $css = 'body{margin:0;background:#f8fafc;color:#0f172a;font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Noto Sans JP","PingFang TC","Microsoft JhengHei","Hiragino Sans","Yu Gothic",sans-serif}'
+      . 'main{max-width:960px;margin:32px auto;padding:36px 44px;background:#fff;border:1px solid #e2e8f0;border-radius:14px}'
+      . 'h1{font-size:26px;margin:0 0 18px}h2{font-size:18px;margin:30px 0 10px;padding-left:10px;border-left:4px solid #2563eb;break-after:avoid}'
+      . 'table{border-collapse:collapse;width:100%}.meta{background:#f1f5f9;border-radius:8px}.meta th{width:110px;text-align:left;font-weight:400;color:#64748b;padding:5px 14px;vertical-align:top}.meta td{padding:5px 14px 5px 0}'
+      . '.grid{margin:6px 0 10px;table-layout:fixed}.grid th{background:#f1f5f9;color:#475569;text-align:left;font-size:13px;padding:7px 10px}.grid td{padding:7px 10px;border-bottom:1px solid #e2e8f0;vertical-align:top;overflow-wrap:break-word}'
+      . '.segs td{border-bottom:2px solid #fff}.time{color:#64748b;font-size:13px;font-variant-numeric:tabular-nums}.spk{font-weight:700}'
+      . '.item{display:flex;gap:10px;align-items:flex-start;margin:10px 0}.tag{flex:none;font-size:12px;font-weight:700;padding:1px 8px;border-radius:5px;margin-top:3px}.tag-d{background:#dcfce7;color:#15803d}.tag-a{background:#dbeafe;color:#1d4ed8}'
+      . '.dot{flex:none;width:6px;height:6px;border-radius:50%;background:#94a3b8;margin:10px 4px 0 2px}.small{font-size:12.5px;color:#64748b}.meta-line{color:#475569}.warn{color:#b45309}.foot{margin-top:28px;font-size:12px;color:#94a3b8}';
+    foreach (self::FG as $i => $c) $css .= '.c' . $i . '{color:#' . $c . '}';
+    foreach (self::BG as $i => $c) $css .= '.b' . $i . ' td{background:#' . $c . '}';
+    $css .= '@media print{body{background:#fff}main{margin:0;padding:0;border:0;max-width:none}tr{break-inside:avoid}.segs td,.meta,.grid th,.tag{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
+      . '@media (max-width:700px){main{margin:0;padding:20px 16px;border:0;border-radius:0}}';
+    $hl = str_starts_with($lang, 'ja') ? 'ja' : (str_starts_with($lang, 'en') ? 'en' : 'zh-Hant');
+    return "<!DOCTYPE html>\n<html lang=\"" . $hl . "\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
+      . "<meta name=\"generator\" content=\"jt-vc-portal\">\n<title>" . $e($title) . "</title>\n<style>" . $css . "</style>\n</head>\n<body>\n<main>\n" . $h . "</main>\n</body>\n</html>\n";
   }
 }

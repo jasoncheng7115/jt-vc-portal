@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.14.0 — Meeting Management System
+# jt-vc-portal v1.15.0 — Meeting Management System
 
 > 繁體中文: [README_zh-TW.md](README_zh-TW.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -30,7 +30,7 @@
 - **Email invitations**: enter attendee email addresses to send invitations with an `.ics` attachment (METHOD:REQUEST) that can be added to a calendar in one click.
 - **Multiple accounts / roles / 2FA**: admins see all rooms, hosts see only the rooms they created; TOTP two-factor authentication supported.
 - **Single sign-on (OIDC)**: hosts and admins can sign in with their company account through Keycloak / Entra ID (AD groups → roles, MFA at the IdP); the portal never connects to AD / LDAP directly. SSO-only mode with an IP-restricted emergency admin. Setup: [KEYCLOAK-SETUP.md](KEYCLOAK-SETUP.md).
-- **Meeting transcripts and summaries (jt-live-whisper)**: after a self-hosted Jibri recording finishes, the portal can send it to [jt-live-whisper](https://github.com/jasoncheng7115/jt-live-whisper) (JTLW) to produce a speaker-labelled transcript and a meeting summary — key points, decisions and action items, events, risks, open questions, topics and who spoke how much, every item citing the time in the recording. Per-account permission (off / manual / automatic), a per-meeting switch, and admins can generate for any meeting. Viewer with a waveform player, click-to-seek, speaker renaming and TXT / SRT / JSON / Markdown downloads. The portal itself never connects to a language model.
+- **Meeting transcripts and summaries (jt-live-whisper)**: after a self-hosted Jibri recording finishes, the portal can send it to [jt-live-whisper](https://github.com/jasoncheng7115/jt-live-whisper) (JTLW) to produce a speaker-labelled transcript and a meeting summary — key points, decisions and action items, events, risks, open questions, topics and speaker statistics, every item citing the time in the recording. Per-account permission (off / manual / automatic), a per-meeting switch, and admins can generate for any meeting. Viewer with a waveform player, click-to-seek, speaker renaming and speaker suggestions (from Jitsi's speaker timeline); the whole record exports as PDF / DOCX / ODT / HTML (plus TXT / SRT / JSON / Markdown). The portal itself never connects to a language model. Full setup: [TRANSCRIPTS-SETUP.md](TRANSCRIPTS-SETUP.md).
 - **Auditing and security**: complete audit log of user actions (sign-ins, room creation, invitations, settings changes…) + real-time forwarding via syslog / CEF / GELF; fail2ban-style login lockout; CSRF protection; follows OWASP Top 10:2025.
 - **Recording retrieval** (self-hosted Jibri): connects to a recording service on the Jibri host for online listing / playback / download / deletion, host storage capacity, and retention policies (age / capacity / leftovers, disabled by default); hosts can access recordings of the meetings they hosted.
 - **Multilingual interface**: the portal UI is available in Traditional Chinese, English and Japanese — detected from the browser, switchable from the account menu or per user in the profile; the Jitsi meeting language can follow the interface language.
@@ -205,14 +205,14 @@ Don't want to build it yourself? Download the packaged image (`linux/amd64`) att
 
 ```bash
 # 1) Download the image and checksum file from the Release page (use the latest version number)
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.14.0/jt-vc-portal-1.14.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.14.0/jt-vc-portal-1.14.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.15.0/jt-vc-portal-1.15.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.15.0/jt-vc-portal-1.15.0-docker-amd64.tar.gz.sha256
 
 # 2) Verify integrity (should print OK)
-sha256sum -c jt-vc-portal-1.14.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.15.0-docker-amd64.tar.gz.sha256
 
-# 3) Load the image (creates the jt-vc-portal:1.14.0 and :latest tags)
-docker load < jt-vc-portal-1.14.0-docker-amd64.tar.gz
+# 3) Load the image (creates the jt-vc-portal:1.15.0 and :latest tags)
+docker load < jt-vc-portal-1.15.0-docker-amd64.tar.gz
 
 # 4) Prepare persistent directories on the host (www-data UID defaults to 33)
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -255,7 +255,7 @@ The Docker image and the Release image already contain everything — nothing to
 |---|---|
 | before v1.10.0 | Single sign-on (optional) needs the PHP `curl` and `openssl` extensions (Debian / Ubuntu: `apt install php-curl`). |
 | before v1.12.0 | Transcripts and summaries (optional) need `curl` and a **background job that runs every minute** — see "Meeting transcripts and summaries". Docker installs need it too (on the host). |
-| before v1.14.0 | Exporting meeting minutes as PDF / Word / ODT needs the PHP `zlib` extension (built into the Debian / Ubuntu PHP packages) and the bundled font `lib/fonts/NotoSansTC-Regular.ttf`, which comes with `git pull`. |
+| before v1.14.0 | Exporting meeting minutes as PDF / DOCX / ODT needs the PHP `zlib` extension (built into the Debian / Ubuntu PHP packages) and the bundled font `lib/fonts/NotoSansTC-Regular.ttf`, which comes with `git pull`. |
 
 Check with `php -m | grep -iE 'curl|mbstring|openssl|zlib|fileinfo|json'`. After upgrading, open **System settings**: any missing component is listed at the top, and the Transcripts card warns if the background job is not running.
 
@@ -359,6 +359,10 @@ docker run -d --restart unless-stopped \
 | Domain | `8x8.vc` | Your Jitsi domain |
 | Required | App ID, Key ID (kid), RS256 private key | Service domain; (optional) JWT app_id + HS256 secret |
 | Billing | Free Dev plan (25 MAU/month); usage beyond that is billed per the 8x8 plan | Self-operated |
+| Recording | Built into 8x8 (plan-dependent) | With a self-hosted Jibri (browse, play and download in this system) |
+| Transcripts | 8x8's separately billed live captions (per minute, files kept only 24 hours, never stored in this system); disabled by default here to avoid surprise charges | Jibri recording + a self-hosted jt-live-whisper: a speaker-labelled transcript after the meeting, stored in this system, data never leaves your premises |
+| Meeting summary | Not available | Produced by jt-live-whisper with a self-hosted language model: key points, decisions and action items, risks, topics, speaker statistics — each citing a time in the recording |
+| Minutes export | Not available | PDF / DOCX / ODT / HTML, plus plain text, SRT, JSON, Markdown |
 
 If self-hosted Jitsi Meet uses JWT, token authentication must be enabled in prosody, and app_id / app_secret must match this system.
 
@@ -426,6 +430,8 @@ When recording with self-hosted Jitsi Meet + Jibri, you can run the bundled `jib
 
 ## Meeting transcripts and summaries (jt-live-whisper)
 
+> **Full setup guide** (JTLW key and certificate, portal settings, background job, permissions, export, troubleshooting): see **[TRANSCRIPTS-SETUP.md](TRANSCRIPTS-SETUP.md)**.
+
 After a recording on the self-hosted Jibri host finishes, the portal can hand it to the speech service **jt-live-whisper (JTLW)**, which returns a transcript with speakers and a meeting summary. Results are stored by the portal next to the recording.
 
 **Requirements**
@@ -449,7 +455,7 @@ After a recording on the self-hosted Jibri host finishes, the portal can hand it
 - Results live in the data directory (`transcripts/<recording id>/`) and follow the recording: deleting a recording, or the Jibri retention policy removing it, deletes its transcript and summary too.
 - Hosts only see transcripts of meetings they hosted; the audit log records who generated, viewed, downloaded or renamed — never the transcript content.
 - Summaries are available for Chinese and English meetings; for Japanese and Korean only the transcript is produced. Speaker ids (S1, S2…) are voice clusters, not names — rename them on the transcript page.
-- **Export meeting minutes (v1.14.0)**: the transcript page downloads the whole record — meeting details, summary (decisions and action items with their sources, risks, open questions, topics, who spoke how much) and the transcript with renamed speakers — as **PDF, Word (.docx) or ODT**. Plain text, SRT subtitles, JSON and the Markdown summary are under "Other formats". Everything is generated by the portal itself (no LibreOffice or browser engine on the server); the PDF embeds only the characters it uses from the bundled Noto Sans TC font (SIL Open Font License), so Chinese and Japanese display correctly and the text can be searched. Korean characters are not in that font.
+- **Export meeting minutes (v1.14.0)**: the transcript page downloads the whole record — meeting details, summary (decisions and action items with their sources, risks, open questions, topics, speaker statistics) and the transcript with renamed speakers — as **PDF, DOCX, ODT or HTML** (HTML since v1.15.0: a single file that opens in any browser and prints cleanly). Plain text, SRT subtitles, JSON and the Markdown summary are under "Other formats". Everything is generated by the portal itself (no LibreOffice or browser engine on the server); the PDF embeds only the characters it uses from the bundled Noto Sans TC font (SIL Open Font License), so Chinese and Japanese display correctly and the text can be searched. Korean characters are not in that font.
 - **Speaker suggestions (v1.13.0)**: the host's meeting page records Jitsi's "current speaker" timeline; the transcript page suggests which participant each speaker id is (with the share of overlapping time) and lets you apply it with one click or pick from the participant list. Keep the host's meeting page open for the whole meeting so the timeline is complete.
 
 ---
@@ -465,16 +471,16 @@ After a recording on the self-hosted Jibri host finishes, the portal can hand it
 
 Follows OWASP Top 10:2025, item by item:
 
-- **A01 Access control**: unauthorized pages return 404, rooms are isolated by owner (including host heartbeat / leave and recording access), every state change is POST + CSRF token.
-- **A02 Security configuration**: error display and version disclosure disabled, security headers, access to sensitive paths denied.
-- **A03 Supply chain**: zero external PHP packages; front-end CDN resources use SRI integrity checks; the Jitsi IFrame API (`external_api.js`) is bundled and pinned with SRI instead of being loaded live from a third party; the latest OS security updates are applied when the image is built.
-- **A04 Cryptography**: bcrypt passwords, JWT signing, webhook HMAC, secure session cookies.
-- **A05 Injection**: output escaping, input sanitization, email header injection protection, nonce-based Content Security Policy (no inline-script allowance) on every page including the meeting pages.
-- **A06 Secure design**: gateway architecture, secure by default (guests must give a name, entry only while the host is online), least-privilege roles.
-- **A07 Authentication**: TOTP 2FA, fail2ban-style login lockout by real source IP **plus per-account lockout** against distributed guessing, session idle / absolute timeouts, optional login page path disguise (no redirect leaks it).
-- **A08 Data integrity**: atomic, locked writes for all data files (no lost updates under concurrency); webhooks are verified by HMAC signature, and duplicate events are removed via idempotency keys.
-- **A09 Logging and alerting**: complete audit log + real-time SIEM forwarding.
-- **A10 Exception handling**: fail-safe degradation — read failures fall back to defaults, email / forwarding failures do not block the main flow, errors are not leaked.
+- **A01 Broken Access Control**: Unauthorized pages always return 404 (no entry points revealed); rooms, recordings and transcripts are isolated by owner, so hosts only see meetings they hosted; transcripts also have a per-account permission (off / manual / automatic) and a per-meeting switch; single sign-on users get their role only from IdP groups, and anyone outside the configured groups is refused; every state change is POST + CSRF token.
+- **A02 Security Misconfiguration**: Error display and version disclosure are off; every response carries a Content Security Policy (strictest by default, replaced by a nonce-based one on pages) and security headers; sensitive paths (`lib/`, `keys/`, `*.json`) are denied; `X-Real-IP` is trusted only from allow-listed reverse proxies; secrets are never shown back in the settings page; System settings lists missing components and a background job that is not running.
+- **A03 Software Supply Chain Failures**: Zero external PHP packages: OIDC, PDF / DOCX / ODT generation and ZIP are implemented in-house, with no LibreOffice or other large packages; front-end CDN resources use SRI; the Jitsi IFrame API (`external_api.js`) is bundled at a pinned version with SRI instead of being loaded live from a third party; the PDF font is bundled (SIL OFL); the image build applies the latest OS security updates; Release images are built by CI from the tagged source and published with a sha256.
+- **A04 Cryptographic Failures**: Passwords are bcrypt-hashed; JWTs are signed (RS256 / HS256) with lifetimes; single sign-on id_tokens are verified against the IdP public keys (JWKS), accepting only RS256 / RS384 / RS512 and rejecting `none` and algorithm confusion; the TLS certificate of the speech service is always verified (a self-signed certificate is trusted through its pasted PEM — verification is never turned off); webhooks are HMAC-signed; session cookies are HttpOnly, SameSite and Secure.
+- **A05 Injection**: All output escaped and input sanitized; protection against email header injection and CSV formula injection; line breaks stripped from forwarded syslog to prevent forged entries; exported DOCX / ODT / HTML content is fully escaped with control characters removed; a nonce-based Content Security Policy on every page (including the meeting page) forbids inline script.
+- **A06 Insecure Design**: Gateway architecture, secure by default (guests must give a name, entry only while the host is online), least-privilege roles; the portal never handles AD passwords — company accounts always go through an OIDC identity provider, which provides MFA and brute-force protection; nor does the portal talk to a language model — transcripts and summaries come from a self-hosted speech service, which is told to delete its copy once the results are stored here.
+- **A07 Authentication Failures**: OIDC single sign-on: Authorization Code + PKCE (S256) + state + nonce, accounts bound by iss + sub and never merged into local accounts by email; an "SSO only" mode with an emergency local admin restricted by IP; local accounts have TOTP two-factor authentication (replay-protected) and login lockout by real source IP **plus per account** (against password guessing from many IPs); idle / absolute session timeouts, with sessions revoked on password change or forced sign-out; an optional disguised login path (never leaked by redirects).
+- **A08 Software or Data Integrity Failures**: every data file is written *atomically* — the new content is written in full to a temporary file and then swapped in with a single rename, so a crash or power loss mid-write leaves the previous complete file rather than a broken one — and *under a lock*, so simultaneous changes are applied one after another instead of overwriting each other; webhooks (8x8 usage, speech service) are verified by HMAC signature and time window, with duplicates removed by idempotency key / event ID; jobs sent to the speech service carry an Idempotency-Key so a resend is never processed twice; the speech service is told to delete its copy only after the results are safely on disk; settings import uses a whitelist.
+- **A09 Security Logging & Alerting Failures**: A complete audit log: sign-ins, single sign-on success / failure, and every action on rooms, accounts, settings, recordings and transcripts (never the transcript content); every entry forwarded to your SIEM in real time (syslog / CEF / GELF) with line breaks stripped to prevent forged entries.
+- **A10 Mishandling of Exceptional Conditions**: Fail-safe degradation: read failures fall back to defaults, mail / log-forwarding failures never block the main flow, errors are not leaked; any failed single sign-on check means refusal (fail-closed); an unreachable speech service is retried with back-off and marked failed with a readable reason after 24 hours, and failed summaries are redone automatically; missing components produce a readable message instead of an error 500; playback failures distinguish a timed-out login, a missing file and an unavailable service.
 - Private keys, settings and runtime data are all stored in mounted volumes and **never enter version control** (see `.gitignore`).
 - **Known limitations (by design of Jitsi):** the room name is part of the invite link, so use random names or lobby mode for sensitive meetings; in self-hosted mode without JWT anyone who knows a room name can join directly on the Jitsi domain (enable JWT — the settings page warns about this); a guest who has already received a meeting token can rejoin directly within its lifetime (6 h) — use lobby mode if that matters.
 - Every release must pass unit, integration, browser e2e tests and an OWASP ZAP scan with **zero High / Medium alerts** — see [TEST_CHECKLIST.md](TEST_CHECKLIST.md).

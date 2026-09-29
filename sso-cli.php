@@ -3,9 +3,9 @@
  * 單一登入緊急 CLI——僅供命令列使用，網頁存取一律 404。
  * 用途：IdP 故障或設定錯誤導致無人能登入時，從伺服器端還原本地密碼登入。
  *
- *   docker exec -u www-data jaas-auth php /var/www/html/sso-cli.php show
- *   docker exec -u www-data jaas-auth php /var/www/html/sso-cli.php disable-sso-only   # 保留 SSO，恢復本地密碼登入
- *   docker exec -u www-data jaas-auth php /var/www/html/sso-cli.php disable            # 完全停用 SSO
+ *   docker exec -u www-data jt-vc-portal php /var/www/html/sso-cli.php show
+ *   docker exec -u www-data jt-vc-portal php /var/www/html/sso-cli.php disable-sso-only   # 保留 SSO，恢復本地密碼登入
+ *   docker exec -u www-data jt-vc-portal php /var/www/html/sso-cli.php disable            # 完全停用 SSO
  */
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 

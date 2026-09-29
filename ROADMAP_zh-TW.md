@@ -16,7 +16,7 @@
 
 以 **OIDC 單一登入**實作：Keycloak（獨立主機）透過 LDAPS 聯合 Active Directory，jt-vc-portal 以 OIDC 信任 Keycloak，詳見 [KEYCLOAK-SETUP_zh-TW.md](KEYCLOAK-SETUP_zh-TW.md)。AD 群組對應管理員 / 主持人角色、首次登入自動建立帳號，MFA 與防暴力破解由 Keycloak 負責。
 
-- **portal 不會直接連 AD / LDAP**：portal 對外網開放，直接連會把 AD 密碼驗證（與 AD 帳號鎖定）暴露到網路上。
+- **portal 不會直接連 AD / LDAP**：portal 的登入頁開放給外部網路使用。如果由 portal 直接拿使用者輸入的帳密去 AD 驗證，任何人都能透過這個登入頁對公司的 AD 帳號猜密碼；故意輸錯幾次，還會觸發 AD 的帳號鎖定，讓員工連電腦、信箱等其他系統都登不進去。所以改由 Keycloak 這類身分提供者（IdP）負責驗證，在那一層做 MFA 與暴力破解防護（門檻設得比 AD 鎖定低），portal 本身完全不經手 AD 密碼。
 
 ### 二、整合 jt-live-whisper 會議語音轉錄——v1.12.0 完成逐字稿與摘要
 

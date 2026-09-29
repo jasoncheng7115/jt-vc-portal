@@ -3,9 +3,9 @@
  * 登入路徑 CLI 工具——僅供命令列使用，網頁存取一律 404。
  * 用途：管理者忘記或鎖死自訂登入路徑時，從伺服器端還原回預設 /jt-login。
  *
- *   docker exec -u www-data jaas-auth php /var/www/html/login-path.php show
- *   docker exec -u www-data jaas-auth php /var/www/html/login-path.php reset
- *   docker exec -u www-data jaas-auth php /var/www/html/login-path.php set <path>
+ *   docker exec -u www-data jt-vc-portal php /var/www/html/login-path.php show
+ *   docker exec -u www-data jt-vc-portal php /var/www/html/login-path.php reset
+ *   docker exec -u www-data jt-vc-portal php /var/www/html/login-path.php set <path>
  */
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 

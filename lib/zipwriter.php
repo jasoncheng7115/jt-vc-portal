@@ -1,6 +1,6 @@
 <?php
 /**
- * 極簡 ZIP 產生器（Word .docx / ODF .odt 都是 ZIP 包 XML）。
+ * 極簡 ZIP 產生器（.docx / .odt 都是 ZIP 包 XML）。
  * 不用 ZipArchive：那是 PHP 的 zip 擴充，官方 Docker 映像與多數主機預設沒有裝；這裡只需要 zlib（gzdeflate / crc32）。
  * 只寫不讀、全部在記憶體；檔案依加入順序排列（ODF 規定 `mimetype` 必須是第一個且不壓縮）。
  */

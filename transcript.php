@@ -1,7 +1,7 @@
 <?php
 /**
  * 錄影逐字稿與會議摘要檢視頁（GET /transcript?id=<錄影 id>）。畫面與互動照 jtdt 的 meeting_transcribe / meeting_summary：
- *   摘要（重點、決議與待辦、事件與影響、風險、未決問題；每一條附引用時間，點了跳播並標亮逐字稿）、議題時間軸、誰講了多少、
+ *   摘要（重點、決議與待辦、事件與影響、風險、未決問題；每一條附引用時間，點了跳播並標亮逐字稿）、議題時間軸、發言統計、
  *   播放器（圓形播放鍵＋波形＋游標提示當下發言者；大檔不畫波形）、逐字稿（發言者配色、點名字改名：整個代號或只改這段）。
  * 權限：Transcripts::canView（管理員或有逐字稿權限的主持人，且可存取該錄影）。
  */
@@ -77,8 +77,9 @@ render_topbar($me, $ip);
     <div class="tx-actions">
       <?php $dl = fn(string $f) => '/transcript-download?id=' . rawurlencode($id) . '&amp;f=' . $f; ?>
       <a class="btn btn-secondary btn-sm tx-dl" href="<?= $dl('pdf') ?>" title="<?= th('整份會議記錄（會議資訊、摘要與逐字稿）') ?>"><?= icon('download', 14) ?>PDF</a>
-      <a class="btn btn-secondary btn-sm tx-dl" href="<?= $dl('docx') ?>" title="<?= th('整份會議記錄（會議資訊、摘要與逐字稿）') ?>"><?= icon('download', 14) ?>Word</a>
+      <a class="btn btn-secondary btn-sm tx-dl" href="<?= $dl('docx') ?>" title="<?= th('整份會議記錄（會議資訊、摘要與逐字稿）') ?>"><?= icon('download', 14) ?>DOCX</a>
       <a class="btn btn-secondary btn-sm tx-dl" href="<?= $dl('odt') ?>" title="<?= th('整份會議記錄（會議資訊、摘要與逐字稿）') ?>"><?= icon('download', 14) ?>ODT</a>
+      <a class="btn btn-secondary btn-sm tx-dl" href="<?= $dl('html') ?>" title="<?= th('整份會議記錄（會議資訊、摘要與逐字稿）') ?>"><?= icon('download', 14) ?>HTML</a>
       <div class="tx-more" id="txMore">
         <button type="button" class="btn btn-secondary btn-sm" id="txMoreBtn" aria-haspopup="true" aria-expanded="false"><?= th('其他格式') ?><?= icon('chevron-down', 14) ?></button>
         <div class="tx-more-menu" id="txMoreMenu" hidden>
@@ -120,7 +121,7 @@ render_topbar($me, $ip);
     <section class="tx-sec"><h3><?= icon('warning', 16) ?><?= th('風險') ?></h3><div class="tx-cards" id="txRisks"></div></section>
     <section class="tx-sec"><h3><?= icon('info', 16) ?><?= th('未決問題') ?></h3><div class="tx-cards" id="txQuestions"></div></section>
     <section class="tx-sec" id="txChapWrap" hidden><h3><?= icon('list', 16) ?><?= th('議題時間軸') ?></h3><div class="tx-chap" id="txChap"></div></section>
-    <section class="tx-sec" id="txSpkWrap" hidden><h3><?= icon('user', 16) ?><?= th('誰講了多少') ?></h3>
+    <section class="tx-sec" id="txSpkWrap" hidden><h3><?= icon('user', 16) ?><?= th('發言統計') ?></h3>
       <div class="tx-tablewrap"><table class="tx-spk" id="txSpk"></table></div></section>
     <?php if ($sum['model'] ?? ''): ?><p class="muted tx-model"><?= th('摘要模型：{m}', ['m' => (string)$sum['model']]) ?></p><?php endif; ?>
   </div>
