@@ -82,22 +82,22 @@ body.lang-zh .btn.zh,body.lang-en .btn.en,body.lang-ja .btn.ja{display:inline-fl
     radial-gradient(at 56% 60%, hsla(340,90%,76%,.30), transparent 52%),
     radial-gradient(at 46% 8%,  hsla(43,95%,72%,.28), transparent 46%);
   filter:blur(14px)}
-.hero .wrap{position:relative;z-index:1;padding-top:72px;padding-bottom:72px;text-align:center}
-.hero .eyebrows{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}
-.hero .eyebrow{display:inline-block;font-size:13px;font-weight:600;background:rgba(255,255,255,.7);border:1px solid var(--border);padding:5px 14px;border-radius:999px;backdrop-filter:blur(6px)}
+.hero .wrap{position:relative;z-index:1;padding-top:96px;padding-bottom:88px;text-align:center}
+.hero .eyebrows{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:32px}
+.hero .eyebrow{display:inline-block;font-size:13px;font-weight:600;background:rgba(255,255,255,.7);border:1px solid var(--border);padding:6px 16px;border-radius:999px;backdrop-filter:blur(6px)}
 .hero .eyebrow:nth-child(1){color:#0891b2;border-color:#a5e8f2}
 .hero .eyebrow:nth-child(2){color:#7c3aed;border-color:#d6c4fb}
 .hero .eyebrow:nth-child(3){color:#db2777;border-color:#f8c2dc}
-.hero h1{font-size:52px;line-height:1.1;letter-spacing:-.035em;margin:0 0 18px;font-weight:800;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+.hero h1{font-size:52px;line-height:1.15;letter-spacing:-.035em;margin:0 0 28px;text-wrap:balance;font-weight:800;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
 .hero h1 .grad{background:none;-webkit-text-fill-color:transparent;color:transparent}
-.hero p.lead{font-size:19px;color:var(--muted);max-width:660px;margin:0 auto 14px}
-.hero .lead-note{display:inline-flex;align-items:flex-start;gap:9px;text-align:left;max-width:600px;margin:0 auto 30px;padding:11px 16px;font-size:13px;line-height:1.65;color:var(--muted);background:rgba(255,255,255,.55);border:1px solid var(--border);border-radius:12px;backdrop-filter:blur(6px)}
+.hero p.lead{font-size:19px;line-height:1.8;color:var(--muted);max-width:760px;margin:0 auto 28px;text-wrap:balance;word-break:keep-all;overflow-wrap:anywhere}
+.hero .lead-note{display:inline-flex;align-items:flex-start;gap:9px;text-align:left;max-width:620px;margin:0 auto 40px;padding:13px 18px;font-size:13px;line-height:1.65;color:var(--muted);background:rgba(255,255,255,.55);border:1px solid var(--border);border-radius:12px;backdrop-filter:blur(6px)}
 .hero .lead-note .ln-ico{width:17px;height:17px;flex-shrink:0;margin-top:1px;color:var(--accent-2)}
 .hero .lead-note strong{color:var(--text);font-weight:600}
-.hero .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:30px}
+.hero .cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:40px}
 .badges img{height:22px}
-@media(max-width:600px){.hero h1{font-size:36px}}
+@media(max-width:600px){.hero h1{font-size:36px;margin-bottom:22px}.hero .wrap{padding-top:64px;padding-bottom:64px}.hero .eyebrows{margin-bottom:24px}.hero p.lead{font-size:17px;line-height:1.75}.hero .lead-note{margin-bottom:32px}}
 
 /* screenshot frame */
 .shot{margin:0}
@@ -114,7 +114,7 @@ body.lang-en .shot .frame.empty::after{content:"Screenshot coming soon"}
 body.lang-ja .shot .frame.empty::after{content:"スクリーンショットは近日追加予定"}
 .shot figcaption{display:inline-block;color:var(--text);font-size:13px;font-weight:500;margin:14px auto 0;padding:6px 14px;text-align:center;background:rgba(255,255,255,.7);border:1px solid var(--border);border-radius:999px;backdrop-filter:blur(6px)}
 .hero-shot{text-align:center}
-.hero-shot{position:relative;max-width:880px;margin:48px auto 0}
+.hero-shot{position:relative;max-width:880px;margin:64px auto 0}
 .hero-shot::before{content:"";position:absolute;inset:-24px;border-radius:28px;background:var(--grad);filter:blur(44px);opacity:.16;z-index:-1}
 .hero-shot .frame{box-shadow:0 34px 80px rgba(10,10,30,.34)}
 
