@@ -5,6 +5,7 @@ require_once __DIR__ . '/lib/layout.php';
 require_once __DIR__ . '/lib/rooms.php';
 require_once __DIR__ . '/lib/jaas.php';
 require_once __DIR__ . '/lib/audit.php';
+require_once __DIR__ . '/lib/health.php';
 
 Auth::start();
 $room = $_SESSION['room'] ?? null;
@@ -47,6 +48,9 @@ if ($data === null) {
 } else {
   $eval = Rooms::evaluate($data);
 }
+
+// 可以進場但 Jitsi Meet 故障 → 友善的故障頁（每 30 秒自動重試），不載入打不開的會議畫面
+if ($eval['allow'] && Health::jitsiDown()) { render_service_down($room, false); exit; }
 
 // 允許 → 先確認來賓已輸入名字，否則顯示輸入表單
 if ($eval['allow']) {
@@ -120,8 +124,10 @@ if ($eval['allow']) {
   <div class="meeting-shell">
     <div id="jaas-container"></div>
   </div>
+  <?= jitsi_down_overlay(false) ?>
 <?php $mui = Settings::resolveMeetingUi(); ?>
 <script <?= nonce_attr() ?>>
+<?= jitsi_watch_js() ?>
 window.addEventListener('load', () => {
   const options = {
     roomName: <?= json_encode(Jaas::roomName($room)) ?>,
@@ -165,6 +171,7 @@ window.addEventListener('load', () => {
   };
   const api = new JitsiMeetExternalAPI(<?= json_encode(Jaas::apiDomain()) ?>, options);
   api.addEventListener('readyToClose', () => { window.location.href = '/leave'; });
+  jitsiWatch(api);
 <?php if ($mui['default_view'] === 'tile'): ?>
   api.addEventListener('videoConferenceJoined', () => {
     try { api.executeCommand('setTileView', true); } catch (e) {}   // default to tile view

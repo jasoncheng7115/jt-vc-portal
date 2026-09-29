@@ -488,16 +488,16 @@ render_topbar($me, $ip);
         <textarea name="jtlw_ca" rows="4" class="mono" placeholder="-----BEGIN CERTIFICATE-----"><?= htmlspecialchars($tx['jtlw_ca']) ?></textarea>
         <?php if ($tx_fp !== ''): ?><div class="help mono" style="font-size:11px;"><?= th('SHA-256 指紋：{fp}（請與語音服務提供的指紋核對）', ['fp' => $tx_fp]) ?></div><?php endif; ?></div>
       <div class="field-row">
-        <div class="field"><label><?= th('會議語言（已知就指定，比自動判斷可靠）') ?></label>
+        <div class="field"><label><?= th('預設會議語言（建立會議室時沒指定的場次才用）') ?></label>
           <select name="language">
-            <?php foreach (['zh-Hant' => t('中文'), 'en' => t('英文'), 'ja' => t('日文'), 'ko' => t('韓文'), 'auto' => t('自動判斷')] as $lv => $ll): ?>
+            <?php foreach (Transcripts::meetingLanguages() + ['auto' => t('自動判斷')] as $lv => $ll): ?>
               <option value="<?= $lv ?>" <?= $tx['language'] === $lv ? 'selected' : '' ?>><?= htmlspecialchars($ll) ?></option>
             <?php endforeach; ?>
           </select>
-          <div class="help"><?= th('「自動判斷」只看開頭約 30 秒決定整場語言，開頭有人先講另一種語言時整場都可能辨識錯。會議摘要只支援中文與英文。') ?></div></div>
+          <div class="help"><?= th('勾選產生逐字稿的會議，建立時必須選主要語言；這裡只用在舊會議或沒指定語言的場次。「自動判斷」只看開頭約 30 秒決定整場語言，開頭有人先講另一種語言時整場都可能辨識錯。會議摘要支援中文、英文與台語（閩南語）。') ?></div></div>
         <div class="field"><label><?= th('辨識模式') ?></label>
           <input type="text" name="profile_id" value="<?= htmlspecialchars($tx['profile_id']) ?>" placeholder="meeting.balanced">
-          <div class="help"><?= th('meeting.balanced（建議）或 meeting.detailed（較慢較細）。') ?></div></div>
+          <div class="help"><?= th('一般會議用 meeting.balanced（目前唯一的會議模式；meeting.detailed 已停用，會自動改用 balanced）。台語（閩南語）會議不看這裡，依會議主要語言自動使用台語專用模式。') ?></div></div>
       </div>
       <div class="field"><label><input type="checkbox" name="summarize" value="1" <?= $tx['summarize'] ? 'checked' : '' ?>> <?= th('同時產生會議摘要（決議、待辦、風險、議題，附時間點）') ?></label></div>
       <div class="field"><label><?= th('完成通知（webhook）') ?></label>

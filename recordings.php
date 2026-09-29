@@ -25,7 +25,17 @@ function tx_cell(array $r, ?array $e, array $me): string {
   $st = (string)($e['status'] ?? '');
   if ($st === '') {
     if (($r['status'] ?? '') !== 'ok') return '<span class="muted">—</span>';
-    return $can ? $form('request', t('產生逐字稿'), 'sparkles', 'btn btn-sm tx-gen', '', t('把這筆錄影交給語音服務產生逐字稿與會議摘要')) : '<span class="muted">—</span>';
+    if (!$can) return '<span class="muted">—</span>';
+    if (Transcripts::languageOf($r) !== null) return $form('request', t('產生逐字稿'), 'sparkles', 'btn btn-sm tx-gen', '', t('把這筆錄影交給語音服務產生逐字稿與會議摘要'));
+    // 會議當時沒選主要語言（舊會議或沒勾逐字稿）：先選語言，語音服務才知道要用哪個辨識模型
+    $items = '';
+    foreach (Transcripts::meetingLanguages() as $code => $label) {
+      $items .= '<form method="POST" action="/transcript-action">' . Auth::csrfField() . '<input type="hidden" name="action" value="request"><input type="hidden" name="id" value="' . htmlspecialchars($rid) . '">'
+        . '<input type="hidden" name="language" value="' . $code . '"><input type="hidden" name="back" value="/recordings"><button class="tx-lang-item">' . htmlspecialchars($label) . '</button></form>';
+    }
+    return '<span class="tx-pick"><button type="button" class="btn btn-sm tx-gen tx-pick-btn" aria-haspopup="true" aria-expanded="false" title="' . th('選擇會議主要語言後產生逐字稿與會議摘要') . '">'
+      . icon('sparkles', 14) . th('產生逐字稿') . icon('chevron-down', 12) . '</button>'
+      . '<span class="tx-pick-menu" hidden><span class="tx-pick-head">' . th('這場會議的主要語言') . '</span>' . $items . '</span></span>';
   }
   // 已完成（綠底、打勾）與尚未產生（白底虛線、星形）外觀刻意區分，一眼分得出來
   $view = '<a class="btn btn-sm tx-view" title="' . th('查看逐字稿與會議摘要') . '" href="/transcript?id=' . rawurlencode($rid) . '">' . icon('check', 14) . th('查看逐字稿與摘要') . '</a>';
@@ -39,6 +49,10 @@ function tx_cell(array $r, ?array $e, array $me): string {
       $why = !empty($e['summary_retry_at']) ? t('摘要將自動重試（第 {n} 次）', ['n' => (int)($e['summary_retries'] ?? 0) + 1]) : Jtlw::describe((string)($e['summary_error'] ?? ''));
       return $row($view . $chip('tx-chip-warn', icon('warning', 13), t('摘要失敗')), $why);
     case 'failed':
+      if (!empty($e['job_retry_at'])) {   // 可重試的失敗：排定自動重試中
+        return $row($chip('tx-chip-warn', icon('refresh', 13), t('等待重試')) . ($can ? $form('regenerate', t('重新產生'), 'refresh', 'btn btn-secondary btn-sm', '', t('重新上傳錄影並產生逐字稿與摘要')) : ''),
+                    t('辨識暫時失敗，將自動重試（第 {n} 次）：{why}', ['n' => (int)($e['job_retries'] ?? 0) + 1, 'why' => Jtlw::describe((string)($e['error_code'] ?? ''), (string)($e['error_reason'] ?? ''))]));
+      }
       return $row($chip('tx-chip-fail', icon('warning', 13), t('產生失敗')) . ($can ? $form('regenerate', t('重新產生'), 'refresh', 'btn btn-secondary btn-sm', '', t('重新上傳錄影並產生逐字稿與摘要')) : ''),
                   Jtlw::describe((string)($e['error_code'] ?? ''), (string)($e['error_reason'] ?? '')));
     case 'cancelled':
@@ -59,6 +73,7 @@ function tx_cell(array $r, ?array $e, array $me): string {
 /** 逐字稿失敗 / 摘要失敗 / 重試中的原因（展開列顯示用）；沒有就回空字串。 */
 function tx_reason(?array $e): string {
   $st = (string)($e['status'] ?? '');
+  if ($st === 'failed' && !empty($e['job_retry_at'])) return t('辨識暫時失敗，將自動重試（第 {n} 次）：{why}', ['n' => (int)($e['job_retries'] ?? 0) + 1, 'why' => Jtlw::describe((string)($e['error_code'] ?? ''), (string)($e['error_reason'] ?? ''))]);
   if ($st === 'failed') return Jtlw::describe((string)($e['error_code'] ?? ''), (string)($e['error_reason'] ?? ''));
   if ($st === 'partial') return !empty($e['summary_retry_at']) ? t('摘要將自動重試（第 {n} 次）', ['n' => (int)($e['summary_retries'] ?? 0) + 1]) : Jtlw::describe((string)($e['summary_error'] ?? ''));
   if ($st === 'pending' && (int)($e['attempts'] ?? 0) > 0) return Jtlw::describe((string)($e['error_code'] ?? ''));
@@ -204,7 +219,7 @@ render_topbar($me, $ip);
       </div>
       <p class="muted" style="font-size:12px;margin:0 0 8px;"><?= th('點任一列（操作鍵除外）可展開該場參與者。') ?></p>
       <table class="table audit-table">
-        <thead><tr><th class="caret-col no-sort"></th><th><?= th('會議室') ?></th><th><?= th('主持人') ?></th><th><?= th('時間') ?></th><th><?= th('長度') ?></th><th><?= th('大小') ?></th><th><?= th('狀態') ?></th><?php if ($tx_on): ?><th><?= th('逐字稿') ?></th><?php endif; ?><th style="text-align:right;"><?= th('操作') ?></th></tr></thead>
+        <thead><tr><th class="caret-col no-sort"></th><th><?= th('會議室') ?></th><th><?= th('主持人') ?></th><th><?= th('時間') ?></th><th><?= th('長度') ?></th><th><?= th('大小') ?></th><th><?= th('狀態') ?></th><?php if ($tx_on): ?><th><?= th('主要語言') ?></th><th><?= th('逐字稿') ?></th><?php endif; ?><th style="text-align:right;"><?= th('操作') ?></th></tr></thead>
         <tbody>
         <?php foreach ($list as $r):
           $rid = (string)$r['id']; $st = (string)($r['status'] ?? 'ok');
@@ -223,7 +238,9 @@ render_topbar($me, $ip);
             <td class="mono"><?= htmlspecialchars(rec_dur($r['duration'] ?? 0)) ?></td>
             <td class="mono"><?= rec_bytes($r['size']) ?></td>
             <td><?= rec_status_badge($st) ?></td>
-            <?php if ($tx_on): ?><td class="tx-cell" title="" style="white-space:nowrap;"><?= tx_cell($r, $tx_index[$rid] ?? null, $me) ?></td><?php endif; ?>
+            <?php if ($tx_on): $tx_lang_shown = Transcripts::displayLanguage($r, $tx_index[$rid] ?? null); ?>
+              <td class="tx-lang-cell"><?= $tx_lang_shown !== null ? htmlspecialchars(Transcripts::languageLabel($tx_lang_shown)) : '<span class="muted">—</span>' ?></td>
+              <td class="tx-cell" title="" style="white-space:nowrap;"><?= tx_cell($r, $tx_index[$rid] ?? null, $me) ?></td><?php endif; ?>
             <td title="" style="text-align:right;white-space:nowrap;">
               <?php if ($st === 'recording'): /* 錄製中：播放、下載、刪除都不可用（伺服器端也擋） */ $live_tip = t('錄製中，會議結束、錄影完成後才能播放、下載或刪除'); ?>
                 <span class="rec-live-actions" title="<?= htmlspecialchars($live_tip) ?>">
@@ -248,7 +265,7 @@ render_topbar($me, $ip);
             </td>
           </tr>
           <tr class="row-detail" hidden>
-            <td colspan="<?= $tx_on ? 9 : 8 ?>">
+            <td colspan="<?= $tx_on ? 10 : 8 ?>">
               <?php if ($tx_on && ($why = tx_reason($tx_index[$rid] ?? null)) !== ''): ?>
                 <div class="tx-detail-why"><?= icon('warning', 14) ?><span><?= th('逐字稿：{why}', ['why' => $why]) ?></span></div>
               <?php endif; ?>
@@ -289,6 +306,36 @@ render_topbar($me, $ip);
   </div>
 </main>
 <script <?= nonce_attr() ?>>
+// pick the meeting language before generating; the menu is position:fixed so the table scroller cannot clip it
+(function () {
+  var open = null;
+  function close() { if (!open) return; open.menu.hidden = true; open.btn.setAttribute('aria-expanded', 'false'); open = null; }
+  function place(btn, menu) {
+    var r = btn.getBoundingClientRect();
+    menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8)) + 'px';
+    // open upwards when there is no room below
+    var below = window.innerHeight - r.bottom - 8, h = menu.offsetHeight;
+    menu.style.top = (h > below && r.top - 8 > below ? r.top - h - 4 : r.bottom + 4) + 'px';
+    return r.bottom > 0 && r.top < window.innerHeight;
+  }
+  document.querySelectorAll('.tx-pick-btn').forEach(function (btn) {
+    var menu = btn.parentNode.querySelector('.tx-pick-menu');
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (open && open.btn === btn) { close(); return; }
+      close();
+      menu.hidden = false; place(btn, menu);
+      btn.setAttribute('aria-expanded', 'true'); open = { btn: btn, menu: menu };
+    });
+    menu.addEventListener('click', function (e) { e.stopPropagation(); });
+  });
+  document.addEventListener('click', close);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+  // follow the button while scrolling; close only once it leaves the screen
+  window.addEventListener('scroll', function () { if (open && !place(open.btn, open.menu)) close(); }, true);
+  window.addEventListener('resize', close);
+})();
+
 (function () {
   var modal = document.getElementById('playModal');
   var video = document.getElementById('playVideo');

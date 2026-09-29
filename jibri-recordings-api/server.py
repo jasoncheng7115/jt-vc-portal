@@ -170,6 +170,22 @@ def scan():
     out.sort(key=lambda x: x["mtime"], reverse=True)
     return out
 
+def _jibri_health(name):
+    """問 Jibri 自己的健康 API（容器內 127.0.0.1:2222）：忙碌狀態與健康狀態。取不到就標 UNKNOWN。"""
+    import subprocess
+    out = {"name": name, "busy": "UNKNOWN", "health": "UNKNOWN"}
+    if not re.fullmatch(r"[A-Za-z0-9._-]+", name):
+        return out
+    try:
+        r = subprocess.run(["docker", "exec", name, "curl", "-s", "-m", "3", "http://127.0.0.1:2222/jibri/api/v1.0/health"],
+                           capture_output=True, text=True, timeout=6)
+        st = (json.loads(r.stdout or "{}").get("status") or {})
+        out["busy"] = str(st.get("busyStatus") or "UNKNOWN")
+        out["health"] = str((st.get("health") or {}).get("healthStatus") or "UNKNOWN")
+    except Exception:
+        pass
+    return out
+
 def recorder_count():
     """本機已註冊的錄製器數：先數執行中的 jibri 容器，後援用 snd-aloop loopback 卡數。"""
     try:
@@ -177,9 +193,9 @@ def recorder_count():
         out = subprocess.run(["docker", "ps", "--format", "{{.Names}}"],
                              capture_output=True, text=True, timeout=4)
         if out.returncode == 0:
-            n = sum(1 for ln in out.stdout.splitlines() if "jibri" in ln.lower())
-            if n > 0:
-                return {"recorders": n, "source": "docker"}
+            names = [ln.strip() for ln in out.stdout.splitlines() if "jibri" in ln.lower()]
+            if names:
+                return {"recorders": len(names), "source": "docker", "detail": [_jibri_health(n) for n in names]}
     except Exception:
         pass
     try:
@@ -203,12 +219,22 @@ def stats():
 
 # ---------- 刪除 / 清理 ----------
 def _safe_dir(rid):
-    if not re.fullmatch(r"[A-Za-z0-9._-]+", rid or ""):
+    """錄影 id → 錄影目錄。只接受 REC_DIR 底下實際存在的一般目錄：
+    名稱取自目錄列表（不直接拼接使用者輸入），拒絕 . / .. / 隱藏檔與符號連結，杜絕路徑穿越。"""
+    if not rid or rid.startswith(".") or not re.fullmatch(r"[A-Za-z0-9._-]+", rid):
         return None
-    d = os.path.realpath(os.path.join(REC_DIR, rid))
-    if d != os.path.join(os.path.realpath(REC_DIR), rid) or not os.path.isdir(d):
+    base = os.path.realpath(REC_DIR)
+    try:
+        names = os.listdir(base)
+    except OSError:
         return None
-    return d
+    for name in names:
+        if name == rid:
+            d = os.path.join(base, name)
+            if os.path.islink(d) or not os.path.isdir(d):
+                return None
+            return d
+    return None
 
 def delete_rec(rid, reason="manual"):
     d = _safe_dir(rid)
@@ -370,7 +396,9 @@ class H(BaseHTTPRequestHandler):
         if status == 206:
             self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
         if qs.get("dl", ["0"])[0] == "1":
-            self.send_header("Content-Disposition", f"attachment; filename=\"{os.path.basename(p)}\"")
+            # 檔名只留安全字元：磁碟上的檔名若含換行等控制字元，放進標頭會造成標頭注入
+            fname = re.sub(r"[^A-Za-z0-9._-]", "_", os.path.basename(p)) or "recording.mp4"
+            self.send_header("Content-Disposition", f"attachment; filename=\"{fname}\"")
         self.end_headers()
         if self.command == "HEAD":
             return

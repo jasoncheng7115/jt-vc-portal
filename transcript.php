@@ -41,13 +41,14 @@ $data = [
   'suggest' => $sug['speakers'],
   'participants' => $pnames,
   'has_talk' => !empty($sess['talk']),
+  'no_speakers' => !empty($tr['diarize_skipped']),
   'summary' => $sum ? [
     'text' => (string)($sum['summary']['text'] ?? ''),
     'grounded' => (bool)($sum['summary']['grounded'] ?? true),
     'unsupported' => array_values((array)($sum['summary']['unsupported'] ?? [])),
     'items' => (array)($sum['items'] ?? []),
     'chapters' => array_values((array)($sum['chapters'] ?? [])),
-    'speakers' => array_values((array)($sum['speakers'] ?? [])),
+    'speakers' => array_values(array_filter((array)($sum['speakers'] ?? []), fn($x) => ($x['speaker_id'] ?? null) !== null && $x['speaker_id'] !== '')),   // 台語模式只有一筆 speaker_id=null
     'model' => (string)($sum['model'] ?? ''),
   ] : null,
 ];
@@ -72,6 +73,7 @@ render_topbar($me, $ip);
       <span><?= icon('video', 14) ?><strong><?= htmlspecialchars((string)($rec['room'] ?? '')) ?></strong></span>
       <span class="mono"><?= icon('clock', 14) ?><?= htmlspecialchars(date('Y-m-d H:i', (int)($rec['mtime'] ?? 0) - (int)($rec['duration'] ?? 0))) ?></span>
       <?php if ($sess && ($sess['owner_name'] ?? '') !== ''): ?><span><?= icon('user', 14) ?><?= htmlspecialchars((string)$sess['owner_name']) ?></span><?php endif; ?>
+      <span title="<?= th('主要語言') ?>"><?= icon('globe', 14) ?><?= htmlspecialchars(Transcripts::languageLabel((string)($e['language'] ?? ''))) ?></span>
       <span class="muted" id="txCount"></span>
     </div>
     <div class="tx-actions">
@@ -101,7 +103,9 @@ render_topbar($me, $ip);
     <?php if (!empty($tr['tail_hint'])): $tg = (int)round(($tr['tail_gap_ms'] ?? 0) / 1000); ?>
       <p class="info-box tx-hint"><?= th('錄影最後 {m} 分 {s} 秒沒有任何文字。如果到最後都有人在講話，這份逐字稿可能不完整，請重新產生；如果是錄影忘了停、或結尾沒有人說話，就不用理會。', ['m' => intdiv($tg, 60), 's' => $tg % 60]) ?></p>
     <?php endif; ?>
-    <?php if (!empty($tr['diarize_skipped'])): ?>
+    <?php if (!empty($tr['diarize_skipped']) && ($e['language'] ?? '') === 'nan-Hant'): ?>
+      <p class="info-box tx-hint"><?= th('台語（閩南語）使用專用的辨識模型，這個模型不做發言者分離，所以逐字稿沒有標出是誰說的；可以點名字手動標上。') ?></p>
+    <?php elseif (!empty($tr['diarize_skipped'])): ?>
       <p class="info-box tx-hint"><?= th('這次的辨識沒有做發言者分離，所以逐字稿沒有標出是誰說的。') ?></p>
     <?php endif; ?>
     <?php if (($e['summary_status'] ?? '') === 'failed'): ?>
@@ -115,6 +119,9 @@ render_topbar($me, $ip);
   <div class="card tx-summary">
     <h1 style="font-size:18px;margin:0 0 4px;"><?= icon('sparkles', 18) ?><?= th('會議摘要') ?></h1>
     <p class="muted tx-sum-note"><?= th('由語音服務（JTLW）以語言模型從逐字稿整理；每一條都附逐字稿的時間點與發言者，點時間可以跳到錄影該處。發言者代號（S1、S2…）不是人名，可以在下方逐字稿點名字改名。') ?></p>
+    <?php if (($e['language'] ?? '') === 'nan-Hant'): ?>
+      <p class="info-box tx-hint" id="txNanNote"><?= th('台語（閩南語）會議的摘要僅供參考：台語辨識會有錯字、英文大多被翻成中文，而且沒有發言者，負責人只能從內容裡提到的稱呼判斷。重要的決議與待辦請對照錄影確認。') ?></p>
+    <?php endif; ?>
     <section class="tx-sec"><h3><?= icon('sparkles', 16) ?><?= th('重點摘要') ?></h3><div class="tx-sum-text" id="txSumText"></div><div class="tx-warn" id="txSumWarn" hidden></div></section>
     <section class="tx-sec"><h3><?= icon('check', 16) ?><?= th('決議與待辦') ?></h3><div class="tx-cards" id="txDecide"></div></section>
     <section class="tx-sec"><h3><?= icon('info', 16) ?><?= th('事件與影響') ?></h3><div class="tx-cards" id="txImpacts"></div></section>
@@ -228,6 +235,7 @@ render_topbar($me, $ip);
   // ---- transcript ----
   var segs = data.segments || [];
   var bySeq = {}; segs.forEach(function (s) { bySeq[s.seq] = s; });
+  if (data.no_speakers) el('txSegs').classList.add('tx-nospk');
   function render() {
     var names = {}; segs.forEach(function (s) { if (s.speaker) names[segName(s)] = 1; });
     el('txCount').textContent = fmt(T.segs, String(segs.length), String(Object.keys(names).length));

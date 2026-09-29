@@ -80,6 +80,9 @@ final class TxExport {
         return implode(self::sep('gap'), $m);
       };
       $items = (array)($sum['items'] ?? []);
+      if (($tr['language'] ?? '') === 'nan-Hant') {
+        $b[] = ['warn', t('台語（閩南語）會議的摘要僅供參考：台語辨識會有錯字、英文大多被翻成中文，而且沒有發言者，負責人只能從內容裡提到的稱呼判斷。重要的決議與待辦請對照錄影確認。')];
+      }
       $b[] = ['h', t('重點摘要')];
       $b[] = ['p', (string)($sum['summary']['text'] ?? '') ?: t('沒有找到')];
       if (empty($sum['summary']['grounded'] ?? true) && !empty($sum['summary']['unsupported'])) {
@@ -104,6 +107,7 @@ final class TxExport {
           array_map(fn($c) => [self::mmss((int)($c['start_ms'] ?? 0)) . '–' . self::mmss((int)($c['end_ms'] ?? 0)), (string)($c['title'] ?? ''), sprintf('%.1f%%', (float)($c['percentage'] ?? 0))], (array)$sum['chapters']),
           [0.2, 0.65, 0.15]];
       }
+      $sum['speakers'] = array_values(array_filter((array)($sum['speakers'] ?? []), fn($x) => ($x['speaker_id'] ?? null) !== null && $x['speaker_id'] !== ''));
       if (!empty($sum['speakers'])) {
         $b[] = ['h', t('發言統計')];
         $b[] = ['table', [t('發言者'), t('發言時間'), t('發言次數'), t('字數')],

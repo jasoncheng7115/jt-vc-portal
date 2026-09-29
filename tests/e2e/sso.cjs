@@ -217,7 +217,7 @@ async function ssoLogin(page, user, { expectOtpSetup = false } = {}) {
   const noPkce = await pk.goto(`${KC}/realms/jtvc/protocol/openid-connect/auth?client_id=jt-vc-portal&response_type=code&scope=openid&redirect_uri=${encodeURIComponent(PORTAL + '/sso-callback')}&state=x&nonce=y`);
   ok('S24 未帶 PKCE 的授權請求被 Keycloak 拒絕', /code_challenge|pkce|error/i.test(pk.url() + (await pk.content())), pk.url());
   const badRedirect = await pk.goto(`${KC}/realms/jtvc/protocol/openid-connect/auth?client_id=jt-vc-portal&response_type=code&scope=openid&redirect_uri=${encodeURIComponent('https://evil.example.com/cb')}&state=x&nonce=y&code_challenge=abcdefghijklmnopqrstuvwxyzabcdefghijklmnopq&code_challenge_method=S256`);
-  ok('S24 非註冊的 redirect_uri 被拒絕', !pk.url().startsWith('https://evil.example.com') && /redirect/i.test(await pk.content()));
+  ok('S24 非註冊的 redirect_uri 被拒絕', new URL(pk.url()).hostname !== 'evil.example.com' && /redirect/i.test(await pk.content()));
 
   console.log('== S01 停用 SSO 後端點 404');
   cli('disable');

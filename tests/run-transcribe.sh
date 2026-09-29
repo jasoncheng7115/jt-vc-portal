@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 逐字稿與摘要整合測試（v1.12.0，項目 T13–T30）：拋棄式 portal ＋ JTLW 官方 mock 伺服器 ＋ 假 Jibri 錄影服務。
+# 逐字稿與摘要整合測試（v1.12.0，項目 T13–T30；v1.16.0 起含 T54–T57 會議主要語言與台語）：拋棄式 portal ＋ JTLW 官方 mock 伺服器 ＋ 假 Jibri 錄影服務。
 # 不碰任何正式系統。JTLW mock 來自 JTLW 交付的 docs-share/jtlw/jtlw-mock（維護者本機才有；沒有就略過）。
 # 用法：tests/run-transcribe.sh
 set -u
@@ -25,13 +25,13 @@ fi
 docker run -d --name $JN --network $NET --network-alias jtlw -v "$MOCK":/mock:ro -w /mock -e JTLW_MOCK_API_KEY=$KEY jtvc-jtlw-mock python mock_server.py --port 8990 --speed 20 >/dev/null
 NOW=$(date +%s)
 mkrec() { head -c 20000 /dev/urandom > "$JDATA/$1.mp4"; }
-for r in rec-live01 rec-ok01 rec-sum01 rec-sum02 rec-fail01 rec-q01 rec-slow01 rec-auto01 rec-old01 rec-dup01 rec-gone01 rec-other01; do mkrec $r; done
+for r in rec-live01 rec-ok01 rec-sum01 rec-sum02 rec-fail01 rec-q01 rec-slow01 rec-auto01 rec-old01 rec-dup01 rec-gone01 rec-other01 rec-lang01 rec-retry01; do mkrec $r; done
 python3 - "$JDATA" "$NOW" <<'PY'
 import json,sys
 d,now=sys.argv[1],int(sys.argv[2])
 rows=[("rec-ok01","room-man",now-200),("rec-sum01","room-man",now-190),("rec-fail01","room-man",now-180),("rec-q01","room-man",now-170),
       ("rec-slow01","room-man",now-160),("rec-auto01","room-auto",now-150),("rec-old01","room-auto",now-100000),("rec-dup01","room-man",now-140),
-      ("rec-gone01","room-man",now-130),("rec-sum02","room-man",now-125),("rec-other01","room-other",now-120)]
+      ("rec-gone01","room-man",now-130),("rec-sum02","room-man",now-125),("rec-other01","room-other",now-120),("rec-lang01","room-man",now-115),("rec-retry01","room-man",now-110)]
 recs=[{"id":i,"room":r,"file":f"{r}.mp4","size":20000,"mtime":m,"status":"ok","duration":120} for i,r,m in rows]
 recs.append({"id":"rec-live01","room":"room-man","file":"room-man-live.mp4","size":4000,"mtime":now-5,"status":"recording","duration":0})
 json.dump(recs,open(f"{d}/recs.json","w"))
@@ -135,6 +135,18 @@ echo "== T17 辨識失敗 → failed、不自動重送"
 enq rec-fail01 >/dev/null
 chk "T17 狀態 failed" "$(until_done rec-fail01 failed)" failed
 chk "T17 錯誤代碼 asr_failed" "$(status rec-fail01 error_code)" asr_failed
+echo "== T61 可重試的辨識失敗：排定自動重試，時間到直接 retry（錄影還在 JTLW，不重傳）"
+chk "T61 rec-fail01 也已排定自動重試" "$([ "$(status rec-fail01 job_retry_at)" -gt "$(date +%s)" ] && echo yes)" yes
+enq rec-retry01 >/dev/null
+chk "T61 第一次辨識失敗" "$(until_done rec-retry01 failed)" failed
+chk "T61 已排定自動重試" "$([ "$(status rec-retry01 job_retry_at)" -gt "$(date +%s)" ] && echo yes)" yes
+docker exec -u www-data $PN php -r "require '/var/www/html/config.php'; require_once '/var/www/html/lib/transcripts.php'; Store::update(Transcripts::INDEX_FILE, function (\$d) { \$d['rec-retry01']['job_retry_at'] = 1; return \$d; }, []);"
+UPL=$(status rec-retry01 upload_id)
+chk "T61 時間到自動 retry 後完成" "$(until_done rec-retry01 success)" done
+chk "T61 記錄自動重試次數" "$(status rec-retry01 job_retries)" 1
+chk "T61 沒有重新上傳（沿用同一個 upload）" "$(status rec-retry01 upload_id)" "$UPL"
+# rec-fail01 當成「重試次數用完」：瀏覽器測試（T40）要看的是永久失敗的樣子
+docker exec -u www-data $PN php -r "require '/var/www/html/config.php'; require_once '/var/www/html/lib/transcripts.php'; Store::update(Transcripts::INDEX_FILE, function (\$d) { \$d['rec-fail01']['job_retry_at'] = 0; \$d['rec-fail01']['job_retries'] = 3; return \$d; }, []);"
 
 echo "== T18 佇列滿（429）→ 退回 pending 並排定重試"
 enq rec-q01 >/dev/null; worker queue_full >/dev/null
@@ -176,6 +188,38 @@ PW_MOD=${PLAYWRIGHT_MODULE:-/opt/jt-ipam/frontend/node_modules/.pnpm/playwright@
 PLAYWRIGHT_MODULE=$PW_MOD node "$ROOT/tests/e2e/transcribe.cjs" "http://127.0.0.1:$PPORT" "$ADMIN_PW" "$HOST_PW" | tee /tmp/.tx-e2e.$$
 P=$(grep -oE '^[0-9]+ passed' /tmp/.tx-e2e.$$ | grep -oE '^[0-9]+'); F=$(grep -oE '[0-9]+ failed' /tmp/.tx-e2e.$$ | tail -1 | grep -oE '^[0-9]+'); rm -f /tmp/.tx-e2e.$$
 pass=$((pass + ${P:-0})); fail=$((fail + ${F:-1}))
+
+echo "== T56 台語：選台語後送件用台語專用模式、不要求發言者分離"
+chk "T56 在錄影記錄選「台語」後排入，語言為 nan-Hant" "$(status rec-lang01 language)" nan-Hant
+chk "T56 完成" "$(until_done rec-lang01 success)" done
+JOBL=$(status rec-lang01 job_id)
+PLAN=$(docker exec $JN python -c "
+import urllib.request,json
+r=urllib.request.Request('http://127.0.0.1:8990/api/v1/jobs/$JOBL',headers={'Authorization':'Bearer $KEY'})
+j=json.load(urllib.request.urlopen(r)); t=j.get('tasks'); t=sorted(t.keys() if isinstance(t,dict) else t)
+print(j.get('profile_id'), ','.join(t))")
+chk "T56 送件內容：台語模式、沒有 diarize（有摘要）" "$PLAN" "transcribe.taiwanese correct,summarize,transcribe"
+chk "T56 逐字稿取回（標示沒有發言者分離）" "$(docker exec -u www-data $PN php -r "require '/var/www/html/config.php'; require_once '/var/www/html/lib/transcripts.php'; \$t=Transcripts::result('rec-lang01'); echo count(\$t['segments'] ?? []) > 0 && !empty(\$t['diarize_skipped']) ? 'yes' : 'no';")" yes
+
+cat > /tmp/.tx-nan.$$.cjs <<'JS'
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE);
+const [,, BASE, PW] = process.argv;
+(async () => { const b = await chromium.launch(); const p = await b.newPage({ locale: 'zh-TW', extraHTTPHeaders: { 'Accept-Language': 'zh-TW' } });
+  await p.goto(BASE + '/jt-login'); await p.fill('#email', 'hman'); await p.fill('#password', PW);
+  await Promise.all([p.waitForURL(/dashboard/), p.click('form[action="/verify"] button[type=submit]')]);
+  await p.goto(BASE + '/transcript?id=rec-lang01'); await p.waitForTimeout(800);
+  const r = await p.evaluate(() => ({
+    note: !!document.getElementById('txNanNote'),
+    spkCol: [...document.querySelectorAll('#txSegs .mt-s')].some(e => getComputedStyle(e).display !== 'none'),
+    spkStats: !document.getElementById('txSpkWrap').hidden,
+    suggest: !document.getElementById('txSuggest').hidden,
+    lang: document.querySelector('.tx-meta').textContent.includes('台語（閩南語）為主') }));
+  const pdf = await (await p.request.get(BASE + '/transcript-download?id=rec-lang01&f=html')).text();
+  console.log([r.note, !r.spkCol, !r.spkStats, !r.suggest, r.lang, pdf.includes('僅供參考')].map(x => x ? 'y' : 'n').join(''));
+  await b.close(); })();
+JS
+NAN=$(PLAYWRIGHT_MODULE=$PW_MOD node /tmp/.tx-nan.$$.cjs "http://127.0.0.1:$PPORT" "$HOST_PW" 2>&1 | tail -1); rm -f /tmp/.tx-nan.$$.cjs
+chk "T57 台語逐字稿頁：摘要標示僅供參考、不顯示發言者欄 / 發言統計 / 發言者建議、顯示主要語言；匯出也標示" "$NAN" yyyyyy
 
 echo
 echo "TRANSCRIBE: $pass passed, $fail failed"

@@ -1,6 +1,6 @@
 <?php
 /**
- * 逐字稿與摘要（v1.12.0）單元測試。項目 T01–T12 ↔ TEST_CHECKLIST 3.12 節。
+ * 逐字稿與摘要（v1.12.0）單元測試。項目 T01–T12、T32–T35、T38、T51–T53 ↔ TEST_CHECKLIST 3.12 節。
  * 不連任何外部服務：JTLW 呼叫以 mock 整合測試（tests/run-transcribe.sh）涵蓋。
  */
 require __DIR__ . '/../bootstrap.php';
@@ -213,6 +213,55 @@ test('T38 已送件後連不上 JTLW：24 小時內繼續等；超過 24 小時�
   ok(Transcripts::poll('rec-dddd2')); eq(Transcripts::get('rec-dddd2')['status'], 'failed'); eq(Transcripts::get('rec-dddd2')['error_code'], 'jtlw_unreachable');
   ok(!str_contains(Jtlw::describe('jtlw_unreachable'), 'jtlw_unreachable'), '有白話說明');
   Jtlw::$cfgOverride = null;
+});
+
+
+// ---- 會議主要語言（v1.16.0）----
+test('T51 依語言決定辨識模式：台語用台語專用模式、不做發言者分離；其他語言用設定的模式並分發言者', function () {
+  $cfg = ['profile_id' => 'meeting.detailed'];
+  eq(Transcripts::jobPlan('nan-Hant', $cfg), ['profile_id' => Transcripts::TAIWANESE_PROFILE, 'tasks' => ['transcribe', 'correct']]);
+  foreach (['zh-Hant', 'en', 'ja', 'ko', 'auto'] as $l) eq(Transcripts::jobPlan($l, $cfg), ['profile_id' => 'meeting.detailed', 'tasks' => ['transcribe', 'diarize', 'correct']], $l);
+  eq(array_keys(Transcripts::meetingLanguages()), Transcripts::MEETING_LANGS, '選單與允許值一致');
+  ok(!in_array('auto', Transcripts::MEETING_LANGS, true), '建立會議室不提供「自動判斷」');
+  eq(Transcripts::languageLabel('nan-Hant'), t('台語（閩南語）為主'));
+  eq(Transcripts::languageLabel(null), '—');
+});
+
+test('T52 送件語言：明確指定 > 會議建立時選的主要語言 > 系統預設', function () use ($now, $man, $rec) {
+  Settings::setTranscribe(['enabled' => true, 'language' => 'zh-Hant'], true);
+  Store::appendLine(Rooms::MEETINGS_FILE, ['ts' => $now - 60, 'room' => 'r-lang', 'start' => $now - 3600, 'end' => $now - 60, 'dur' => 3540,
+    'owner' => $man['id'], 'owner_name' => 'x', 'attendees' => 1, 'peak' => 1, 'participants' => [], 'transcribe' => true, 'tx_lang' => 'nan-Hant']);
+  eq(Transcripts::languageOf($rec('r-lang', 'rec-l1')), 'nan-Hant');
+  ok(Transcripts::enqueue($rec('r-lang', 'rec-l1'), 'auto'));
+  eq(Transcripts::get('rec-l1')['language'], 'nan-Hant', '用會議選的語言');
+  ok(Transcripts::enqueue($rec('r-lang', 'rec-l2'), 'manual', $man, 'en'));
+  eq(Transcripts::get('rec-l2')['language'], 'en', '明確指定優先');
+  ok(Transcripts::enqueue($rec('r-man', 'rec-l3'), 'manual', $man));
+  eq(Transcripts::get('rec-l3')['language'], 'zh-Hant', '會議沒選語言 → 系統預設');
+  ok(Transcripts::enqueue($rec('r-man', 'rec-l4'), 'manual', $man, 'bogus'));
+  eq(Transcripts::get('rec-l4')['language'], 'zh-Hant', '非法值不採用');
+  eq(Transcripts::displayLanguage($rec('r-lang', 'rec-x'), null), 'nan-Hant', '還沒送件：顯示會議選的語言');
+  eq(Transcripts::displayLanguage($rec('r-lang', 'rec-x'), ['language' => 'en']), 'en', '已送件：顯示送件時的語言');
+});
+
+test('T53 會議室記下主要語言，散會時寫進 meetings.jsonl；取消勾選逐字稿會清掉語言', function () use ($man) {
+  Rooms::upsert('r-langroom', ['owner' => $man['id'], 'owner_name' => 'h1', 'host_joined' => true, 'transcribe' => true, 'tx_lang' => 'en']);
+  eq(Rooms::get('r-langroom')['tx_lang'], 'en');
+  Store::update(AUTO_ALLOW_FILE, function ($d) { $d['r-langroom']['host_joined_at'] = time() - 600; return $d; }, []);   // 讓 session 有長度
+  Rooms::setHostLeft('r-langroom');
+  $last = null; foreach (Rooms::meetingSessions(0, time() + 10) as $m) if (($m['room'] ?? '') === 'r-langroom') $last = $m;
+  ok($last !== null, '有寫進 session');
+  eq($last['tx_lang'] ?? null, 'en');
+  Rooms::upsert('r-langroom', ['transcribe' => false, 'tx_lang' => null]);
+  eq(Rooms::get('r-langroom')['tx_lang'], null);
+});
+
+
+test('T62 meeting.detailed 已由 JTLW 停用：設定成 detailed 一律改用 balanced', function () {
+  Settings::setTranscribe(['profile_id' => 'meeting.detailed'], true);
+  eq(Settings::getTranscribe()['profile_id'], 'meeting.balanced');
+  Settings::setTranscribe(['profile_id' => 'meeting.balanced'], true);
+  eq(Transcripts::jobPlan('zh-Hant', Settings::getTranscribe())['profile_id'], 'meeting.balanced');
 });
 
 $t = $GLOBALS['__t'];

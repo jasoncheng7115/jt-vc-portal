@@ -102,6 +102,14 @@ render_topbar($me, $ip);
   <script <?= nonce_attr() ?> src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/zh-tw.js" integrity="sha384-mjJeOdHLBw1XvGBUqn+UxU0xEtQSbR1nG/0o9getG2BM2o6lfJvCwTjPwyvzKrOY" crossorigin="anonymous"></script>
 
   <?php if ($is_admin || Settings::hasJibri()): ?><?= admin_nav('dashboard') ?><?php endif; ?>
+  <?php if ($is_admin): /* 管理員：進來就檢查 Jitsi Meet 與 Jibri 是否健康（v1.16.0） */ ?>
+  <div class="sys-health" id="sysHealth" aria-live="polite">
+    <span class="sh-title"><?= icon('info', 14) ?><?= th('系統狀態') ?></span>
+    <span class="sh-item" data-k="jitsi"><span class="sh-dot"></span><b>Jitsi Meet</b><span class="sh-msg"><?= th('檢查中…') ?></span></span>
+    <?php if (Settings::hasJibri()): ?><span class="sh-item" data-k="jibri"><span class="sh-dot"></span><b><?= th('Jibri 錄影') ?></b><span class="sh-msg"><?= th('檢查中…') ?></span></span><?php endif; ?>
+    <button type="button" class="btn btn-ghost btn-sm sh-refresh" id="shRefresh" title="<?= th('重新檢查') ?>"><?= icon('refresh', 14) ?></button>
+  </div>
+  <?php endif; ?>
   <?php if ($room_msg): ?><div class="alert alert-success"><?= icon('check') ?><span><?= htmlspecialchars($room_msg) ?></span></div><?php endif; ?>
 
   <?php if ($created_data):
@@ -194,13 +202,25 @@ render_topbar($me, $ip);
 
       <?php if ($tx_can): ?>
       <input type="hidden" name="transcribe_field" value="1">
-      <label class="lobby-toggle">
-        <input type="checkbox" name="transcribe" value="1"<?= $form_tx ? ' checked' : '' ?>>
-        <span class="lobby-text">
-          <span class="lobby-title"><?= icon('file-text', 14) ?><?= th('錄影完成後產生逐字稿與摘要') ?></span>
-          <span class="help" style="margin:0;"><?= th('這場會議有錄影時，錄影完成後自動交給語音服務產生逐字稿（含發言者）與會議摘要；之後可在「錄影記錄」查看。') ?></span>
-        </span>
-      </label>
+      <div class="tx-box">
+        <label class="lobby-toggle">
+          <input type="checkbox" name="transcribe" id="txChk" value="1"<?= $form_tx ? ' checked' : '' ?>>
+          <span class="lobby-text">
+            <span class="lobby-title"><?= icon('file-text', 14) ?><?= th('錄影完成後產生逐字稿與摘要') ?></span>
+            <span class="help" style="margin:0;"><?= th('這場會議有錄影時，錄影完成後自動交給語音服務產生逐字稿（含發言者）與會議摘要；之後可在「錄影記錄」查看。') ?></span>
+          </span>
+        </label>
+        <div class="tx-lang-field" id="txLangBox"<?= $form_tx ? '' : ' hidden' ?>>
+          <label for="txLang"><?= th('會議主要語言') ?> <span class="req">*</span></label>
+          <select id="txLang" name="tx_lang"<?= $form_tx ? ' required' : '' ?>>
+            <option value=""><?= th('請選擇') ?></option>
+            <?php foreach (Transcripts::meetingLanguages() as $lv => $ll): ?>
+              <option value="<?= $lv ?>"<?= ($form_values['tx_lang'] ?? '') === $lv ? ' selected' : '' ?>><?= htmlspecialchars($ll) ?></option>
+            <?php endforeach; ?>
+          </select>
+          <div class="help"><?= th('語音服務依這裡選的語言挑選辨識模型；夾雜多種語言時，選講最多的那一種。會議中有台語（閩南語）就選台語：專用模型也聽得懂夾雜的華語，但逐字稿不會標出發言者，英文大多會被翻成中文；只偶爾一兩句台語的會議選中文為主即可。') ?></div>
+        </div>
+      </div>
       <?php endif; ?>
 
       <div class="btn-group">
@@ -399,6 +419,39 @@ document.addEventListener('click', async (e) => {
       }
     }
   }));
+})();
+
+// system health (admins): fetched after the page loads so a dead service never slows the dashboard
+(function(){
+  const box = document.getElementById('sysHealth');
+  if (!box) return;
+  const T = <?= json_encode(['recorders' => t('{n} 台錄製器'), 'busy' => t('{n} 台錄影中'), 'fail' => t('無法取得狀態'), 'checking' => t('檢查中…')], JSON_UNESCAPED_UNICODE) ?>;
+  const fmt = (s, n) => s.replace('{n}', n);
+  function paint(k, v) {
+    const it = box.querySelector('.sh-item[data-k="' + k + '"]'); if (!it || !v) return;
+    it.className = 'sh-item sh-' + (v.level || 'error');
+    let msg = v.msg || '';
+    if (k === 'jibri' && v.level === 'ok') { msg = fmt(T.recorders, v.healthy ?? v.recorders); if (v.busy) msg += ' · ' + fmt(T.busy, v.busy); }
+    it.querySelector('.sh-msg').textContent = msg;
+  }
+  async function load(force) {
+    box.querySelectorAll('.sh-item').forEach(it => { it.className = 'sh-item'; it.querySelector('.sh-msg').textContent = T.checking; });
+    try {
+      const r = await fetch('/health' + (force ? '?force=1' : ''), { cache: 'no-store', credentials: 'same-origin' });
+      const d = await r.json();
+      paint('jitsi', d.jitsi); paint('jibri', d.jibri);
+      box.classList.toggle('sh-bad', [d.jitsi, d.jibri].some(v => v && v.level === 'error'));
+    } catch (e) { box.querySelectorAll('.sh-item').forEach(it => { it.className = 'sh-item sh-error'; it.querySelector('.sh-msg').textContent = T.fail; }); }
+  }
+  document.getElementById('shRefresh').addEventListener('click', () => load(true));
+  load(false);
+})();
+
+// transcript: the meeting language is required only while the box is ticked
+(function(){
+  const chk = document.getElementById('txChk'), box = document.getElementById('txLangBox'), sel = document.getElementById('txLang');
+  if (!chk || !box || !sel) return;
+  chk.addEventListener('change', () => { box.hidden = !chk.checked; sel.required = chk.checked; if (chk.checked) sel.focus(); });
 })();
 
 // scheduled window: expand only when checked; unchecking collapses and clears (avoid submitting stale values)

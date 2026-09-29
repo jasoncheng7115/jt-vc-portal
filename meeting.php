@@ -5,15 +5,18 @@ require_once __DIR__ . '/lib/layout.php';
 require_once __DIR__ . '/lib/settings.php';
 require_once __DIR__ . '/lib/jaas.php';
 require_once __DIR__ . '/lib/rooms.php';
+require_once __DIR__ . '/lib/health.php';
 
 Auth::requireLogin();
-if (empty($_SESSION['jwt']) || empty($_SESSION['room'])) {
+// 自建且「不需 JWT」時 jwt 合法為空字串：只看有沒有設定（不能用 empty，否則主持人永遠進不了會議）
+if (!isset($_SESSION['jwt']) || !is_string($_SESSION['jwt']) || empty($_SESSION['room'])) {
   header('Location: /dashboard');
   exit;
 }
 
 $jwt = $_SESSION['jwt'];
 $room = $_SESSION['room'];
+if (Health::jitsiDown()) { render_service_down($room, true); exit; }   // Jitsi Meet 故障：友善說明，不載入打不開的會議畫面
 $lobby_on = !empty(Rooms::get($room)['lobby'] ?? false);   // 大廳模式：主持人進場後自動開啟
 $mui = Settings::resolveMeetingUi();               // 會議室自訂（logo / 進入預設 / 工具列）
 $invite_url = SITE_URL . '/room/' . rawurlencode($room);
@@ -59,10 +62,12 @@ send_meeting_csp();   // 會議頁 CSP（iframe 只允許 Jitsi 網域）
     </div>
   </div>
 
+  <?= jitsi_down_overlay(true) ?>
   <div id="flash" class="copy-flash"><?= icon('check', 14) ?><?= th('已複製邀請連結') ?></div>
   <div id="recToast" class="copy-flash"></div>
 
 <script <?= nonce_attr() ?>>
+<?= jitsi_watch_js() ?>
 window.addEventListener('load', () => {
   const inviteUrl = <?= json_encode($invite_url) ?>;
   const room = <?= json_encode($room) ?>;
@@ -108,6 +113,7 @@ window.addEventListener('load', () => {
   };
   const api = new JitsiMeetExternalAPI(<?= json_encode(Jaas::apiDomain()) ?>, options);
   api.addEventListener('readyToClose', () => { window.location.href = '/leave'; });
+  jitsiWatch(api);
 
   // Recording status toast (works around Jitsi's menu label not refreshing after stop; gives clear feedback)
   let _recOn = null;

@@ -30,6 +30,11 @@ login() { # jar user pass [ip]
   curl -s -o /dev/null -w '%{redirect_url}' -b "$1" -c "$1" -H "X-Real-IP: ${4:-10.0.0.1}" \
     --data-urlencode "_csrf=$t" --data-urlencode "email=$2" --data-urlencode "password=$3" "$B/verify"; }
 
+# 視訊服務健康檢查（v1.16.0）：測試環境不連外，先寫一筆「正常」的快取（時間設在未來，永遠命中）；
+# 故障情境在後面另外測（清掉快取、指到連不上的位址）
+hcache() { docker exec -u www-data $NAME php -r '$l=$argv[1]; file_put_contents("/var/jaas-data/health-cache.json", json_encode(["jitsi"=>["level"=>$l,"msg"=>"t","at"=>time()+86400]]));' "$1"; }
+hcache ok
+
 echo "== 基本 / 標頭"
 chk "首頁 200" "$(code $B/)" 200
 H=$(curl -sI $B/)
@@ -193,6 +198,32 @@ T=$(csrf $A /dashboard)
 curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-room' $B/room-delete
 hasnt "擁有者刪除 → 房間已移除" "$(docker exec $NAME cat /var/jaas-data/auto-allow.json)" '"itest-room"'
 has "刪除寫入稽核" "$(docker exec $NAME cat /var/jaas-data/audit-log.jsonl)" '"action":"room_delete"'
+echo "== 視訊服務健康檢查與故障頁（v1.16.0）"
+chk "未登入 /health → 404" "$(code $B/health)" 404
+HJ=$(curl -s -b $A $B/health)
+has "管理員 /health 回 JSON（Jitsi 狀態）" "$HJ" '"jitsi":{"level":"ok"'
+hasnt "/health 不洩漏內部細節" "$HJ" '"detail"'
+has "管理員儀表板有系統狀態列" "$(curl -s -b $A $B/dashboard)" 'id="sysHealth"'
+T=$(csrf $A /dashboard)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'section=jaas&mode=selfhosted&sh_domain=127.0.0.1:9&sh_auth=none' $B/save-settings
+docker exec $NAME rm -f /var/jaas-data/health-cache.json
+HJ=$(curl -s -b $A "$B/health?force=1")
+has "Jitsi 連不上 → /health 回報 error" "$HJ" '"jitsi":{"level":"error"'
+T=$(csrf $A /dashboard)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-down&mode=host' $B/start
+chk "Jitsi 故障：主持人進會議 → 503" "$(code -b $A $B/meeting)" 503
+has "Jitsi 故障：主持人看到友善的故障頁" "$(curl -s -b $A $B/meeting)" 'id="svcDown"'
+GD="$JAR/guest-down"
+curl -s -o /dev/null -c $GD -b $GD $B/room/itest-down
+GDP=$(curl -s -b $GD $B/guest)
+has "Jitsi 故障：來賓看到友善的故障頁（主持人在線）" "$GDP" 'id="svcDown"'
+hasnt "故障頁不顯示內部位址" "$GDP" '127.0.0.1:9'
+hasnt "故障頁不載入會議畫面" "$GDP" 'JitsiMeetExternalAPI('
+hcache ok
+chk "Jitsi 正常 + 自建不需 JWT：主持人可進會議（v1.16.0 修正：jwt 為空字串時被導回儀表板）" "$(code -b $A $B/meeting)" 200
+T=$(csrf $A /dashboard)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-down' $B/room-delete
+
 T=$(csrf $A /dashboard)
 chk "POST /logout 帶 CSRF → 登出" "$(loc -b $A -c $A --data-urlencode "_csrf=$T" $B/logout)" "$B/jt-login"
 chk "登出後 /dashboard → 404" "$(code -b $A $B/dashboard)" 404

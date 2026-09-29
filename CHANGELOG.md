@@ -2,6 +2,21 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.16.0 — Main meeting language (including Taiwanese Hokkien)
+
+- **Main meeting language is required**: when "Generate transcript and summary" is ticked while creating a room, you must choose the meeting's main language (mainly Chinese / English / Japanese / Korean / Taiwanese Hokkien); the speech service picks its recognition model from it. The Recordings list has a new "Main language" column, and "Generate transcript" asks for the language when the meeting did not set one. Regenerating keeps the previous language.
+- **Taiwanese Hokkien**: uses the speech service's dedicated Taiwanese profile (MediaTek Breeze-ASR-26, outputs Chinese characters). That profile does not separate speakers; the transcript page explains this and you can label speakers by hand. Meeting summaries support Chinese, English and Taiwanese Hokkien.
+- Following JTLW's guidance: choose Taiwanese Hokkien whenever the meeting has Taiwanese (the dedicated model also understands mixed-in Mandarin), and Mainly Chinese when there is only the occasional Taiwanese sentence; summaries of Taiwanese meetings are marked "for reference only", and the transcript page hides the empty speaker column, speaker statistics and speaker suggestions (exports carry the same note).
+- **Meeting statistics charts redesigned**: "Activity in the last 30 days" is now a stacked bar chart (the three curves used to overlap near zero and overshoot the real values); the duration ranking uses gradient bars, shows the longest meeting on top (it was upside down) and labels each bar with its duration; faint horizontal grid only, level date labels, dot legends, dark tooltips, and dark-theme aware. The meeting-duration timeline is collapsed by default and opens on click.
+- **Video service health**: the admin dashboard shows a "System status" bar — Jitsi Meet (web page and XMPP meeting endpoint) and Jibri (recording service, each recorder's own health report, disk space) — in green / orange / red with the reason; checked after the page loads, cached for 30 seconds, with a refresh button.
+- **Friendly message when Jitsi is down**: hosts and guests joining a meeting while Jitsi Meet is unreachable see a "Video service temporarily unavailable" page (their invitation link stays valid, the page retries every 30 seconds) instead of a meeting that never loads; if the meeting frame does not respond within 20 seconds or Jitsi reports a fatal error, a "Cannot connect to the meeting" message with a Retry button appears.
+- **Automatic retry of failed recognition** (for JTLW v2.25.3): a retryable recognition failure (e.g. the speech service's GPU server temporarily down) is retried automatically after 10, 30 and 60 minutes without uploading the recording again; the Recordings list shows "Waiting to retry". When retries run out, or on Regenerate, the job and the recording JTLW kept are deleted.
+- `meeting.detailed` has been retired by JTLW; it is switched to `meeting.balanced` automatically.
+- Fix: with self-hosted Jitsi set to "no JWT", pressing "Start hosting" sent the host back to the dashboard, so the meeting could never be entered.
+- Fix: jobs without speaker separation stayed "processing" forever (the 400 from the speakers layer was treated as a temporary error).
+- Jibri recording service (`jibri-recordings-api/server.py`) hardened following GitHub CodeQL: a recording id only maps to an existing regular directory inside the recordings folder (no hidden directories or symlinks), and download file names keep only safe characters to prevent header injection. **Update server.py on your Jibri host.**
+- Tests T51–T56; the Jibri service test also covers hidden directories, symlinks, `..` deletion and download file names.
+
 ## v1.15.0 — HTML export, transcripts setup guide and Pages refresh
 
 - **HTML export**: the meeting minutes can also be downloaded as a single HTML file (styles inline, no scripts, no external resources) that opens in any browser, reads well on a phone and prints cleanly.

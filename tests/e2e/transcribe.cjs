@@ -132,6 +132,39 @@ function unzipEntry(buf, name) {
   ok('T49 登入逾時時播放：顯示「登入已逾時」與重新登入連結', why.includes('登入已逾時') && (await pt.getAttribute('#txMediaErr a', 'href')) === '/jt-login', why);
   ok('T49 登入逾時時播放器不隱藏（重新登入後可繼續）', await pt.isVisible('#txPlayer'));
 
+  // ---- 會議主要語言（v1.16.0）----
+  const { execSync: sh } = require('child_process');
+  const phpq = code => sh(`docker exec -u www-data ${process.env.PN} php -r "require '/var/www/html/config.php'; require_once '/var/www/html/lib/transcripts.php'; ${code}"`).toString();
+  await pm.goto(BASE + '/dashboard');
+  ok('T54 建立表單：沒勾逐字稿時不顯示語言選單', !(await pm.isVisible('#txLangBox')) && !(await pm.$eval('#txLang', e => e.required)));
+  await pm.check('#txChk');
+  ok('T54 勾選逐字稿 → 出現必填的「會議主要語言」', await pm.isVisible('#txLangBox') && await pm.$eval('#txLang', e => e.required));
+  const opts = await pm.$$eval('#txLang option', o => o.map(x => x.value));
+  ok('T54 選項：中文 / 英文 / 日文 / 韓文 / 台語為主，預設未選', opts.join(',') === ',zh-Hant,en,ja,ko,nan-Hant' && (await pm.inputValue('#txLang')) === '', opts.join(','));
+  ok('T54 選項文字不用帶政治意涵的稱呼', (await pm.$$eval('#txLang option', o => o.map(x => x.textContent).join('|'))) === '請選擇|中文為主|英文為主|日文為主|韓文為主|台語（閩南語）為主');
+  await pm.uncheck('#txChk');
+  ok('T54 取消勾選 → 語言選單收起、不再必填', !(await pm.isVisible('#txLangBox')) && !(await pm.$eval('#txLang', e => e.required)));
+  const csrfM = await pm.$eval('input[name=_csrf]', e => e.value);
+  await pm.request.post(BASE + '/start', { form: { _csrf: csrfM, room: 'lang-none', mode: 'create', transcribe_field: '1', transcribe: '1' }, maxRedirects: 0 });
+  await pm.goto(BASE + '/dashboard');
+  ok('T55 勾了逐字稿卻沒選語言 → 伺服器端擋下並提示', (await pm.content()).includes('請選擇會議主要語言') && phpq("var_export(Rooms::get('lang-none'));").trim() === 'NULL');
+  await pm.request.post(BASE + '/start', { form: { _csrf: csrfM, room: 'lang-nan', mode: 'create', transcribe_field: '1', transcribe: '1', tx_lang: 'nan-Hant' }, maxRedirects: 0 });
+  ok('T55 選了台語 → 會議室記下主要語言', phpq("echo Rooms::get('lang-nan')['tx_lang'] ?? 'none';").trim() === 'nan-Hant');
+  await pm.request.post(BASE + '/start', { form: { _csrf: csrfM, room: 'lang-bogus', mode: 'create', transcribe_field: '1', transcribe: '1', tx_lang: 'klingon' }, maxRedirects: 0 });
+  ok('T55 不在清單內的語言 → 擋下', phpq("var_export(Rooms::get('lang-bogus'));").trim() === 'NULL');
+  await pm.goto(BASE + '/recordings');
+  ok('T55 錄影記錄有「主要語言」欄', (await pm.$$eval('main thead th', e => e.map(x => x.textContent.trim()))).some(x => x.startsWith('主要語言')));
+  const okRow = pm.locator('tr.row-main').filter({ has: pm.locator('a[href="/transcript?id=rec-ok01"]') });
+  ok('T55 已送件的錄影顯示送件時的語言', ((await okRow.locator('.tx-lang-cell').textContent()) || '').trim() === '中文為主');
+  const langRow = pm.locator('tr.row-main').filter({ has: pm.locator('input[name=id][value="rec-lang01"]') });
+  ok('T56 會議沒選語言的錄影：「產生逐字稿」先問主要語言', (await langRow.locator('.tx-pick-btn').count()) === 1 && ((await langRow.locator('.tx-lang-cell').textContent()) || '').trim() === '—');
+  await langRow.locator('.tx-pick-btn').click();
+  const menu = langRow.locator('.tx-pick-menu');
+  ok('T56 語言選單展開（5 種語言）', await menu.isVisible() && (await menu.locator('button.tx-lang-item').count()) === 5);
+  await Promise.all([pm.waitForURL(/\/recordings/), menu.locator('button.tx-lang-item', { hasText: '台語' }).click()]);
+  ok('T56 選台語 → 排入並顯示語言', phpq("echo Transcripts::get('rec-lang01')['language'] ?? 'none';").trim() === 'nan-Hant'
+    && ((await pm.locator('tr.row-main').filter({ has: pm.locator('input[name=id][value="rec-lang01"]') }).locator('.tx-lang-cell').textContent()) || '').trim() === '台語（閩南語）為主');
+
   // ---- 發言者對應建議（v1.13.0）----
   await pm.goto(BASE + '/transcript?id=rec-ok01');
   ok('T36 有 Jitsi 時間軸：顯示發言者對應建議（Amy 100%）', await pm.isVisible('#txSuggest') && (await pm.textContent('#txSuggestRows')).includes('Amy 100%'));
@@ -162,6 +195,16 @@ function unzipEntry(buf, name) {
   await pa.request.post(BASE + '/recordings-action', { form: { _csrf: csrfA, action: 'delete', id: 'rec-live01' }, maxRedirects: 0 });
   await pa.goto(BASE + '/recordings');
   ok('T41 錄製中：刪除請求被擋，錄影仍在並顯示原因', (await pa.locator('.rec-live-actions').count()) === 1 && (await pa.content()).includes('錄製中不可刪除'));
+  // ---- 系統狀態（v1.16.0）：Jibri 健康由錄影服務回報每台錄製器 ----
+  const hj = await (await pa.request.get(BASE + '/health?force=1')).json();
+  ok('T60 /health：Jibri 回報 2 台錄製器、皆健康（1 台錄影中）', hj.jibri && hj.jibri.level === 'ok' && hj.jibri.recorders === 2 && hj.jibri.healthy === 2 && hj.jibri.busy === 1, JSON.stringify(hj.jibri));
+  await pa.goto(BASE + '/dashboard'); await pa.waitForFunction(() => document.querySelector('#sysHealth .sh-item[data-k="jibri"]').className.includes('sh-'), null, { timeout: 15000 }).catch(() => {});
+  ok('T60 儀表板系統狀態列顯示 Jibri 正常', ((await pa.getAttribute('#sysHealth .sh-item[data-k="jibri"]', 'class')) || '').includes('sh-ok'));
+  // ---- 會議統計頁（v1.16.0）：圖表改版、時間軸預設收起 ----
+  const uerr = []; pa.on('pageerror', e => uerr.push(e.message));
+  await pa.goto(BASE + '/usage'); await pa.waitForTimeout(1200);
+  ok('T58 會議統計：時間軸預設收起、點標題可展開', !(await pa.$eval('#ganttCard', e => e.open)) && (await (async () => { await pa.click('#ganttCard > summary'); return pa.$eval('#ganttCard', e => e.open); })()));
+  ok('T58 近 30 天活動為堆疊長條圖、有畫出來、頁面無 JS 錯誤', await pa.evaluate(() => { const c = window.Chart && Chart.getChart('dailyChart'); return !!c && c.config.type === 'bar' && c.options.scales.y.stacked === true && c.chartArea.width > 0; }) && uerr.length === 0, uerr.join(' | '));
   await pa.goto(BASE + '/settings#transcribe');
   ok('T29 系統設定有逐字稿卡片（目錄可切換）', await pa.isVisible('#card-transcribe') && !(await pa.isVisible('#card-sso')));
   ok('T29 設定頁不回填 JTLW 金鑰', (await pa.inputValue('#card-transcribe input[name=jtlw_key]')) === '');

@@ -233,6 +233,18 @@
 - [ ] T48 Transcript page: four buttons PDF / DOCX / ODT / HTML; the other formats (plain text, SRT, JSON, Markdown) are in an "Other formats" menu that opens only on click and closes on an outside click or Esc.
 - [ ] T49 Playback failure message: when the login has timed out, pressing play says so ("your login has timed out…") with a sign-in link and keeps the player; a deleted file, an unplayable format and an unreachable recording service each get their own message. `/session-check` only returns whether you are signed in.
 - [ ] T50 Background job check: with transcripts enabled, System settings warns when the transcription worker has not run for more than 10 minutes and shows the cron line for Docker and for a direct install.
+- [ ] T51 Speech-service plan by language: Taiwanese Hokkien uses the dedicated `transcribe.taiwanese` profile without speaker separation; every other language uses the configured profile with speaker separation.
+- [ ] T52 Job language priority: an explicit choice > the main language chosen when the room was created > the system default; invalid values are ignored.
+- [ ] T53 A room remembers its main meeting language and writes it into the meeting record; unticking the transcript option clears it.
+- [ ] T54 Create-room form: ticking "Generate transcript and summary" shows a required "Main meeting language" (Mainly Chinese / English / Japanese / Korean / Taiwanese Hokkien — no politically loaded names), unticking hides it.
+- [ ] T55 The server refuses a room that asks for a transcript without a valid main language; the Recordings list has a "Main language" column.
+- [ ] T56 A recording whose meeting had no main language asks for one when you press "Generate transcript"; choosing Taiwanese sends the Taiwanese profile without speaker separation, and the result is fetched (no endless "processing").
+- [ ] T57 Taiwanese Hokkien transcript page: the summary is marked "for reference only"; no speaker column, speaker statistics or speaker suggestions; the main language is shown; exports carry the same note.
+- [ ] T58 Meeting statistics page: "Activity in the last 30 days" is a stacked bar chart; the duration ranking shows the longest meeting on top with the duration at the end of each bar; the meeting-duration timeline is collapsed by default and opens on click (its title still shows the count and total); charts follow the dark theme.
+- [ ] T59 Joining a meeting while Jitsi Meet is down: hosts and guests see a friendly "Video service temporarily unavailable" page (HTTP 503, retries every 30 seconds, no internal addresses) instead of a broken meeting; if the meeting frame does not respond within 20 seconds or Jitsi reports a fatal error, a "Cannot connect to the meeting" overlay with a Retry button appears; with Jitsi working, no overlay appears.
+- [ ] T60 System status on the admin dashboard: Jitsi Meet (web page and XMPP/BOSH endpoint) and Jibri (service reachable, each recorder's own health, disk space) shown as green / orange / red with the reason; checked after the page loads, cached 30 seconds, refresh button; `/health` is admin-only and reveals no internal details. Also: with self-hosted Jitsi without JWT, the host can enter the meeting (fixed).
+- [ ] T61 A retryable recognition failure (e.g. the speech service's GPU server temporarily down) is retried automatically after 10 / 30 / 60 minutes with `retry`, without uploading the recording again; the Recordings list shows "Waiting to retry" with the reason; when retries run out, or on Regenerate, the JTLW job (and the recording it kept) is deleted.
+- [ ] T62 `meeting.detailed` (retired by JTLW) is switched to `meeting.balanced` automatically.
 
 ## 4. Internationalization (i18n)
 
@@ -355,9 +367,9 @@ Spot-check on every release; test everything for major changes:
 | SSO S01, S05–S07, S11–S21, S23–S25, S27, S28, S30 (real Keycloak + browser, incl. OTP) | `tests/run-sso.sh` (`tests/e2e/sso.cjs`) |
 | SSO S22 | `tests/zap/run-zap.sh` (scan with SSO enabled) |
 | SSO S26 | Manual: KEYCLOAK-SETUP section 7 verification commands |
-| Transcripts T01–T12, T32–T35, T38 (layers, webhook signature, permissions, per-meeting switch, queueing, hints, events, renaming, settings) | `tests/unit/test_transcripts.php` |
+| Transcripts T01–T12, T32–T35, T38, T51–T53 (layers, webhook signature, permissions, per-meeting switch, queueing, hints, events, renaming, settings) | `tests/unit/test_transcripts.php` |
 | Meeting minutes export T44–T47 (PDF structure, cross-reference, font subset, ToUnicode, line breaking; .docx / .odt ZIP and XML, renaming, language, requirements) | `tests/unit/test_txexport.php` |
-| Transcripts T13–T30, T36–T37, T39–T41, T43–T45, T48–T50 (JTLW mock + stub Jibri + real browser) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
+| Transcripts T13–T30, T36–T37, T39–T41, T43–T45, T48–T50, T54–T61 (JTLW mock + stub Jibri + real browser) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
 | Transcripts T31 | `tests/zap/run-zap.sh` |
 | Transcripts T42 | `tests/prod-meeting-sim.sh` (maintainer, production) |
 | Language menu (collapsed, opens on click, Esc) | `tests/run-e2e.sh` (`tests/e2e/meeting.cjs`) |

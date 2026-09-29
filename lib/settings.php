@@ -221,7 +221,7 @@ class Settings {
     'webhook_endpoint_id' => '',
     'webhook_secret'      => '',                     // 註冊時 JTLW 只給一次；頁面不回填
   ];
-  const TRANSCRIBE_LANGS = ['zh-Hant', 'en', 'ja', 'ko', 'auto'];
+  const TRANSCRIBE_LANGS = ['zh-Hant', 'en', 'ja', 'ko', 'nan-Hant', 'auto'];
 
   public static function getTranscribe(): array {
     $c = self::load()['transcribe'] ?? [];
@@ -233,7 +233,8 @@ class Settings {
     }
     $o['jtlw_url'] = rtrim(preg_replace('#/api/v1/?$#', '', $o['jtlw_url']), '/');
     if (!in_array($o['language'], self::TRANSCRIBE_LANGS, true)) $o['language'] = 'zh-Hant';
-    if (!preg_match('/^[a-z0-9._-]{1,64}$/', $o['profile_id'])) $o['profile_id'] = 'meeting.balanced';
+    // meeting.detailed 已由 JTLW 停用（v2.25.3，從來沒有與 balanced 不同的處理）→ 一律用 balanced
+    if (!preg_match('/^[a-z0-9._-]{1,64}$/', $o['profile_id']) || $o['profile_id'] === 'meeting.detailed') $o['profile_id'] = 'meeting.balanced';
     if ($o['backend'] !== 'jtlw') $o['backend'] = 'jtlw';
     return $o;
   }

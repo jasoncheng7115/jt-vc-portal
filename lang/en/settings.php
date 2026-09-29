@@ -308,4 +308,6 @@ return [
   '這台主機缺少部分必要元件，相關功能無法使用。請依 README「系統需求」安裝（例如 Debian / Ubuntu：apt install php-curl php-mbstring），再重新啟動 Apache：' => 'This server is missing some required components, so the related features will not work. Install them as described under "Requirements" in the README (for example on Debian / Ubuntu: apt install php-curl php-mbstring), then restart Apache:',
   '背景排程沒有在執行（超過 10 分鐘沒有動靜），逐字稿不會送出也不會取回。請在主機加入每分鐘執行的排程（見 README「會議逐字稿與摘要」）：' => 'The background job is not running (no activity for more than 10 minutes), so transcripts will not be submitted or fetched. Add a job that runs every minute on the host (see "Meeting transcripts and summaries" in the README):',
   '直接安裝' => 'Direct install',
+  '預設會議語言（建立會議室時沒指定的場次才用）' => 'Default meeting language (used only for meetings without one)',
+  '勾選產生逐字稿的會議，建立時必須選主要語言；這裡只用在舊會議或沒指定語言的場次。「自動判斷」只看開頭約 30 秒決定整場語言，開頭有人先講另一種語言時整場都可能辨識錯。會議摘要支援中文、英文與台語（閩南語）。' => 'Meetings that generate transcripts must pick a main language when the room is created; this default is used only for older meetings or ones without a language. "Auto" decides from roughly the first 30 seconds, so if someone opens in another language the whole meeting may be recognised wrongly. Meeting summaries support Chinese, English and Taiwanese Hokkien.',
 ];

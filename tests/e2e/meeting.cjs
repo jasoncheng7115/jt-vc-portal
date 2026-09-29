@@ -56,6 +56,18 @@ function watch(page, bag) {
     if (!NO_I18N) ok('html lang 正確', html === ({ 'en-US': 'en', 'ja-JP': 'ja' }[locale] || 'zh-Hant-TW'), html);
     ok('主持人頁無 CSP / SRI 錯誤', hv.length === 0, hv.slice(0, 2).join(' | '));
     ok('來賓頁無 CSP / SRI 錯誤', gv.length === 0, gv.slice(0, 2).join(' | '));
+    if (locale === LOCALES[0]) {
+      // v1.16.0：Jitsi 會議畫面正常回應時，20 秒後不可跳出「無法連線到會議」
+      await hp.waitForTimeout(22000);
+      ok('T59 Jitsi 正常：20 秒後沒有跳出連線失敗遮罩', await hp.$eval('#svcOverlay', e => e.hidden));
+      // 擋掉 Jitsi 會議畫面（模擬 Jitsi 故障、但伺服器端檢查還沒發現）→ 20 秒後顯示友善遮罩
+      const bad = await host.newPage();
+      await bad.route(/^https:\/\/8x8\.vc\/(?!.*external_api\.js).*/, r => r.abort());
+      await bad.goto(BASE + '/meeting');
+      await bad.waitForSelector('#svcOverlay:not([hidden])', { timeout: 30000 }).catch(() => {});
+      ok('T59 會議畫面沒有回應 → 顯示「無法連線到會議」與重試按鈕', await bad.isVisible('#svcOverlay') && await bad.isVisible('#svcOverlayRetry'));
+      await bad.close();
+    }
     // 刪除會議室（自訂確認框）→ 登出（POST 按鈕）
     await hp.goto(BASE + '/dashboard');
     const delForm = hp.locator(`form[action="/room-delete"]:has(input[value="${room}"])`);

@@ -92,7 +92,7 @@ Run these on the JTLW host (the jt-live-whisper documentation is authoritative f
 | API key | The key from section 3 itself (without `Bearer `). It is never shown again after saving; leave it empty to keep the current one. |
 | Speech service certificate | For a self-signed certificate paste its PEM. The portal **always verifies the certificate** and never turns the check off; the SHA-256 fingerprint is shown underneath for you to compare. Leave empty for a certificate from a public CA. |
 | Meeting language | Set it when known (Chinese / English / Japanese / Korean). "Auto" decides from roughly the first 30 seconds, so if someone opens in another language the whole meeting may be recognised wrongly. |
-| Recognition mode | `meeting.balanced` (recommended) or `meeting.detailed` (slower, finer). |
+| Recognition mode | `meeting.balanced` (the only meeting profile now; `meeting.detailed` has been retired by JTLW and is switched to balanced automatically). Taiwanese meetings use the dedicated Taiwanese profile based on the main language. |
 | Also generate a meeting summary | Decisions, action items, risks and topics, each with a time. |
 
 Then click, in order:
@@ -135,6 +135,21 @@ If the job has not run for more than 10 minutes, the **Settings → Transcript a
 | Admin | — | Can generate, cancel, regenerate or delete transcripts for any meeting. |
 
 Hosts only see recordings and transcripts of meetings they hosted.
+
+### Main meeting language
+
+When "Generate transcript and summary after recording" is ticked while creating a room, choosing the meeting's main language is **required**; the speech service picks its recognition model from it:
+
+| Choice | Sent to the speech service | Notes |
+|---|---|---|
+| Mainly Chinese / English / Japanese / Korean | The configured profile (e.g. `meeting.balanced`) + speaker separation | Meeting summaries support Chinese and English; Japanese and Korean get a transcript only |
+| Mainly Taiwanese Hokkien | The dedicated profile `transcribe.taiwanese` (MediaTek Breeze-ASR-26) | Outputs Chinese characters; **no speaker separation**, so the transcript does not show who spoke (you can label lines by hand); summaries are available |
+
+- If several languages are mixed, choose the one spoken most. **If the meeting has Taiwanese Hokkien, choose it** (the dedicated model also understands mixed-in Mandarin, but English is mostly rendered in Chinese); for only the occasional Taiwanese sentence choose Mainly Chinese, which keeps speaker separation.
+- The speech service cannot detect Taiwanese on its own ("Auto" recognises it as Mandarin, with no error), so it must be chosen here.
+- Summaries of Taiwanese meetings are for reference only (no speakers, longer citation ranges, recognition mistakes are not corrected); the page and the exports say so.
+- For a recording whose meeting had no language (older meetings, or transcripts not ticked), "Generate transcript" on the Recordings page asks for the language first; regenerating keeps the previous language.
+- The "Default meeting language" in Settings is used only for meetings without a language.
 
 ## 7. Day-to-day use
 
@@ -185,6 +200,7 @@ Every format uses the renamed speakers; labels follow the interface language of 
 | Test connection fails: cannot connect | The portal host's IP is not in JTLW's `allowed_hosts`, or a firewall blocks the API port. |
 | Stuck at "Waiting to submit" | The background job is not running (Settings shows a warning) — see section 5. |
 | "The transcript is empty" | The recording has no recognisable speech (nobody spoke, microphones muted). This is the correct result, and the JTLW record has been deleted. |
+| Shows "Waiting to retry" | Recognition failed temporarily (e.g. the speech service's GPU server was down); it is retried automatically after 10, 30 and 60 minutes without uploading the recording again. Only if all fail does it stop; you can then press "Regenerate". |
 | Failed with "speech service unreachable" | JTLW could not be reached for more than 24 hours; click "Regenerate" once it is back. |
 | Summary failed, will retry | The language model was temporarily unavailable; the summary is redone automatically after 10, 30 and 60 minutes (the transcript is kept). Only if all of those fail do you need "Redo summary". |
 | "Meeting summaries support Chinese and English only" | Japanese and Korean meetings get a transcript only. |

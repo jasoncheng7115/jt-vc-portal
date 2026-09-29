@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.15.0 — Meeting Management System
+# jt-vc-portal v1.16.0 — Meeting Management System
 
 > 繁體中文: [README_zh-TW.md](README_zh-TW.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -205,14 +205,14 @@ Don't want to build it yourself? Download the packaged image (`linux/amd64`) att
 
 ```bash
 # 1) Download the image and checksum file from the Release page (use the latest version number)
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.15.0/jt-vc-portal-1.15.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.15.0/jt-vc-portal-1.15.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.0/jt-vc-portal-1.16.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.0/jt-vc-portal-1.16.0-docker-amd64.tar.gz.sha256
 
 # 2) Verify integrity (should print OK)
-sha256sum -c jt-vc-portal-1.15.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.16.0-docker-amd64.tar.gz.sha256
 
-# 3) Load the image (creates the jt-vc-portal:1.15.0 and :latest tags)
-docker load < jt-vc-portal-1.15.0-docker-amd64.tar.gz
+# 3) Load the image (creates the jt-vc-portal:1.16.0 and :latest tags)
+docker load < jt-vc-portal-1.16.0-docker-amd64.tar.gz
 
 # 4) Prepare persistent directories on the host (www-data UID defaults to 33)
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -255,6 +255,7 @@ The Docker image and the Release image already contain everything — nothing to
 |---|---|
 | before v1.10.0 | Single sign-on (optional) needs the PHP `curl` and `openssl` extensions (Debian / Ubuntu: `apt install php-curl`). |
 | before v1.12.0 | Transcripts and summaries (optional) need `curl` and a **background job that runs every minute** — see "Meeting transcripts and summaries". Docker installs need it too (on the host). |
+| before v1.16.0 | With a self-hosted Jibri, also update `jibri-recordings-api/server.py` on the Jibri host (path and header hardening) and `systemctl restart jibri-recordings-api`. |
 | before v1.14.0 | Exporting meeting minutes as PDF / DOCX / ODT needs the PHP `zlib` extension (built into the Debian / Ubuntu PHP packages) and the bundled font `lib/fonts/NotoSansTC-Regular.ttf`, which comes with `git pull`. |
 
 Check with `php -m | grep -iE 'curl|mbstring|openssl|zlib|fileinfo|json'`. After upgrading, open **System settings**: any missing component is listed at the top, and the Transcripts card warns if the background job is not running.

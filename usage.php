@@ -191,11 +191,12 @@ render_topbar($me, $ip);
     <?php endif; ?>
   </div>
 
-  <?php /* 本期會議時長時間軸 */ ?>
-  <div class="card">
-    <div class="card-title"><?= icon('clock', 16) ?><?= th('本期會議時長時間軸') ?>
+  <?php /* 本期會議時長時間軸（場次多時很長、資訊密度低 → 預設收起，點標題展開） */ ?>
+  <details class="card card-fold" id="ganttCard">
+    <summary class="card-title"><?= icon('clock', 16) ?><?= th('本期會議時長時間軸') ?>
       <span class="muted" style="font-weight:400;font-size:12px;margin-left:8px;"><?= th('共 {n} 場 · 總時長 {dur}', ['n' => (int)$meet_count, 'dur' => fmt_dur($meet_total)]) ?></span>
-    </div>
+      <span class="fold-chev"><?= icon('chevron-down', 16) ?></span>
+    </summary>
     <?php if ($meet_count > 0): ?>
       <div class="gantt">
         <div class="gantt-axis">
@@ -227,7 +228,7 @@ render_topbar($me, $ip);
     <?php else: ?>
       <p class="muted" style="font-size:13px;margin:4px 0 0;"><?= th('本期尚無會議時長記錄。會議結束（主持人離開）後即會在此累積各場次的長度。') ?></p>
     <?php endif; ?>
-  </div>
+  </details>
 
   <?php /* 本期會議參與者（尖峰同時人數 + 進出時間軸） */ ?>
   <?php $sessWithP = array_values(array_filter($sessions, fn($s) => !empty($s['participants']))); ?>
@@ -292,41 +293,80 @@ render_topbar($me, $ip);
 <script <?= nonce_attr() ?>>
 (function () {
   if (!window.Chart) return;
-  const grid = getComputedStyle(document.body).getPropertyValue('color');
+  // shared look: site font, light/dark theme, faint horizontal grid only
+  const dark = document.body.classList.contains('is-dark');
+  const css = getComputedStyle(document.body);
+  const text = dark ? 'rgba(255,255,255,.72)' : '#475569', faint = dark ? 'rgba(255,255,255,.45)' : '#94a3b8';
+  const gridC = dark ? 'rgba(255,255,255,.08)' : 'rgba(15,23,42,.07)';
+  Chart.defaults.font.family = css.fontFamily;
+  Chart.defaults.font.size = 12;
+  Chart.defaults.color = text;
+  Chart.defaults.plugins.legend.labels.usePointStyle = true;
+  Chart.defaults.plugins.legend.labels.pointStyle = 'circle';
+  Chart.defaults.plugins.legend.labels.boxWidth = 8;
+  Chart.defaults.plugins.legend.labels.boxHeight = 8;
+  Chart.defaults.plugins.legend.labels.padding = 16;
+  Object.assign(Chart.defaults.plugins.tooltip, {
+    backgroundColor: dark ? 'rgba(15,23,42,.96)' : 'rgba(15,23,42,.92)', titleColor: '#fff', bodyColor: '#e2e8f0',
+    padding: 10, cornerRadius: 10, boxPadding: 5, usePointStyle: true, titleFont: { weight: '600' }
+  });
+  const yAxis = { beginAtZero: true, border: { display: false }, grid: { color: gridC, drawTicks: false }, ticks: { precision: 0, padding: 8, color: faint } };
+  const xAxis = { border: { display: false }, grid: { display: false }, ticks: { color: faint, maxRotation: 0, autoSkip: true, autoSkipPadding: 14 } };
+  // gradients for bars
+  function vgrad(ctx, area, from, to) { const g = ctx.createLinearGradient(0, area.bottom, 0, area.top); g.addColorStop(0, from); g.addColorStop(1, to); return g; }
+  function hgrad(ctx, area, from, to) { const g = ctx.createLinearGradient(area.left, 0, area.right, 0); g.addColorStop(0, from); g.addColorStop(1, to); return g; }
+
   const histData = <?= json_encode($histData) ?>;
   const histLabels = <?= json_encode($histLabels) ?>;
   if (document.getElementById('histChart') && histData.length) {
     new Chart(document.getElementById('histChart'), {
       type: 'bar',
-      data: { labels: histLabels, datasets: [{ label: 'MAU', data: histData, backgroundColor: '#7c3aed', borderRadius: 6, maxBarThickness: 48 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-                 scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
-    });
-  }
-  <?php /* 會議時長排行 Top 25（水平長條，最長在上） */ ?>
-  const topLabels = <?= json_encode($topLabels) ?>.slice().reverse();
-  const topMins   = <?= json_encode($topMins) ?>.slice().reverse();
-  const topTips   = <?= json_encode($topTips) ?>.slice().reverse();
-  if (document.getElementById('topDurChart') && topMins.length) {
-    new Chart(document.getElementById('topDurChart'), {
-      type: 'bar',
-      data: { labels: topLabels, datasets: [{ label: <?= json_encode(t('時長（分鐘）')) ?>, data: topMins, backgroundColor: '#0ea5e9', borderRadius: 5, maxBarThickness: 18 }] },
-      options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => topTips[c.dataIndex] } } },
-        scales: { x: { beginAtZero: true, title: { display: true, text: <?= json_encode(t('分鐘')) ?> } } } }
+      data: { labels: histLabels, datasets: [{ label: 'MAU', data: histData, borderRadius: 8, borderSkipped: false, maxBarThickness: 44,
+        backgroundColor: (c) => c.chart.chartArea ? vgrad(c.chart.ctx, c.chart.chartArea, '#a78bfa', '#6d28d9') : '#7c3aed' }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: xAxis, y: yAxis } }
     });
   }
 
+  <?php /* 會議時長排行 Top 25（水平長條，最長在上；長條尾端直接標時長） */ ?>
+  const topLabels = <?= json_encode($topLabels) ?>;
+  const topMins   = <?= json_encode($topMins) ?>;
+  const topTips   = <?= json_encode($topTips) ?>;
+  // same wording as the summary cards (fmt_dur), e.g. "1 hr 34 min"
+  const FMT = <?= json_encode(['hm' => t('{h} 時 {m} 分'), 'h' => t('{h} 時'), 'm' => t('{n} 分')], JSON_UNESCAPED_UNICODE) ?>;
+  const fmtMin = (m) => { m = Math.round(m); const h = Math.floor(m / 60), r = m % 60;
+    return h ? (r ? FMT.hm.replace('{h}', h).replace('{m}', r) : FMT.h.replace('{h}', h)) : FMT.m.replace('{n}', m); };
+  const endLabels = { id: 'endLabels', afterDatasetsDraw(chart) {
+    const { ctx } = chart; const meta = chart.getDatasetMeta(0);
+    ctx.save(); ctx.font = '600 11px ' + css.fontFamily; ctx.fillStyle = text; ctx.textBaseline = 'middle';
+    meta.data.forEach((bar, i) => { ctx.fillText(fmtMin(topMins[i]), bar.x + 8, bar.y); });
+    ctx.restore();
+  } };
+  if (document.getElementById('topDurChart') && topMins.length) {
+    new Chart(document.getElementById('topDurChart'), {
+      type: 'bar',
+      data: { labels: topLabels, datasets: [{ label: <?= json_encode(t('時長（分鐘）')) ?>, data: topMins, borderRadius: 6, borderSkipped: false, maxBarThickness: 16,
+        backgroundColor: (c) => c.chart.chartArea ? hgrad(c.chart.ctx, c.chart.chartArea, '#22d3ee', '#6366f1') : '#0ea5e9' }] },
+      options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, layout: { padding: { right: 64 } },
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => topTips[c.dataIndex] } } },
+        scales: { x: Object.assign({}, yAxis, { ticks: { color: faint, padding: 6, callback: (v) => FMT.m.replace('{n}', v) } }),
+                  y: { border: { display: false }, grid: { display: false }, ticks: { color: text, padding: 6 } } } },
+      plugins: [endLabels]
+    });
+  }
+
+  <?php /* 近 30 天活動：每天的次數用堆疊長條（原本三條曲線在 0 附近疊在一起、曲線還會衝過實際值） */ ?>
+  const days = <?= json_encode($dailyLabels) ?>;
   new Chart(document.getElementById('dailyChart'), {
-    type: 'line',
-    data: { labels: <?= json_encode($dailyLabels) ?>, datasets: [
-      { label: <?= json_encode(t('建立會議室')) ?>, data: <?= json_encode($dailyCreate) ?>, borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,.12)', tension: .3, fill: true },
-      { label: <?= json_encode(t('主持進入')) ?>, data: <?= json_encode($dailyEnter) ?>,  borderColor: '#06b6d4', backgroundColor: 'rgba(6,182,212,.12)', tension: .3, fill: true },
-      { label: <?= json_encode(t('來賓進入')) ?>, data: <?= json_encode($dailyGuest) ?>,  borderColor: '#ec4899', backgroundColor: 'rgba(236,72,153,.12)', tension: .3, fill: true }
-    ] },
+    type: 'bar',
+    data: { labels: days, datasets: [
+      { label: <?= json_encode(t('建立會議室')) ?>, data: <?= json_encode($dailyCreate) ?>, backgroundColor: '#8b5cf6' },
+      { label: <?= json_encode(t('主持進入')) ?>, data: <?= json_encode($dailyEnter) ?>,  backgroundColor: '#22d3ee' },
+      { label: <?= json_encode(t('來賓進入')) ?>, data: <?= json_encode($dailyGuest) ?>,  backgroundColor: '#f472b6' }
+    ].map((d) => Object.assign(d, { stack: 'a', borderRadius: 4, borderSkipped: false, borderWidth: 0, maxBarThickness: 22, categoryPercentage: .72, barPercentage: .9 })) },
     options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
-               plugins: { legend: { position: 'bottom' } },
-               scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+      plugins: { legend: { position: 'top', align: 'end' },
+        tooltip: { callbacks: { footer: (items) => <?= json_encode(t('合計')) ?> + ' ' + items.reduce((a, i) => a + i.parsed.y, 0) } } },
+      scales: { x: Object.assign({ stacked: true }, xAxis), y: Object.assign({ stacked: true }, yAxis) } }
   });
 })();
 </script>

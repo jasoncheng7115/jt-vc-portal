@@ -30,6 +30,7 @@ class Transcripts {
   const BACKOFF = [60, 120, 300, 600, 1800, 3600];
   const UNREACHABLE_LIMIT = 86400;           // 已送件後連續這麼久查不到 JTLW → 標失敗（不永遠卡在處理中）
   const SUMMARY_RETRY = [600, 1800, 3600];    // 摘要因 LLM 暫時故障失敗 → 10 / 30 / 60 分鐘後自動重做
+  const JOB_RETRY = [600, 1800, 3600];        // 辨識失敗但可重試（例如 GPU 伺服器暫時不能用）→ 10 / 30 / 60 分鐘後直接 retry（JTLW v2.25.3 起錄影會保留，不必重傳）
 
   // ── 權限 ──
   public static function perm(?array $u): string {
@@ -102,11 +103,53 @@ class Transcripts {
   }
 
   /** 建立一筆待處理（手動或自動）。已有進行中 / 完成的回 false。 */
+  /** 會議主要語言（建立會議室、手動產生時選；值就是送給語音服務的 language）。「自動判斷」只留在系統預設。 */
+  public const MEETING_LANGS = ['zh-Hant', 'en', 'ja', 'ko', 'nan-Hant'];
+  /** 語音服務的台語專用辨識模式（MediaTek Breeze-ASR-26）；不支援發言者分離。 */
+  public const TAIWANESE_PROFILE = 'transcribe.taiwanese';
+
+  /**
+   * 選單文字：以「主要使用的語言」描述，不用帶政治意涵的稱呼——
+   * 中文不寫國語 / 普通話，台語並列「閩南語」兩種常見稱呼。
+   */
+  public static function meetingLanguages(): array {
+    return ['zh-Hant' => t('中文為主'), 'en' => t('英文為主'), 'ja' => t('日文為主'), 'ko' => t('韓文為主'), 'nan-Hant' => t('台語（閩南語）為主')];
+  }
+
+  /** 語言代碼 → 顯示文字（含系統預設才有的「自動判斷」）；空值回「—」。 */
+  public static function languageLabel(?string $code): string {
+    if ($code === null || $code === '') return '—';
+    if ($code === 'auto') return t('自動判斷');
+    return self::meetingLanguages()[$code] ?? $code;
+  }
+
+  /** 錄影要顯示的主要語言：已送件的用送件時的語言，否則用會議建立時選的。 */
+  public static function displayLanguage(array $rec, ?array $e): ?string {
+    $l = (string)($e['language'] ?? '');
+    return $l !== '' ? $l : self::languageOf($rec);
+  }
+
+  /** 這筆錄影的會議當時選的主要語言（沒有就 null）。 */
+  public static function languageOf(array $rec): ?string {
+    $l = (string)(self::sessionOf($rec)['tx_lang'] ?? '');
+    return in_array($l, self::MEETING_LANGS, true) ? $l : null;
+  }
+
+  /**
+   * 依語言決定送給語音服務的辨識模式與工作項目。台語要用台語專用模式，而它不做發言者分離。
+   * （語音服務正在改版台語 API；規格若變，只要改這裡。）
+   */
+  public static function jobPlan(string $lang, array $cfg): array {
+    if ($lang === 'nan-Hant') return ['profile_id' => self::TAIWANESE_PROFILE, 'tasks' => ['transcribe', 'correct']];
+    return ['profile_id' => $cfg['profile_id'], 'tasks' => ['transcribe', 'diarize', 'correct']];
+  }
+
   public static function enqueue(array $rec, string $trigger, ?array $by = null, ?string $language = null): bool {
     $id = (string)($rec['id'] ?? '');
     if (!self::validId($id)) return false;
     $cfg = Settings::getTranscribe();
-    $lang = in_array($language, Settings::TRANSCRIBE_LANGS, true) ? $language : $cfg['language'];
+    // 語言：明確指定 > 會議建立時選的主要語言 > 系統預設
+    $lang = in_array($language, Settings::TRANSCRIBE_LANGS, true) ? $language : (self::languageOf($rec) ?? $cfg['language']);
     $ok = false;
     self::mutate(function (array &$d) use ($id, $rec, $trigger, $by, $lang, &$ok) {
       $cur = $d[$id] ?? null;
@@ -178,6 +221,21 @@ class Transcripts {
       if (self::retrySummary((string)$id)) Audit::log('transcript_request', t('自動重做會議摘要（第 {n} 次）：會議室「{room}」錄影 {id}', ['n' => $n, 'room' => $e['room'] ?? '', 'id' => $id]), ['actor' => 'system']);
     }
 
+    // 4b. 辨識失敗但可重試：時間到了直接 retry（錄影還在 JTLW，不重傳）；用完次數就刪掉 JTLW 端作業
+    foreach (self::all() as $id => $e) {
+      if (($e['status'] ?? '') !== 'failed' || empty($e['job_retry_at']) || (int)$e['job_retry_at'] > time() || empty($e['job_id'])) continue;
+      $n = (int)($e['job_retries'] ?? 0) + 1;
+      self::patch((string)$id, ['job_retries' => $n, 'job_retry_at' => 0]);
+      try {
+        Jtlw::retry((string)$e['job_id']);
+        self::patch((string)$id, ['status' => 'queued', 'error_code' => '', 'error_reason' => '', 'progress' => null, 'last_ok_poll_at' => time()]);
+        Audit::log('transcript_request', t('自動重試辨識（第 {n} 次）：會議室「{room}」錄影 {id}', ['n' => $n, 'room' => $e['room'] ?? '', 'id' => $id]), ['actor' => 'system']);
+      } catch (JtlwError $x) {
+        if ($x->retryable() && $n < count(self::JOB_RETRY)) self::patch((string)$id, ['job_retry_at' => time() + self::JOB_RETRY[$n]]);
+        else self::dropJob((string)$id);
+      }
+    }
+
     // 5. 查詢進行中的作業；到終態就取回
     foreach (self::all() as $id => $e) {
       if (!in_array($e['status'] ?? '', ['queued', 'running', 'cancelling'], true) || empty($e['job_id'])) continue;
@@ -211,11 +269,12 @@ class Transcripts {
       $up = Jtlw::upload($tmp, (string)($rec['file'] ?? ($id . '.mp4')));
       @unlink($tmp);
       $lang = (string)($e['language'] ?? $cfg['language']);
-      $tasks = ['transcribe', 'diarize', 'correct'];
-      $summary = $cfg['summarize'] && in_array($lang, ['zh-Hant', 'en', 'auto'], true);
+      $plan = self::jobPlan($lang, $cfg);
+      $tasks = $plan['tasks'];
+      $summary = $cfg['summarize'] && in_array($lang, ['zh-Hant', 'en', 'nan-Hant', 'auto'], true);   // 語音服務的摘要不支援日文、韓文
       if ($summary) $tasks[] = 'summarize';
       $body = [
-        'profile_id' => $cfg['profile_id'],
+        'profile_id' => $plan['profile_id'],
         'tasks' => $tasks,
         'source' => ['type' => 'upload', 'upload_id' => (string)$up['upload_id']],
         'language' => $lang,
@@ -299,9 +358,17 @@ class Transcripts {
       return true;
     }
     if ($st === 'failed') {
-      $code = (string)($job['errors'][0]['code'] ?? 'failed');
-      self::patch($id, ['attempts' => self::MAX_ATTEMPTS]);          // 錄影已在 JTLW 刪除，不自動重送（可手動重新產生）
+      $err = (array)($job['errors'][0] ?? []);
+      $code = (string)($err['code'] ?? 'failed');
+      self::patch($id, ['attempts' => self::MAX_ATTEMPTS]);          // 不重新上傳；可重試的由下面排定直接 retry
       self::fail($id, $code, false);
+      $n = (int)($e['job_retries'] ?? 0);
+      if (!empty($err['retryable']) && $n < count(self::JOB_RETRY)) {
+        // JTLW v2.25.3：可重試的辨識失敗會保留錄影 → 排定時間到了直接 POST /retry
+        self::patch($id, ['job_retry_at' => time() + self::JOB_RETRY[$n]]);
+      } else {
+        self::dropJob($id);                                          // 不再重試：刪掉 JTLW 端的作業（連同保留的錄影）
+      }
       return true;
     }
     if (in_array($st, ['succeeded', 'partially_succeeded'], true)) return self::fetch($id, $job);
@@ -316,7 +383,11 @@ class Transcripts {
       $final = Jtlw::segments($jid, 'final');
       $raw = Jtlw::segments($jid, 'raw');
       $spk = [];
-      try { $spk = Jtlw::segments($jid, 'speakers'); } catch (JtlwError $x) { if ($x->errCode() !== 'task_not_requested') throw $x; }
+      // 只有做了發言者分離才取 speakers 層：台語模式沒有 diarize，去要會得到 400（不是 task_not_requested），
+      // 若當成暫時錯誤就會一直重試、永遠停在「處理中」
+      if (array_key_exists('diarize', (array)($job['tasks'] ?? []))) {
+        try { $spk = Jtlw::segments($jid, 'speakers'); } catch (JtlwError $x) { if ($x->errCode() !== 'task_not_requested') throw $x; }
+      }
     } catch (JtlwError $ex) {
       return false;                                    // 暫時取不到：下一輪再試（內容在 ACK 前不會被刪）
     }
@@ -496,6 +567,13 @@ class Transcripts {
     try { Jtlw::retry((string)$e['job_id']); } catch (JtlwError $x) { return false; }
     self::patch($id, ['status' => 'running', 'summary_status' => '', 'progress' => null]);
     return true;
+  }
+
+  /** 不再重試的失敗作業：刪掉 JTLW 端紀錄（它可能還保留著上傳的錄影），本地狀態留著給使用者看。 */
+  public static function dropJob(string $id): void {
+    $e = self::get($id); if (!$e || empty($e['job_id'])) return;
+    try { Jtlw::delete((string)$e['job_id']); } catch (JtlwError $x) {}
+    self::patch($id, ['job_retry_at' => 0, 'job_dropped' => true]);
   }
 
   /** 刪除本地結果＋JTLW 端紀錄（管理員刪除、或錄影不在了）。 */

@@ -1066,6 +1066,14 @@ body.is-dark .schedule-body { border-top-color: rgba(255,255,255,0.10); backgrou
   cursor: pointer;
 }
 .lobby-toggle input[type="checkbox"] { margin-top: 2px; flex-shrink: 0; width: 18px; height: 18px; cursor: pointer; }
+.tx-box { border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 16px; }
+.tx-box .lobby-toggle { border: 0; margin: 0; }
+.tx-lang-field { padding: 0 14px 14px 42px; }
+.tx-lang-field[hidden] { display: none; }
+.tx-lang-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.tx-lang-field .req { color: var(--danger, #dc2626); }
+.tx-lang-field select { max-width: 320px; }
+.tx-lang-field .help { margin-top: 6px; }
 .lobby-toggle .lobby-text, .schedule-head .lobby-text { display: flex; flex-direction: column; gap: 3px; }
 .lobby-toggle .lobby-title, .schedule-head .lobby-title { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--text); }
 body.is-dark .lobby-toggle { border-color: rgba(255,255,255,0.10); }
@@ -1830,3 +1838,46 @@ body.is-dark .tx-chip-x:hover { background: rgba(239,68,68,0.2); color: #fca5a5;
 .btn.tx-gen:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
 body.is-dark .btn.tx-view { background: rgba(16,185,129,0.15); color: #6ee7b7; border-color: rgba(52,211,153,0.35); }
 body.is-dark .btn.tx-gen { color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.25); }
+
+/* 錄影記錄：主要語言欄、產生逐字稿前先選語言（v1.16.0） */
+.tx-lang-cell { white-space: nowrap; font-size: 13px; }
+.tx-pick { display: inline-block; }
+.tx-pick-menu { position: fixed; z-index: 60; min-width: 200px; padding: 6px; background: #fff; border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 10px 30px rgba(15,23,42,.16); }
+.tx-pick-menu[hidden] { display: none; }
+.tx-pick-head { display: block; padding: 6px 10px 4px; font-size: 12px; color: var(--text-muted); }
+.tx-pick-menu form { margin: 0; }
+.tx-lang-item { display: block; width: 100%; text-align: left; padding: 7px 10px; border: 0; border-radius: 6px; background: none; font: inherit; font-size: 13px; color: var(--text); cursor: pointer; }
+.tx-lang-item:hover { background: rgba(37,99,235,.08); }
+body.is-dark .tx-pick-menu { background: #1e293b; }
+/* 沒有發言者分離（台語模式）：逐字稿不顯示空白的發言者欄 */
+#txSegs.tx-nospk .mt-s { display: none; }
+#txSegs.tx-nospk .mt-row { grid-template-columns: 52px 1fr; }
+/* 可收合的統計卡片（<details>）：標題列可點，右側箭頭 */
+details.card-fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; margin-bottom: 0; user-select: none; }
+details.card-fold > summary::-webkit-details-marker { display: none; }
+details.card-fold > summary .fold-chev { margin-left: auto; display: inline-flex; color: var(--text-muted); transition: transform .15s; }
+details.card-fold[open] > summary { margin-bottom: 14px; }
+details.card-fold[open] > summary .fold-chev { transform: rotate(180deg); }
+
+/* 儀表板系統狀態列（管理員，v1.16.0） */
+.sys-health { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 0 16px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,.72); backdrop-filter: blur(6px); font-size: 13px; }
+.sys-health.sh-bad { border-color: #fca5a5; background: #fef2f2; }
+.sh-title { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-weight: 600; }
+.sh-item { display: inline-flex; align-items: center; gap: 6px; }
+.sh-item b { font-weight: 600; }
+.sh-msg { color: var(--text-muted); }
+.sh-dot { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; flex-shrink: 0; }
+.sh-ok .sh-dot { background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.18); }
+.sh-warn .sh-dot { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,.2); }
+.sh-warn .sh-msg { color: #b45309; }
+.sh-error .sh-dot { background: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,.2); }
+.sh-error .sh-msg { color: #b91c1c; font-weight: 600; }
+.sh-off .sh-dot { background: #cbd5e1; }
+.sh-refresh { margin-left: auto; padding: 4px 8px; }
+body.is-dark .sys-health { background: rgba(255,255,255,.05); }
+body.is-dark .sys-health.sh-bad { background: rgba(239,68,68,.12); }
+
+/* 會議頁：連不上 Jitsi 的遮罩（v1.16.0） */
+.svc-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(15,23,42,.55); backdrop-filter: blur(4px); }
+.svc-overlay[hidden] { display: none; }
+.svc-overlay .stage-card { max-width: 460px; text-align: center; }

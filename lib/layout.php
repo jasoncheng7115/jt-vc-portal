@@ -305,6 +305,69 @@ function render_foot(): void { ?>
  * 內嵌 SVG icon（iconoir 風格：24x24、stroke 1.5、round caps、currentColor）。
  * 用法：<?= icon('play') ?>
  */
+/**
+ * Jitsi Meet 故障時給主持人 / 來賓看的友善頁面（v1.16.0）：說明狀況、每 30 秒自動重試、可手動重試。
+ * 不透露內部細節（網域、錯誤碼），只記在伺服器端。
+ */
+function render_service_down(string $room, bool $isHost): void {
+  http_response_code(503);
+  header('Retry-After: 30');
+  render_head(t('視訊服務暫時無法使用'));
+  $b = site_brand(); ?>
+<div class="page">
+  <header class="topbar">
+    <a class="brand" href="<?= $isHost ? '/dashboard' : '#' ?>">
+      <img class="brand-logo" src="<?= htmlspecialchars($b['logo_src']) ?>" alt="<?= htmlspecialchars($b['brand_name']) ?>" width="32" height="32">
+      <span class="brand-text"><?= htmlspecialchars($b['brand_name']) ?></span>
+    </a>
+  </header>
+  <main class="center-stage">
+    <div class="stage-card" id="svcDown">
+      <?php if ($room !== ''): ?><div class="room-tag"><?= icon('door-out', 12) ?><?= htmlspecialchars($room) ?></div><?php endif; ?>
+      <div class="icon-circle icon-circle-danger" style="margin-bottom:18px;"><?= icon('warning', 30) ?></div>
+      <h1><?= th('視訊服務暫時無法使用') ?></h1>
+      <p class="muted" style="margin:6px 0 0;"><?= th('會議系統正在維護或暫時發生問題，目前無法進入會議室。您的邀請連結仍然有效，請稍後再試。') ?></p>
+      <p class="stage-note"><?= icon('refresh', 14) ?> <?= th('本頁每 30 秒自動重新嘗試。') ?></p>
+      <?php if ($isHost): ?><p class="stage-note"><?= icon('info', 14) ?> <?= th('管理員可在儀表板的「系統狀態」查看原因。') ?></p><?php endif; ?>
+      <div class="stage-actions">
+        <button type="button" class="btn btn-primary" id="svcRetry"><?= icon('refresh', 14) ?><?= th('立即重試') ?></button>
+        <?php if ($isHost): ?><a class="btn btn-secondary" href="/dashboard"><?= th('回到儀表板') ?></a><?php endif; ?>
+      </div>
+    </div>
+  </main>
+</div>
+<script <?= nonce_attr() ?>>
+document.getElementById('svcRetry').addEventListener('click', () => location.reload());
+setTimeout(() => location.reload(), 30000);
+</script>
+<?php render_foot();
+}
+
+/** 會議頁的「連不上 Jitsi」遮罩（會議畫面載入後才出問題時用）。 */
+function jitsi_down_overlay(bool $isHost): string {
+  return '<div class="svc-overlay" id="svcOverlay" hidden><div class="stage-card">'
+    . '<div class="icon-circle icon-circle-danger" style="margin-bottom:18px;">' . icon('warning', 30) . '</div>'
+    . '<h1>' . th('無法連線到會議') . '</h1>'
+    . '<p class="muted" style="margin:6px 0 0;">' . th('會議系統沒有回應，可能正在維護或網路暫時不穩。請稍後再試；若一直無法進入，請聯絡會議主持人。') . '</p>'
+    . '<div class="stage-actions"><button type="button" class="btn btn-primary" id="svcOverlayRetry">' . icon('refresh', 14) . th('重試') . '</button>'
+    . ($isHost ? '<a class="btn btn-secondary" href="/dashboard">' . th('回到儀表板') . '</a>' : '') . '</div></div></div>';
+}
+
+/**
+ * 會議頁 JS：Jitsi 會議畫面（iframe）載入後會用 postMessage 跟外層溝通；
+ * 20 秒內一個訊息都沒收到＝會議畫面根本沒起來（Jitsi 故障），Jitsi 回報致命錯誤也一樣 → 顯示遮罩。
+ * 需在建立 api 之後呼叫：jitsiWatch(api)。
+ */
+function jitsi_watch_js(): string {
+  $origin = Jaas::frameOrigin();
+  return 'function jitsiWatch(api){var alive=false,shown=false,origin=' . json_encode($origin) . ';'
+    . 'function show(){if(shown)return;shown=true;var o=document.getElementById("svcOverlay");if(o){o.hidden=false;}}'
+    . 'window.addEventListener("message",function(e){if(e.origin===origin)alive=true;});'
+    . 'setTimeout(function(){if(!alive)show();},20000);'
+    . 'api.addEventListener("errorOccurred",function(e){if(e&&e.error&&e.error.isFatal)show();});'
+    . 'var r=document.getElementById("svcOverlayRetry");if(r)r.addEventListener("click",function(){location.reload();});}';
+}
+
 function icon(string $name, int $size = 18): string {
   static $paths = null;
   if ($paths === null) {

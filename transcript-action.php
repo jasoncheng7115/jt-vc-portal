@@ -45,8 +45,12 @@ switch ($action) {
     if (!Transcripts::canRequest($rec, $me)) Auth::notFound();
     if (($rec['status'] ?? '') !== 'ok') $done(t('錄影還沒完成，完成後才能產生逐字稿。'), false);
     $cur = Transcripts::get($id);
+    $prevLang = (string)($cur['language'] ?? '');   // 重新產生沿用上次的語言（清除前先記下）
     if ($action === 'regenerate' && $cur && in_array($cur['status'] ?? '', ['done', 'partial'], true)) Transcripts::purge($id, 'regenerate');
+    // 失敗 / 取消後重新產生：先刪掉 JTLW 端舊作業（可重試的失敗會保留上傳的錄影）
+    if ($action === 'regenerate' && $cur && in_array($cur['status'] ?? '', ['failed', 'cancelled'], true) && empty($cur['job_dropped'])) Transcripts::dropJob($id);
     $lang = (string)($in['language'] ?? '');
+    if ($lang === '' && $action === 'regenerate') $lang = $prevLang;
     if (!Transcripts::enqueue($rec, 'manual', $me, $lang !== '' ? $lang : null)) $done(t('這筆錄影已經在處理或已有結果。'), false);
     Audit::log('transcript_request', t('{what}逐字稿與摘要：會議室「{room}」錄影 {id}', ['what' => $action === 'regenerate' ? t('重新產生') : t('手動產生'), 'room' => $room, 'id' => $id]));
     $done(t('已排入產生逐字稿與摘要，完成時間依錄影長度與排隊狀況而定（通常數分鐘）。'));

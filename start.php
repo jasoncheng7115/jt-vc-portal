@@ -31,6 +31,7 @@ $form_input = [
   'attendees' => (string)($_POST['attendees'] ?? ''),
   'lobby'     => !empty($_POST['lobby']) ? '1' : '',
   'transcribe' => !empty($_POST['transcribe']) ? '1' : '',
+  'tx_lang'   => (string)($_POST['tx_lang'] ?? ''),
 ];
 $fail = function (string $msg) use ($form_input) {
   $_SESSION['room_error'] = $msg;
@@ -100,7 +101,13 @@ $opts = [
 if (!$entering) {
   $opts['lobby'] = !empty($_POST['lobby']);
   // 逐字稿單場開關：表單有顯示（使用者可使用逐字稿）才寫入；否則維持 null（依帳號預設）
-  if (!empty($_POST['transcribe_field']) && Settings::transcribeReady() && Transcripts::canUse($me)) $opts['transcribe'] = !empty($_POST['transcribe']);
+  if (!empty($_POST['transcribe_field']) && Settings::transcribeReady() && Transcripts::canUse($me)) {
+    $opts['transcribe'] = !empty($_POST['transcribe']);
+    // 要產生逐字稿就必須指定會議主要語言：語音服務依語言選辨識模型（例如台語要用台語專用模型）
+    $txLang = (string)($_POST['tx_lang'] ?? '');
+    if ($opts['transcribe'] && !in_array($txLang, Transcripts::MEETING_LANGS, true)) $fail(t('勾選產生逐字稿與摘要時，請選擇會議主要語言。'));
+    $opts['tx_lang'] = $opts['transcribe'] ? $txLang : null;
+  }
 } else {
   unset($opts['attendees']);
 }

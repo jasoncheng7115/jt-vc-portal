@@ -99,7 +99,6 @@ return [
   '停留' => 'Stayed',
   '本期尚無參與者統計。新會議結束後會在此累積（需主持人在場，由主持人端回報；舊會議無此資料）。' => 'No participant statistics in this billing period yet. New meetings are added here once they end (the host must be present, as the host\'s client reports them; older meetings have no such data).',
   '時長（分鐘）' => 'Duration (minutes)',
-  '分鐘' => 'Minutes',
 
   // ── 錄影記錄（recordings*.php）──
   '正常' => 'OK',
@@ -151,4 +150,5 @@ return [
   '線上播放錄影' => 'Play the recording online',
   '下載錄影檔' => 'Download the recording file',
   '刪除這筆錄影（逐字稿與摘要一併刪除）' => 'Delete this recording (its transcript and summary are deleted too)',
+  '合計' => 'Total',
 ];

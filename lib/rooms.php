@@ -39,6 +39,7 @@ class Rooms {
           'lobby'        => !empty($v['lobby']),          // 大廳模式：主持人進場自動開啟
           'ics_seq'      => (int)($v['ics_seq'] ?? 0),     // .ics SEQUENCE（每次寄邀請 / 取消遞增）
           'transcribe'   => array_key_exists('transcribe', $v) && $v['transcribe'] !== null ? (bool)$v['transcribe'] : null, // 逐字稿單場開關（null＝依帳號預設）
+          'tx_lang'      => isset($v['tx_lang']) && is_string($v['tx_lang']) && $v['tx_lang'] !== '' ? $v['tx_lang'] : null, // 會議主要語言（逐字稿用，v1.16.0）
         ];
         if (isset($v['roster']) && is_array($v['roster'])) $out[$name]['roster'] = $v['roster']; // 本次 session 與會者名冊快照
         if (isset($v['talk']) && is_array($v['talk'])) $out[$name]['talk'] = $v['talk'];       // 本次 session 主要發言者時間軸（v1.13.0）
@@ -91,6 +92,7 @@ class Rooms {
       'peak'       => $peak,                    // 尖峰同時人數
       'participants' => $participants,          // [{name,in,out}]，參與者時間軸
       'transcribe' => $r['transcribe'] ?? null, // 逐字稿單場開關（錄影處理時房間可能已過期，故隨 session 記下）
+      'tx_lang'    => $r['tx_lang'] ?? null,    // 會議主要語言（送語音服務時決定辨識模型）
       'talk'       => self::clipTalk($r['talk'] ?? null, $start, $end), // 主要發言者時間軸 [{n,s,e}]（毫秒），逐字稿對應發言者用
     ]);
   }
@@ -286,6 +288,9 @@ class Rooms {
       }
       if (array_key_exists('transcribe', $opts)) {
         $existing['transcribe'] = $opts['transcribe'] === null ? null : (bool)$opts['transcribe'];
+      }
+      if (array_key_exists('tx_lang', $opts)) {
+        $existing['tx_lang'] = is_string($opts['tx_lang']) && $opts['tx_lang'] !== '' ? $opts['tx_lang'] : null;
       }
       $rooms[$room] = $existing;
       $out = $existing;
