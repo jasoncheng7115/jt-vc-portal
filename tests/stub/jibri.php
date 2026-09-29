@@ -11,7 +11,7 @@ $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $recs = json_decode((string)@file_get_contents("$data/recs.json"), true) ?: [];
 header('Content-Type: application/json');
 if ($path === '/api/ping') { echo '{"ok":true}'; return true; }
-if ($path === '/api/stats') { echo json_encode(['disk' => ['total' => 1e10, 'used' => 1e9, 'free' => 9e9], 'recordings' => ['count' => count($recs), 'bytes' => (int)array_sum(array_column($recs, 'size'))]]); return true; }
+if ($path === '/api/stats') { echo json_encode(['disk' => ['total' => 1e10, 'used' => 1e9, 'free' => 9e9], 'recordings' => ['count' => count($recs), 'size' => (int)array_sum(array_column($recs, 'size'))]]); return true; }
 if ($path === '/api/recordings' && $_SERVER['REQUEST_METHOD'] === 'GET') { echo json_encode(['recordings' => $recs]); return true; }
 if (preg_match('#^/api/recordings/([A-Za-z0-9_-]+)/file$#', $path, $m)) {
   $f = "$data/{$m[1]}.mp4";
