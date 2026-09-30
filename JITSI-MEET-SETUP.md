@@ -6,7 +6,7 @@
 
 This document explains how to configure an **official Docker-based Jitsi Meet** deployment so it works together with the jt-vc-portal "authentication gateway".
 
-> Applies to: [docker-jitsi-meet](https://github.com/jitsi/docker-jitsi-meet) **`stable-10888`** (released 2026-03-30). The steps are the same for other stable releases; just substitute the version number.
+> Applies to: [docker-jitsi-meet](https://github.com/jitsi/docker-jitsi-meet) **`stable-11031`** (released 2026-06-08). The steps are the same for other stable releases; just substitute the version number.
 
 ---
 
@@ -96,7 +96,7 @@ User ──▶ jt-vc-portal (vc.example.com) ──── embedded IFrame ──
 - Your firewall / cloud Security Group must allow the above as **inbound**.
 - Signaling (join, chat) uses 443/TCP; media (audio and video) uses 10000/UDP — missing either one results in "can join, but black screen / no audio".
 
-> **Note (different from older versions)**: Modern Jitsi (including `stable-10888`) JVB multiplexes on a **single UDP port 10000** — all participants' media share this one port. You **no longer need** to open "a whole 10000–20000 range". That was the approach of old versions many years ago (dynamic port range via `org.ice4j.ice.harvest.MIN/MAX_PORT`), and it is obsolete in the docker single-port mode. Just allow `UDP 10000` (+ optionally `TCP 4443`).
+> **Note (different from older versions)**: Modern Jitsi (including `stable-11031`) JVB multiplexes on a **single UDP port 10000** — all participants' media share this one port. You **no longer need** to open "a whole 10000–20000 range". That was the approach of old versions many years ago (dynamic port range via `org.ice4j.ice.harvest.MIN/MAX_PORT`), and it is obsolete in the docker single-port mode. Just allow `UDP 10000` (+ optionally `TCP 4443`).
 
 ### Behind NAT / firewall (host has a private IP)
 
@@ -139,7 +139,7 @@ As described above: allow `UDP 10000` and set `JVB_ADVERTISE_IPS`.
 
 #### Layer 2: TCP 4443 (direct to JVB, optional / legacy)
 
-Modern Jitsi **disables** JVB's built-in TCP harvester **by default**; upstream now uses TURN to handle fallback uniformly, and the `stable-10888` docker `.env` has **no** corresponding switch. Forcing it on requires overlaying a custom config to re-enable the TCP harvester and opening `TCP 4443` — **not needed in most scenarios; just go straight to layer 3 TURN**.
+Modern Jitsi **disables** JVB's built-in TCP harvester **by default**; upstream now uses TURN to handle fallback uniformly, and the `stable-11031` docker `.env` has **no** corresponding switch. Forcing it on requires overlaying a custom config to re-enable the TCP harvester and opening `TCP 4443` — **not needed in most scenarios; just go straight to layer 3 TURN**.
 
 #### Layer 3: TURN (coturn, incl. turns/443)
 
@@ -231,7 +231,7 @@ external_services = {
 ```bash
 git clone https://github.com/jitsi/docker-jitsi-meet.git
 cd docker-jitsi-meet
-git checkout stable-10888
+git checkout stable-11031
 
 cp env.example .env
 ./gen-passwords.sh         # generate random passwords for the internal components (written back to .env)
@@ -239,7 +239,7 @@ cp env.example .env
 mkdir -p ~/.jitsi-meet-cfg/{web,transcripts,prosody/config,prosody/prosody-plugins-custom,jicofo,jvb,jigasi,jibri}
 ```
 
-> `JITSI_IMAGE_VERSION` in `.env` should be `stable-10888` (matching the checked-out tag) so the corresponding images are pulled.
+> `JITSI_IMAGE_VERSION` in `.env` should be `stable-11031` (matching the checked-out tag) so the corresponding images are pulled.
 
 ---
 
@@ -334,8 +334,8 @@ JWT_ACCEPTED_AUDIENCES=jt-vc-portal   # same as App ID
 
 # === Moderator permission control (very important; see below — all three are required) ===
 ENABLE_AUTO_OWNER=0                            # don't make "the first person to join" a moderator automatically
-XMPP_MUC_MODULES=token_affiliation             # set role from the token's moderator flag (module is built into the image)
-GLOBAL_CONFIG=disable_cascading_set = false    # required when jicofo has auth enabled; otherwise member gets changed back to owner
+XMPP_MUC_MODULES=token_affiliation,token_lobby_bypass   # moderator from the token; hosts can skip the lobby
+JICOFO_ENABLE_AUTH=0                           # the module above decides who is a moderator; jicofo no longer grants it
 ```
 
 Mapping (**all three sides must match**):
@@ -357,8 +357,10 @@ Mapping (**all three sides must match**):
 | Setting | Effect |
 |---|---|
 | `ENABLE_AUTO_OWNER=0` | Turns off "the first person to join automatically becomes owner". |
-| `XMPP_MUC_MODULES=token_affiliation` | Enables the prosody module that sets the user to `owner` (moderator) or `member` (regular participant) based on the token's `moderator` flag. The module is built into the image at `/prosody-plugins-contrib/token_affiliation`. |
-| `GLOBAL_CONFIG=disable_cascading_set = false` | When jicofo has authentication enabled, after the module sets `member` it **grants owner again**; this setting makes the module repeatedly reset `member` after joining (about 9 times within 1.6 seconds) to override it. **Without this line, guests revert to moderator after being admitted from the lobby.** |
+| `XMPP_MUC_MODULES=token_affiliation,token_lobby_bypass` | Enables the prosody module that sets the user to `owner` (moderator) or `member` (regular participant) based on the token's `moderator` flag. Since `stable-11031` it is part of Jitsi itself (`/prosody-plugins/mod_token_affiliation.lua`). `token_lobby_bypass` (a community module shipped in the image) lets anyone whose token carries `lobby_bypass: true` skip the lobby — **without it, in a room with the lobby on, a host who disconnects and rejoins is held in the lobby, and if only guests remain nobody can let them in**. Since v1.16.1 jt-vc-portal sets this flag for hosts only; guests still knock. |
+| `JICOFO_ENABLE_AUTH=0` | Turns off jicofo's authentication-based granting. With it on, jicofo promotes **everyone holding a valid token** to moderator, overriding the module above — **without this line guests are still moderators and can start recording, kick people and end the meeting**. This is the approach recommended by the Jitsi maintainers ([#16297](https://github.com/jitsi/jitsi-meet/issues/16297), [#16905](https://github.com/jitsi/jitsi-meet/issues/16905)). Joining a meeting still requires a valid token (prosody validation is unaffected). |
+
+> **Upgrading from stable-10888 or earlier**: older versions of this guide used the community module (`/prosody-plugins-contrib/token_affiliation`) plus `GLOBAL_CONFIG=disable_cascading_set = false`. Since `stable-11031` the community module is gone and the built-in one is used, so that line no longer has any effect — **after upgrading, switch to `JICOFO_ENABLE_AUTH=0` above**, or guests become moderators again. After upgrading, check with a guest that there is no "Start recording" and they cannot kick people.
 
 After configuring, run `docker compose up -d` (this recreates prosody / jicofo). On the jt-vc-portal side: host tokens carry `moderator: true` and guest tokens carry `moderator: false` (handled automatically by this system), so **host = owner / moderator, guest = member** (cannot kick people / end the meeting, and is held by the lobby).
 
@@ -544,12 +546,32 @@ Then record a test clip: on playback, confirm the top-left shows the custom logo
 
 ## 9. Upgrading Jitsi
 
+Before upgrading, make sure **nobody is in a meeting and nothing is being recorded** (the upgrade interrupts all meetings):
+
+```bash
+docker exec docker-jitsi-meet-jicofo-1 curl -s http://127.0.0.1:8888/stats   # conferences and participants must both be 0
+```
+
+Back up your settings (so you can go back if something breaks):
+
 ```bash
 cd docker-jitsi-meet
+tar czf ~/jitsi-backup-$(date +%Y%m%d).tgz .env docker-compose*.yml -C ~ .jitsi-meet-cfg
+git describe --tags > ~/jitsi-backup-$(date +%Y%m%d).version     # note the current version for rollback
+```
+
+Upgrade:
+
+```bash
 git fetch --tags
 git checkout stable-<new-version>
 docker compose pull
 docker compose up -d
 ```
 
-JWT and integration settings don't need to change (`custom-config.js` / `custom-interface_config.js` are kept and automatically appended again). At the time of writing, the latest stable release is `stable-10888`.
+JWT and integration settings don't need to change (`custom-config.js` / `custom-interface_config.js` are kept and automatically appended again).
+
+- **Upgrade the Jitsi host and the Jibri host to the same version** (see the upgrade section of [JIBRI-SETUP.md](JIBRI-SETUP.md)); if the versions drift too far apart, recording may fail to connect.
+- Rollback: `git checkout <previous-version>`, then `docker compose up -d` (the old images are still on the host).
+- After upgrading, hold a test meeting, check that two people can hear each other, and record a short clip to confirm it plays back.
+- This guide was verified on `stable-11031`. **`stable-11146` and later is a structural change** (base moved to Debian 13, containers run as non-root, images moved to the GitHub Container Registry, the web container's internal ports and WebSocket settings changed). It is not just a version bump: read the official release notes and rehearse in a test environment before upgrading, and re-check your custom `jibri-cjk` image.

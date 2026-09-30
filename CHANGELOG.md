@@ -2,6 +2,13 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.16.1 — Self-hosted Jitsi moderator permissions (for stable-11031)
+
+- **Guests became moderators after upgrading self-hosted Jitsi to `stable-11031`**: Jitsi moved the `token_affiliation` module into Jitsi itself and changed how it works, so the `GLOBAL_CONFIG=disable_cascading_set = false` line from the old guide no longer has any effect, and jicofo promotes everyone holding a token to moderator — guests could start recording, kick people and end the meeting. Switched to the approach recommended by the Jitsi maintainers: `JICOFO_ENABLE_AUTH=0`, so moderator status comes only from the token. **Self-hosted Jitsi users: update `.env` as described in "Moderator permission control" in [JITSI-MEET-SETUP.md](JITSI-MEET-SETUP.md).**
+- **Host rejoining a lobby room**: with the new module, a host who disconnects and rejoins a room with the lobby on was held in the lobby (and if only guests remained, nobody could let them in). Host tokens now carry `lobby_bypass: true`, which together with the `token_lobby_bypass` module shipped in the Jitsi image lets the host straight in with moderator rights restored; guests do not carry it and still knock. JaaS mode is unaffected.
+- **Docs**: the Jitsi / Jibri setup guides now target `stable-11031`; the upgrade sections add pre-checks (no meetings, Jibri idle), backup, keeping both hosts on the same version, rollback, and a note that `stable-11146` and later is a structural change.
+- Tests T63–T66: the host token flag, plus a walk through every entry path and gate against the real Jitsi (roles, guests cannot record, lobby, host rejoin, waiting / countdown / ended, create in 3 languages), required on every release and after every Jitsi / Jibri upgrade.
+
 ## v1.16.0 — Main meeting language (including Taiwanese Hokkien)
 
 - **Main meeting language is required**: when "Generate transcript and summary" is ticked while creating a room, you must choose the meeting's main language (mainly Chinese / English / Japanese / Korean / Taiwanese Hokkien); the speech service picks its recognition model from it. The Recordings list has a new "Main language" column, and "Generate transcript" asks for the language when the meeting did not set one. Regenerating keeps the previous language.

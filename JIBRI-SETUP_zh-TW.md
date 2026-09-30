@@ -6,7 +6,7 @@
 
 接續 [JITSI-MEET-SETUP_zh-TW.md](JITSI-MEET-SETUP_zh-TW.md)，本文在同一套 docker-jitsi-meet 上加上 **Jibri 錄影**，並特別處理兩個重點：**同時多會議室錄製**與**錄影中文顯示**。
 
-> 適用版本：docker-jitsi-meet / `jitsi/jibri` **`stable-10888`**。
+> 適用版本：docker-jitsi-meet / `jitsi/jibri` **`stable-11031`**。
 > 本文以 **同時 2 場錄製（2 個 Jibri 容器）** 為目標撰寫；要增減場數時，把文中所有「2」一起調整即可。
 
 ---
@@ -290,7 +290,7 @@ Jibri 是用 headless Chrome「把會議畫面錄下來」。**官方 `jitsi/jib
 
 ```dockerfile
 # jibri-cjk/Dockerfile
-FROM jitsi/jibri:stable-10888
+FROM jitsi/jibri:stable-11031
 USER root
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
@@ -304,10 +304,10 @@ RUN apt-get update \
 build 並讓 compose 改用它：
 
 ```bash
-docker build -t jibri-cjk:stable-10888 ./jibri-cjk
+docker build -t jibri-cjk:stable-11031 ./jibri-cjk
 ```
 
-在 `jibri.yml`（或 `docker-compose.override.yml`）把 jibri 服務的 `image:` 改成 `jibri-cjk:stable-10888`，再重啟。
+在 `jibri.yml`（或 `docker-compose.override.yml`）把 jibri 服務的 `image:` 改成 `jibri-cjk:stable-11031`，再重啟。
 
 > 驗證：錄一段含中文姓名的會議，播放確認中文正常（非缺字方框）。Noto CJK 對繁體中文覆蓋最完整。
 
@@ -471,7 +471,8 @@ docker compose -f docker-compose.yml -f jibri.yml ps     # web/prosody/jicofo/jv
 - 開一場會議按錄影 → 確認能錄、且**中文非缺字方框**（第五節）。
 - 同時開 2 間會議室都能錄 → 確認並行（第四節）未受升級影響。
 
-> 本文以 `stable-10888` 為準；把上面 `<新版本>` 換成要升的 tag 即可。
+> 本文以 `stable-11031` 實際驗證；把上面 `<新版本>` 換成要升的 tag 即可。**Jibri 要與 Jitsi 主機升到同一個版本**，升級前確認兩台 Jibri 都是閒置（`curl -s http://127.0.0.1:2222/jibri/api/v1.0/health` 為 `IDLE`）。
+> **`stable-11146` 起是結構性改版**（Debian 13、容器非 root、映像改放 GHCR），上面 `jibri-cjk/Dockerfile` 的 `USER root` 做法要重新確認，請先在測試環境演練。
 > `snd-aloop` 是核心模組、與映像版本無關，升級時不用重設（除非你重灌了 VM）。
 
 ---
@@ -527,7 +528,7 @@ grep -E '^JIBRI_XMPP_PASSWORD=|^JIBRI_RECORDER_PASSWORD=' .env   # 兩個密碼�
 
 ```bash
 cd /opt && git clone https://github.com/jitsi/docker-jitsi-meet.git
-cd docker-jitsi-meet && git checkout stable-10888
+cd docker-jitsi-meet && git checkout stable-11031
 cp env.example .env && ./gen-passwords.sh        # 先填齊欄位
 mkdir -p ~/.jitsi-meet-cfg/jibri/recordings
 
@@ -563,7 +564,7 @@ EOF
 # docker-compose.jibri-standalone.yml
 services:
   jibri:
-    image: jibri-cjk:stable-10888
+    image: jibri-cjk:stable-11031
     restart: unless-stopped
     volumes:
       - ${CONFIG}/jibri:/config:Z

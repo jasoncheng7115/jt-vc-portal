@@ -6,7 +6,7 @@
 
 本文說明如何把一套**官方 Docker 版 Jitsi Meet**，設定成可與 jt-vc-portal「認證入口」搭配使用。
 
-> 適用版本：[docker-jitsi-meet](https://github.com/jitsi/docker-jitsi-meet) **`stable-10888`**（2026-03-30 發佈）。其他穩定版步驟相同，只需替換版本號。
+> 適用版本：[docker-jitsi-meet](https://github.com/jitsi/docker-jitsi-meet) **`stable-11031`**（2026-06-08 發佈）。其他穩定版步驟相同，只需替換版本號。
 
 ---
 
@@ -96,7 +96,7 @@
 - 防火牆 / 雲端 Security Group 需放行上述 **inbound**。
 - 信令（join、聊天）走 443/TCP；媒體（聲音畫面）走 10000/UDP——兩者缺一都會「進得去但黑畫面 / 沒聲音」。
 
-> **注意（與舊版不同）**：現代 Jitsi（含 `stable-10888`）的 JVB 採「**單一 UDP 埠 10000**」多工，所有與會者媒體都共用這一個埠——**不需要**再開「10000–20000 一整段範圍」。那是多年前舊版（`org.ice4j.ice.harvest.MIN/MAX_PORT` 動態埠範圍）的做法，docker 版單埠模式已淘汰。只要放行 `UDP 10000`（+ 選用 `TCP 4443`）即可。
+> **注意（與舊版不同）**：現代 Jitsi（含 `stable-11031`）的 JVB 採「**單一 UDP 埠 10000**」多工，所有與會者媒體都共用這一個埠——**不需要**再開「10000–20000 一整段範圍」。那是多年前舊版（`org.ice4j.ice.harvest.MIN/MAX_PORT` 動態埠範圍）的做法，docker 版單埠模式已淘汰。只要放行 `UDP 10000`（+ 選用 `TCP 4443`）即可。
 
 ### 位於 NAT / 防火牆後（主機是私有 IP）
 
@@ -139,7 +139,7 @@ JVB_ADVERTISE_IPS=<公網IP>,<主機私有IP>
 
 #### 第 2 層：TCP 4443（JVB 直連，選用 / legacy）
 
-現代 Jitsi **預設停用** JVB 內建 TCP harvester，官方已改用 TURN 統一處理後援；`stable-10888` 的 docker `.env` **沒有**對應開關。要硬開需以 custom config 疊加重啟 TCP harvester 並開放 `TCP 4443`——**多數情境不需要，直接做第 3 層 TURN 即可**。
+現代 Jitsi **預設停用** JVB 內建 TCP harvester，官方已改用 TURN 統一處理後援；`stable-11031` 的 docker `.env` **沒有**對應開關。要硬開需以 custom config 疊加重啟 TCP harvester 並開放 `TCP 4443`——**多數情境不需要，直接做第 3 層 TURN 即可**。
 
 #### 第 3 層：TURN（coturn，含 turns/443）
 
@@ -231,7 +231,7 @@ external_services = {
 ```bash
 git clone https://github.com/jitsi/docker-jitsi-meet.git
 cd docker-jitsi-meet
-git checkout stable-10888
+git checkout stable-11031
 
 cp env.example .env
 ./gen-passwords.sh         # 產生各內部元件的隨機密碼（寫回 .env）
@@ -239,7 +239,7 @@ cp env.example .env
 mkdir -p ~/.jitsi-meet-cfg/{web,transcripts,prosody/config,prosody/prosody-plugins-custom,jicofo,jvb,jigasi,jibri}
 ```
 
-> `.env` 內的 `JITSI_IMAGE_VERSION` 應為 `stable-10888`（與 checkout 的 tag 一致），確保拉到對應映像。
+> `.env` 內的 `JITSI_IMAGE_VERSION` 應為 `stable-11031`（與 checkout 的 tag 一致），確保拉到對應映像。
 
 ---
 
@@ -334,8 +334,8 @@ JWT_ACCEPTED_AUDIENCES=jt-vc-portal   # 與 App ID 相同
 
 # === 主持人權限控制（很重要，見下方說明，三者缺一不可）===
 ENABLE_AUTO_OWNER=0                            # 不讓「第一個進房者」自動變 moderator
-XMPP_MUC_MODULES=token_affiliation             # 依 token 的 moderator 旗標設角色（映像已內建此模組）
-GLOBAL_CONFIG=disable_cascading_set = false    # jicofo 開驗證時必設，否則設完 member 又被改回 owner
+XMPP_MUC_MODULES=token_affiliation,token_lobby_bypass   # 依 token 設主持人；主持人可略過大廳
+JICOFO_ENABLE_AUTH=0                           # 主持人身分改由上面的模組決定，jicofo 不再授予
 ```
 
 對應關係（**三邊必須一致**）：
@@ -357,8 +357,10 @@ GLOBAL_CONFIG=disable_cascading_set = false    # jicofo 開驗證時必設，否
 | 設定 | 作用 |
 |---|---|
 | `ENABLE_AUTO_OWNER=0` | 關掉「第一個進房者自動變 owner」。 |
-| `XMPP_MUC_MODULES=token_affiliation` | 啟用 prosody 模組，依 token 的 `moderator` 旗標把使用者設為 `owner`（主持人）或 `member`（一般與會者）。模組已內建於映像 `/prosody-plugins-contrib/token_affiliation`。 |
-| `GLOBAL_CONFIG=disable_cascading_set = false` | jicofo 有開驗證時，會在模組設完 `member` 後**又把人重新授予 owner**；此設定讓模組在進場後反覆重設 `member`（約 1.6 秒內 9 次）壓過去。**少這行，來賓被大廳放行後仍會變回主持人。** |
+| `XMPP_MUC_MODULES=token_affiliation,token_lobby_bypass` | 啟用 prosody 模組，依 token 的 `moderator` 旗標把使用者設為 `owner`（主持人）或 `member`（一般與會者）。`stable-11031` 起已收進 Jitsi 主程式（`/prosody-plugins/mod_token_affiliation.lua`）。`token_lobby_bypass`（映像內附的社群模組）讓 token 帶 `lobby_bypass: true` 的人略過大廳——**少了它，開大廳的會議室裡主持人斷線重進會被擋在大廳，而房內只剩來賓時沒人能放行**。jt-vc-portal v1.16.1 起只替主持人帶這個旗標，來賓仍要在大廳敲門。 |
+| `JICOFO_ENABLE_AUTH=0` | 關掉 jicofo 的驗證授權。jicofo 開驗證時，會把**所有持有效 token 的人**都升成主持人，蓋過上面模組的設定——**少這行，來賓仍是主持人，可自行錄影、踢人、結束會議**。這是 Jitsi 維護者建議的做法（[#16297](https://github.com/jitsi/jitsi-meet/issues/16297)、[#16905](https://github.com/jitsi/jitsi-meet/issues/16905)）。關掉後，進會議仍一律要有效 token（prosody 驗證不受影響）。 |
+
+> **從 stable-10888 以前升級的注意事項**：舊版文件用的是社群版模組（`/prosody-plugins-contrib/token_affiliation`）加 `GLOBAL_CONFIG=disable_cascading_set = false`。`stable-11031` 起社群版已移除、改用內建模組，那一行不再有作用，**升級後要改成上面的 `JICOFO_ENABLE_AUTH=0`**，否則來賓會變回主持人。升級後請用一個來賓帳號確認：沒有「開始錄影」、不能踢人。
 
 設定後 `docker compose up -d`（會重建 prosody / jicofo）。對應 jt-vc-portal：主持人 token 帶 `moderator: true`、來賓帶 `moderator: false`（本系統自動處理），於是**主持人 = owner / moderator、來賓 = member**（不能踢人 / 結束會議、會被大廳擋）。
 
@@ -544,12 +546,32 @@ docker exec docker-jitsi-meet-web-1 grep -E "defaultLogoUrl|hiddenDomain" /confi
 
 ## 九、升級 Jitsi
 
+升級前先確認**沒有人在開會、沒有錄影中**（升級會中斷所有會議）：
+
+```bash
+docker exec docker-jitsi-meet-jicofo-1 curl -s http://127.0.0.1:8888/stats   # conferences、participants 都要是 0
+```
+
+備份設定（出問題時可回到原版本）：
+
 ```bash
 cd docker-jitsi-meet
+tar czf ~/jitsi-backup-$(date +%Y%m%d).tgz .env docker-compose*.yml -C ~ .jitsi-meet-cfg
+git describe --tags > ~/jitsi-backup-$(date +%Y%m%d).version     # 記下目前版本，回滾用
+```
+
+升級：
+
+```bash
 git fetch --tags
 git checkout stable-<新版本>
 docker compose pull
 docker compose up -d
 ```
 
-JWT 與整合設定不需更動（`custom-config.js` / `custom-interface_config.js` 會保留並自動再附加）。本文撰寫時最新穩定版為 `stable-10888`。
+JWT 與整合設定不需更動（`custom-config.js` / `custom-interface_config.js` 會保留並自動再附加）。
+
+- **Jitsi 主機與 Jibri 主機要升到同一個版本**（見 [JIBRI-SETUP_zh-TW.md](JIBRI-SETUP_zh-TW.md) 的升級一節），版本差太多時錄影可能連不上。
+- 回滾：`git checkout <原版本>` 後再 `docker compose up -d`（舊映像仍在本機）。
+- 升級後開一場測試會議、兩人互相聽得到、錄一段影片確認可播放。
+- 本文以 `stable-11031` 實際驗證。**`stable-11146` 起是結構性改版**（基底改 Debian 13、容器改非 root 執行、映像改放 GitHub Container Registry、web 容器內部埠與 WebSocket 設定變更），不是單純換版號，請先讀官方 release notes 並在測試環境演練後再升級；自建的 `jibri-cjk` 映像也要重新檢查。

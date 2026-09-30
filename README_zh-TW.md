@@ -1,10 +1,10 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.16.0 — 會議管理系統
+# jt-vc-portal v1.16.1 — 會議管理系統
 
 > English: [README.md](README.md) · 日本語: [README_ja.md](README_ja.md)
 
-> 搭配 Jitsi Meet 基底的會議入口系統，**雙模式**支援 [8x8 JaaS](https://jaas.8x8.vc/)[^8x8]（雲端託管）與 **[自建 Jitsi Meet](https://github.com/jitsi/jitsi-meet)**。
+> 強化 Jitsi Meet 基底的會議入口系統，**雙模式**支援 [8x8 JaaS](https://jaas.8x8.vc/)[^8x8]（雲端託管）與 **[自建 Jitsi Meet](https://github.com/jitsi/jitsi-meet)**。
 > 主持人登入後即可建立會議室、產生邀請連結（含 QR / `.ics` 行事曆邀請），來賓經由邀請連結加入。
 > 內建多帳號 / 角色 / 2FA、完整稽核記錄與 SIEM 外拋、fail2ban、預約時段等企業功能。
 
@@ -205,14 +205,14 @@ server {
 
 ```bash
 # 1) 從 Release 頁下載映像與校驗檔（請改用最新版本號）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.0/jt-vc-portal-1.16.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.0/jt-vc-portal-1.16.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.1/jt-vc-portal-1.16.1-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.1/jt-vc-portal-1.16.1-docker-amd64.tar.gz.sha256
 
 # 2) 驗證完整性（應顯示 OK）
-sha256sum -c jt-vc-portal-1.16.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.16.1-docker-amd64.tar.gz.sha256
 
-# 3) 載入映像（會建立 jt-vc-portal:1.16.0 與 :latest 標籤）
-docker load < jt-vc-portal-1.16.0-docker-amd64.tar.gz
+# 3) 載入映像（會建立 jt-vc-portal:1.16.1 與 :latest 標籤）
+docker load < jt-vc-portal-1.16.1-docker-amd64.tar.gz
 
 # 4) 主機端準備持久化目錄（www-data UID 預設 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -256,6 +256,7 @@ Docker 映像與 Release 映像已經內含所有元件，不必另外安裝。*
 | v1.10.0 以前 | 單一登入（選用）需要 PHP `curl`、`openssl` 擴充（Debian / Ubuntu：`apt install php-curl`）。 |
 | v1.12.0 以前 | 逐字稿與摘要（選用）需要 `curl`，以及**每分鐘執行一次的背景排程**，見「會議逐字稿與摘要」。Docker 安裝也要在主機加排程。 |
 | v1.16.0 以前 | 有自建 Jibri 時，請一併更新 Jibri 主機上的 `jibri-recordings-api/server.py`（路徑與標頭安全強化），並 `systemctl restart jibri-recordings-api`。 |
+| v1.16.1 以前 | 自建 Jitsi Meet 升到 `stable-11031` 以後：`.env` 改為 `XMPP_MUC_MODULES=token_affiliation,token_lobby_bypass`、加 `JICOFO_ENABLE_AUTH=0`、停用舊的 `GLOBAL_CONFIG=disable_cascading_set = false`，再 `docker compose up -d`。否則來賓會變成主持人（可自行錄影、踢人）。詳見 [JITSI-MEET-SETUP_zh-TW.md](JITSI-MEET-SETUP_zh-TW.md)「主持人權限控制」。 |
 | v1.14.0 以前 | 會議記錄匯出 PDF / DOCX / ODT 需要 PHP `zlib` 擴充（Debian / Ubuntu 的 PHP 套件已內建），以及隨附字型 `lib/fonts/NotoSansTC-Regular.ttf`（`git pull` 會一起取得）。 |
 
 可用 `php -m | grep -iE 'curl|mbstring|openssl|zlib|fileinfo|json'` 檢查。升級後打開**系統設定**：缺少的元件會列在最上方；背景排程沒在執行時，「逐字稿與摘要」卡片會警示。

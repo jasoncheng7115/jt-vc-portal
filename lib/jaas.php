@@ -81,8 +81,20 @@ class Jaas {
       'room' => $room !== '' ? $room : '*',
       'nbf' => time() - 10,
       'exp' => time() + $ttl,
-      'context' => ['user' => $user],
+      'context' => ['user' => self::selfhostedUser($user)],
     ];
     return JWT::encodeHS256($header, $payload, $c['sh_secret']);
+  }
+
+  /**
+   * 自建：主持人另帶 lobby_bypass（prosody token_lobby_bypass 模組）。
+   * 開大廳的房間裡主持人斷線重進時，內建 token_affiliation 會先讓大廳把人擋下；
+   * 有此旗標才會先以 member 放行、再依 moderator 升為 owner。來賓不帶，仍要在大廳敲門。
+   */
+  public static function selfhostedUser(array $user): array {
+    $mod = $user['moderator'] ?? false;
+    if ($mod === true || $mod === 'true') $user['lobby_bypass'] = true;
+    else unset($user['lobby_bypass']);
+    return $user;
   }
 }

@@ -88,7 +88,7 @@
       <span class="eyebrow"><span class="zh">雙模</span><span class="en">Dual-mode</span><span class="ja">デュアルモード</span></span>
     </div>
     <h1><span class="zh">會議在手，<span class="grad">主權我有</span></span><span class="en">Own your meetings, <span class="grad">own your data</span></span><span class="ja">会議も、<span class="grad">データも自分の手に</span></span></h1>
-    <p class="lead"><span class="zh">搭配 Jitsi Meet 基底的開源視訊會議系統，打造 Webex/Zoom 風格的會議入口，但一切由你掌控：多帳號 / 角色 / 2FA、預約、大廳、完整稽核與 SIEM 外拋。連線模式支援 <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>（雲端託管）或<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">自建 Jitsi Meet</a>，一鍵切換。</span><span class="en">An open-source meeting portal for Jitsi Meet–based video conferencing — a Webex/Zoom-style front door that stays entirely under your control: multiple accounts / roles / 2FA, scheduling, lobby, full audit logging and SIEM forwarding. Connect to <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> (cloud-hosted) or a <a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">self-hosted Jitsi Meet</a> and switch between them with one click.</span><span class="ja">Jitsi Meet ベースのビデオ会議のためのオープンソース会議ポータル。Webex / Zoom のような会議の入口を、すべて自分の管理下で提供します：複数アカウント / ロール / 2FA、予約、ロビー、完全な監査ログと SIEM 転送。接続先は <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>（クラウドホスト）または<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">セルフホストの Jitsi Meet</a> から選べ、ワンクリックで切り替えられます。</span></p>
+    <p class="lead"><span class="zh">強化 Jitsi Meet 基底的開源視訊會議系統，打造 Webex/Zoom 風格的會議入口，但一切由你掌控：多帳號 / 角色 / 2FA、預約、大廳、完整稽核與 SIEM 外拋。連線模式支援 <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>（雲端託管）或<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">自建 Jitsi Meet</a>，一鍵切換。</span><span class="en">An open-source meeting portal for Jitsi Meet–based video conferencing — a Webex/Zoom-style front door that stays entirely under your control: multiple accounts / roles / 2FA, scheduling, lobby, full audit logging and SIEM forwarding. Connect to <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a> (cloud-hosted) or a <a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">self-hosted Jitsi Meet</a> and switch between them with one click.</span><span class="ja">Jitsi Meet ベースのビデオ会議のためのオープンソース会議ポータル。Webex / Zoom のような会議の入口を、すべて自分の管理下で提供します：複数アカウント / ロール / 2FA、予約、ロビー、完全な監査ログと SIEM 転送。接続先は <a href="https://jaas.8x8.vc/" target="_blank" rel="noopener">8x8 JaaS</a>（クラウドホスト）または<a href="https://github.com/jitsi/jitsi-meet" target="_blank" rel="noopener">セルフホストの Jitsi Meet</a> から選べ、ワンクリックで切り替えられます。</span></p>
     <p class="lead-note"><svg class="ln-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 8v.01"/></svg><span><span class="zh">8x8 自 2018 年起為 <strong>Jitsi / Jitsi Meet</strong> 的開發與維護公司；<strong>8x8 JaaS（Jitsi as a Service）</strong>即其官方雲端託管的 Jitsi 服務。</span><span class="en">Since 2018, 8x8 has been the company developing and maintaining <strong>Jitsi / Jitsi Meet</strong>; <strong>8x8 JaaS (Jitsi as a Service)</strong> is its official cloud-hosted Jitsi service.</span><span class="ja">8x8 は 2018 年から <strong>Jitsi / Jitsi Meet</strong> の開発・保守を担う企業であり、<strong>8x8 JaaS（Jitsi as a Service）</strong>はその公式クラウドホスト型 Jitsi サービスです。</span></span></p>
     <div class="cta">
       <a class="btn btn-primary" href="#install"><span class="zh">開始安裝</span><span class="en">Get started</span><span class="ja">インストールを始める</span></a>
@@ -411,9 +411,9 @@ docker run -d --restart unless-stopped -p 127.0.0.1:58189:58189 \
 
     <h3 style="margin-top:24px"><span class="zh">方法三：從 Release 載入預建映像</span><span class="en">Option 3: Load the prebuilt image from a Release</span><span class="ja">方法 3：Release からビルド済みイメージを読み込む</span></h3>
 <pre class="zh"><span class="c"># 不想自己 build，直接下載 Release 打包映像（linux/amd64）</span>
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.0/jt-vc-portal-1.16.0-docker-amd64.tar.gz
-sha256sum -c jt-vc-portal-1.16.0-docker-amd64.tar.gz.sha256   <span class="c"># 驗證完整性</span>
-docker load &lt; jt-vc-portal-1.16.0-docker-amd64.tar.gz        <span class="c"># 載入為 jt-vc-portal:latest</span>
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.1/jt-vc-portal-1.16.1-docker-amd64.tar.gz
+sha256sum -c jt-vc-portal-1.16.1-docker-amd64.tar.gz.sha256   <span class="c"># 驗證完整性</span>
+docker load &lt; jt-vc-portal-1.16.1-docker-amd64.tar.gz        <span class="c"># 載入為 jt-vc-portal:latest</span>
 
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
 chown 33:33 /opt/jt-vc-portal/data
@@ -427,9 +427,9 @@ docker run -d --restart unless-stopped -p 127.0.0.1:58189:58189 \
   -v /opt/jt-vc-portal/data/:/var/jaas-data \
   --name jt-vc-portal jt-vc-portal:latest</pre>
 <pre class="en"><span class="c"># Skip building: download the packaged image from the Release (linux/amd64)</span>
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.0/jt-vc-portal-1.16.0-docker-amd64.tar.gz
-sha256sum -c jt-vc-portal-1.16.0-docker-amd64.tar.gz.sha256   <span class="c"># verify integrity</span>
-docker load &lt; jt-vc-portal-1.16.0-docker-amd64.tar.gz        <span class="c"># loads as jt-vc-portal:latest</span>
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.1/jt-vc-portal-1.16.1-docker-amd64.tar.gz
+sha256sum -c jt-vc-portal-1.16.1-docker-amd64.tar.gz.sha256   <span class="c"># verify integrity</span>
+docker load &lt; jt-vc-portal-1.16.1-docker-amd64.tar.gz        <span class="c"># loads as jt-vc-portal:latest</span>
 
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
 chown 33:33 /opt/jt-vc-portal/data
@@ -443,9 +443,9 @@ docker run -d --restart unless-stopped -p 127.0.0.1:58189:58189 \
   -v /opt/jt-vc-portal/data/:/var/jaas-data \
   --name jt-vc-portal jt-vc-portal:latest</pre>
 <pre class="ja"><span class="c"># 自分でビルドしない場合：Release のパッケージ済みイメージを直接ダウンロード（linux/amd64）</span>
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.0/jt-vc-portal-1.16.0-docker-amd64.tar.gz
-sha256sum -c jt-vc-portal-1.16.0-docker-amd64.tar.gz.sha256   <span class="c"># 完全性を検証</span>
-docker load &lt; jt-vc-portal-1.16.0-docker-amd64.tar.gz        <span class="c"># jt-vc-portal:latest として読み込まれる</span>
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.1/jt-vc-portal-1.16.1-docker-amd64.tar.gz
+sha256sum -c jt-vc-portal-1.16.1-docker-amd64.tar.gz.sha256   <span class="c"># 完全性を検証</span>
+docker load &lt; jt-vc-portal-1.16.1-docker-amd64.tar.gz        <span class="c"># jt-vc-portal:latest として読み込まれる</span>
 
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
 chown 33:33 /opt/jt-vc-portal/data

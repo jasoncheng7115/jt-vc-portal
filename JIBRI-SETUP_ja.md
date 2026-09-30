@@ -6,7 +6,7 @@
 
 本ガイドは [JITSI-MEET-SETUP_ja.md](JITSI-MEET-SETUP_ja.md) の続きとして、同じ docker-jitsi-meet 環境に **Jibri による録画** を追加します。特に次の 2 点に重点を置いています：**複数の会議室を同時に録画すること**、そして **録画内の中国語（CJK）テキストを正しく表示すること** です。
 
-> 対象バージョン：docker-jitsi-meet / `jitsi/jibri` **`stable-10888`**。
+> 対象バージョン：docker-jitsi-meet / `jitsi/jibri` **`stable-11031`**。
 > 本ガイドは **同時録画 2 本（Jibri コンテナ 2 台）** を前提に書かれています。本数を増減する場合は、本文中の「2」をすべて合わせて調整してください。
 
 ---
@@ -290,7 +290,7 @@ Jibri は headless Chrome を使って「会議画面を録画」します。**�
 
 ```dockerfile
 # jibri-cjk/Dockerfile
-FROM jitsi/jibri:stable-10888
+FROM jitsi/jibri:stable-11031
 USER root
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
@@ -304,10 +304,10 @@ RUN apt-get update \
 ビルドして compose で使用するようにします：
 
 ```bash
-docker build -t jibri-cjk:stable-10888 ./jibri-cjk
+docker build -t jibri-cjk:stable-11031 ./jibri-cjk
 ```
 
-`jibri.yml`（または `docker-compose.override.yml`）で、jibri サービスの `image:` を `jibri-cjk:stable-10888` に変更し、再起動します。
+`jibri.yml`（または `docker-compose.override.yml`）で、jibri サービスの `image:` を `jibri-cjk:stable-11031` に変更し、再起動します。
 
 > 確認：中国語の参加者名を含む会議を録画し、再生時に中国語が正しく表示される（豆腐の四角がない）ことを確認してください。Noto CJK は繁体字中国語のカバー範囲が最も充実しています。
 
@@ -471,7 +471,8 @@ docker compose -f docker-compose.yml -f jibri.yml ps     # web/prosody/jicofo/jv
 - 会議を開始して録画をクリック → 録画できること、そして **中国語が豆腐の四角にならないこと**（第 5 節）を確認します。
 - 2 つの会議室を同時に録画 → 同時録画（第 4 節）がアップグレードの影響を受けていないことを確認します。
 
-> 本ガイドは `stable-10888` を基準にしています。上記の `<new-version>` をアップグレード先のタグに置き換えるだけです。
+> 本ガイドは `stable-11031` で検証しています。上記の `<new-version>` をアップグレード先のタグに置き換えるだけです。**Jibri は Jitsi ホストと同じバージョンに揃えてください**。アップグレード前に 2 台の Jibri がどちらもアイドル（`curl -s http://127.0.0.1:2222/jibri/api/v1.0/health` が `IDLE`）であることを確認します。
+> **`stable-11146` 以降は構造的な変更**です（Debian 13、非 root コンテナ、イメージは GHCR）。上記 `jibri-cjk/Dockerfile` の `USER root` の方法は再確認が必要なので、まずテスト環境でリハーサルしてください。
 > `snd-aloop` はカーネルモジュールでありイメージのバージョンとは無関係なので、アップグレード時に再設定する必要はありません（VM を再インストールした場合を除く）。
 
 ---
@@ -527,7 +528,7 @@ grep -E '^JIBRI_XMPP_PASSWORD=|^JIBRI_RECORDER_PASSWORD=' .env   # 2 つのパ�
 
 ```bash
 cd /opt && git clone https://github.com/jitsi/docker-jitsi-meet.git
-cd docker-jitsi-meet && git checkout stable-10888
+cd docker-jitsi-meet && git checkout stable-11031
 cp env.example .env && ./gen-passwords.sh        # まず全項目を埋める
 mkdir -p ~/.jitsi-meet-cfg/jibri/recordings
 
@@ -563,7 +564,7 @@ EOF
 # docker-compose.jibri-standalone.yml
 services:
   jibri:
-    image: jibri-cjk:stable-10888
+    image: jibri-cjk:stable-11031
     restart: unless-stopped
     volumes:
       - ${CONFIG}/jibri:/config:Z

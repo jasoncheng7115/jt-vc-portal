@@ -74,6 +74,15 @@ test('JWT：自建 HS256 簽章可驗證', function () {
   eq(jwt_payload($j)['aud'], 'app');
 });
 
+test('JWT（T63）：自建主持人帶 lobby_bypass、來賓不帶（大廳房主持人重進不被擋）', function () {
+  Settings::setSection('jaas', ['_v' => 2, 'mode' => 'selfhosted', 'sh_domain' => 'meet.example.com', 'sh_app_id' => 'app', 'sh_auth' => 'jwt', 'sh_secret' => 's3cret']);
+  $h = jwt_payload(Jaas::makeJwt('r', ['name' => 'h', 'moderator' => true]))['context']['user'];
+  eq($h['lobby_bypass'] ?? null, true, 'host');
+  $g = jwt_payload(Jaas::makeJwt('r', ['name' => 'g', 'moderator' => false, 'lobby_bypass' => true], [], Jaas::GUEST_JWT_TTL))['context']['user'];
+  eq(array_key_exists('lobby_bypass', $g), false, 'guest never gets lobby_bypass');
+  Settings::setSection('jaas', ['_v' => 2, 'mode' => 'jaas']);
+});
+
 test('Settings：並發設定不互相覆蓋；webhook secret 穩定', function () {
   $s1 = Settings::getWebhookSecret();
   run_parallel(4, 'require_once "/app/lib/settings.php"; for($i=0;$i<20;$i++){ Settings::setSection("w{$WORKER}", ["i"=>$i]); }');

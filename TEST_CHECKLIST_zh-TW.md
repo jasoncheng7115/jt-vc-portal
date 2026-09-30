@@ -49,6 +49,7 @@
 - [ ] i18n 檢查：`tests/check-i18n.php` 無未翻譯字串、無缺漏鍵（v1.7.0 起）。
 - [ ] 一次跑完以上：`tests/run-all.sh`（lint → i18n → 單元 → 整合）。
 - [ ] 瀏覽器 e2e：`tests/run-e2e.sh` 中英兩輪全綠（主持人進會議、來賓加入、無 CSP / SRI 錯誤）。
+- [ ] 正式環境進入方式與關卡（T64–T66）：`tests/prod-entry-gates.sh`（維護者，部署後；Jitsi / Jibri 升級後也要跑）。
 
 ## 2. ZAP 弱點掃描（發版閘門）
 
@@ -99,6 +100,10 @@
 - [ ] 狀態頁：等候主持人（spinner）、倒數（翻頁時鐘）、已結束；依設定秒數自動檢查、主持人到場自動進入。
 - [ ] 可進場時必須先輸入名稱；重新點邀請連結要求重新輸入。
 - [ ] 來賓 JWT 關閉錄影 / 直播 / 逐字稿 / 外撥；工具列不顯示逐字稿與直播。
+- [ ] T63 自建 Jitsi：主持人 JWT 帶 `lobby_bypass: true`，來賓一律不帶（即使傳入也會移除）。
+- [ ] T64 真實 Jitsi：來賓不是會議主持人（moderator），送出「開始錄影」也不會開始錄影；從大廳被放行的來賓同樣不是主持人。
+- [ ] T65 真實 Jitsi，大廳模式：主持人進場自動開大廳，來賓要主持人允許才能進入；主持人斷線重進（來賓仍在房內）不會被擋在大廳，且仍是主持人。
+- [ ] T66 真實 Jitsi，進入方式與關卡全走一遍：近期清單「進入」、儀表板「建立 → 立即主持」（三語）、`/room/` 與舊 `/invite?room=` 連結、主持人未到顯示等候且不載入 Jitsi、主持人到場後自動開放、名稱必填、主持人看得到來賓名稱、人數正確、Jitsi 介面語言跟著網站、倒數頁、已結束頁、主持人離開後回到等候、散會寫入會議記錄。**每次發版與 Jitsi / Jibri 升級後都要跑。**
 
 ### 3.5 會議記錄與統計
 - [ ] 主持人離開時寫入 `meetings.jsonl`（時長、尖峰同時人數、參與者進出時間）。
@@ -372,6 +377,8 @@
 | 逐字稿 T13–T30、T36–T37、T39–T41、T43–T45、T48–T50、T54–T61（JTLW 模擬 + stub Jibri + 真實瀏覽器） | `tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`） |
 | 逐字稿 T31 | `tests/zap/run-zap.sh` |
 | 逐字稿 T42 | `tests/prod-meeting-sim.sh`（維護者，正式環境） |
+| 自建主持人 JWT `lobby_bypass` T63 | `tests/unit/test_security.php` |
+| 進入方式與關卡 T64–T66（真實 Jitsi：角色、來賓不能錄影、大廳、主持人重進、等候 / 倒數 / 結束、三語建立） | `tests/prod-entry-gates.sh`（維護者，正式環境） |
 | 語言選單（收合、點擊開啟、Esc） | `tests/run-e2e.sh`（`tests/e2e/meeting.cjs`） |
 | SSO S29 | 維護者對正式環境執行的冒煙測試腳本（臨時帳號，結束後清除） |
 | 弱點掃描 | `tests/zap/run-zap.sh` |

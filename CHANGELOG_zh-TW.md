@@ -2,6 +2,13 @@
 
 > English: [CHANGELOG.md](CHANGELOG.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.16.1 — 自建 Jitsi 主持人權限（配合 stable-11031）
+
+- **自建 Jitsi 升到 `stable-11031` 後來賓會變成主持人**：Jitsi 把 `token_affiliation` 模組收進主程式、改了寫法，舊文件的 `GLOBAL_CONFIG=disable_cascading_set = false` 不再有作用，jicofo 又把每個持 token 的人升成主持人，來賓因此可以自行開始錄影、踢人、結束會議。改用 Jitsi 維護者建議的做法：`JICOFO_ENABLE_AUTH=0`，主持人身分只由 token 決定。**自建 Jitsi 的使用者請照 [JITSI-MEET-SETUP_zh-TW.md](JITSI-MEET-SETUP_zh-TW.md)「主持人權限控制」更新 `.env`。**
+- **大廳模式主持人重進**：新版模組在開大廳的會議室裡，主持人斷線重進會被擋在大廳（房內只剩來賓時沒人能放行）。主持人的 token 現在帶 `lobby_bypass: true`，搭配 Jitsi 映像內附的 `token_lobby_bypass` 模組直接進場並恢復主持人身分；來賓不帶，仍要在大廳敲門。JaaS 模式不受影響。
+- **文件**：Jitsi / Jibri 建置指南改以 `stable-11031` 為準；升級一節補上前置檢查（沒有會議、Jibri 閒置）、備份、兩台同版、回滾，以及 `stable-11146` 起為結構性改版的提醒。
+- 測試 T63–T66：主持人 token 旗標，以及對正式 Jitsi 逐一走過所有進入方式與關卡（角色、來賓不能錄影、大廳、主持人重進、等候 / 倒數 / 結束、三語建立），列為每次發版與 Jitsi / Jibri 升級後必跑。
+
 ## v1.16.0 — 會議主要語言（含台語）
 
 - **會議主要語言必選**：建立會議室時勾選「錄影完成後產生逐字稿與摘要」，就必須選這場會議的主要語言（中文 / 英文 / 日文 / 韓文 / 台語（閩南語）為主），語音服務依此挑選辨識模型。錄影記錄頁新增「主要語言」欄；會議當時沒選語言的錄影，按「產生逐字稿」會先詢問。重新產生沿用上次的語言。

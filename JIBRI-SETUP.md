@@ -6,7 +6,7 @@
 
 This guide continues from [JITSI-MEET-SETUP.md](JITSI-MEET-SETUP.md) and adds **Jibri recording** to the same docker-jitsi-meet deployment, with special attention to two points: **recording multiple meeting rooms at the same time** and **rendering Chinese (CJK) text correctly in recordings**.
 
-> Applies to: docker-jitsi-meet / `jitsi/jibri` **`stable-10888`**.
+> Applies to: docker-jitsi-meet / `jitsi/jibri` **`stable-11031`**.
 > This guide targets **2 simultaneous recordings (2 Jibri containers)**; to scale up or down, adjust every "2" in this document accordingly.
 
 ---
@@ -290,7 +290,7 @@ Build an extended image:
 
 ```dockerfile
 # jibri-cjk/Dockerfile
-FROM jitsi/jibri:stable-10888
+FROM jitsi/jibri:stable-11031
 USER root
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
@@ -304,10 +304,10 @@ RUN apt-get update \
 Build it and make compose use it:
 
 ```bash
-docker build -t jibri-cjk:stable-10888 ./jibri-cjk
+docker build -t jibri-cjk:stable-11031 ./jibri-cjk
 ```
 
-In `jibri.yml` (or `docker-compose.override.yml`), change the jibri service's `image:` to `jibri-cjk:stable-10888`, then restart.
+In `jibri.yml` (or `docker-compose.override.yml`), change the jibri service's `image:` to `jibri-cjk:stable-11031`, then restart.
 
 > Verify: record a meeting with Chinese participant names and check during playback that the Chinese renders correctly (no tofu boxes). Noto CJK has the most complete coverage of Traditional Chinese.
 
@@ -471,7 +471,8 @@ docker compose -f docker-compose.yml -f jibri.yml ps     # web/prosody/jicofo/jv
 - Start a meeting and click record → confirm recording works and **Chinese text is not rendered as tofu boxes** (Section 5).
 - Record 2 meeting rooms at the same time → confirm concurrency (Section 4) is unaffected by the upgrade.
 
-> This guide is based on `stable-10888`; just replace `<new-version>` above with the tag you are upgrading to.
+> This guide was verified on `stable-11031`; just replace `<new-version>` above with the tag you are upgrading to. **Upgrade Jibri to the same version as the Jitsi host**, and before upgrading make sure both Jibri instances are idle (`curl -s http://127.0.0.1:2222/jibri/api/v1.0/health` shows `IDLE`).
+> **`stable-11146` and later is a structural change** (Debian 13, non-root containers, images on GHCR); the `USER root` approach in the `jibri-cjk/Dockerfile` above must be re-checked, so rehearse in a test environment first.
 > `snd-aloop` is a kernel module and independent of the image version, so it does not need to be reconfigured on upgrade (unless you reinstalled the VM).
 
 ---
@@ -527,7 +528,7 @@ grep -E '^JIBRI_XMPP_PASSWORD=|^JIBRI_RECORDER_PASSWORD=' .env   # two passwords
 
 ```bash
 cd /opt && git clone https://github.com/jitsi/docker-jitsi-meet.git
-cd docker-jitsi-meet && git checkout stable-10888
+cd docker-jitsi-meet && git checkout stable-11031
 cp env.example .env && ./gen-passwords.sh        # fill in all fields first
 mkdir -p ~/.jitsi-meet-cfg/jibri/recordings
 
@@ -563,7 +564,7 @@ EOF
 # docker-compose.jibri-standalone.yml
 services:
   jibri:
-    image: jibri-cjk:stable-10888
+    image: jibri-cjk:stable-11031
     restart: unless-stopped
     volumes:
       - ${CONFIG}/jibri:/config:Z

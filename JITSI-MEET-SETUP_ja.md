@@ -6,7 +6,7 @@
 
 本書では、**公式の Docker 版 Jitsi Meet** を jt-vc-portal の「認証ゲートウェイ」と連携して動作させるための設定方法を説明します。
 
-> 対象バージョン：[docker-jitsi-meet](https://github.com/jitsi/docker-jitsi-meet) **`stable-10888`**（2026-03-30 リリース）。他の安定版でも手順は同じで、バージョン番号を置き換えるだけです。
+> 対象バージョン：[docker-jitsi-meet](https://github.com/jitsi/docker-jitsi-meet) **`stable-11031`**（2026-06-08 リリース）。他の安定版でも手順は同じで、バージョン番号を置き換えるだけです。
 
 ---
 
@@ -96,7 +96,7 @@
 - ファイアウォール / クラウドの Security Group で、上記を**インバウンド**として許可する必要があります。
 - シグナリング（参加、チャット）は 443/TCP、メディア（音声と映像）は 10000/UDP を使います。どちらかが欠けると「参加はできるが画面が真っ黒 / 音が出ない」状態になります。
 
-> **注意（旧バージョンとの違い）**：現在の Jitsi（`stable-10888` を含む）の JVB は **UDP 10000 番の単一ポート**で多重化しており、全参加者のメディアがこの 1 ポートを共有します。「10000–20000 の範囲をまるごと開放する」必要は**もうありません**。それは何年も前の旧バージョンのやり方（`org.ice4j.ice.harvest.MIN/MAX_PORT` による動的ポート範囲）で、docker の単一ポートモードでは過去のものです。`UDP 10000`（+ 任意で `TCP 4443`）を許可するだけで十分です。
+> **注意（旧バージョンとの違い）**：現在の Jitsi（`stable-11031` を含む）の JVB は **UDP 10000 番の単一ポート**で多重化しており、全参加者のメディアがこの 1 ポートを共有します。「10000–20000 の範囲をまるごと開放する」必要は**もうありません**。それは何年も前の旧バージョンのやり方（`org.ice4j.ice.harvest.MIN/MAX_PORT` による動的ポート範囲）で、docker の単一ポートモードでは過去のものです。`UDP 10000`（+ 任意で `TCP 4443`）を許可するだけで十分です。
 
 ### NAT / ファイアウォールの内側にある場合（ホストがプライベート IP）
 
@@ -139,7 +139,7 @@ JVB_ADVERTISE_IPS=<public-IP>,<host-private-IP>
 
 #### 第 2 層：TCP 4443（JVB へ直接、任意 / 旧方式）
 
-現在の Jitsi は JVB 内蔵の TCP ハーベスターを**デフォルトで無効**にしており、上流ではフォールバックを TURN で一元的に処理するようになっています。`stable-10888` の docker `.env` にも対応するスイッチは**ありません**。強制的に有効にするには、カスタム設定を重ねて TCP ハーベスターを再度有効にし、`TCP 4443` を開放する必要があります。**ほとんどの場面では不要なので、直接第 3 層の TURN を用意してください**。
+現在の Jitsi は JVB 内蔵の TCP ハーベスターを**デフォルトで無効**にしており、上流ではフォールバックを TURN で一元的に処理するようになっています。`stable-11031` の docker `.env` にも対応するスイッチは**ありません**。強制的に有効にするには、カスタム設定を重ねて TCP ハーベスターを再度有効にし、`TCP 4443` を開放する必要があります。**ほとんどの場面では不要なので、直接第 3 層の TURN を用意してください**。
 
 #### 第 3 層：TURN（coturn、turns/443 を含む）
 
@@ -231,7 +231,7 @@ external_services = {
 ```bash
 git clone https://github.com/jitsi/docker-jitsi-meet.git
 cd docker-jitsi-meet
-git checkout stable-10888
+git checkout stable-11031
 
 cp env.example .env
 ./gen-passwords.sh         # 各内部コンポーネントのランダムなパスワードを生成（.env に書き戻す）
@@ -239,7 +239,7 @@ cp env.example .env
 mkdir -p ~/.jitsi-meet-cfg/{web,transcripts,prosody/config,prosody/prosody-plugins-custom,jicofo,jvb,jigasi,jibri}
 ```
 
-> `.env` の `JITSI_IMAGE_VERSION` は `stable-10888`（チェックアウトしたタグと一致）にしておくと、対応するイメージが取得されます。
+> `.env` の `JITSI_IMAGE_VERSION` は `stable-11031`（チェックアウトしたタグと一致）にしておくと、対応するイメージが取得されます。
 
 ---
 
@@ -334,8 +334,8 @@ JWT_ACCEPTED_AUDIENCES=jt-vc-portal   # App ID と同じ
 
 # === モデレーター権限の制御（非常に重要。後述のとおり 3 行とも必須）===
 ENABLE_AUTO_OWNER=0                            # 「最初に参加した人」を自動でモデレーターにしない
-XMPP_MUC_MODULES=token_affiliation             # トークンの moderator フラグでロールを設定（モジュールはイメージに内蔵）
-GLOBAL_CONFIG=disable_cascading_set = false    # jicofo で認証が有効なときに必須。ないと member が owner に戻される
+XMPP_MUC_MODULES=token_affiliation,token_lobby_bypass   # トークンでモデレーターを決定。ホストはロビーを通過
+JICOFO_ENABLE_AUTH=0                           # モデレーターは上のモジュールが決める。jicofo は付与しない
 ```
 
 対応関係（**3 か所すべてを一致させる必要があります**）：
@@ -357,8 +357,10 @@ GLOBAL_CONFIG=disable_cascading_set = false    # jicofo で認証が有効なと
 | 設定 | 効果 |
 |---|---|
 | `ENABLE_AUTO_OWNER=0` | 「最初に参加した人が自動的に owner になる」動作を無効にします。 |
-| `XMPP_MUC_MODULES=token_affiliation` | トークンの `moderator` フラグに基づいてユーザーを `owner`（モデレーター）または `member`（一般参加者）に設定する prosody モジュールを有効にします。モジュールはイメージの `/prosody-plugins-contrib/token_affiliation` に内蔵されています。 |
-| `GLOBAL_CONFIG=disable_cascading_set = false` | jicofo で認証が有効な場合、モジュールが `member` を設定した後に jicofo が**再び owner を付与**してしまいます。この設定により、モジュールが参加後に繰り返し `member` を再設定し（1.6 秒以内に約 9 回）、それを上書きします。**この行がないと、ゲストはロビーから入室を許可された後にモデレーターへ戻ってしまいます。** |
+| `XMPP_MUC_MODULES=token_affiliation,token_lobby_bypass` | トークンの `moderator` フラグに基づいてユーザーを `owner`（モデレーター）または `member`（一般参加者）に設定する prosody モジュールを有効にします。`stable-11031` から Jitsi 本体に内蔵されています（`/prosody-plugins/mod_token_affiliation.lua`）。`token_lobby_bypass`（イメージ同梱のコミュニティモジュール）は、トークンに `lobby_bypass: true` がある人にロビーを通過させます。**これがないと、ロビーを有効にした部屋でホストが切断して再入室するとロビーで止められ、部屋にゲストしかいない場合は誰も入室を許可できません。** jt-vc-portal は v1.16.1 からホストにだけこのフラグを付けます。ゲストは引き続きロビーでノックが必要です。 |
+| `JICOFO_ENABLE_AUTH=0` | jicofo の認証による権限付与を無効にします。有効のままだと jicofo が**有効なトークンを持つ全員**をモデレーターに昇格させ、上のモジュールの設定を上書きします。**この行がないとゲストもモデレーターのままで、録画の開始・退出させる・会議の終了ができてしまいます。** Jitsi のメンテナーが推奨する方法です（[#16297](https://github.com/jitsi/jitsi-meet/issues/16297)、[#16905](https://github.com/jitsi/jitsi-meet/issues/16905)）。無効にしても会議への参加には有効なトークンが必要です（prosody の検証は変わりません）。 |
+
+> **stable-10888 以前からのアップグレード**：以前の本ガイドではコミュニティ版モジュール（`/prosody-plugins-contrib/token_affiliation`）と `GLOBAL_CONFIG=disable_cascading_set = false` を使っていました。`stable-11031` からコミュニティ版は削除され内蔵版が使われるため、その行は効果がありません。**アップグレード後は上の `JICOFO_ENABLE_AUTH=0` に切り替えてください。** そうしないとゲストが再びモデレーターになります。アップグレード後、ゲストで「録画開始」が表示されないこと、他の人を退出させられないことを確認してください。
 
 設定後に `docker compose up -d` を実行します（prosody / jicofo が再作成されます）。jt-vc-portal 側では、ホストのトークンに `moderator: true`、ゲストのトークンに `moderator: false` が入る（本システムが自動で処理）ため、**ホスト = owner / モデレーター、ゲスト = member**（キック / 会議終了はできず、ロビーで待機させられる）となります。
 
@@ -544,12 +546,32 @@ docker exec docker-jitsi-meet-web-1 grep -E "defaultLogoUrl|hiddenDomain" /confi
 
 ## 9. Jitsi のアップグレード
 
+アップグレード前に、**会議中の人・録画中のものがないこと**を確認してください（アップグレードで全会議が中断されます）：
+
+```bash
+docker exec docker-jitsi-meet-jicofo-1 curl -s http://127.0.0.1:8888/stats   # conferences と participants がどちらも 0 であること
+```
+
+設定をバックアップします（問題があれば元のバージョンに戻せるように）：
+
 ```bash
 cd docker-jitsi-meet
+tar czf ~/jitsi-backup-$(date +%Y%m%d).tgz .env docker-compose*.yml -C ~ .jitsi-meet-cfg
+git describe --tags > ~/jitsi-backup-$(date +%Y%m%d).version     # ロールバック用に現在のバージョンを記録
+```
+
+アップグレード：
+
+```bash
 git fetch --tags
 git checkout stable-<新バージョン>
 docker compose pull
 docker compose up -d
 ```
 
-JWT と連携の設定は変更不要です（`custom-config.js` / `custom-interface_config.js` は保持され、自動的に再度追記されます）。執筆時点での最新安定版は `stable-10888` です。
+JWT と連携の設定は変更不要です（`custom-config.js` / `custom-interface_config.js` は保持され、自動的に再度追記されます）。
+
+- **Jitsi ホストと Jibri ホストは同じバージョンに揃えてください**（[JIBRI-SETUP_ja.md](JIBRI-SETUP_ja.md) のアップグレードの節を参照）。バージョンが離れすぎると録画が接続できないことがあります。
+- ロールバック：`git checkout <元のバージョン>` の後に `docker compose up -d`（旧イメージはホストに残っています）。
+- アップグレード後、テスト会議を開いて 2 人で互いの声が聞こえること、短い録画が再生できることを確認してください。
+- 本ガイドは `stable-11031` で検証しています。**`stable-11146` 以降は構造的な変更**です（ベースが Debian 13、コンテナが非 root 実行、イメージが GitHub Container Registry へ移動、web コンテナの内部ポートと WebSocket 設定が変更）。単なるバージョン変更ではないため、公式リリースノートを読み、テスト環境でリハーサルしてからアップグレードしてください。独自の `jibri-cjk` イメージも再確認が必要です。

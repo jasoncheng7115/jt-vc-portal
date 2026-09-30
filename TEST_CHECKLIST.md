@@ -49,6 +49,7 @@
 - [ ] i18n check: `tests/check-i18n.php` reports no untranslated strings and no missing keys (from v1.7.0).
 - [ ] Run everything above at once: `tests/run-all.sh` (lint → i18n → unit → integration).
 - [ ] Browser e2e: `tests/run-e2e.sh` passes in both zh-TW and English (host joins meeting, guest joins, no CSP / SRI errors).
+- [ ] Production entry paths and gates (T64–T66): `tests/prod-entry-gates.sh` (maintainer, after deployment; also after Jitsi / Jibri upgrades).
 
 ## 2. ZAP vulnerability scan (release gate)
 
@@ -99,6 +100,10 @@
 - [ ] Status pages: waiting for host (spinner), countdown (flip clock), ended; checks automatically at the configured interval and joins automatically once the host arrives.
 - [ ] When joining is allowed, a name must be entered first; clicking the invite link again requires re-entering the name.
 - [ ] Guest JWT disables recording / live streaming / transcription / outbound calls; the toolbar does not show transcription or live streaming.
+- [ ] T63 Self-hosted Jitsi: the host JWT carries `lobby_bypass: true`; guests never do (it is removed even if passed in).
+- [ ] T64 Real Jitsi: guests are not moderators, and a guest sending "Start recording" does not start a recording; a guest admitted from the lobby is not a moderator either.
+- [ ] T65 Real Jitsi, lobby mode: the lobby turns on when the host joins, and guests need the host's approval to enter; when the host disconnects and rejoins (with a guest still in the room) they are not held in the lobby and are still the moderator.
+- [ ] T66 Real Jitsi, every entry path and gate: "Enter" from the recent list, dashboard "Create → Host now" (3 languages), `/room/` and the legacy `/invite?room=` links, waiting page with no Jitsi loaded before the host arrives, automatic opening once the host arrives, name required, host sees the guest's name, correct participant count, Jitsi UI language follows the portal, countdown page, ended page, back to waiting after the host leaves, session written to meeting records. **Run on every release and after every Jitsi / Jibri upgrade.**
 
 ### 3.5 Meeting records and statistics
 - [ ] When the host leaves, `meetings.jsonl` is written (duration, peak concurrent participants, participant join / leave times).
@@ -372,6 +377,8 @@ Spot-check on every release; test everything for major changes:
 | Transcripts T13–T30, T36–T37, T39–T41, T43–T45, T48–T50, T54–T61 (JTLW mock + stub Jibri + real browser) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
 | Transcripts T31 | `tests/zap/run-zap.sh` |
 | Transcripts T42 | `tests/prod-meeting-sim.sh` (maintainer, production) |
+| Self-hosted host JWT `lobby_bypass` T63 | `tests/unit/test_security.php` |
+| Entry paths and gates T64–T66 (real Jitsi: roles, guests cannot record, lobby, host rejoin, waiting / countdown / ended, create in 3 languages) | `tests/prod-entry-gates.sh` (maintainer, production) |
 | Language menu (collapsed, opens on click, Esc) | `tests/run-e2e.sh` (`tests/e2e/meeting.cjs`) |
 | SSO S29 | Production smoke script run by the maintainer against the live deployment (temporary accounts, cleaned up afterwards) |
 | Vulnerability scan | `tests/zap/run-zap.sh` |
