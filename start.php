@@ -118,12 +118,12 @@ $mail_result = null;
 if (!empty($attendees)) {
   $mail_result = Invites::send($room, Rooms::get($room) ?? ['created_at' => time(), 'starts_at' => $starts_at, 'ends_at' => $ends_at], $attendees, $me);
   if (strpos((string)$mail_result, 'sent_') === 0) {
-    Audit::log('invite_sent', t('會議室「{room}」寄給 {n} 位：{emails}', ['room' => $room, 'n' => count($attendees), 'emails' => implode(', ', $attendees)]));
+    Audit::log('invite_sent', tk('會議室「{room}」寄給 {n} 位：{emails}', ['room' => $room, 'n' => count($attendees), 'emails' => implode(', ', $attendees)]));
   }
 }
 
 if ($mode === 'create') {
-  Audit::log('room_create', t('會議室「{room}」', ['room' => $room]) . ($starts_at ? t('（已設排程）') : '') . (!empty($_POST['lobby']) ? t('（大廳模式）') : ''));
+  Audit::log('room_create', tk('會議室「{room}」', ['room' => $room]) . ($starts_at ? t('（已設排程）') : '') . (!empty($_POST['lobby']) ? t('（大廳模式）') : ''));
   $q = '/dashboard?created=' . rawurlencode($room);
   if ($mail_result !== null) $q .= '&mail=' . rawurlencode($mail_result);
   header('Location: ' . $q);
@@ -139,6 +139,6 @@ $jwt = Jaas::makeJwt($room, [
 ], ['recording' => true] + Jaas::FEATURES_OFF, Jaas::HOST_JWT_TTL);
 $_SESSION['jwt'] = $jwt;
 $_SESSION['room'] = $room;
-Audit::log('room_enter', t('會議室「{room}」', ['room' => $room]));
+Audit::log('room_enter', tk('會議室「{room}」', ['room' => $room]));
 header('Location: /meeting');
 exit;

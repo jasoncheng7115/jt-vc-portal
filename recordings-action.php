@@ -23,7 +23,7 @@ if ($action === 'delete') {
     if ((string)($r['id'] ?? '') === $id && ($r['status'] ?? '') === 'recording') $back('rec_err', t('錄製中不可刪除，請等會議結束、錄影完成後再刪除。'));
   }
   if ($id !== '' && Recordings::delete($id)) {
-    Audit::log('recording_delete', t('刪除錄影 {id}', ['id' => $id]));
+    Audit::log('recording_delete', tk('刪除錄影 {id}', ['id' => $id]));
     if (Transcripts::validId($id) && Transcripts::get($id)) Transcripts::purge($id, 'recording_deleted');   // 逐字稿跟著錄影走
     $back('rec_msg', t('已刪除該筆錄影。'));
   }
@@ -34,7 +34,7 @@ if ($action === 'cleanup') {
   $r = Recordings::runCleanup();
   if ($r === null) $back('rec_err', t('清理失敗（服務無法連線）。'));
   $n = count($r['removed'] ?? []);
-  Audit::log('recording_cleanup', t('手動執行保留政策清理，刪除 {n} 筆', ['n' => $n]));
+  Audit::log('recording_cleanup', tk('手動執行保留政策清理，刪除 {n} 筆', ['n' => $n]));
   $back('rec_msg', t('清理完成，刪除 {n} 筆。', ['n' => $n]));
 }
 

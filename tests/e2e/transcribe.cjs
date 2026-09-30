@@ -78,6 +78,20 @@ function unzipEntry(buf, name) {
   await pm.click('.tx-cite');
   ok('T25 點引用 → 標亮對應的逐字稿段落', (await pm.$$eval('#txSegs .mt-row.tx-mark', els => els.length)) > 0);
   ok('T25 檢視頁沒有 CSP 錯誤', pm._csp.length === 0, pm._csp.join(' | '));
+  // T68：hidden 屬性一定要真的隱藏（CSS display 曾蓋掉 hidden，波形左上出現空白提示框）
+  const tipVis = () => pm.$eval('#txWaveTip', e => { const r = e.getBoundingClientRect(); return getComputedStyle(e).display !== 'none' && r.width > 0; });
+  ok('T68 波形時間提示：還沒移到波形上時不顯示', (await tipVis()) === false);
+  await pm.waitForFunction(() => (document.getElementById('txMedia').duration || 0) > 0, null, { timeout: 15000 }).catch(() => {});   // 時間提示要等音檔長度
+  await pm.$eval('#txWave', e => e.scrollIntoView({ block: 'center' })); await pm.waitForTimeout(300);
+  const wb = await pm.$eval('#txWave', e => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
+  await pm.mouse.move(wb.x + wb.w * 0.6, wb.y + wb.h / 2);
+  await pm.waitForTimeout(300);
+  if (process.env.MEDIA_OK === '1') ok('T68 波形時間提示：游標在波形上時顯示時間', (await tipVis()) === true && /\d\d:\d\d/.test(await pm.textContent('#txTipTime')));
+  else console.log('  skip T68 游標在波形上顯示時間（沒有 ffmpeg，無法產生可播放的測試音檔）');
+  await pm.mouse.move(wb.x + wb.w * 0.6, wb.y - 80);
+  await pm.waitForTimeout(300);
+  ok('T68 波形時間提示：游標離開後再隱藏', (await tipVis()) === false);
+  ok('T68 全站規則：[hidden] 元素一律不顯示', (await pm.$$eval('[hidden]', els => els.filter(e => getComputedStyle(e).display !== 'none').length)) === 0);
 
   // 改名（全部）→ 重新整理仍在、同一代號的每一段都改
   const firstSpk = await pm.$eval('#txSegs .mt-row .mt-s', e => e.textContent);

@@ -427,6 +427,8 @@ systemctl is-active jibri-recordings-api
 | 録画ファイルが真っ黒 / 無音 | `/dev/snd` がコンテナにマウントされていない、snd-aloop の不具合、またはホストのリソース不足 |
 | ログに `Failed to run finalize script /path/to/finalize` と表示される | **無害** です。finalize スクリプトを設定していない場合の既定のプレースホルダーパスで、録画停止時に実行を試みて失敗しますが、**録画の出力には影響しません**。表示を消したい場合は、`JIBRI_FINALIZE_RECORDING_SCRIPT_PATH` に実在するスクリプト（または空の `.sh`）を設定してください。 |
 | 録画がいつまでも「録画中」のまま | ポータルは `metadata.json` の有無で録画が完了したかどうかを判定します（Jibri は finalize の後にのみこれを書き込みます）。finalize が失敗して書き込まれなかった場合、「録画中」のままになります → jibri のログで finalize のエラーを確認する |
+| 「録画開始」を押してしばらく待つと「すべての録画が現在使用中」と表示されるが、2 台の Jibri はアイドルで正常 | `stable-11031` から Jibri は Selenium 4.4x を使い、録画開始時にまず外部へ接続（利用統計の送信、ブラウザのバージョン確認）します。Jibri ホストが外に出られない、または DNS が遅いと、この処理が 10〜30 秒止まり、jicofo の待ち時間 15 秒を超えるため、jicofo はすべての Jibri を失敗と判断します。jibri サービスの `environment` に `SE_AVOID_STATS=true`、`SE_OFFLINE=true` を追加し（イメージ内の Chrome / chromedriver を使用）、jibri コンテナーを作り直してください。docker-jitsi-meet 標準の `jibri.yml` を使う場合は `docker-compose.override.yml` の jibri サービスに追加します。通常はボタンを押してから 2〜3 秒で録画が始まります。 |
+| 「録画停止」が効かず、jicofo のログに `Rejecting STOP request for an unknown session` が出る | 録画の要求中に Jibri を再起動したため、jicofo が古い要求を再起動後の Jibri に渡したものの、セッションを登録していません。対処：全員が会議室を出ると Jibri は自動で停止しファイルを保存します。または Jibri ホストで `docker exec <jibri コンテナー> curl -s -X POST http://127.0.0.1:2222/jibri/api/v1.0/stopService` を実行します。**Jibri を再起動する前に、録画を開始しようとしている人がいないことを確認してください。** |
 
 ---
 
@@ -591,6 +593,8 @@ services:
       - JIBRI_BREWERY_MUC
       - JIBRI_RECORDING_DIR
       - DISPLAY=:0
+      - SE_AVOID_STATS=true    # Selenium の利用統計を外部に送らない（stable-11031 から必須、7 節参照）
+      - SE_OFFLINE=true        # Selenium Manager がブラウザ / ドライバーをオンラインで探さない。イメージ内のものを使う
 ```
 
 5) 録画機を 2 台起動します：

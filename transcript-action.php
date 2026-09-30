@@ -52,19 +52,19 @@ switch ($action) {
     $lang = (string)($in['language'] ?? '');
     if ($lang === '' && $action === 'regenerate') $lang = $prevLang;
     if (!Transcripts::enqueue($rec, 'manual', $me, $lang !== '' ? $lang : null)) $done(t('這筆錄影已經在處理或已有結果。'), false);
-    Audit::log('transcript_request', t('{what}逐字稿與摘要：會議室「{room}」錄影 {id}', ['what' => $action === 'regenerate' ? t('重新產生') : t('手動產生'), 'room' => $room, 'id' => $id]));
+    Audit::log('transcript_request', tk('{what}逐字稿與摘要：會議室「{room}」錄影 {id}', ['what' => $action === 'regenerate' ? t('重新產生') : t('手動產生'), 'room' => $room, 'id' => $id]));
     $done(t('已排入產生逐字稿與摘要，完成時間依錄影長度與排隊狀況而定（通常數分鐘）。'));
 
   case 'cancel':
     if (!Transcripts::canRequest($rec, $me)) Auth::notFound();
     if (!Transcripts::cancel($id)) $done(t('這筆作業目前無法取消。'), false);
-    Audit::log('transcript_cancel', t('取消逐字稿作業：會議室「{room}」錄影 {id}', ['room' => $room, 'id' => $id]));
+    Audit::log('transcript_cancel', tk('取消逐字稿作業：會議室「{room}」錄影 {id}', ['room' => $room, 'id' => $id]));
     $done(t('已送出取消。'));
 
   case 'retry_summary':
     if (!Transcripts::canRequest($rec, $me)) Auth::notFound();
     if (!Transcripts::retrySummary($id)) $done(t('無法重做摘要，請改用「重新產生」。'), false);
-    Audit::log('transcript_request', t('重做會議摘要：會議室「{room}」錄影 {id}', ['room' => $room, 'id' => $id]));
+    Audit::log('transcript_request', tk('重做會議摘要：會議室「{room}」錄影 {id}', ['room' => $room, 'id' => $id]));
     $done(t('已重新送出會議摘要。'));
 
   case 'delete':
@@ -75,7 +75,7 @@ switch ($action) {
   case 'speakers':
     if (!Transcripts::canView($rec, $me) || !Transcripts::result($id)) Auth::notFound();
     Transcripts::saveSpeakers($id, (array)($in['map'] ?? []), (array)($in['overrides'] ?? []));
-    Audit::log('transcript_speakers', t('修改逐字稿發言者名稱：會議室「{room}」錄影 {id}', ['room' => $room, 'id' => $id]));
+    Audit::log('transcript_speakers', tk('修改逐字稿發言者名稱：會議室「{room}」錄影 {id}', ['room' => $room, 'id' => $id]));
     $done('ok');
 }
 $done(t('參數錯誤。'), false);

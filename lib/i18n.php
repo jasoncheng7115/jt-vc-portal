@@ -177,3 +177,11 @@ function t(string $key, array $vars = []): string {
 function th(string $key, array $vars = []): string {
   return htmlspecialchars(I18n::t($key, $vars), ENT_QUOTES, 'UTF-8');
 }
+
+/**
+ * 延後翻譯：回傳 ['k' => 鍵, 'v' => 變數]，由顯示端依「看的人」的語言翻譯。
+ * 用於背景排程 / webhook 等沒有操作者語言的稽核記錄（Audit::log 接受此格式）。
+ */
+function tk(string $key, array $vars = []): array {
+  return ['k' => $key, 'v' => $vars];
+}

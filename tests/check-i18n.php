@@ -51,7 +51,7 @@ foreach ($files as $f) {
     $isKey = false;
     if ($id === T_CONSTANT_ENCAPSED_STRING && $k >= 2) {
       $p1 = $toks[$sig[$k - 1]]; $p2 = $toks[$sig[$k - 2]];
-      if ($p1 === '(' && is_array($p2) && $p2[0] === T_STRING && in_array($p2[1], ['t', 'th'], true)) $isKey = true;
+      if ($p1 === '(' && is_array($p2) && $p2[0] === T_STRING && in_array($p2[1], ['t', 'th', 'tk'], true)) $isKey = true;
     }
     if ($isKey) {
       $v = str_value($text);
@@ -77,7 +77,7 @@ foreach ($files as $f) {
   // t($var) 這種非字面鍵
   foreach ($sig as $k => $i) {
     $t = $toks[$i];
-    if (!is_array($t) || $t[0] !== T_STRING || !in_array($t[1], ['t', 'th'], true)) continue;
+    if (!is_array($t) || $t[0] !== T_STRING || !in_array($t[1], ['t', 'th', 'tk'], true)) continue;
     $prev = $k > 0 ? $toks[$sig[$k - 1]] : null;
     if (is_array($prev) && in_array($prev[0], [T_FUNCTION, T_OBJECT_OPERATOR, T_DOUBLE_COLON, T_NULLSAFE_OBJECT_OPERATOR], true)) continue;
     if (($toks[$sig[$k + 1] ?? -1] ?? null) !== '(') continue;

@@ -28,7 +28,7 @@ if ($id === '') {
   if (strlen($password) < 10) $back('acc_err', t('密碼至少需 10 字。'));
   if (Users::findByLogin($email) || Users::findByLogin($username)) $back('acc_err', t('帳號或 Email 已存在。'));
   Users::create(['username' => $username, 'display_name' => $display, 'email' => $email, 'password' => $password, 'role' => $role]);
-  Audit::log('account_create', t('帳號 {user}（{email}，{role}）', ['user' => $username, 'email' => $email, 'role' => $role]));
+  Audit::log('account_create', tk('帳號 {user}（{email}，{role}）', ['user' => $username, 'email' => $email, 'role' => $role]));
   $back('acc_msg', t('已建立帳號 {user}。', ['user' => $username]));
 }
 
@@ -81,5 +81,5 @@ if ($password !== '') $changed[] = t('重設密碼');
 if ($revoke) $changed[] = t('強制登出所有裝置');
 if (array_key_exists('email', $_POST) && $email !== ($target['email'] ?? '')) $changed[] = 'Email';
 if (array_key_exists('display_name', $_POST)) $changed[] = t('顯示名稱');
-Audit::log('account_update', t('帳號 {user}：{changes}', ['user' => $target['username'], 'changes' => (implode(t('、'), $changed) ?: t('無變更'))]));
+Audit::log('account_update', tk('帳號 {user}：{changes}', ['user' => $target['username'], 'changes' => (implode(t('、'), $changed) ?: t('無變更'))]));
 $back('acc_msg', t('帳號已更新。'));

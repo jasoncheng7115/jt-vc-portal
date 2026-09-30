@@ -2,6 +2,17 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.16.2 — Audit log shown in the viewer's language
+
+- **Audit log details follow the viewer's language**: details used to be fixed in the language of whoever wrote them, and background jobs (transcript done / failed / automatic retries) and command-line actions have no user language, so they were always written in English and showed up in English on the Chinese UI. Entries now keep the original string and its values, and the page, keyword search and CSV export translate them into the viewer's language; SIEM forwarding still carries the text as written. Entries recorded before the upgrade keep their original text.
+- Entries from scheduled jobs and the command line now show the account `system` and an empty source IP (previously `0.0.0.0`).
+- Traditional Chinese wording: the audit log column 「詳情」 is now 「說明」, and 「點擊」 is now 「點選」 throughout.
+- **Transcript waveform**: before playback, and before the cursor moved over the waveform, an empty dark box appeared in the top-left corner (the time tooltip's frame — its style overrode the hidden attribute). Fixed, plus a site-wide rule so any element marked hidden is never displayed.
+- **Meeting minutes export**: an extra blank line before each section heading (Summary, Decisions and action items, Events and impact…), consistent across PDF / DOCX / ODT / HTML.
+- **Self-hosted Jibri (stable-11031): pressing record waited a long time and then said "All recorders are currently busy"**: the new Jibri's Selenium contacts the internet when a recording starts, and a slow outbound connection exceeds jicofo's 15-second wait. [JIBRI-SETUP.md](JIBRI-SETUP.md) adds the `SE_AVOID_STATS=true` / `SE_OFFLINE=true` settings and troubleshooting (including what to do when "Stop recording" does nothing).
+- The production entry-path test now covers recording: starts within 12 seconds, stop really stops, two rooms recording at once, recording files produced, both Jibris back to idle; the meeting simulation also checks start time and stop.
+- Tests T67–T70.
+
 ## v1.16.1 — Self-hosted Jitsi moderator permissions (for stable-11031)
 
 - **Guests became moderators after upgrading self-hosted Jitsi to `stable-11031`**: Jitsi moved the `token_affiliation` module into Jitsi itself and changed how it works, so the `GLOBAL_CONFIG=disable_cascading_set = false` line from the old guide no longer has any effect, and jicofo promotes everyone holding a token to moderator — guests could start recording, kick people and end the meeting. Switched to the approach recommended by the Jitsi maintainers: `JICOFO_ENABLE_AUTH=0`, so moderator status comes only from the token. **Self-hosted Jitsi users: update `.env` as described in "Moderator permission control" in [JITSI-MEET-SETUP.md](JITSI-MEET-SETUP.md).**

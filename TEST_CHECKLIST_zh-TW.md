@@ -104,6 +104,7 @@
 - [ ] T64 真實 Jitsi：來賓不是會議主持人（moderator），送出「開始錄影」也不會開始錄影；從大廳被放行的來賓同樣不是主持人。
 - [ ] T65 真實 Jitsi，大廳模式：主持人進場自動開大廳，來賓要主持人允許才能進入；主持人斷線重進（來賓仍在房內）不會被擋在大廳，且仍是主持人。
 - [ ] T66 真實 Jitsi，進入方式與關卡全走一遍：近期清單「進入」、儀表板「建立 → 立即主持」（三語）、`/room/` 與舊 `/invite?room=` 連結、主持人未到顯示等候且不載入 Jitsi、主持人到場後自動開放、名稱必填、主持人看得到來賓名稱、人數正確、Jitsi 介面語言跟著網站、倒數頁、已結束頁、主持人離開後回到等候、散會寫入會議記錄。**每次發版與 Jitsi / Jibri 升級後都要跑。**
+- [ ] T70 真實 Jitsi 錄影：主持人按開始錄影後 12 秒內開始（jicofo 只等 15 秒）、按停止確實停止；兩間會議室同時錄影（兩台 Jibri）都能開始與停止、錄影檔都產出、結束後兩台 Jibri 回到閒置。**每次發版與 Jitsi / Jibri 升級後都要跑。**
 
 ### 3.5 會議記錄與統計
 - [ ] 主持人離開時寫入 `meetings.jsonl`（時長、尖峰同時人數、參與者進出時間）。
@@ -138,7 +139,8 @@
 - [ ] 各行為（登入成功 / 失敗 / 鎖定、登出、建立 / 進入會議室、來賓進入、寄邀請、帳號 CRUD、設定變更、密碼 / 2FA、錄影下載 / 刪除 / 清理、匯出）都有記錄。
 - [ ] 依行為類型、關鍵字、日期篩選；分頁；CSV 匯出帶目前篩選、UTF-8 BOM、公式注入防護。
 - [ ] 每筆即時外拋 SIEM（啟用時）。
-- [ ] 稽核記錄保留天數（預設 365）生效：超過天數的記錄於查詢頁自動清除；超長帳號 / 詳情會被截斷。
+- [ ] 稽核記錄保留天數（預設 365）生效：超過天數的記錄於查詢頁自動清除；超長帳號 / 說明會被截斷。
+- [ ] T67 稽核記錄的說明依看的人的語言顯示（排程產生的逐字稿記錄在中文介面顯示中文、英文介面顯示英文）；關鍵字搜尋與 CSV 匯出同樣依看的人語言；排程 / 指令列記錄的帳號為 `system`、來源 IP 空白。
 
 ### 3.9 USAGE webhook（JaaS）
 - [ ] 正確 Authorization 或 HMAC 簽章 → 計入本期 unique 裝置；同 idempotencyKey 不重複計算。
@@ -147,9 +149,9 @@
 ### 3.10 其他 UI
 - [ ] 錯誤頁（400 / 401 / 403 / 404 / 500 / 502 / 503）套站台主題。
 - [ ] 自訂確認對話框取代瀏覽器原生 confirm（刪除帳號、刪除錄影等）。
-- [ ] 表格欄位點擊排序、卡片收合、右上帳號選單（點外面 / Esc 收合）。
+- [ ] 表格欄位點選排序、卡片收合、右上帳號選單（點外面 / Esc 收合）。
 - [ ] 手機寬度版面可用。
-- [ ] 語言選單（v1.12.0）：右上角語言切換只顯示目前語言；點擊開啟選單，列出所有語言並標示目前語言；按 Esc 或點外面收合；選擇語言即切換介面。
+- [ ] 語言選單（v1.12.0）：右上角語言切換只顯示目前語言；點選開啟選單，列出所有語言並標示目前語言；按 Esc 或點外面收合；選擇語言即切換介面。
 
 ### 3.11 單一登入（SSO / OIDC，v1.10.0 起）
 
@@ -250,6 +252,8 @@
 - [ ] T60 管理員儀表板「系統狀態」：Jitsi Meet（網頁與 XMPP / BOSH 端點）與 Jibri（服務連得到、每台錄製器自己的健康狀態、磁碟空間）以綠 / 橘 / 紅顯示並附原因；開頁後才檢查、快取 30 秒、有重新檢查按鈕；`/health` 限管理員、不洩漏內部細節。另：自建 Jitsi 不需 JWT 時，主持人可進入會議（修正）。
 - [ ] T61 可重試的辨識失敗（例如語音服務的 GPU 伺服器暫時不能用）在 10 / 30 / 60 分鐘後自動用 `retry` 重試，不重新上傳錄影；錄影記錄顯示「等待重試」與原因；重試次數用完或按「重新產生」時，刪掉 JTLW 端的作業（連同它保留的錄影）。
 - [ ] T62 `meeting.detailed`（JTLW 已停用）自動改用 `meeting.balanced`。
+- [ ] T68 逐字稿波形：還沒移到波形上時不顯示時間提示（左上不可有空白框），移上去顯示時間、移開後隱藏；全站標為 hidden 的元素一律不顯示。
+- [ ] T69 會議記錄匯出：每個章節標題與上一段之間多空一行（PDF / DOCX / ODT / HTML）。
 
 ## 4. 多語系（i18n）
 
@@ -365,6 +369,7 @@
 | 真瀏覽器：主持人進會議、來賓加入、iframe、SRI、CSP（中英） | `tests/run-e2e.sh` |
 | 系統設定頁目錄（單張顯示、網址 #、重新整理、全部） | `tests/run-e2e.sh`（`tests/e2e/meeting.cjs`） |
 | .ics 折行 / REQUEST / CANCEL / SEQUENCE、刪除會議室結算、稽核長度上限與保留清理 | `tests/unit/test_ical_audit.php` |
+| 稽核記錄依看的人語言顯示、system 帳號與空白 IP T67 | `tests/unit/test_ical_audit.php` |
 | GET 登出無效、改密碼 / 強制登出讓 session 失效、刪除會議室權限、稽核 | `tests/run-integration.sh`（v1.8.0 段） |
 | Jibri 錄影 API 授權 / Range / 路徑穿越 | `tests/test-jibri-api.sh` |
 | SSO S02–S20（驗簽、聲明、state、PKCE URL、群組、佈建、僅限 SSO、登出網址、設定） | `tests/unit/test_oidc.php` |
@@ -374,11 +379,14 @@
 | SSO S26 | 手動：KEYCLOAK-SETUP 第 7 節驗證指令 |
 | 逐字稿 T01–T12、T32–T35、T38、T51–T53、T62（分層、webhook 簽章、權限、單場開關、排隊、提示、事件、改名、設定） | `tests/unit/test_transcripts.php` |
 | 會議記錄匯出 T44–T47（PDF 結構、交叉索引、字型子集、ToUnicode、斷行；.docx / .odt 的 ZIP 與 XML、改名、語言、環境檢查） | `tests/unit/test_txexport.php` |
+| 會議記錄匯出 T69（標題前空行） | `tests/unit/test_txexport.php` |
 | 逐字稿 T13–T30、T36–T37、T39–T41、T43–T45、T48–T50、T54–T61（JTLW 模擬 + stub Jibri + 真實瀏覽器） | `tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`） |
+| 逐字稿 T68（波形時間提示、全站 hidden 規則） | `tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`） |
 | 逐字稿 T31 | `tests/zap/run-zap.sh` |
 | 逐字稿 T42 | `tests/prod-meeting-sim.sh`（維護者，正式環境） |
 | 自建主持人 JWT `lobby_bypass` T63 | `tests/unit/test_security.php` |
 | 進入方式與關卡 T64–T66（真實 Jitsi：角色、來賓不能錄影、大廳、主持人重進、等候 / 倒數 / 結束、三語建立） | `tests/prod-entry-gates.sh`（維護者，正式環境） |
-| 語言選單（收合、點擊開啟、Esc） | `tests/run-e2e.sh`（`tests/e2e/meeting.cjs`） |
+| 錄影開始 / 停止 / 兩間同時 T70 | `tests/prod-entry-gates.sh`、`tests/prod-meeting-sim.sh`（維護者，正式環境） |
+| 語言選單（收合、點選開啟、Esc） | `tests/run-e2e.sh`（`tests/e2e/meeting.cjs`） |
 | SSO S29 | 維護者對正式環境執行的冒煙測試腳本（臨時帳號，結束後清除） |
 | 弱點掃描 | `tests/zap/run-zap.sh` |

@@ -29,7 +29,7 @@ if (!$user || !empty($user['disabled']) || empty($user['totp_secret'])) {
 }
 
 if (RateLimit::isLocked($ip)) {
-  Audit::log('login_locked', t('嘗試帳號：{login}（2FA 階段）', ['login' => $login]), ['actor' => $login, 'result' => 'warn']);
+  Audit::log('login_locked', tk('嘗試帳號：{login}（2FA 階段）', ['login' => $login]), ['actor' => $login, 'result' => 'warn']);
   unset($_SESSION['2fa_uid'], $_SESSION['2fa_login']);
   $_SESSION['login_error'] = t('因多次失敗，此來源已被鎖定，請稍後再試。');
   header('Location: ' . Settings::loginUrl());
@@ -43,7 +43,7 @@ if ($ctr === 0 || $ctr <= $lastCtr) {
   RateLimit::fail($ip);
   RateLimit::failAccount($login);
   $reason = ($ctr !== 0 && $ctr <= $lastCtr) ? t('（驗證碼已使用）') : '';
-  Audit::log('login_2fa_fail', t('帳號：{user}', ['user' => $user['username']]) . $reason, ['actor' => $user['username'], 'actor_name' => $user['display_name'] ?? '', 'role' => $user['role'] ?? '', 'result' => 'fail']);
+  Audit::log('login_2fa_fail', tk('帳號：{user}', ['user' => $user['username']]) . $reason, ['actor' => $user['username'], 'actor_name' => $user['display_name'] ?? '', 'role' => $user['role'] ?? '', 'result' => 'fail']);
   $_SESSION['2fa_error'] = t('驗證碼錯誤或已使用，請等待下一組碼再試。');
   header('Location: /twofa');
   exit;
@@ -54,6 +54,6 @@ Users::update($uid, ['totp_last_counter' => $ctr]);
 RateLimit::reset($ip);
 RateLimit::resetAccount($login);
 Auth::login($user);
-Audit::log('login', t('密碼 + 2FA 登入'));
+Audit::log('login', tk('密碼 + 2FA 登入'));
 header('Location: /dashboard');
 exit;

@@ -427,6 +427,8 @@ systemctl is-active jibri-recordings-api
 | 黑畫面 / 無聲的錄影檔 | `/dev/snd` 未掛進容器、snd-aloop 異常，或主機資源不足 |
 | log 出現 `Failed to run finalize script /path/to/finalize` | **無害**——未設 finalize 腳本時的預設佔位路徑，停止錄影時會嘗試執行而失敗，但**不影響錄影檔產出**。要消除就設 `JIBRI_FINALIZE_RECORDING_SCRIPT_PATH` 指向一個存在的腳本（或一個空的 `.sh`）。 |
 | 錄影檔顯示「錄製中」一直不變 | portal 用 `metadata.json` 是否存在判定是否結束（Jibri 在 finalize 後才寫它）；若 finalize 異常未寫出，會卡在「錄製中」→ 查 jibri log 是否有 finalize 錯誤 |
+| 按「開始錄影」等很久才出現「全部錄製目前忙碌」，兩台 Jibri 其實都閒置、健康 | `stable-11031` 起 Jibri 用 Selenium 4.4x，開始錄影時會先連外網送使用統計、查瀏覽器版本；Jibri 主機連不出去或 DNS 慢時，這一步卡十幾到三十秒，超過 jicofo 等待的 15 秒，jicofo 便判定每台都失敗。在 jibri 服務的 `environment` 加 `SE_AVOID_STATS=true`、`SE_OFFLINE=true`（用映像內的 Chrome / chromedriver），重建 jibri 容器。用 docker-jitsi-meet 內建 `jibri.yml` 的，加在 `docker-compose.override.yml` 的 jibri 服務。正常情況下從按下到開始錄影只要 2–3 秒。 |
+| 按「停止錄影」沒有反應，jicofo log 出現 `Rejecting STOP request for an unknown session` | 在錄影請求進行中重啟了 Jibri，jicofo 把舊請求轉給新起來的 Jibri、卻沒登記這個 session。處理：所有人離開會議室後 Jibri 會自動停止並保存檔案；或在 Jibri 主機執行 `docker exec <jibri 容器> curl -s -X POST http://127.0.0.1:2222/jibri/api/v1.0/stopService`。**重啟 Jibri 前先確認沒有人在按錄影**。 |
 
 ---
 
@@ -591,6 +593,8 @@ services:
       - JIBRI_BREWERY_MUC
       - JIBRI_RECORDING_DIR
       - DISPLAY=:0
+      - SE_AVOID_STATS=true    # Selenium 不送使用統計到外網（stable-11031 起必設，見第七節）
+      - SE_OFFLINE=true        # Selenium 不上網找瀏覽器 / driver，用映像內附的
 ```
 
 5) 起 2 路：

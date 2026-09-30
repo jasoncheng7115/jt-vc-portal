@@ -63,7 +63,7 @@ if ($eval['allow']) {
       $_SESSION['guest_name'] = $n;
       $_SESSION['guest_jwt'] = build_guest_jwt($room, $n, $_SESSION['guest_id'] ?? 'guest'); // 自建無 JWT 模式可能為 ''
       $_SESSION['guest_ready'] = true;
-      Audit::log('guest_join', t('會議室「{room}」', ['room' => $room]), ['actor' => $n, 'actor_name' => $n, 'role' => 'guest']);
+      Audit::log('guest_join', tk('會議室「{room}」', ['room' => $room]), ['actor' => $n, 'actor_name' => $n, 'role' => 'guest']);
     }
   }
 

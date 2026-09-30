@@ -104,6 +104,7 @@
 - [ ] T64 Real Jitsi: guests are not moderators, and a guest sending "Start recording" does not start a recording; a guest admitted from the lobby is not a moderator either.
 - [ ] T65 Real Jitsi, lobby mode: the lobby turns on when the host joins, and guests need the host's approval to enter; when the host disconnects and rejoins (with a guest still in the room) they are not held in the lobby and are still the moderator.
 - [ ] T66 Real Jitsi, every entry path and gate: "Enter" from the recent list, dashboard "Create → Host now" (3 languages), `/room/` and the legacy `/invite?room=` links, waiting page with no Jitsi loaded before the host arrives, automatic opening once the host arrives, name required, host sees the guest's name, correct participant count, Jitsi UI language follows the portal, countdown page, ended page, back to waiting after the host leaves, session written to meeting records. **Run on every release and after every Jitsi / Jibri upgrade.**
+- [ ] T70 Real Jitsi recording: after the host presses start, recording begins within 12 seconds (jicofo waits only 15), and stop really stops it; two rooms recording at once (two Jibris) both start and stop, both recording files are produced, and both Jibris return to idle afterwards. **Run on every release and after every Jitsi / Jibri upgrade.**
 
 ### 3.5 Meeting records and statistics
 - [ ] When the host leaves, `meetings.jsonl` is written (duration, peak concurrent participants, participant join / leave times).
@@ -139,6 +140,7 @@
 - [ ] Filter by action type, keyword and date; pagination; CSV export uses the current filters, includes a UTF-8 BOM, and has formula-injection protection.
 - [ ] Each entry is forwarded to the SIEM in real time (when enabled).
 - [ ] Audit log retention (default 365 days) works: older entries are pruned when the audit page is opened; oversized account / detail strings are truncated.
+- [ ] T67 Audit log details are shown in the viewer's language (transcript entries written by the scheduled job appear in Chinese on the Chinese UI and in English on the English UI); keyword search and CSV export also use the viewer's language; entries from scheduled jobs / the command line show the account `system` and an empty source IP.
 
 ### 3.9 USAGE webhook (JaaS)
 - [ ] Correct Authorization or HMAC signature → counted toward the current period's unique devices; the same idempotencyKey is not counted twice.
@@ -250,6 +252,8 @@
 - [ ] T60 System status on the admin dashboard: Jitsi Meet (web page and XMPP/BOSH endpoint) and Jibri (service reachable, each recorder's own health, disk space) shown as green / orange / red with the reason; checked after the page loads, cached 30 seconds, refresh button; `/health` is admin-only and reveals no internal details. Also: with self-hosted Jitsi without JWT, the host can enter the meeting (fixed).
 - [ ] T61 A retryable recognition failure (e.g. the speech service's GPU server temporarily down) is retried automatically after 10 / 30 / 60 minutes with `retry`, without uploading the recording again; the Recordings list shows "Waiting to retry" with the reason; when retries run out, or on Regenerate, the JTLW job (and the recording it kept) is deleted.
 - [ ] T62 `meeting.detailed` (retired by JTLW) is switched to `meeting.balanced` automatically.
+- [ ] T68 Transcript waveform: no time tooltip before the cursor is over the waveform (no empty box in the top-left); it shows the time on hover and hides again when the cursor leaves; site-wide, elements marked hidden are never displayed.
+- [ ] T69 Meeting minutes export: an extra blank line between each section heading and the paragraph before it (PDF / DOCX / ODT / HTML).
 
 ## 4. Internationalization (i18n)
 
@@ -365,6 +369,7 @@ Spot-check on every release; test everything for major changes:
 | Real browser: host join, guest join, iframe, SRI, CSP (zh-TW + English) | `tests/run-e2e.sh` |
 | Settings page section index (show one card, URL hash, reload, All) | `tests/run-e2e.sh` (`tests/e2e/meeting.cjs`) |
 | .ics folding / REQUEST / CANCEL / SEQUENCE, session settlement on room delete, audit length limits and retention pruning | `tests/unit/test_ical_audit.php` |
+| Audit log in the viewer's language, `system` account and empty IP T67 | `tests/unit/test_ical_audit.php` |
 | GET sign-out ignored, password change / force sign-out invalidates sessions, room delete permissions, audit | `tests/run-integration.sh` (v1.8.0 section) |
 | Jibri recordings API auth / Range / path traversal | `tests/test-jibri-api.sh` |
 | SSO S02–S20 (signature, claims, state, PKCE URL, groups, provisioning, SSO only, logout URL, settings) | `tests/unit/test_oidc.php` |
@@ -374,11 +379,14 @@ Spot-check on every release; test everything for major changes:
 | SSO S26 | Manual: KEYCLOAK-SETUP section 7 verification commands |
 | Transcripts T01–T12, T32–T35, T38, T51–T53 (layers, webhook signature, permissions, per-meeting switch, queueing, hints, events, renaming, settings) | `tests/unit/test_transcripts.php` |
 | Meeting minutes export T44–T47 (PDF structure, cross-reference, font subset, ToUnicode, line breaking; .docx / .odt ZIP and XML, renaming, language, requirements) | `tests/unit/test_txexport.php` |
+| Meeting minutes export T69 (space before headings) | `tests/unit/test_txexport.php` |
 | Transcripts T13–T30, T36–T37, T39–T41, T43–T45, T48–T50, T54–T61 (JTLW mock + stub Jibri + real browser) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
+| Transcripts T68 (waveform time tooltip, site-wide hidden rule) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
 | Transcripts T31 | `tests/zap/run-zap.sh` |
 | Transcripts T42 | `tests/prod-meeting-sim.sh` (maintainer, production) |
 | Self-hosted host JWT `lobby_bypass` T63 | `tests/unit/test_security.php` |
 | Entry paths and gates T64–T66 (real Jitsi: roles, guests cannot record, lobby, host rejoin, waiting / countdown / ended, create in 3 languages) | `tests/prod-entry-gates.sh` (maintainer, production) |
+| Recording start / stop / two at once T70 | `tests/prod-entry-gates.sh`, `tests/prod-meeting-sim.sh` (maintainer, production) |
 | Language menu (collapsed, opens on click, Esc) | `tests/run-e2e.sh` (`tests/e2e/meeting.cjs`) |
 | SSO S29 | Production smoke script run by the maintainer against the live deployment (temporary accounts, cleaned up afterwards) |
 | Vulnerability scan | `tests/zap/run-zap.sh` |

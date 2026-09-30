@@ -25,7 +25,10 @@ fi
 docker run -d --name $JN --network $NET --network-alias jtlw -v "$MOCK":/mock:ro -w /mock -e JTLW_MOCK_API_KEY=$KEY jtvc-jtlw-mock python mock_server.py --port 8990 --speed 20 >/dev/null
 NOW=$(date +%s)
 mkrec() { head -c 20000 /dev/urandom > "$JDATA/$1.mp4"; }
+# rec-ok01 用瀏覽器放得出來的真音檔（Opus，10 秒），波形與時間提示（T68）才測得到；沒有 ffmpeg 時退回亂數
+if command -v ffmpeg >/dev/null 2>&1; then MEDIA_OK=1; else MEDIA_OK=0; fi
 for r in rec-live01 rec-ok01 rec-sum01 rec-sum02 rec-fail01 rec-q01 rec-slow01 rec-auto01 rec-old01 rec-dup01 rec-gone01 rec-other01 rec-lang01 rec-retry01; do mkrec $r; done
+[ "$MEDIA_OK" = 1 ] && ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=440:duration=10" -c:a libopus -b:a 24k -f mp4 "$JDATA/rec-ok01.mp4" || MEDIA_OK=0
 python3 - "$JDATA" "$NOW" <<'PY'
 import json,sys
 d,now=sys.argv[1],int(sys.argv[2])
@@ -185,7 +188,7 @@ chk "T22 本地檔案已刪" "$(docker exec $PN sh -c 'test -d /var/jaas-data/tr
 echo "== 瀏覽器：權限、檢視頁、改名、引用跳播、下載"
 export PN
 PW_MOD=${PLAYWRIGHT_MODULE:-/opt/jt-ipam/frontend/node_modules/.pnpm/playwright@1.60.0/node_modules/playwright}
-PLAYWRIGHT_MODULE=$PW_MOD node "$ROOT/tests/e2e/transcribe.cjs" "http://127.0.0.1:$PPORT" "$ADMIN_PW" "$HOST_PW" | tee /tmp/.tx-e2e.$$
+MEDIA_OK=$MEDIA_OK PLAYWRIGHT_MODULE=$PW_MOD node "$ROOT/tests/e2e/transcribe.cjs" "http://127.0.0.1:$PPORT" "$ADMIN_PW" "$HOST_PW" | tee /tmp/.tx-e2e.$$
 P=$(grep -oE '^[0-9]+ passed' /tmp/.tx-e2e.$$ | grep -oE '^[0-9]+'); F=$(grep -oE '[0-9]+ failed' /tmp/.tx-e2e.$$ | tail -1 | grep -oE '^[0-9]+'); rm -f /tmp/.tx-e2e.$$
 pass=$((pass + ${P:-0})); fail=$((fail + ${F:-1}))
 

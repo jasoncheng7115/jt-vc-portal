@@ -230,7 +230,7 @@ render_topbar($me, $ip);
           // 可搜尋字串：會議室 + 主持人 + 所有參與者名稱（小寫）
           $search_str = (string)($r['room'] ?? '') . ' ' . $host . ' ' . implode(' ', array_map(fn($p) => (string)($p['name'] ?? ''), $parts));
         ?>
-          <tr class="rec-row row-main" data-search="<?= htmlspecialchars(mb_strtolower($search_str)) ?>" title="<?= th('點擊展開參與者') ?>">
+          <tr class="rec-row row-main" data-search="<?= htmlspecialchars(mb_strtolower($search_str)) ?>" title="<?= th('點選展開參與者') ?>">
             <td class="caret-col"><svg class="caret" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></td>
             <td><strong><?= htmlspecialchars($r['room'] ?: t('（未知）')) ?></strong></td>
             <td><?= $host !== '' ? htmlspecialchars($host) : '<span class="muted">—</span>' ?></td>

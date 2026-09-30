@@ -36,7 +36,7 @@ $send = function (string $body, string $type, string $fname) {
   echo $body;
   exit;
 };
-Audit::log('transcript_download', t('下載逐字稿 / 摘要（{f}）：會議室「{room}」錄影 {id}', ['f' => $f, 'room' => $rec['room'] ?? '', 'id' => $id]));
+Audit::log('transcript_download', tk('下載逐字稿 / 摘要（{f}）：會議室「{room}」錄影 {id}', ['f' => $f, 'room' => $rec['room'] ?? '', 'id' => $id]));
 
 if (isset(TxExport::FORMATS[$f])) {
   if ($f !== 'html' && ($miss = TxExport::missing())) {

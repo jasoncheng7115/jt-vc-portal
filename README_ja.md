@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.16.1 — 会議管理システム
+# jt-vc-portal v1.16.2 — 会議管理システム
 
 > English: [README.md](README.md) · 繁體中文: [README_zh-TW.md](README_zh-TW.md)
 
@@ -205,14 +205,14 @@ server {
 
 ```bash
 # 1) Release ページからイメージとチェックサムファイルをダウンロード（最新のバージョン番号を使用）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.1/jt-vc-portal-1.16.1-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.1/jt-vc-portal-1.16.1-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.2/jt-vc-portal-1.16.2-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.2/jt-vc-portal-1.16.2-docker-amd64.tar.gz.sha256
 
 # 2) 完全性を検証（OK と表示されるはず）
-sha256sum -c jt-vc-portal-1.16.1-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.16.2-docker-amd64.tar.gz.sha256
 
-# 3) イメージを読み込む（jt-vc-portal:1.16.1 と :latest のタグが作成される）
-docker load < jt-vc-portal-1.16.1-docker-amd64.tar.gz
+# 3) イメージを読み込む（jt-vc-portal:1.16.2 と :latest のタグが作成される）
+docker load < jt-vc-portal-1.16.2-docker-amd64.tar.gz
 
 # 4) ホスト側で永続ディレクトリを準備（www-data の UID は既定で 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -257,6 +257,7 @@ Docker イメージと Release イメージにはすべて含まれているた�
 | v1.12.0 より前 | 文字起こしと要約（任意）には `curl` と**毎分実行するバックグラウンドジョブ**が必要です。「会議の文字起こしと要約」を参照してください。Docker の場合もホストにジョブを追加します。 |
 | v1.16.0 より前 | セルフホストの Jibri がある場合は、Jibri ホストの `jibri-recordings-api/server.py` も更新し（パスとヘッダーの安全性強化）、`systemctl restart jibri-recordings-api` を実行してください。 |
 | v1.16.1 より前 | セルフホストの Jitsi Meet が `stable-11031` 以降の場合：`.env` を `XMPP_MUC_MODULES=token_affiliation,token_lobby_bypass` にし、`JICOFO_ENABLE_AUTH=0` を追加、旧 `GLOBAL_CONFIG=disable_cascading_set = false` を無効にしてから `docker compose up -d`。そうしないとゲストがモデレーターになります（録画や退出操作が可能）。詳しくは [JITSI-MEET-SETUP_ja.md](JITSI-MEET-SETUP_ja.md) を参照してください。 |
+| v1.16.2 より前 | セルフホストの Jibri が `stable-11031` 以降の場合：jibri サービスの `environment` に `SE_AVOID_STATS=true`、`SE_OFFLINE=true` を追加してコンテナーを作り直してください。そうしないと Jibri ホストの外部接続が遅いとき、録画開始を押してしばらく待った後に「すべての録画が現在使用中」と表示されます。[JIBRI-SETUP_ja.md](JIBRI-SETUP_ja.md) の 7 節を参照。 |
 | v1.14.0 より前 | 議事録の PDF / DOCX / ODT エクスポートには PHP の `zlib` 拡張（Debian / Ubuntu の PHP パッケージには組み込み済み）と、同梱フォント `lib/fonts/NotoSansTC-Regular.ttf`（`git pull` で取得されます）が必要です。 |
 
 `php -m | grep -iE 'curl|mbstring|openssl|zlib|fileinfo|json'` で確認できます。アップグレード後に**システム設定**を開くと、不足しているコンポーネントが上部に表示され、バックグラウンドジョブが動いていない場合は「文字起こしと要約」カードに警告が出ます。

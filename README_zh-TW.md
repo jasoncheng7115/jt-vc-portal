@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.16.1 — 會議管理系統
+# jt-vc-portal v1.16.2 — 會議管理系統
 
 > English: [README.md](README.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -205,14 +205,14 @@ server {
 
 ```bash
 # 1) 從 Release 頁下載映像與校驗檔（請改用最新版本號）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.1/jt-vc-portal-1.16.1-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.1/jt-vc-portal-1.16.1-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.2/jt-vc-portal-1.16.2-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.2/jt-vc-portal-1.16.2-docker-amd64.tar.gz.sha256
 
 # 2) 驗證完整性（應顯示 OK）
-sha256sum -c jt-vc-portal-1.16.1-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.16.2-docker-amd64.tar.gz.sha256
 
-# 3) 載入映像（會建立 jt-vc-portal:1.16.1 與 :latest 標籤）
-docker load < jt-vc-portal-1.16.1-docker-amd64.tar.gz
+# 3) 載入映像（會建立 jt-vc-portal:1.16.2 與 :latest 標籤）
+docker load < jt-vc-portal-1.16.2-docker-amd64.tar.gz
 
 # 4) 主機端準備持久化目錄（www-data UID 預設 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -257,6 +257,7 @@ Docker 映像與 Release 映像已經內含所有元件，不必另外安裝。*
 | v1.12.0 以前 | 逐字稿與摘要（選用）需要 `curl`，以及**每分鐘執行一次的背景排程**，見「會議逐字稿與摘要」。Docker 安裝也要在主機加排程。 |
 | v1.16.0 以前 | 有自建 Jibri 時，請一併更新 Jibri 主機上的 `jibri-recordings-api/server.py`（路徑與標頭安全強化），並 `systemctl restart jibri-recordings-api`。 |
 | v1.16.1 以前 | 自建 Jitsi Meet 升到 `stable-11031` 以後：`.env` 改為 `XMPP_MUC_MODULES=token_affiliation,token_lobby_bypass`、加 `JICOFO_ENABLE_AUTH=0`、停用舊的 `GLOBAL_CONFIG=disable_cascading_set = false`，再 `docker compose up -d`。否則來賓會變成主持人（可自行錄影、踢人）。詳見 [JITSI-MEET-SETUP_zh-TW.md](JITSI-MEET-SETUP_zh-TW.md)「主持人權限控制」。 |
+| v1.16.2 以前 | 自建 Jibri 升到 `stable-11031` 以後：jibri 服務的 `environment` 加 `SE_AVOID_STATS=true`、`SE_OFFLINE=true` 後重建容器，否則 Jibri 主機連外慢時按錄影會等很久再出現「全部錄製目前忙碌」。詳見 [JIBRI-SETUP_zh-TW.md](JIBRI-SETUP_zh-TW.md) 第七節。 |
 | v1.14.0 以前 | 會議記錄匯出 PDF / DOCX / ODT 需要 PHP `zlib` 擴充（Debian / Ubuntu 的 PHP 套件已內建），以及隨附字型 `lib/fonts/NotoSansTC-Regular.ttf`（`git pull` 會一起取得）。 |
 
 可用 `php -m | grep -iE 'curl|mbstring|openssl|zlib|fileinfo|json'` 檢查。升級後打開**系統設定**：缺少的元件會列在最上方；背景排程沒在執行時，「逐字稿與摘要」卡片會警示。
@@ -307,7 +308,7 @@ docker ps --filter name=jt-vc-portal
 ```
 
 > 初始管理員的環境變數（`JTVC_ADMIN_*`）僅首次建立帳號時用，更新時可省略；但 `JTVC_TRUSTED_PROXIES`（及選用的 `JTVC_SESSION_*`）是每次執行都生效的設定，**每次 `docker run` 都要帶上**。
-> 版本號顯示於登入後 topbar 左上、站台名稱旁（點擊可前往本專案 GitHub），可用以確認已更新到新版。
+> 版本號顯示於登入後 topbar 左上、站台名稱旁（點選可前往本專案 GitHub），可用以確認已更新到新版。
 
 ### 方法三：Release 映像更新
 

@@ -199,7 +199,7 @@ class Transcripts {
         if ((int)($r['mtime'] ?? 0) < $since) continue;
         if (self::autoEligible($r) && self::enqueue($r, 'auto')) {
           $stats['auto_enqueued']++;
-          Audit::log('transcript_request', t('自動產生逐字稿：會議室「{room}」錄影 {id}', ['room' => $r['room'] ?? '', 'id' => $id]), ['actor' => 'system']);
+          Audit::log('transcript_request', tk('自動產生逐字稿：會議室「{room}」錄影 {id}', ['room' => $r['room'] ?? '', 'id' => $id]), ['actor' => 'system']);
         }
       }
     }
@@ -218,7 +218,7 @@ class Transcripts {
       if (($e['status'] ?? '') !== 'partial' || empty($e['summary_retry_at']) || (int)$e['summary_retry_at'] > time()) continue;
       $n = (int)($e['summary_retries'] ?? 0) + 1;
       self::patch((string)$id, ['summary_retries' => $n, 'summary_retry_at' => 0]);
-      if (self::retrySummary((string)$id)) Audit::log('transcript_request', t('自動重做會議摘要（第 {n} 次）：會議室「{room}」錄影 {id}', ['n' => $n, 'room' => $e['room'] ?? '', 'id' => $id]), ['actor' => 'system']);
+      if (self::retrySummary((string)$id)) Audit::log('transcript_request', tk('自動重做會議摘要（第 {n} 次）：會議室「{room}」錄影 {id}', ['n' => $n, 'room' => $e['room'] ?? '', 'id' => $id]), ['actor' => 'system']);
     }
 
     // 4b. 辨識失敗但可重試：時間到了直接 retry（錄影還在 JTLW，不重傳）；用完次數就刪掉 JTLW 端作業
@@ -229,7 +229,7 @@ class Transcripts {
       try {
         Jtlw::retry((string)$e['job_id']);
         self::patch((string)$id, ['status' => 'queued', 'error_code' => '', 'error_reason' => '', 'progress' => null, 'last_ok_poll_at' => time()]);
-        Audit::log('transcript_request', t('自動重試辨識（第 {n} 次）：會議室「{room}」錄影 {id}', ['n' => $n, 'room' => $e['room'] ?? '', 'id' => $id]), ['actor' => 'system']);
+        Audit::log('transcript_request', tk('自動重試辨識（第 {n} 次）：會議室「{room}」錄影 {id}', ['n' => $n, 'room' => $e['room'] ?? '', 'id' => $id]), ['actor' => 'system']);
       } catch (JtlwError $x) {
         if ($x->retryable() && $n < count(self::JOB_RETRY)) self::patch((string)$id, ['job_retry_at' => time() + self::JOB_RETRY[$n]]);
         else self::dropJob((string)$id);
@@ -254,7 +254,7 @@ class Transcripts {
       return;
     }
     self::patch($id, ['status' => 'failed', 'attempts' => $attempts, 'error_code' => $code, 'error_reason' => $reason]);
-    Audit::log('transcript_failed', t('逐字稿產生失敗：會議室「{room}」錄影 {id}（{code}）', ['room' => $e['room'] ?? '', 'id' => $id, 'code' => $code]), ['actor' => 'system', 'result' => 'fail']);
+    Audit::log('transcript_failed', tk('逐字稿產生失敗：會議室「{room}」錄影 {id}（{code}）', ['room' => $e['room'] ?? '', 'id' => $id, 'code' => $code]), ['actor' => 'system', 'result' => 'fail']);
   }
 
   /** 取錄影 → 串流上傳 → 送件。 */
@@ -354,7 +354,7 @@ class Transcripts {
     }
     if ($st === 'cancelled') {
       self::patch($id, ['status' => 'cancelled', 'progress' => null, 'notify_due' => false]);
-      Audit::log('transcript_cancel', t('逐字稿作業已取消：會議室「{room}」錄影 {id}', ['room' => $e['room'] ?? '', 'id' => $id]), ['actor' => 'system']);
+      Audit::log('transcript_cancel', tk('逐字稿作業已取消：會議室「{room}」錄影 {id}', ['room' => $e['room'] ?? '', 'id' => $id]), ['actor' => 'system']);
       return true;
     }
     if ($st === 'failed') {
@@ -433,7 +433,7 @@ class Transcripts {
                       'segments' => count($tr['segments']), 'uncorrected' => $tr['uncorrected'], 'summary_retry_at' => $retryAt]);
     // 摘要可重做（retry）時先不 ACK——ACK 之後 JTLW 就沒有逐字稿可以重做摘要
     if ($status === 'done') { try { Jtlw::ack($jid); self::patch($id, ['acked' => true]); } catch (JtlwError $x) {} }
-    Audit::log('transcript_done', t('逐字稿已產生：會議室「{room}」錄影 {id}（{n} 段；摘要：{s}）', ['room' => $e['room'] ?? '', 'id' => $id, 'n' => count($tr['segments']), 's' => $summaryStatus]), ['actor' => 'system']);
+    Audit::log('transcript_done', tk('逐字稿已產生：會議室「{room}」錄影 {id}（{n} 段；摘要：{s}）', ['room' => $e['room'] ?? '', 'id' => $id, 'n' => count($tr['segments']), 's' => $summaryStatus]), ['actor' => 'system']);
     return true;
   }
 
@@ -588,7 +588,7 @@ class Transcripts {
     $dir = self::dir($id);
     if (is_dir($dir)) { foreach (glob($dir . '/*') ?: [] as $f) @unlink($f); @rmdir($dir); }
     self::mutate(function (array &$d) use ($id) { if (!isset($d[$id])) return false; unset($d[$id]); return true; });
-    if ($e) Audit::log('transcript_delete', t('刪除逐字稿與摘要：會議室「{room}」錄影 {id}（{why}）', ['room' => $e['room'] ?? '', 'id' => $id, 'why' => $why]), ['actor' => $why === 'recording_gone' ? 'system' : null]);
+    if ($e) Audit::log('transcript_delete', tk('刪除逐字稿與摘要：會議室「{room}」錄影 {id}（{why}）', ['room' => $e['room'] ?? '', 'id' => $id, 'why' => $why]), ['actor' => $why === 'recording_gone' ? 'system' : null]);
   }
 
   // ── webhook ──

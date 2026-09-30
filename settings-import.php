@@ -56,5 +56,5 @@ if ($logo !== null && !empty($logo['data_b64']) && !empty($logo['mime'])) {
   }
 }
 
-Audit::log('settings_import', t('匯入系統設定'));
+Audit::log('settings_import', tk('匯入系統設定'));
 $back('set_msg', t('系統設定已匯入並套用。'));

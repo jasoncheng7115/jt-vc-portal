@@ -427,6 +427,8 @@ Configure them in the portal's recording settings card; they are pushed to the s
 | Recording file is black / silent | `/dev/snd` not mounted into the container, snd-aloop malfunction, or insufficient host resources |
 | Log shows `Failed to run finalize script /path/to/finalize` | **Harmless** — this is the default placeholder path when no finalize script is set; it attempts to run it when recording stops and fails, but **does not affect the recording output**. To silence it, set `JIBRI_FINALIZE_RECORDING_SCRIPT_PATH` to an existing script (or an empty `.sh`). |
 | A recording stays in "Recording" status indefinitely | The portal decides whether a recording has finished based on whether `metadata.json` exists (Jibri writes it only after finalize); if finalize failed and never wrote it, it stays "Recording" → check the jibri log for finalize errors |
+| After pressing "Start recording" it takes a long time and then says "All recorders are currently busy", although both Jibris are idle and healthy | From `stable-11031` Jibri uses Selenium 4.4x, which first contacts the internet (usage stats, browser version lookup) when a recording starts. If the Jibri host cannot get out or DNS is slow, this step hangs for 10–30 seconds — longer than the 15 seconds jicofo waits — so jicofo marks every Jibri as failed. Add `SE_AVOID_STATS=true` and `SE_OFFLINE=true` to the jibri service `environment` (uses the Chrome / chromedriver in the image) and recreate the jibri containers. With the built-in `jibri.yml` of docker-jitsi-meet, add them to the jibri service in `docker-compose.override.yml`. Normally recording starts 2–3 seconds after pressing the button. |
+| "Stop recording" does nothing and the jicofo log shows `Rejecting STOP request for an unknown session` | Jibri was restarted while a recording request was in progress; jicofo handed the old request to the restarted Jibri but did not register the session. Fix: once everyone leaves the room Jibri stops by itself and keeps the file; or on the Jibri host run `docker exec <jibri container> curl -s -X POST http://127.0.0.1:2222/jibri/api/v1.0/stopService`. **Make sure nobody is starting a recording before restarting Jibri.** |
 
 ---
 
@@ -591,6 +593,8 @@ services:
       - JIBRI_BREWERY_MUC
       - JIBRI_RECORDING_DIR
       - DISPLAY=:0
+      - SE_AVOID_STATS=true    # Selenium: do not send usage stats to the internet (required from stable-11031, see section 7)
+      - SE_OFFLINE=true        # Selenium Manager: do not look up browsers / drivers online; use the ones in the image
 ```
 
 5) Start 2 recorders:

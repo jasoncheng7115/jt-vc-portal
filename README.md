@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.16.1 — Meeting Management System
+# jt-vc-portal v1.16.2 — Meeting Management System
 
 > 繁體中文: [README_zh-TW.md](README_zh-TW.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -205,14 +205,14 @@ Don't want to build it yourself? Download the packaged image (`linux/amd64`) att
 
 ```bash
 # 1) Download the image and checksum file from the Release page (use the latest version number)
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.1/jt-vc-portal-1.16.1-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.1/jt-vc-portal-1.16.1-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.2/jt-vc-portal-1.16.2-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.16.2/jt-vc-portal-1.16.2-docker-amd64.tar.gz.sha256
 
 # 2) Verify integrity (should print OK)
-sha256sum -c jt-vc-portal-1.16.1-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.16.2-docker-amd64.tar.gz.sha256
 
-# 3) Load the image (creates the jt-vc-portal:1.16.1 and :latest tags)
-docker load < jt-vc-portal-1.16.1-docker-amd64.tar.gz
+# 3) Load the image (creates the jt-vc-portal:1.16.2 and :latest tags)
+docker load < jt-vc-portal-1.16.2-docker-amd64.tar.gz
 
 # 4) Prepare persistent directories on the host (www-data UID defaults to 33)
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -257,6 +257,7 @@ The Docker image and the Release image already contain everything — nothing to
 | before v1.12.0 | Transcripts and summaries (optional) need `curl` and a **background job that runs every minute** — see "Meeting transcripts and summaries". Docker installs need it too (on the host). |
 | before v1.16.0 | With a self-hosted Jibri, also update `jibri-recordings-api/server.py` on the Jibri host (path and header hardening) and `systemctl restart jibri-recordings-api`. |
 | before v1.16.1 | Self-hosted Jitsi Meet on `stable-11031` or later: in `.env` set `XMPP_MUC_MODULES=token_affiliation,token_lobby_bypass`, add `JICOFO_ENABLE_AUTH=0`, and disable the old `GLOBAL_CONFIG=disable_cascading_set = false`, then `docker compose up -d`. Otherwise guests become moderators (they can record and kick people). See "Moderator permission control" in [JITSI-MEET-SETUP.md](JITSI-MEET-SETUP.md). |
+| before v1.16.2 | Self-hosted Jibri on `stable-11031` or later: add `SE_AVOID_STATS=true` and `SE_OFFLINE=true` to the jibri service `environment` and recreate the containers; otherwise, when the Jibri host's outbound connection is slow, starting a recording waits a long time and then says "All recorders are currently busy". See section 7 of [JIBRI-SETUP.md](JIBRI-SETUP.md). |
 | before v1.14.0 | Exporting meeting minutes as PDF / DOCX / ODT needs the PHP `zlib` extension (built into the Debian / Ubuntu PHP packages) and the bundled font `lib/fonts/NotoSansTC-Regular.ttf`, which comes with `git pull`. |
 
 Check with `php -m | grep -iE 'curl|mbstring|openssl|zlib|fileinfo|json'`. After upgrading, open **System settings**: any missing component is listed at the top, and the Transcripts card warns if the background job is not running.

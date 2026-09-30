@@ -146,6 +146,17 @@ test('T45 HTML：單一檔案（樣式內嵌、沒有 script、不連外部）�
   eq($x->query('//@*[starts-with(name(), "on")]|//@src|//@href')->length, 0, '不可有事件屬性或外部位址');
 });
 
+test('T69 章節標題前多空一行（DOCX / ODT / HTML；PDF 由截圖檢查）', function () {
+  [$rec, $tr, $sum, $sess] = sample();
+  $m = TxExport::model($rec, $tr, $sum, $sess);
+  $z = unzip(TxExport::render('docx', $m, 'T', 'zh-Hant'));
+  preg_match('#<w:style [^>]*w:styleId="Heading1".*?</w:style>#s', $z['word/styles.xml'][0], $h);
+  ok(preg_match('#<w:spacing w:before="(\d+)"#', $h[0], $b) && (int)$b[1] >= 600, 'DOCX 標題前距 ≥ 30pt');
+  $o = unzip(TxExport::render('odt', $m, 'T', 'zh-Hant'));
+  ok(preg_match('#style:name="H".*?fo:margin-top="([\d.]+)cm"#s', $o['styles.xml'][0] . $o['content.xml'][0], $mt) && (float)$mt[1] >= 1.0, 'ODT 標題前距 ≥ 1cm');
+  ok(preg_match('#h2\{[^}]*margin:(\d+)px#', TxExport::render('html', $m, 'T', 'zh-Hant'), $hm) && (int)$hm[1] >= 44, 'HTML 標題前距 ≥ 44px');
+});
+
 test('T47 執行環境檢查：映像內擴充與字型齊全；排程最後執行時間取自 worker 鎖檔', function () {
   eq(Requirements::missing(), []);
   eq(TxExport::missing(), []);

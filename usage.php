@@ -245,7 +245,7 @@ render_topbar($me, $ip);
           $st = (int)($s['start'] ?? 0); $en = (int)($s['end'] ?? $st);
           $ps = is_array($s['participants'] ?? null) ? $s['participants'] : [];
         ?>
-          <tr class="row-main" title="<?= th('點擊展開明細') ?>">
+          <tr class="row-main" title="<?= th('點選展開明細') ?>">
             <td class="caret-col"><svg class="caret" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></td>
             <td><strong><?= htmlspecialchars((string)($s['room'] ?? '')) ?></strong></td>
             <td><?= htmlspecialchars((string)($s['owner_name'] ?? '')) ?: '—' ?></td>

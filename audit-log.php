@@ -56,7 +56,7 @@ render_topbar($me, $ip);
         <input type="text" id="from" name="from" value="<?= htmlspecialchars($from) ?>" placeholder="YYYY-MM-DD" autocomplete="off" style="width:120px;"></div>
       <div class="field"><label><?= th('結束日期') ?></label>
         <input type="text" id="to" name="to" value="<?= htmlspecialchars($to) ?>" placeholder="YYYY-MM-DD" autocomplete="off" style="width:120px;"></div>
-      <div class="field"><label><?= th('關鍵字（帳號 / 詳情 / IP）') ?></label>
+      <div class="field"><label><?= th('關鍵字（帳號 / 說明 / IP）') ?></label>
         <input type="text" name="q" value="<?= htmlspecialchars($q) ?>" placeholder="<?= th('搜尋') ?>"></div>
       <div class="field"><label><?= th('每頁') ?></label>
         <select name="per">
@@ -72,9 +72,9 @@ render_topbar($me, $ip);
     <?php if (empty($rows)): ?>
       <div class="empty"><?= th('沒有符合的記錄。') ?></div>
     <?php else: ?>
-      <p class="muted" style="font-size:12px;margin:0 0 8px;"><?= th('點擊任一列可展開明細（含完整 User-Agent）。') ?></p>
+      <p class="muted" style="font-size:12px;margin:0 0 8px;"><?= th('點選任一列可展開明細（含完整 User-Agent）。') ?></p>
       <table class="table audit-table">
-        <thead><tr><th class="caret-col no-sort"></th><th><?= th('時間') ?></th><th><?= th('行為') ?></th><th><?= th('帳號') ?></th><th><?= th('詳情') ?></th><th><?= th('結果') ?></th><th><?= th('來源 IP') ?></th></tr></thead>
+        <thead><tr><th class="caret-col no-sort"></th><th><?= th('時間') ?></th><th><?= th('行為') ?></th><th><?= th('帳號') ?></th><th><?= th('說明') ?></th><th><?= th('結果') ?></th><th><?= th('來源 IP') ?></th></tr></thead>
         <tbody>
         <?php foreach ($rows as $r):
           $act = $r['action'] ?? '';
@@ -83,12 +83,12 @@ render_topbar($me, $ip);
           $roleLabel = ['admin'=>t('管理者'),'host'=>t('主持人'),'guest'=>t('來賓')][$r['role'] ?? ''] ?? ($r['role'] ?? '');
           $fullTime = date('Y-m-d H:i:s', $r['ts'] ?? strtotime($r['time'] ?? 'now'));
         ?>
-          <tr class="row-main" title="<?= th('點擊展開明細') ?>">
+          <tr class="row-main" title="<?= th('點選展開明細') ?>">
             <td class="caret-col"><svg class="caret" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></td>
             <td class="mono" style="white-space:nowrap;"><?= htmlspecialchars($fullTime) ?></td>
             <td><?= htmlspecialchars($actLabel) ?></td>
             <td class="mono"><?= htmlspecialchars($r['actor'] ?? '') ?><?= ($r['role'] ?? '')==='guest' ? ' <span class="badge badge-muted">' . th('來賓') . '</span>' : '' ?></td>
-            <td style="max-width:320px;"><?= htmlspecialchars($r['detail'] ?? '') ?></td>
+            <td style="max-width:320px;"><?= htmlspecialchars(Audit::detailText($r)) ?></td>
             <td><?= audit_badge($r['result'] ?? 'ok') ?></td>
             <td class="mono"><?= htmlspecialchars($r['ip'] ?? '') ?></td>
           </tr>
@@ -100,7 +100,7 @@ render_topbar($me, $ip);
                 <dt><?= th('帳號 / 角色') ?></dt><dd><?= htmlspecialchars($r['actor'] ?? '') ?><?= $roleLabel !== '' ? th('　·　{role}', ['role' => $roleLabel]) : '' ?></dd>
                 <dt><?= th('顯示名稱') ?></dt><dd><?= htmlspecialchars($r['actor_name'] ?? '') ?: '—' ?></dd>
                 <dt><?= th('來源 IP') ?></dt><dd class="mono"><?= htmlspecialchars($r['ip'] ?? '') ?: '—' ?></dd>
-                <dt><?= th('完整詳情') ?></dt><dd><?= htmlspecialchars($r['detail'] ?? '') ?: '—' ?></dd>
+                <dt><?= th('完整說明') ?></dt><dd><?= htmlspecialchars(Audit::detailText($r)) ?: '—' ?></dd>
                 <dt>User-Agent</dt><dd class="mono ua"><?= htmlspecialchars($ua) ?: '—' ?></dd>
               </dl>
             </td>

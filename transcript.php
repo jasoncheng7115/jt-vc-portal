@@ -24,7 +24,7 @@ $sum = Transcripts::summary($id);
 $is_admin = ($me['role'] ?? '') === 'admin';
 $can_req = Transcripts::canRequest($rec, $me);
 $sess = Transcripts::sessionOf($rec);
-Audit::log('transcript_view', t('檢視逐字稿與摘要：會議室「{room}」錄影 {id}', ['room' => $rec['room'] ?? '', 'id' => $id]));
+Audit::log('transcript_view', tk('檢視逐字稿與摘要：會議室「{room}」錄影 {id}', ['room' => $rec['room'] ?? '', 'id' => $id]));
 
 $msg = $_SESSION['rec_msg'] ?? ''; $err = $_SESSION['rec_err'] ?? '';
 unset($_SESSION['rec_msg'], $_SESSION['rec_err']);

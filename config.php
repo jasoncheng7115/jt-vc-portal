@@ -1,7 +1,7 @@
 <?php
 // === 版本 ===
 // 每次有更新都要推進版本號（patch++ / 功能 minor++）。
-define('APP_VERSION', '1.16.1');
+define('APP_VERSION', '1.16.2');
 define('APP_GITHUB_URL', 'https://github.com/jasoncheng7115/jt-vc-portal');
 
 // === CSP 預設（A05 縱深防禦）===

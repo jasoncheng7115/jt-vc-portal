@@ -57,9 +57,16 @@ class Audit {
    * 記錄一筆行為。預設行為人取自目前 session；可用 $opts 覆寫（如登入前、或來賓）。
    * $opts: actor, actor_name, role, result(ok|fail|warn), severity(info|warning|error)
    */
-  public static function log(string $action, string $detail = '', array $opts = []): void {
+  public static function log(string $action, string|array $detail = '', array $opts = []): void {
     Auth::start();
-    $actor = $opts['actor']      ?? ($_SESSION['username'] ?? '');
+    // tk() 延後翻譯：記下鍵與變數，顯示時依看的人的語言翻譯；detail 仍存一份目前語言的文字（SIEM / 舊版相容）
+    $dk = null; $dv = [];
+    if (is_array($detail)) {
+      $dk = (string)($detail['k'] ?? ''); $dv = array_map('strval', (array)($detail['v'] ?? []));
+      $detail = I18n::t($dk, $dv);
+    }
+    $cli = PHP_SAPI === 'cli';
+    $actor = $opts['actor']      ?? ($_SESSION['username'] ?? ($cli ? 'system' : ''));
     $name  = $opts['actor_name'] ?? ($_SESSION['display_name'] ?? '');
     $role  = $opts['role']       ?? ($_SESSION['role'] ?? '');
     $result = $opts['result']    ?? 'ok';
@@ -68,7 +75,7 @@ class Audit {
     $actor  = mb_substr((string)$actor, 0, 128);
     $name   = mb_substr((string)$name, 0, 128);
     $detail = mb_substr($detail, 0, 1000);
-    $ip = Auth::clientIp();
+    $ip = $cli ? '' : Auth::clientIp();                  // 排程 / 指令列沒有來源 IP
 
     $entry = [
       'ts'         => time(),
@@ -82,6 +89,7 @@ class Audit {
       'ip'         => $ip,
       'user_agent' => $ua,
     ];
+    if ($dk !== null && $dk !== '') { $entry['dk'] = $dk; $entry['dv'] = $dv; }
     Store::appendLine(self::FILE, $entry);
 
     $sev = $opts['severity'] ?? (in_array($result, ['fail', 'warn'], true) ? 'warning' : 'info');
@@ -127,7 +135,7 @@ class Audit {
         if ($fromTs !== null && $ts < $fromTs) continue;
         if ($toTs !== null && $ts > $toTs) continue;
         if ($q !== '') {
-          $hay = mb_strtolower(($e['actor'] ?? '') . ' ' . ($e['actor_name'] ?? '') . ' ' . ($e['detail'] ?? '') . ' ' . ($e['ip'] ?? ''));
+          $hay = mb_strtolower(($e['actor'] ?? '') . ' ' . ($e['actor_name'] ?? '') . ' ' . self::detailText($e) . ' ' . ($e['ip'] ?? ''));
           if (mb_strpos($hay, $q) === false) continue;
         }
         $rows[] = $e;
@@ -159,12 +167,18 @@ class Audit {
       if ($fromTs !== null && $ts < $fromTs) continue;
       if ($toTs !== null && $ts > $toTs) continue;
       if ($q !== '') {
-        $hay = mb_strtolower(($e['actor'] ?? '') . ' ' . ($e['actor_name'] ?? '') . ' ' . ($e['detail'] ?? '') . ' ' . ($e['ip'] ?? ''));
+        $hay = mb_strtolower(($e['actor'] ?? '') . ' ' . ($e['actor_name'] ?? '') . ' ' . self::detailText($e) . ' ' . ($e['ip'] ?? ''));
         if (mb_strpos($hay, $q) === false) continue;
       }
       $rows[] = $e;
     }
     return $rows;
+  }
+
+  /** 顯示用詳細內容：有延後翻譯的鍵就依目前（看的人）語言翻譯，否則用寫入時的文字。 */
+  public static function detailText(array $e): string {
+    if (!empty($e['dk']) && is_string($e['dk'])) return I18n::t($e['dk'], array_map('strval', (array)($e['dv'] ?? [])));
+    return (string)($e['detail'] ?? '');
   }
 
   /** 查詢（新→舊），可選 action / 關鍵字（actor / detail / ip）過濾。 */
@@ -179,7 +193,7 @@ class Audit {
       if (!empty($filters['action']) && ($e['action'] ?? '') !== $filters['action']) continue;
       if (!empty($filters['q'])) {
         $q = mb_strtolower($filters['q']);
-        $hay = mb_strtolower(($e['actor'] ?? '') . ' ' . ($e['actor_name'] ?? '') . ' ' . ($e['detail'] ?? '') . ' ' . ($e['ip'] ?? ''));
+        $hay = mb_strtolower(($e['actor'] ?? '') . ' ' . ($e['actor_name'] ?? '') . ' ' . self::detailText($e) . ' ' . ($e['ip'] ?? ''));
         if (mb_strpos($hay, $q) === false) continue;
       }
       $out[] = $e;

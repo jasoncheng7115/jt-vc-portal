@@ -1,3 +1,4 @@
+[hidden] { display: none !important; }   /* hidden 屬性一律隱藏：元件自己設了 display（flex / grid…）時也不會蓋掉 */
 :root {
   --bg: #ffffff;
   --bg-soft: #fafafa;
@@ -1757,6 +1758,7 @@ body.is-dark .tx-more-menu { background: #1e293b; }
 .mt-wave-box { flex: 1; min-width: 0; position: relative; }
 .mt-wave { display: block; width: 100%; height: 72px; cursor: pointer; }
 .mt-wave-tip { position: absolute; top: 3px; left: 0; pointer-events: none; white-space: nowrap; display: flex; align-items: center; gap: 5px; padding: 1px 6px; border-radius: 4px; background: rgba(15,23,42,.85); color: #fff; font: 600 11px/17px var(--mono); }
+.mt-wave-tip[hidden] { display: none; }
 .mt-tip-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 8px; }
 .mt-d0 { background: #60a5fa; } .mt-d1 { background: #fb923c; } .mt-d2 { background: #4ade80; } .mt-d3 { background: #a78bfa; }
 .mt-d4 { background: #fb7185; } .mt-d5 { background: #2dd4bf; } .mt-d6 { background: #facc15; } .mt-d7 { background: #818cf8; }

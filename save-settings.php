@@ -28,7 +28,7 @@ if ($section === 'meeting') {
   Settings::setMeetingRetentionDays((int)($_POST['meeting_retention_days'] ?? 365));
   if (isset($_POST['audit_retention_days'])) Settings::setAuditRetentionDays((int)$_POST['audit_retention_days']);
   Settings::setGuestPollSeconds((int)($_POST['guest_poll_seconds'] ?? 30));
-  Audit::log('settings_update', t('會議室介面：語言 {lang}、記錄保留 {days} 天、等候檢查 {secs} 秒', [
+  Audit::log('settings_update', tk('會議室介面：語言 {lang}、記錄保留 {days} 天、等候檢查 {secs} 秒', [
     'lang' => Settings::MEETING_LANGS[Settings::getMeetingLang()] ?? '',
     'days' => Settings::getMeetingRetentionDays(),
     'secs' => Settings::getGuestPollSeconds(),
@@ -38,14 +38,14 @@ if ($section === 'meeting') {
 
 if ($section === 'recording') {
   Settings::setRecorderName($_POST['recorder_name'] ?? '');
-  Audit::log('settings_update', t('錄製設定：錄製者顯示名稱「{name}」', ['name' => Settings::getRecorderName()]));
+  Audit::log('settings_update', tk('錄製設定：錄製者顯示名稱「{name}」', ['name' => Settings::getRecorderName()]));
   $back('set_msg', t('錄製設定已更新。'));
 }
 
 if ($section === 'jibri') {
   $jurl = trim($_POST['jibri_url'] ?? '');
   Settings::setJibri($jurl, $_POST['jibri_token'] ?? '');
-  Audit::log('settings_update', t('Jibri 錄影服務設定更新（{url}）', ['url' => Settings::getJibri()['url'] ?: t('未設定')]));
+  Audit::log('settings_update', tk('Jibri 錄影服務設定更新（{url}）', ['url' => Settings::getJibri()['url'] ?: t('未設定')]));
   if ($jurl === '') $back('set_msg', t('Jibri 錄影服務設定已清除。'));
   if (!Settings::hasJibri()) $back('set_err', t('已儲存服務 URL，但尚未設定 Token，請填入 Token 才能啟用。'));
   $ok = Recordings::ping();
@@ -66,7 +66,7 @@ if ($section === 'recording_retention') {
   ];
   $saved = Recordings::setConfig($conf);
   if ($saved === null) $back('set_err', t('保留政策儲存失敗（Jibri 服務無法連線）。'));
-  Audit::log('settings_update', t('錄影保留政策更新：時間清理 {time}、容量清理 {cap}、殘留清理 {orphan}', [
+  Audit::log('settings_update', tk('錄影保留政策更新：時間清理 {time}、容量清理 {cap}、殘留清理 {orphan}', [
     'time'   => $conf['time_enabled'] ? t('開（{days}天）', ['days' => $conf['time_days']]) : t('關'),
     'cap'    => $conf['cap_enabled'] ? t('開') : t('關'),
     'orphan' => $conf['orphan_auto'] ? t('開') : t('關'),
@@ -89,7 +89,7 @@ if ($section === 'meeting_custom') {
     'bw_save_off' => !empty($_POST['bw_save_off']),
     'toolbar'    => $tb,
   ]);
-  Audit::log('settings_update', t('會議室自訂（自建 Jitsi Meet）'));
+  Audit::log('settings_update', tk('會議室自訂（自建 Jitsi Meet）'));
   $back('set_msg', t('會議室自訂已更新。'));
 }
 
@@ -110,7 +110,7 @@ if ($section === 'oidc') {
     }
   }
   Settings::setOidc($v);
-  Audit::log('settings_update', t('單一登入設定（{state}）', ['state' => !empty($v['enabled']) ? t('啟用') : t('停用')]) . (!empty($v['sso_only']) ? t('（僅限單一登入）') : ''));
+  Audit::log('settings_update', tk('單一登入設定（{state}）', ['state' => !empty($v['enabled']) ? t('啟用') : t('停用')]) . (!empty($v['sso_only']) ? t('（僅限單一登入）') : ''));
   if ($action === 'test') {
     try {
       $d = Oidc::discovery(true);
@@ -140,7 +140,7 @@ if ($section === 'transcribe') {
   $v['webhook_secret'] = '';
   $v['backend'] = 'jtlw';
   Settings::setTranscribe($v);
-  Audit::log('settings_update', t('逐字稿與摘要設定（{state}）', ['state' => !empty($v['enabled']) ? t('啟用') : t('停用')]));
+  Audit::log('settings_update', tk('逐字稿與摘要設定（{state}）', ['state' => !empty($v['enabled']) ? t('啟用') : t('停用')]));
   if ($action === 'test' || $action === 'webhook') {
     try {
       $cap = Jtlw::capabilities();
@@ -152,7 +152,7 @@ if ($section === 'transcribe') {
         $url = rtrim(SITE_URL, '/') . '/jtlw-webhook';
         $wh = Jtlw::createWebhook($url);
         Settings::setTranscribe(['webhook_endpoint_id' => (string)$wh['endpoint_id'], 'webhook_secret' => (string)$wh['secret']], true);
-        Audit::log('settings_update', t('已向語音服務註冊 webhook：{url}', ['url' => $url]));
+        Audit::log('settings_update', tk('已向語音服務註冊 webhook：{url}', ['url' => $url]));
         $back('set_msg', t('已註冊 webhook（{url}）。語音服務做完會通知本系統；另有每分鐘的排程保底。', ['url' => $url]));
       }
       $back('set_msg', t('連線成功：語音服務 API {rev}，目前排隊 {q} 件。', ['rev' => (string)($cap['api_revision'] ?? '?'), 'q' => (int)($cap['queue']['depth'] ?? 0)]));
@@ -173,7 +173,7 @@ if ($section === 'login_path') {
   }
   Settings::setLoginPath($p);
   // 基於安全不在稽核 / SIEM 記錄實際路徑值。
-  Audit::log('settings_update', t('登入路徑已變更（為安全不記錄實際值）'));
+  Audit::log('settings_update', tk('登入路徑已變更（為安全不記錄實際值）'));
   $back('set_msg', t('登入路徑已更新，請改用新路徑登入；忘記時可用 CLI 還原。'));
 }
 
@@ -198,7 +198,7 @@ if ($section === 'jaas') {
   if ($newSecret !== '') $cur['sh_secret'] = $newSecret;
   $cur['sh_sub']    = trim($_POST['sh_sub'] ?? '');
   Settings::setSection('jaas', $cur);
-  Audit::log('settings_update', t('連線模式設定（{mode}）', ['mode' => $mode]));
+  Audit::log('settings_update', tk('連線模式設定（{mode}）', ['mode' => $mode]));
   $back('set_msg', t('連線設定已更新。'));
 }
 
@@ -207,14 +207,14 @@ if ($section === 'plan') {
   if (isset($_POST['billing_start_day'])) {
     Settings::setBillingStartDay((int)$_POST['billing_start_day']);
   }
-  Audit::log('settings_update', t('方案上限 / 計費週期'));
+  Audit::log('settings_update', tk('方案上限 / 計費週期'));
   $back('set_msg', t('方案設定已更新。'));
 }
 
 if ($section === 'usage_baseline') {
   $val = max(0, (int)($_POST['current_value'] ?? 0));
   Usage::setCurrentValue($val);
-  Audit::log('usage_baseline', t('校正本期用量為 {value}', ['value' => $val]));
+  Audit::log('usage_baseline', tk('校正本期用量為 {value}', ['value' => $val]));
   $back('set_msg', t('本期用量已校正。'));
 }
 

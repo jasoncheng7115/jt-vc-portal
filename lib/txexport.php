@@ -159,7 +159,7 @@ final class TxExport {
           }
           $pdf->y = $top - $h - 4; break;
         case 'h':
-          $pdf->ensure(60); $pdf->y -= 22;
+          $pdf->ensure(76); $pdf->y -= 38;   // 標題前空一行（約 16pt）
           $pdf->rect($x0, $pdf->y - 2, 3.5, 15, '#2563eb', 1.5);
           $pdf->text($x0 + 10, $pdf->y + 1, $bl[1], 13, '#0f172a', true);
           $pdf->y -= 8; break;
@@ -310,7 +310,7 @@ final class TxExport {
       . '<w:pPrDefault><w:pPr><w:spacing w:after="80" w:line="300" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>'
       . '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:rPr><w:color w:val="0F172A"/></w:rPr></w:style>'
       . '<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:after="160"/></w:pPr><w:rPr><w:b/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr></w:style>'
-      . '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:pBdr><w:left w:val="single" w:sz="24" w:space="6" w:color="2563EB"/></w:pBdr><w:spacing w:before="320" w:after="120"/><w:ind w:left="200"/><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:sz w:val="26"/><w:szCs w:val="26"/></w:rPr></w:style>'
+      . '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:pBdr><w:left w:val="single" w:sz="24" w:space="6" w:color="2563EB"/></w:pBdr><w:spacing w:before="620" w:after="120"/><w:ind w:left="200"/><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:sz w:val="26"/><w:szCs w:val="26"/></w:rPr></w:style>'
       . '</w:styles>';
     $z = new ZipWriter();
     $z->add('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . "\n"
@@ -402,7 +402,7 @@ final class TxExport {
       . '<style:default-style style:family="paragraph">' . $txt('fo:font-size="10.5pt" style:font-size-asian="10.5pt" fo:color="#0f172a"') . '</style:default-style>'
       . '<style:style style:name="Standard" style:family="paragraph"><style:paragraph-properties fo:line-height="140%"/></style:style>'
       . $ps('Title', 'fo:margin-bottom="0.3cm"', 'fo:font-size="18pt" style:font-size-asian="18pt" ' . $bold)
-      . $ps('H', 'fo:margin-top="0.5cm" fo:margin-bottom="0.2cm" fo:border-left="3pt solid #2563eb" fo:padding-left="0.2cm" fo:keep-with-next="always"', 'fo:font-size="13pt" style:font-size-asian="13pt" ' . $bold)
+      . $ps('H', 'fo:margin-top="1.05cm" fo:margin-bottom="0.2cm" fo:border-left="3pt solid #2563eb" fo:padding-left="0.2cm" fo:keep-with-next="always"', 'fo:font-size="13pt" style:font-size-asian="13pt" ' . $bold)
       . $ps('Body', 'fo:margin-bottom="0.15cm"', '')
       . $ps('Item', 'fo:margin-top="0.2cm"', '')
       . $ps('Small', 'fo:margin-left="0.4cm"', 'fo:font-size="8.5pt" style:font-size-asian="8.5pt" fo:color="#64748b"')
@@ -469,7 +469,7 @@ final class TxExport {
     }
     $css = 'body{margin:0;background:#f8fafc;color:#0f172a;font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Noto Sans JP","PingFang TC","Microsoft JhengHei","Hiragino Sans","Yu Gothic",sans-serif}'
       . 'main{max-width:960px;margin:32px auto;padding:36px 44px;background:#fff;border:1px solid #e2e8f0;border-radius:14px}'
-      . 'h1{font-size:26px;margin:0 0 18px}h2{font-size:18px;margin:30px 0 10px;padding-left:10px;border-left:4px solid #2563eb;break-after:avoid}'
+      . 'h1{font-size:26px;margin:0 0 18px}h2{font-size:18px;margin:48px 0 10px;padding-left:10px;border-left:4px solid #2563eb;break-after:avoid}'
       . 'table{border-collapse:collapse;width:100%}.meta{background:#f1f5f9;border-radius:8px}.meta th{width:110px;text-align:left;font-weight:400;color:#64748b;padding:5px 14px;vertical-align:top}.meta td{padding:5px 14px 5px 0}'
       . '.grid{margin:6px 0 10px;table-layout:fixed}.grid th{background:#f1f5f9;color:#475569;text-align:left;font-size:13px;padding:7px 10px}.grid td{padding:7px 10px;border-bottom:1px solid #e2e8f0;vertical-align:top;overflow-wrap:break-word}'
       . '.segs td{border-bottom:2px solid #fff}.time{color:#64748b;font-size:13px;font-variant-numeric:tabular-nums}.spk{font-weight:700}'

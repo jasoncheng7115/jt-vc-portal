@@ -20,7 +20,7 @@ if (array_key_exists('lang', $_POST) && !isset($_POST['new_password']) && !array
   Users::update($me['id'], ['lang' => $l]);
   if ($l !== null) { $_SESSION['lang'] = $l; I18n::set($l); I18n::remember($l); }
   else unset($_SESSION['lang']);
-  Audit::log('profile_update', t('介面語言→{lang}', ['lang' => $l ?? 'auto']));
+  Audit::log('profile_update', tk('介面語言→{lang}', ['lang' => $l ?? 'auto']));
   $back('profile_msg', t('介面語言已更新。'));
 }
 
@@ -28,7 +28,7 @@ if (array_key_exists('lang', $_POST) && !isset($_POST['new_password']) && !array
 if (array_key_exists('display_name', $_POST) && !isset($_POST['new_password'])) {
   $dn = trim($_POST['display_name']) ?: $me['username'];
   Users::update($me['id'], ['display_name' => $dn]);
-  Audit::log('profile_update', t('顯示名稱→{name}', ['name' => $dn]));
+  Audit::log('profile_update', tk('顯示名稱→{name}', ['name' => $dn]));
   $back('profile_msg', t('顯示名稱已更新。'));
 }
 
@@ -43,5 +43,5 @@ if ($np !== $np2) $back('profile_err', t('兩次輸入的新密碼不一致。')
 
 $upd = Users::update($me['id'], ['password' => $np]);
 $_SESSION['gen'] = (string)($upd['session_gen'] ?? '');   // 保留目前這個 session，其餘裝置登出
-Audit::log('password_change', t('變更自己的密碼'));
+Audit::log('password_change', tk('變更自己的密碼'));
 $back('profile_msg', t('密碼已更新。'));

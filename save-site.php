@@ -28,7 +28,7 @@ if (!empty($_POST['remove_logo'])) {
   $cur['logo_mime'] = '';
   $cur['logo_v'] = (int)($cur['logo_v'] ?? 0) + 1;
   Settings::setSection('site', $cur);
-  Audit::log('site_update', t('恢復預設 logo'));
+  Audit::log('site_update', tk('恢復預設 logo'));
   $back('set_msg', t('已恢復預設 logo。'));
 }
 
@@ -49,10 +49,10 @@ if (!empty($_FILES['logo']['tmp_name']) && is_uploaded_file($_FILES['logo']['tmp
   $cur['logo_mime'] = $mime;
   $cur['logo_v'] = (int)($cur['logo_v'] ?? 0) + 1;
   Settings::setSection('site', $cur);
-  Audit::log('site_update', t('名稱「{name}」+ 更新 logo', ['name' => $name]));
+  Audit::log('site_update', tk('名稱「{name}」+ 更新 logo', ['name' => $name]));
   $back('set_msg', t('站台設定已更新（含 logo）。'));
 }
 
 Settings::setSection('site', $cur);
-Audit::log('site_update', t('名稱「{name}」', ['name' => $name]));
+Audit::log('site_update', tk('名稱「{name}」', ['name' => $name]));
 $back('set_msg', t('站台設定已更新。'));

@@ -56,4 +56,19 @@ test('Audit：欄位長度上限、依保留天數清理', function () {
   ok(count($all) >= 1, '新記錄保留');
 });
 
+test('Audit（T67）：排程 / 指令列的記錄是 system、無來源 IP；說明依看的人語言顯示', function () {
+  I18n::set('en');
+  Audit::log('transcript_done', tk('逐字稿已產生：會議室「{room}」錄影 {id}（{n} 段；摘要：{s}）', ['room' => 'r1', 'id' => 'x1', 'n' => 3, 's' => 'ok']));
+  $e = Audit::query(1)[0];
+  eq($e['actor'], 'system'); eq($e['ip'], ''); eq($e['dk'] ?? '', '逐字稿已產生：會議室「{room}」錄影 {id}（{n} 段；摘要：{s}）');
+  ok(str_starts_with($e['detail'], 'Transcript generated'), 'stored text in writer language: ' . $e['detail']);
+  I18n::set('zh-TW');
+  eq(Audit::detailText($e), '逐字稿已產生：會議室「r1」錄影 x1（3 段；摘要：ok）');
+  eq(count(Audit::query(5, ['q' => '會議室「r1」'])) >= 1, true, 'keyword search matches viewer-language text');
+  I18n::set('ja');
+  ok(Audit::detailText($e) !== $e['detail'] && !preg_match('/Transcript generated/', Audit::detailText($e)), 'ja viewer');
+  I18n::set('en');
+  eq(Audit::detailText(['detail' => 'legacy text']), 'legacy text');
+});
+
 summary();
