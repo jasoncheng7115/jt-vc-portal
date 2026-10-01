@@ -428,7 +428,8 @@ class Transcripts {
     // 實際用了哪個發言者辨識方法（Result.diarization，api 2.5）：只記方法，不影響取回；取不到就算了
     if ($spk) {
       try { $res = Jtlw::getResult($jid); $dz = $res['diarization'] ?? null;
-        if (is_array($dz)) $tr['diarization'] = ['requested' => (string)($dz['requested'] ?? ''), 'engine' => (string)($dz['engine'] ?? ''), 'fallback' => ($dz['requested'] ?? '') === 'auto' && ($dz['engine'] ?? '') === 'legacy'];
+        if (is_array($dz)) $tr['diarization'] = ['requested' => (string)($dz['requested'] ?? ''), 'engine' => (string)($dz['engine'] ?? ''), 'fallback' => ($dz['requested'] ?? '') === 'auto' && ($dz['engine'] ?? '') === 'legacy',
+                                                  'reason' => preg_match('/^[a-z_]{1,40}$/', (string)($dz['reason'] ?? '')) ? (string)$dz['reason'] : ''];   // api 2.6：退回原因代碼（note 是中文，不顯示）
       } catch (JtlwError $x) {}
     }
     $tr['job_id'] = $jid; $tr['language'] = (string)($e['language'] ?? '');

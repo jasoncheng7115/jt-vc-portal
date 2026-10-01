@@ -108,6 +108,9 @@
 - [ ] T71 会議室作成：文字起こし権限のあるアカウントでは「録画完了後に文字起こしと要約を生成」が既定でオン、必須の「会議の主な言語」がすぐ表示され未選択であること。言語未選択で送信するとブロックされ、オフにすると言語は不要になること。
 - [ ] T72 話者の識別方法：既定は「自動」。通常の会議は `hints.diarize_engine: "auto"` を送信、「従来の方法」は送信しない、台湾語の会議は送信しない、`num_speakers` は常に送信しない、API 2.5 より前（またはバージョン不明）の音声サービスには自動的に送信しない、不明な設定値は自動に戻ること。
 - [ ] T73 結果取得時に実際に使われた話者識別方法（`Result.diarization`）を記録し、自動から従来の方法に切り替わった場合は文字起こしページに分け方が不正確な場合がある旨を表示、切り替わっていなければ表示しないこと。システム設定に「話者の識別方法」があり既定が自動であること。
+- [ ] T74 会議画面カスタマイズ「小さい画面でも高めの画質を維持」：既定はオフで会議ページに追加の画質設定がないこと。オンにするとホストとゲストのページの両方に `minHeightForQualityLvl {100: standard, 300: high}` と `maxFullResolutionParticipants: -1` が入り、オフに戻すと元に戻ること。
+- [ ] T75 実際の Jitsi の画質（スマートフォンのブラウザを模擬＋PC）：2 人は P2P 直結でスマートフォンは 720p を送信、4 人はビデオブリッジ経由、Jitsi が上記 2 つの設定を受け付け、4 人のタイル表示でスマートフォンの受信上限が 180p から 360p に上がり、実際の受信画質も向上すること。2 人の会議ではオンにしても下がらないこと。**リリースごと、および Jitsi のアップグレード後に必ず実行。**
+- [ ] T76 話者識別の切り替え理由（JTLW API 2.6 `diarization.reason`）：理由コードを記録し、話者が 8 人超（`too_many_speakers` / `speakers_saturated`）と新モデルが使えない（`nemotron_unavailable` / `nemotron_failed`）で異なる説明を画面の言語で表示すること。音声サービスの中国語の `note` は表示しないこと。
 
 ### 3.5 会議記録と統計
 - [ ] 主催者が退出すると `meetings.jsonl` に書き込まれる（時間、最大同時参加者数、参加者の入退室時刻）。
@@ -387,6 +390,9 @@
 | 文字起こし T71（既定オン、言語必須） | `tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`） |
 | 文字起こし T72（依頼時の hints、バージョン判定） | `tests/unit/test_transcripts.php` |
 | 文字起こし T73（実際の方法、切り替え時の表示、設定） | `tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`） |
+| 文字起こし T76（切り替え理由コードと説明） | `tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`、JTLW モックのシナリオ `diarize_fallback`） |
+| 小さい画面の高画質設定 T74 | `tests/run-integration.sh` |
+| 実際の Jitsi の画質 T75 | `tests/prod-video-quality.sh`（メンテナー、本番環境） |
 | 文字起こし T68（波形の時刻ツールチップ、サイト全体の hidden ルール） | `tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`） |
 | 文字起こし T31 | `tests/zap/run-zap.sh` |
 | 文字起こし T42 | `tests/prod-meeting-sim.sh`（メンテナー、本番環境） |

@@ -310,4 +310,6 @@ return [
   '直接安裝' => 'Direct install',
   '預設會議語言（建立會議室時沒指定的場次才用）' => 'Default meeting language (used only for meetings without one)',
   '勾選產生逐字稿的會議，建立時必須選主要語言；這裡只用在舊會議或沒指定語言的場次。「自動判斷」只看開頭約 30 秒決定整場語言，開頭有人先講另一種語言時整場都可能辨識錯。會議摘要支援中文、英文與台語（閩南語）。' => 'Meetings that generate transcripts must pick a main language when the room is created; this default is used only for older meetings or ones without a language. "Auto" decides from roughly the first 30 seconds, so if someone opens in another language the whole meeting may be recognised wrongly. Meeting summaries support Chinese, English and Taiwanese Hokkien.',
+  '小畫面也維持較高畫質（手機、多人並排）' => 'Keep higher quality on small tiles (phones, 3+ person tile view)',
+  'Jitsi 依每個人畫面方格的大小決定接收畫質：手機或 3 人以上並排時方格小，預設只收 180p，在手機上看起來較模糊。勾選後小方格也收較高畫質（約 360p–720p），但每位與會者的頻寬、手機耗電與發熱都會增加，人越多越明顯。預設不勾。' => 'Jitsi chooses the receive quality from the size of each person\'s tile: on phones, or in tile view with 3 or more people, tiles are small and get only 180p by default, which looks blurry on a phone. When ticked, small tiles also receive higher quality (about 360p–720p), but every participant uses more bandwidth and phones use more battery and run warmer — more so with more people. Off by default.',
 ];

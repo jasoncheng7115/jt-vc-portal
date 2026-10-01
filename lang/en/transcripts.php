@@ -195,4 +195,6 @@ return [
   '舊方法' => 'Previous method',
   '「自動」使用語音服務較新的發言者辨識，多人會議分得準很多；語音服務版本較舊（API 2.5 以前）或發言者超過 8 位時，會自動改用舊方法。台語（閩南語）會議不分發言者，不受這裡影響。' => '"Automatic" uses the speech service\'s newer speaker detection, which is much more accurate for meetings with many people; with an older speech service (before API 2.5) or more than 8 speakers it uses the previous method automatically. Taiwanese Hokkien meetings are not split by speaker and are not affected by this setting.',
   '這場的發言者可能超過 8 位，發言者辨識改用舊方法，發言者分組可能較不準；可以點名字手動修正。' => 'This meeting may have more than 8 speakers, so speaker detection fell back to the previous method and the speaker grouping may be less accurate; click a name to correct it.',
+  '語音服務這次無法使用新的發言者辨識，改用舊方法，發言者分組可能較不準；可以點名字手動修正。' => 'The speech service could not use its newer speaker detection this time and fell back to the previous method, so the speaker grouping may be less accurate; click a name to correct it.',
+  '這場的發言者辨識改用舊方法，發言者分組可能較不準；可以點名字手動修正。' => 'Speaker detection for this meeting fell back to the previous method, so the speaker grouping may be less accurate; click a name to correct it.',
 ];

@@ -358,6 +358,8 @@ render_topbar($me, $ip);
         <label><?= th('視訊頻寬') ?></label>
         <label style="font-weight:400;display:block;margin:4px 0;"><input type="checkbox" name="bw_save_off" value="1" <?= !empty($mc['bw_save_off'])?'checked':'' ?>> <?= th('關閉「視訊省頻寬」自動降載（不因頻寬自動關閉他人視訊）') ?></label>
         <div class="help"><?= th('預設勾選＝一律接收所有人視訊，畫質較好但較吃頻寬（網路差時可能改成卡頓）。取消勾選＝維持 Jitsi 省頻寬，網路差時自動關他人視訊以保流暢。') ?></div>
+        <label style="font-weight:400;display:block;margin:10px 0 4px;"><input type="checkbox" name="hq_small" value="1" <?= !empty($mc['hq_small'])?'checked':'' ?>> <?= th('小畫面也維持較高畫質（手機、多人並排）') ?></label>
+        <div class="help"><?= th('Jitsi 依每個人畫面方格的大小決定接收畫質：手機或 3 人以上並排時方格小，預設只收 180p，在手機上看起來較模糊。勾選後小方格也收較高畫質（約 360p–720p），但每位與會者的頻寬、手機耗電與發熱都會增加，人越多越明顯。預設不勾。') ?></div>
       </div>
 
       <div class="field">

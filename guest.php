@@ -144,8 +144,13 @@ window.addEventListener('load', () => {
       videoQuality: {
         codecPreferenceOrder: ['VP9', 'H264', 'VP8', 'AV1'],
         mobileCodecPreferenceOrder: ['VP9', 'H264', 'VP8', 'AV1'],
-        enableAdaptiveMode: <?= $mui['bw_save_off'] ? 'false' : 'true' ?>   // false when the room option "disable video bandwidth saving" is checked
-      },
+        enableAdaptiveMode: <?= $mui['bw_save_off'] ? 'false' : 'true' ?>,   // false when the room option "disable video bandwidth saving" is checked
+<?php if ($mui['hq_small']): ?>        // "keep higher quality on small tiles": Jitsi picks the receive layer from the tile height (default 360px → SD, 720px → HD,
+        // so phone tiles and 3+ person tile view get 180p); lower thresholds give small tiles 360p / 720p (more bandwidth)
+        minHeightForQualityLvl: { 100: 'standard', 300: 'high' },
+<?php endif; ?>      },
+<?php if ($mui['hq_small']): ?>      maxFullResolutionParticipants: -1,   // tile view keeps HD regardless of the number of participants (default: only up to 2)
+<?php endif; ?>
 <?php if ($mui['bw_save_off']): ?>      channelLastN: -1,   // receive everyone's video, never dropped by lastN (disabled together with bandwidth saving)
 <?php endif; ?>      enableLobby: true,
       prejoinPageEnabled: false,

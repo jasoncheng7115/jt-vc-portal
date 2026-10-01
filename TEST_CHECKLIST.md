@@ -108,6 +108,9 @@
 - [ ] T71 Create room: for accounts allowed to use transcripts, "Generate transcript and summary after recording" is ticked by default, and the required main meeting language is shown right away with nothing selected; submitting without a language is blocked; unticking it removes the language requirement.
 - [ ] T72 Speaker detection: defaults to "Automatic"; regular meetings submit `hints.diarize_engine: "auto"`; "Previous method" sends nothing; Taiwanese meetings send nothing; `num_speakers` is never sent; speech services before API 2.5 (or with an unknown version) automatically get nothing; unknown setting values revert to automatic.
 - [ ] T73 The speaker detection method actually used (`Result.diarization`) is recorded when results are fetched; when automatic fell back to the previous method the transcript page notes the grouping may be less accurate, and nothing is shown otherwise; system settings show "Speaker detection" defaulting to automatic.
+- [ ] T74 Room customization "Keep higher quality on small tiles": off by default and the meeting page carries no extra quality settings; when ticked, both host and guest pages carry `minHeightForQualityLvl {100: standard, 300: high}` and `maxFullResolutionParticipants: -1`; unticking restores the default.
+- [ ] T75 Real Jitsi video quality (emulated phone browser + desktop): 2 people connect peer to peer and the phone sends 720p; 4 people go through the video bridge; Jitsi accepts both settings above and in a 4-person tile view the phone's allowed receive limit rises from 180p to 360p and the quality actually received improves; 2-person meetings are not lowered. **Run on every release and after every Jitsi upgrade.**
+- [ ] T76 Speaker detection fallback reason (JTLW API 2.6 `diarization.reason`): the reason code is recorded; more than 8 speakers (`too_many_speakers` / `speakers_saturated`) and the new model being unavailable (`nemotron_unavailable` / `nemotron_failed`) show different explanations in the interface language; the speech service's Chinese `note` is not shown.
 
 ### 3.5 Meeting records and statistics
 - [ ] When the host leaves, `meetings.jsonl` is written (duration, peak concurrent participants, participant join / leave times).
@@ -387,6 +390,9 @@ Spot-check on every release; test everything for major changes:
 | Transcripts T71 (ticked by default, language required) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
 | Transcripts T72 (job hints, version check) | `tests/unit/test_transcripts.php` |
 | Transcripts T73 (method used, fallback notice, setting) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
+| Transcripts T76 (fallback reason code and message) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`, JTLW mock scenario `diarize_fallback`) |
+| Higher quality on small tiles T74 | `tests/run-integration.sh` |
+| Real Jitsi video quality T75 | `tests/prod-video-quality.sh` (maintainer, production) |
 | Transcripts T68 (waveform time tooltip, site-wide hidden rule) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
 | Transcripts T31 | `tests/zap/run-zap.sh` |
 | Transcripts T42 | `tests/prod-meeting-sim.sh` (maintainer, production) |

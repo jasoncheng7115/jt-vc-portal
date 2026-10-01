@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.17.0 — 會議管理系統
+# jt-vc-portal v1.18.0 — 會議管理系統
 
 > English: [README.md](README.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -205,14 +205,14 @@ server {
 
 ```bash
 # 1) 從 Release 頁下載映像與校驗檔（請改用最新版本號）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.17.0/jt-vc-portal-1.17.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.17.0/jt-vc-portal-1.17.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.18.0/jt-vc-portal-1.18.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.18.0/jt-vc-portal-1.18.0-docker-amd64.tar.gz.sha256
 
 # 2) 驗證完整性（應顯示 OK）
-sha256sum -c jt-vc-portal-1.17.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.18.0-docker-amd64.tar.gz.sha256
 
-# 3) 載入映像（會建立 jt-vc-portal:1.17.0 與 :latest 標籤）
-docker load < jt-vc-portal-1.17.0-docker-amd64.tar.gz
+# 3) 載入映像（會建立 jt-vc-portal:1.18.0 與 :latest 標籤）
+docker load < jt-vc-portal-1.18.0-docker-amd64.tar.gz
 
 # 4) 主機端準備持久化目錄（www-data UID 預設 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data

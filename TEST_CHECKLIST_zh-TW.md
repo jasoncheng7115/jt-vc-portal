@@ -108,6 +108,9 @@
 - [ ] T71 建立會議室：有逐字稿權限的帳號，「錄影完成後產生逐字稿與摘要」預設勾選、必填的會議主要語言直接顯示且預設未選；沒選語言送出會被擋下；取消勾選後不需選語言。
 - [ ] T72 發言者辨識方式：預設「自動」，一般會議送件帶 `hints.diarize_engine: "auto"`；選「舊方法」不送；台語會議不送；一律不送 `num_speakers`；語音服務 API 2.5 以前（或查不到版本）自動不送；不認得的設定值改回自動。
 - [ ] T73 取回時記下實際用的發言者辨識方法（`Result.diarization`）；自動退回舊方法時逐字稿頁提醒分組可能較不準，沒有退回時不顯示；系統設定有「發言者辨識方式」且預設自動。
+- [ ] T74 會議室自訂「小畫面也維持較高畫質」：預設不勾、會議頁不帶較高畫質設定；勾選後主持人與來賓頁都帶 `minHeightForQualityLvl {100: standard, 300: high}` 與 `maxFullResolutionParticipants: -1`；取消勾選後恢復。
+- [ ] T75 真實 Jitsi 畫質（手機瀏覽器模擬＋桌機）：2 人點對點、手機送 720p；4 人改走視訊伺服器；Jitsi 接受上述兩個設定，4 人並排時 Jitsi 允許手機接收的上限由 180p 提高到 360p、實際收到的畫質提高；2 人會議開啟後不降低。**發版與 Jitsi 升級後都要跑。**
+- [ ] T76 發言者辨識退回原因（JTLW API 2.6 `diarization.reason`）：記下原因代碼；超過 8 位（`too_many_speakers` / `speakers_saturated`）與新模型無法使用（`nemotron_unavailable` / `nemotron_failed`）顯示不同說明，且依介面語言；不顯示語音服務的中文 `note`。
 
 ### 3.5 會議記錄與統計
 - [ ] 主持人離開時寫入 `meetings.jsonl`（時長、尖峰同時人數、參與者進出時間）。
@@ -387,6 +390,9 @@
 | 逐字稿 T71（預設勾選、語言必填） | `tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`） |
 | 逐字稿 T72（送件 hints、版本判斷） | `tests/unit/test_transcripts.php` |
 | 逐字稿 T73（實際方法、退回提醒、設定） | `tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`） |
+| 逐字稿 T76（退回原因代碼與說明） | `tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`，JTLW mock 情境 `diarize_fallback`） |
+| 小畫面較高畫質設定 T74 | `tests/run-integration.sh` |
+| 真實 Jitsi 視訊畫質 T75 | `tests/prod-video-quality.sh`（維護者，正式環境） |
 | 逐字稿 T68（波形時間提示、全站 hidden 規則） | `tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`） |
 | 逐字稿 T31 | `tests/zap/run-zap.sh` |
 | 逐字稿 T42 | `tests/prod-meeting-sim.sh`（維護者，正式環境） |

@@ -2,6 +2,13 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.18.0 — Video quality option for phones and multi-person meetings
+
+- Room customization adds "Keep higher quality on small tiles (phones, 3+ person tile view)" (off by default). Jitsi chooses the receive quality from each tile's size: on phones, or in tile view with 3 or more people, tiles are small and get only 180p, which looks blurry on a phone. With the option on, in a 4-person tile view a phone can receive 360p per person (was 180p) and a desktop 720p (was 360p); 2-person meetings are unaffected (measured). The trade-off is more bandwidth for every participant and more battery use and heat on phones.
+- Measured on production with an emulated phone browser: a 2-person meeting connects peer to peer and the phone sends and receives 720p; from 3 people the media goes through the video bridge, and by default the phone receives 180p per tile and 360p for the main speaker in speaker view.
+- For JTLW API 2.6: when speaker detection falls back to the previous method, the transcript page now explains why (more than 8 speakers / the speech service could not use the newer speaker detection this time), in our own wording and the interface language rather than the speech service's Chinese note.
+- Tests T74, T75, T76.
+
 ## v1.17.0 — New speaker detection (JTLW API 2.5)
 
 - **More accurate speakers**: transcript jobs now request the speech service's newer speaker detection (`hints.diarize_engine: "auto"`, NVIDIA Nemotron). In JTLW's test a 7-person panel went from "3 speakers" to "7 speakers" and wrongly attributed segments dropped from 28% to 3%; speaker statistics and citations in the meeting summary improve with it. Taiwanese meetings are not split by speaker and are unaffected.

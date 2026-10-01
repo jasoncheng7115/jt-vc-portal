@@ -87,6 +87,7 @@ if ($section === 'meeting_custom') {
     'resolution' => (int)($_POST['resolution'] ?? 1080),
     'default_view' => $_POST['default_view'] ?? 'speaker',
     'bw_save_off' => !empty($_POST['bw_save_off']),
+    'hq_small'   => !empty($_POST['hq_small']),
     'toolbar'    => $tb,
   ]);
   Audit::log('settings_update', tk('會議室自訂（自建 Jitsi Meet）'));

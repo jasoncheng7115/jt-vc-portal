@@ -27,14 +27,14 @@ NOW=$(date +%s)
 mkrec() { head -c 20000 /dev/urandom > "$JDATA/$1.mp4"; }
 # rec-ok01 用瀏覽器放得出來的真音檔（Opus，10 秒），波形與時間提示（T68）才測得到；沒有 ffmpeg 時退回亂數
 if command -v ffmpeg >/dev/null 2>&1; then MEDIA_OK=1; else MEDIA_OK=0; fi
-for r in rec-live01 rec-ok01 rec-sum01 rec-sum02 rec-fail01 rec-q01 rec-slow01 rec-auto01 rec-old01 rec-dup01 rec-gone01 rec-other01 rec-lang01 rec-retry01; do mkrec $r; done
+for r in rec-live01 rec-ok01 rec-sum01 rec-sum02 rec-fail01 rec-q01 rec-slow01 rec-auto01 rec-old01 rec-dup01 rec-gone01 rec-other01 rec-lang01 rec-retry01 rec-dzfb01; do mkrec $r; done
 [ "$MEDIA_OK" = 1 ] && ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=440:duration=10" -c:a libopus -b:a 24k -f mp4 "$JDATA/rec-ok01.mp4" || MEDIA_OK=0
 python3 - "$JDATA" "$NOW" <<'PY'
 import json,sys
 d,now=sys.argv[1],int(sys.argv[2])
 rows=[("rec-ok01","room-man",now-200),("rec-sum01","room-man",now-190),("rec-fail01","room-man",now-180),("rec-q01","room-man",now-170),
       ("rec-slow01","room-man",now-160),("rec-auto01","room-auto",now-150),("rec-old01","room-auto",now-100000),("rec-dup01","room-man",now-140),
-      ("rec-gone01","room-man",now-130),("rec-sum02","room-man",now-125),("rec-other01","room-other",now-120),("rec-lang01","room-man",now-115),("rec-retry01","room-man",now-110)]
+      ("rec-gone01","room-man",now-130),("rec-sum02","room-man",now-125),("rec-other01","room-other",now-120),("rec-lang01","room-man",now-115),("rec-retry01","room-man",now-110),("rec-dzfb01","room-man",now-105)]
 recs=[{"id":i,"room":r,"file":f"{r}.mp4","size":20000,"mtime":m,"status":"ok","duration":120} for i,r,m in rows]
 recs.append({"id":"rec-live01","room":"room-man","file":"room-man-live.mp4","size":4000,"mtime":now-5,"status":"recording","duration":0})
 json.dump(recs,open(f"{d}/recs.json","w"))
@@ -188,6 +188,11 @@ chk "T22 本地檔案已刪" "$(docker exec $PN sh -c 'test -d /var/jaas-data/tr
 echo "== 瀏覽器：權限、檢視頁、改名、引用跳播、下載"
 export PN
 PW_MOD=${PLAYWRIGHT_MODULE:-/opt/jt-ipam/frontend/node_modules/.pnpm/playwright@1.60.0/node_modules/playwright}
+# T76（JTLW api 2.6）：auto 退回舊方法時記下 reason 代碼（mock 情境 diarize_fallback → speakers_saturated）
+enq rec-dzfb01 >/dev/null
+chk "T76 退回舊方法的作業完成" "$(until_done rec-dzfb01 diarize_fallback)" done
+DZ=$(docker exec -u www-data $PN php -r "require '/var/www/html/config.php'; \$t=json_decode(file_get_contents('/var/jaas-data/transcripts/rec-dzfb01/transcript.json'), true); \$d=\$t['diarization'] ?? []; echo (\$d['engine'] ?? ''), ' ', var_export(\$d['fallback'] ?? null, true), ' ', (\$d['reason'] ?? '');")
+chk "T76 記下實際方法、退回、原因代碼" "$DZ" "legacy true speakers_saturated"
 MEDIA_OK=$MEDIA_OK PLAYWRIGHT_MODULE=$PW_MOD node "$ROOT/tests/e2e/transcribe.cjs" "http://127.0.0.1:$PPORT" "$ADMIN_PW" "$HOST_PW" | tee /tmp/.tx-e2e.$$
 P=$(grep -oE '^[0-9]+ passed' /tmp/.tx-e2e.$$ | grep -oE '^[0-9]+'); F=$(grep -oE '[0-9]+ failed' /tmp/.tx-e2e.$$ | tail -1 | grep -oE '^[0-9]+'); rm -f /tmp/.tx-e2e.$$
 pass=$((pass + ${P:-0})); fail=$((fail + ${F:-1}))
@@ -203,6 +208,7 @@ j=json.load(urllib.request.urlopen(r)); t=j.get('tasks'); t=sorted(t.keys() if i
 print(j.get('profile_id'), ','.join(t))")
 chk "T56 送件內容：台語模式、沒有 diarize（有摘要）" "$PLAN" "transcribe.taiwanese correct,summarize,transcribe"
 chk "T56 逐字稿取回（標示沒有發言者分離）" "$(docker exec -u www-data $PN php -r "require '/var/www/html/config.php'; require_once '/var/www/html/lib/transcripts.php'; \$t=Transcripts::result('rec-lang01'); echo count(\$t['segments'] ?? []) > 0 && !empty(\$t['diarize_skipped']) ? 'yes' : 'no';")" yes
+
 
 cat > /tmp/.tx-nan.$$.cjs <<'JS'
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE);

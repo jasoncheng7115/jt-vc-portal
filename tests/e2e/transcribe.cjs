@@ -107,10 +107,15 @@ function unzipEntry(buf, name) {
   const dz = JSON.parse(sh2(`docker exec -u www-data ${process.env.PN} php -r "echo json_encode(json_decode(file_get_contents('/var/jaas-data/transcripts/rec-ok01/transcript.json'), true)['diarization'] ?? null);"`).toString() || 'null');
   ok('T73 送件要求 auto，取回記下實際方法（nemotron）', !!dz && dz.requested === 'auto' && dz.engine === 'nemotron' && dz.fallback === false, JSON.stringify(dz));
   ok('T73 沒有退回舊方法時不顯示提醒', !(await pm.isVisible('#txDiarizeFallback')));
-  sh2(`docker exec -u www-data ${process.env.PN} php -r "\\$f='/var/jaas-data/transcripts/rec-ok01/transcript.json'; \\$d=json_decode(file_get_contents(\\$f), true); \\$d['diarization']['fallback']=true; file_put_contents(\\$f, json_encode(\\$d, JSON_UNESCAPED_UNICODE));"`);
+  // T76：mock 真的退回（diarize_fallback → speakers_saturated）時，用自己的文字依原因說明；換成「模型無法使用」換說法
+  await pm.goto(BASE + '/transcript?id=rec-dzfb01'); await pm.waitForTimeout(800);
+  ok('T73 auto 退回舊方法（超過 8 位發言者）→ 頁面提醒發言者分組可能較不準', await pm.isVisible('#txDiarizeFallback') && (await pm.textContent('#txDiarizeFallback')).includes('8 位'));
+  ok('T76 提醒依原因代碼（speakers_saturated）', (await pm.getAttribute('#txDiarizeFallback', 'data-reason')) === 'speakers_saturated');
+  sh2(`docker exec -u www-data ${process.env.PN} php -r "\\$f='/var/jaas-data/transcripts/rec-dzfb01/transcript.json'; \\$d=json_decode(file_get_contents(\\$f), true); \\$d['diarization']['reason']='nemotron_failed'; file_put_contents(\\$f, json_encode(\\$d, JSON_UNESCAPED_UNICODE));"`);
   await pm.reload(); await pm.waitForTimeout(800);
-  ok('T73 auto 退回舊方法（超過 8 位發言者）→ 頁面提醒發言者分組可能較不準', await pm.isVisible('#txDiarizeFallback'));
-  sh2(`docker exec -u www-data ${process.env.PN} php -r "\\$f='/var/jaas-data/transcripts/rec-ok01/transcript.json'; \\$d=json_decode(file_get_contents(\\$f), true); \\$d['diarization']['fallback']=false; file_put_contents(\\$f, json_encode(\\$d, JSON_UNESCAPED_UNICODE));"`);
+  ok('T76 原因是新模型無法使用（nemotron_failed）→ 說明換成「無法使用新的發言者辨識」，不說超過 8 位', (await pm.textContent('#txDiarizeFallback')).includes('無法使用新的發言者辨識') && !(await pm.textContent('#txDiarizeFallback')).includes('8 位'));
+  ok('T76 不直接顯示語音服務的中文說明（note）', !(await pm.content()).includes('Nemotron 上限'));
+  await pm.goto(BASE + '/transcript?id=rec-ok01'); await pm.waitForTimeout(500);
   const txt = await (await pm.request.get(BASE + '/transcript-download?id=rec-ok01&f=txt')).text();
   ok('T27 下載純文字：行首 [mm:ss]、套用改名', /^\uFEFF?\[\d\d:\d\d\] /.test(txt) && txt.includes('陳副理：'), txt.slice(0, 60));
   const srt = await (await pm.request.get(BASE + '/transcript-download?id=rec-ok01&f=srt')).text();

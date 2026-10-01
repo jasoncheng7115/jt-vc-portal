@@ -109,7 +109,13 @@ render_topbar($me, $ip);
       <p class="info-box tx-hint"><?= th('這次的辨識沒有做發言者分離，所以逐字稿沒有標出是誰說的。') ?></p>
     <?php endif; ?>
     <?php if (!empty($tr['diarization']['fallback'])): ?>
-      <p class="info-box tx-hint" id="txDiarizeFallback"><?= th('這場的發言者可能超過 8 位，發言者辨識改用舊方法，發言者分組可能較不準；可以點名字手動修正。') ?></p>
+      <?php $dzr = (string)($tr['diarization']['reason'] ?? ''); ?>
+      <p class="info-box tx-hint" id="txDiarizeFallback" data-reason="<?= htmlspecialchars($dzr) ?>"><?php
+        // 退回原因（JTLW api 2.6 的 reason 代碼）：用自己的文字依介面語言顯示，不直接顯示 JTLW 的中文 note
+        if ($dzr === '' || in_array($dzr, ['too_many_speakers', 'speakers_saturated'], true)) echo th('這場的發言者可能超過 8 位，發言者辨識改用舊方法，發言者分組可能較不準；可以點名字手動修正。');
+        elseif (in_array($dzr, ['nemotron_unavailable', 'nemotron_failed'], true)) echo th('語音服務這次無法使用新的發言者辨識，改用舊方法，發言者分組可能較不準；可以點名字手動修正。');
+        else echo th('這場的發言者辨識改用舊方法，發言者分組可能較不準；可以點名字手動修正。');
+      ?></p>
     <?php endif; ?>
     <?php if (($e['summary_status'] ?? '') === 'failed'): ?>
       <p class="info-box tx-hint"><?= htmlspecialchars(Jtlw::describe((string)($e['summary_error'] ?? 'llm_failed'))) ?></p>

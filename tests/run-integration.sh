@@ -221,6 +221,24 @@ hasnt "故障頁不顯示內部位址" "$GDP" '127.0.0.1:9'
 hasnt "故障頁不載入會議畫面" "$GDP" 'JitsiMeetExternalAPI('
 hcache ok
 chk "Jitsi 正常 + 自建不需 JWT：主持人可進會議（v1.16.0 修正：jwt 為空字串時被導回儀表板）" "$(code -b $A $B/meeting)" 200
+# T74 會議室自訂「小畫面也維持較高畫質」：預設關（照 Jitsi 預設依方格大小選畫質）；勾選後主持人與來賓頁都帶較低的畫質門檻、不限全畫質人數
+MP=$(curl -s -b $A $B/meeting)
+hasnt "T74 預設：會議頁不帶較高畫質門檻" "$MP" "minHeightForQualityLvl"
+has "T74 預設：關閉省頻寬自動降載（既有預設）" "$MP" "enableAdaptiveMode: false"
+T=$(csrf $A /settings)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'section=meeting_custom&bw_save_off=1&hq_small=1&resolution=1080&default_view=tile' $B/save-settings
+MP=$(curl -s -b $A $B/meeting)
+has "T74 勾選後：主持人頁帶較低的畫質門檻（小方格 360p、300px 以上 720p）" "$MP" "minHeightForQualityLvl: { 100: 'standard', 300: 'high' }"
+has "T74 勾選後：主持人頁不限全畫質人數" "$MP" "maxFullResolutionParticipants: -1"
+GQ="$JAR/guest-hq"
+curl -s -o /dev/null -c $GQ -b $GQ $B/room/itest-down
+curl -s -o /dev/null -c $GQ -b $GQ -d 'guest_name=HQ' $B/guest
+GP=$(curl -s -b $GQ $B/guest)
+has "T74 勾選後：來賓頁同樣帶較高畫質設定" "$GP" "maxFullResolutionParticipants: -1"
+has "T74 系統設定頁有「小畫面也維持較高畫質」選項且已勾選" "$(curl -s -b $A $B/settings)" 'name="hq_small" value="1" checked'
+T=$(csrf $A /settings)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'section=meeting_custom&bw_save_off=1&resolution=1080&default_view=tile' $B/save-settings
+hasnt "T74 取消勾選後：會議頁不再帶較高畫質門檻" "$(curl -s -b $A $B/meeting)" "minHeightForQualityLvl"
 T=$(csrf $A /dashboard)
 curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-down' $B/room-delete
 

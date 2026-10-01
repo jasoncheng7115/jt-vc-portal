@@ -332,6 +332,7 @@ class Settings {
       'resolution' => in_array($res, [720, 1080], true) ? $res : 1080,
       'default_view' => $view,
       'bw_save_off' => $d['bw_save_off'] ?? true,   // 關閉「視訊省頻寬」自動降載（預設開＝不自動關他人視訊）
+      'hq_small'   => (bool)($d['hq_small'] ?? false),   // 小畫面（手機、多人並排）也收較高畫質（v1.18.0；較耗頻寬，預設關）
       'toolbar'    => $toolbar,
     ];
   }
@@ -352,6 +353,7 @@ class Settings {
       'resolution' => in_array($res, [720, 1080], true) ? $res : 1080,
       'default_view' => $view,
       'bw_save_off' => !empty($v['bw_save_off']),
+      'hq_small'   => !empty($v['hq_small']),
       'toolbar'    => $toolbar,
     ];
     self::save($d);
@@ -368,6 +370,7 @@ class Settings {
         'mute_audio' => true, 'mute_video' => true, 'resolution' => 1080,
         'default_view' => 'speaker',
         'bw_save_off' => false,
+        'hq_small'   => false,
         'toolbar'    => array_merge(self::MEETING_BASE_BUTTONS, $allToggles),
       ];
     }
@@ -384,6 +387,7 @@ class Settings {
       'resolution' => (int)$mc['resolution'],
       'default_view' => $mc['default_view'],
       'bw_save_off' => (bool)$mc['bw_save_off'],
+      'hq_small'   => (bool)$mc['hq_small'],
       'toolbar'    => array_values($toolbar),
     ];
   }
