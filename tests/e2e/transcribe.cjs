@@ -42,7 +42,7 @@ function unzipEntry(buf, name) {
   // ---- manual 主持人 ----
   const pm = await login(b, 'hman', HPW);
   await pm.goto(BASE + '/dashboard');
-  ok('T24 manual：建立表單有逐字稿開關、預設不勾（帳號是手動）', !!(await pm.$('input[name=transcribe]')) && !(await pm.isChecked('input[name=transcribe]')));
+  ok('T24 manual：建立表單有逐字稿開關、預設勾選（T71）', !!(await pm.$('input[name=transcribe]')) && await pm.isChecked('input[name=transcribe]'));
   await pm.goto(BASE + '/recordings');
   const html = await pm.content();
   ok('T24 manual：錄影記錄有「逐字稿」欄', html.includes('tx-cell'));
@@ -150,6 +150,10 @@ function unzipEntry(buf, name) {
   const { execSync: sh } = require('child_process');
   const phpq = code => sh(`docker exec -u www-data ${process.env.PN} php -r "require '/var/www/html/config.php'; require_once '/var/www/html/lib/transcripts.php'; ${code}"`).toString();
   await pm.goto(BASE + '/dashboard');
+  ok('T71 建立表單：逐字稿預設勾選，必填的「會議主要語言」直接顯示', await pm.isChecked('#txChk') && await pm.isVisible('#txLangBox') && await pm.$eval('#txLang', e => e.required));
+  await pm.fill('#room', 't71-default'); await pm.click('button[name=mode][value=create]'); await pm.waitForTimeout(500);
+  ok('T71 沒選主要語言就送出 → 瀏覽器擋下、沒有建立', pm.url().includes('/dashboard') && !pm.url().includes('created=') && phpq("var_export(Rooms::get('t71-default'));").trim() === 'NULL');
+  await pm.uncheck('#txChk');
   ok('T54 建立表單：沒勾逐字稿時不顯示語言選單', !(await pm.isVisible('#txLangBox')) && !(await pm.$eval('#txLang', e => e.required)));
   await pm.check('#txChk');
   ok('T54 勾選逐字稿 → 出現必填的「會議主要語言」', await pm.isVisible('#txLangBox') && await pm.$eval('#txLang', e => e.required));

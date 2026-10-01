@@ -2,6 +2,11 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.16.3 — Transcript and summary ticked by default
+
+- When creating a room, "Generate transcript and summary after recording" is now **ticked by default** (it only appears for accounts allowed to use transcripts); the main meeting language must still be chosen, and the form is blocked until it is. Untick it for meetings that don't need it. Previously it was ticked by default only for accounts whose transcript permission is "automatic".
+- Test T71.
+
 ## v1.16.2 — Audit log shown in the viewer's language
 
 - **Audit log details follow the viewer's language**: details used to be fixed in the language of whoever wrote them, and background jobs (transcript done / failed / automatic retries) and command-line actions have no user language, so they were always written in English and showed up in English on the Chinese UI. Entries now keep the original string and its values, and the page, keyword search and CSV export translate them into the viewer's language; SIEM forwarding still carries the text as written. Entries recorded before the upgrade keep their original text.

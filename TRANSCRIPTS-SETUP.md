@@ -131,7 +131,7 @@ If the job has not run for more than 10 minutes, the **Settings → Transcript a
 | Level | Where | Details |
 |---|---|---|
 | Account | **Account management → Transcript permission** | **Not allowed** (default) / **Manual** (may press "Generate transcript" on meetings they hosted) / **Auto** (generated when their recordings finish). |
-| Meeting | "Generate transcript and summary after recording" when creating a room | A host with permission can switch it on or off for that meeting, overriding the account default (but never beyond the account permission). |
+| Meeting | "Generate transcript and summary after recording" when creating a room | Shown only to hosts with permission and **ticked by default** (since v1.16.3); when ticked, the main meeting language must be chosen. Untick it for meetings that don't need it. Overrides the account default (but never beyond the account permission). |
 | Admin | — | Can generate, cancel, regenerate or delete transcripts for any meeting. |
 
 Hosts only see recordings and transcripts of meetings they hosted.

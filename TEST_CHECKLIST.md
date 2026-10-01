@@ -105,6 +105,7 @@
 - [ ] T65 Real Jitsi, lobby mode: the lobby turns on when the host joins, and guests need the host's approval to enter; when the host disconnects and rejoins (with a guest still in the room) they are not held in the lobby and are still the moderator.
 - [ ] T66 Real Jitsi, every entry path and gate: "Enter" from the recent list, dashboard "Create → Host now" (3 languages), `/room/` and the legacy `/invite?room=` links, waiting page with no Jitsi loaded before the host arrives, automatic opening once the host arrives, name required, host sees the guest's name, correct participant count, Jitsi UI language follows the portal, countdown page, ended page, back to waiting after the host leaves, session written to meeting records. **Run on every release and after every Jitsi / Jibri upgrade.**
 - [ ] T70 Real Jitsi recording: after the host presses start, recording begins within 12 seconds (jicofo waits only 15), and stop really stops it; two rooms recording at once (two Jibris) both start and stop, both recording files are produced, and both Jibris return to idle afterwards. **Run on every release and after every Jitsi / Jibri upgrade.**
+- [ ] T71 Create room: for accounts allowed to use transcripts, "Generate transcript and summary after recording" is ticked by default, and the required main meeting language is shown right away with nothing selected; submitting without a language is blocked; unticking it removes the language requirement.
 
 ### 3.5 Meeting records and statistics
 - [ ] When the host leaves, `meetings.jsonl` is written (duration, peak concurrent participants, participant join / leave times).
@@ -381,6 +382,7 @@ Spot-check on every release; test everything for major changes:
 | Meeting minutes export T44–T47 (PDF structure, cross-reference, font subset, ToUnicode, line breaking; .docx / .odt ZIP and XML, renaming, language, requirements) | `tests/unit/test_txexport.php` |
 | Meeting minutes export T69 (space before headings) | `tests/unit/test_txexport.php` |
 | Transcripts T13–T30, T36–T37, T39–T41, T43–T45, T48–T50, T54–T61 (JTLW mock + stub Jibri + real browser) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
+| Transcripts T71 (ticked by default, language required) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
 | Transcripts T68 (waveform time tooltip, site-wide hidden rule) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
 | Transcripts T31 | `tests/zap/run-zap.sh` |
 | Transcripts T42 | `tests/prod-meeting-sim.sh` (maintainer, production) |

@@ -30,6 +30,7 @@ function watch(page, bag) {
     ok('登入後到儀表板', hp.url().includes('/dashboard'));
     const room = 'e2e-' + locale.toLowerCase() + '-' + Date.now().toString(36);
     await hp.fill('input[name=room]', room);
+    if (await hp.$('#txChk') && await hp.isChecked('#txChk')) await hp.uncheck('#txChk');   // 逐字稿預設勾選（v1.16.3）；這裡不測逐字稿
     await Promise.all([hp.waitForURL(/created=/), hp.click('button[name=mode][value=create]')]);
     ok('建立會議室', hp.url().includes('created=' + room));
     // 立即主持（POST 表單）

@@ -50,7 +50,7 @@ $form_ends_at   = (string)($form_values['ends_at']   ?? '');
 $form_attendees = (string)($form_values['attendees'] ?? '');
 $form_lobby     = !empty($form_values) ? !empty($form_values['lobby']) : true;  // 新表單預設啟用大廳模式
 $tx_can         = Settings::transcribeReady() && Transcripts::canUse($me);
-$form_tx        = !empty($form_values) ? !empty($form_values['transcribe']) : (Transcripts::perm($me) === 'auto');  // 預設跟帳號權限
+$form_tx        = !empty($form_values) ? !empty($form_values['transcribe']) : true;  // 可用逐字稿的帳號預設勾選（v1.16.3）；主要語言仍須自己選
 $schedule_open  = ($form_starts_at !== '' || $form_ends_at !== '' || $form_attendees !== '');
 
 $created = $_GET['created'] ?? null;
