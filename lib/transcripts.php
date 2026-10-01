@@ -140,8 +140,28 @@ class Transcripts {
    * （語音服務正在改版台語 API；規格若變，只要改這裡。）
    */
   public static function jobPlan(string $lang, array $cfg): array {
-    if ($lang === 'nan-Hant') return ['profile_id' => self::TAIWANESE_PROFILE, 'tasks' => ['transcribe', 'correct']];
-    return ['profile_id' => $cfg['profile_id'], 'tasks' => ['transcribe', 'diarize', 'correct']];
+    if ($lang === 'nan-Hant') return ['profile_id' => self::TAIWANESE_PROFILE, 'tasks' => ['transcribe', 'correct'], 'hints' => []];
+    // 發言者辨識方法（JTLW api_revision 2.5）：auto＝Nemotron（最多 8 人，超過時 JTLW 自動退回現行方法、不會失敗）；
+    // legacy＝不送欄位（與 2.4 以前相同）。hints.num_speakers 刻意不送：與會者人數≠錄影裡發言的人數（JTLW 建議）
+    $hints = ($cfg['diarize_engine'] ?? 'auto') === 'auto' ? ['diarize_engine' => 'auto'] : [];
+    return ['profile_id' => $cfg['profile_id'], 'tasks' => ['transcribe', 'diarize', 'correct'], 'hints' => $hints];
+  }
+
+  /**
+   * 依語音服務版本調整 hints：diarize_engine 要 api_revision 2.5 以上；舊版的 hints 不收不認得的欄位（整件 400），
+   * 所以版本不夠或查不到版本就不送（等同 legacy）。
+   */
+  public static function hintsFor(array $hints, string $apiRevision): array {
+    if (isset($hints['diarize_engine']) && ($apiRevision === '' || version_compare($apiRevision, '2.5', '<'))) unset($hints['diarize_engine']);
+    return $hints;
+  }
+
+  private static ?string $apiRevision = null;
+  private static function apiRevision(): string {
+    if (self::$apiRevision === null) {
+      try { self::$apiRevision = (string)(Jtlw::capabilities()['api_revision'] ?? ''); } catch (JtlwError $x) { self::$apiRevision = ''; }
+    }
+    return self::$apiRevision;
   }
 
   public static function enqueue(array $rec, string $trigger, ?array $by = null, ?string $language = null): bool {
@@ -283,8 +303,10 @@ class Transcripts {
       // 測試用：JTLW mock 以 external_ref.mock_scenario 切換情境（只有測試容器會設這個環境變數）
       $sc = (string)getenv('JTVC_JTLW_MOCK_SCENARIO');
       if ($sc !== '' && preg_match('/^[a-z_]{1,32}$/', $sc)) $body['external_ref']['mock_scenario'] = $sc;
-      $hints = self::meetingHints($rec);
-      if ($hints) $body['hints'] = ['meeting' => $hints];
+      $hints = $plan['hints'] ? self::hintsFor($plan['hints'], self::apiRevision()) : [];
+      $meet = self::meetingHints($rec);
+      if ($meet) $hints['meeting'] = $meet;
+      if ($hints) $body['hints'] = $hints;
       if ($cfg['webhook_endpoint_id'] !== '') $body['webhook'] = ['endpoint_id' => $cfg['webhook_endpoint_id']];
       $job = Jtlw::createJob($body, 'jtvc-rec-' . $id . '-' . (int)($e['gen'] ?? 1));
       self::patch($id, ['status' => (string)($job['status'] ?? 'queued') === 'running' ? 'running' : 'queued',
@@ -403,6 +425,12 @@ class Transcripts {
     $tr['tail_gap_ms'] = $durMs > 0 ? max(0, $durMs - $lastEnd) : 0;
     $tr['tail_hint'] = $tr['tail_gap_ms'] > self::TAIL_GAP_HINT_MS;
     $tr['diarize_skipped'] = !$spk;
+    // 實際用了哪個發言者辨識方法（Result.diarization，api 2.5）：只記方法，不影響取回；取不到就算了
+    if ($spk) {
+      try { $res = Jtlw::getResult($jid); $dz = $res['diarization'] ?? null;
+        if (is_array($dz)) $tr['diarization'] = ['requested' => (string)($dz['requested'] ?? ''), 'engine' => (string)($dz['engine'] ?? ''), 'fallback' => ($dz['requested'] ?? '') === 'auto' && ($dz['engine'] ?? '') === 'legacy'];
+      } catch (JtlwError $x) {}
+    }
     $tr['job_id'] = $jid; $tr['language'] = (string)($e['language'] ?? '');
     $tr['generated_at'] = time();
 

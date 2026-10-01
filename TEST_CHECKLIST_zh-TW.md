@@ -106,6 +106,8 @@
 - [ ] T66 真實 Jitsi，進入方式與關卡全走一遍：近期清單「進入」、儀表板「建立 → 立即主持」（三語）、`/room/` 與舊 `/invite?room=` 連結、主持人未到顯示等候且不載入 Jitsi、主持人到場後自動開放、名稱必填、主持人看得到來賓名稱、人數正確、Jitsi 介面語言跟著網站、倒數頁、已結束頁、主持人離開後回到等候、散會寫入會議記錄。**每次發版與 Jitsi / Jibri 升級後都要跑。**
 - [ ] T70 真實 Jitsi 錄影：主持人按開始錄影後 12 秒內開始（jicofo 只等 15 秒）、按停止確實停止；兩間會議室同時錄影（兩台 Jibri）都能開始與停止、錄影檔都產出、結束後兩台 Jibri 回到閒置。**每次發版與 Jitsi / Jibri 升級後都要跑。**
 - [ ] T71 建立會議室：有逐字稿權限的帳號，「錄影完成後產生逐字稿與摘要」預設勾選、必填的會議主要語言直接顯示且預設未選；沒選語言送出會被擋下；取消勾選後不需選語言。
+- [ ] T72 發言者辨識方式：預設「自動」，一般會議送件帶 `hints.diarize_engine: "auto"`；選「舊方法」不送；台語會議不送；一律不送 `num_speakers`；語音服務 API 2.5 以前（或查不到版本）自動不送；不認得的設定值改回自動。
+- [ ] T73 取回時記下實際用的發言者辨識方法（`Result.diarization`）；自動退回舊方法時逐字稿頁提醒分組可能較不準，沒有退回時不顯示；系統設定有「發言者辨識方式」且預設自動。
 
 ### 3.5 會議記錄與統計
 - [ ] 主持人離開時寫入 `meetings.jsonl`（時長、尖峰同時人數、參與者進出時間）。
@@ -383,6 +385,8 @@
 | 會議記錄匯出 T69（標題前空行） | `tests/unit/test_txexport.php` |
 | 逐字稿 T13–T30、T36–T37、T39–T41、T43–T45、T48–T50、T54–T61（JTLW 模擬 + stub Jibri + 真實瀏覽器） | `tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`） |
 | 逐字稿 T71（預設勾選、語言必填） | `tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`） |
+| 逐字稿 T72（送件 hints、版本判斷） | `tests/unit/test_transcripts.php` |
+| 逐字稿 T73（實際方法、退回提醒、設定） | `tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`） |
 | 逐字稿 T68（波形時間提示、全站 hidden 規則） | `tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`） |
 | 逐字稿 T31 | `tests/zap/run-zap.sh` |
 | 逐字稿 T42 | `tests/prod-meeting-sim.sh`（維護者，正式環境） |

@@ -2,6 +2,14 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.17.0 — New speaker detection (JTLW API 2.5)
+
+- **More accurate speakers**: transcript jobs now request the speech service's newer speaker detection (`hints.diarize_engine: "auto"`, NVIDIA Nemotron). In JTLW's test a 7-person panel went from "3 speakers" to "7 speakers" and wrongly attributed segments dropped from 28% to 3%; speaker statistics and citations in the meeting summary improve with it. Taiwanese meetings are not split by speaker and are unaffected.
+- System settings → Transcripts and summaries adds "Speaker detection": Automatic (recommended, default) / Previous method. Speech services before API 2.5 do not accept the field, so the portal checks the version first and leaves it out — jobs never fail because of it.
+- With more than 8 speakers the speech service falls back to the previous method, and the transcript page notes that the speaker grouping may be less accurate.
+- As JTLW recommends, the number of speakers is still not sent (the participant count is not the number of people who spoke in the recording).
+- Tests T72, T73.
+
 ## v1.16.3 — Transcript and summary ticked by default
 
 - When creating a room, "Generate transcript and summary after recording" is now **ticked by default** (it only appears for accounts allowed to use transcripts); the main meeting language must still be chosen, and the form is blocked until it is. Untick it for meetings that don't need it. Previously it was ticked by default only for accounts whose transcript permission is "automatic".

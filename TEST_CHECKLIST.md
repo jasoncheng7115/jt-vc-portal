@@ -106,6 +106,8 @@
 - [ ] T66 Real Jitsi, every entry path and gate: "Enter" from the recent list, dashboard "Create → Host now" (3 languages), `/room/` and the legacy `/invite?room=` links, waiting page with no Jitsi loaded before the host arrives, automatic opening once the host arrives, name required, host sees the guest's name, correct participant count, Jitsi UI language follows the portal, countdown page, ended page, back to waiting after the host leaves, session written to meeting records. **Run on every release and after every Jitsi / Jibri upgrade.**
 - [ ] T70 Real Jitsi recording: after the host presses start, recording begins within 12 seconds (jicofo waits only 15), and stop really stops it; two rooms recording at once (two Jibris) both start and stop, both recording files are produced, and both Jibris return to idle afterwards. **Run on every release and after every Jitsi / Jibri upgrade.**
 - [ ] T71 Create room: for accounts allowed to use transcripts, "Generate transcript and summary after recording" is ticked by default, and the required main meeting language is shown right away with nothing selected; submitting without a language is blocked; unticking it removes the language requirement.
+- [ ] T72 Speaker detection: defaults to "Automatic"; regular meetings submit `hints.diarize_engine: "auto"`; "Previous method" sends nothing; Taiwanese meetings send nothing; `num_speakers` is never sent; speech services before API 2.5 (or with an unknown version) automatically get nothing; unknown setting values revert to automatic.
+- [ ] T73 The speaker detection method actually used (`Result.diarization`) is recorded when results are fetched; when automatic fell back to the previous method the transcript page notes the grouping may be less accurate, and nothing is shown otherwise; system settings show "Speaker detection" defaulting to automatic.
 
 ### 3.5 Meeting records and statistics
 - [ ] When the host leaves, `meetings.jsonl` is written (duration, peak concurrent participants, participant join / leave times).
@@ -383,6 +385,8 @@ Spot-check on every release; test everything for major changes:
 | Meeting minutes export T69 (space before headings) | `tests/unit/test_txexport.php` |
 | Transcripts T13–T30, T36–T37, T39–T41, T43–T45, T48–T50, T54–T61 (JTLW mock + stub Jibri + real browser) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
 | Transcripts T71 (ticked by default, language required) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
+| Transcripts T72 (job hints, version check) | `tests/unit/test_transcripts.php` |
+| Transcripts T73 (method used, fallback notice, setting) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
 | Transcripts T68 (waveform time tooltip, site-wide hidden rule) | `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`) |
 | Transcripts T31 | `tests/zap/run-zap.sh` |
 | Transcripts T42 | `tests/prod-meeting-sim.sh` (maintainer, production) |

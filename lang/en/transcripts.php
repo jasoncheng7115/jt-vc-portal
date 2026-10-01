@@ -190,4 +190,9 @@ return [
   '一般會議用 meeting.balanced（目前唯一的會議模式；meeting.detailed 已停用，會自動改用 balanced）。台語（閩南語）會議不看這裡，依會議主要語言自動使用台語專用模式。' => 'Regular meetings use meeting.balanced (the only meeting profile now; meeting.detailed has been retired and is switched to balanced automatically). Taiwanese Hokkien meetings ignore this and use the dedicated Taiwanese profile based on the main meeting language.',
   '辨識暫時失敗，將自動重試（第 {n} 次）：{why}' => 'Recognition failed temporarily; it will be retried automatically (attempt {n}): {why}',
   '自動重試辨識（第 {n} 次）：會議室「{room}」錄影 {id}' => 'Automatic recognition retry (attempt {n}): room "{room}" recording {id}',
+  '發言者辨識方式' => 'Speaker detection',
+  '自動（建議）' => 'Automatic (recommended)',
+  '舊方法' => 'Previous method',
+  '「自動」使用語音服務較新的發言者辨識，多人會議分得準很多；語音服務版本較舊（API 2.5 以前）或發言者超過 8 位時，會自動改用舊方法。台語（閩南語）會議不分發言者，不受這裡影響。' => '"Automatic" uses the speech service\'s newer speaker detection, which is much more accurate for meetings with many people; with an older speech service (before API 2.5) or more than 8 speakers it uses the previous method automatically. Taiwanese Hokkien meetings are not split by speaker and are not affected by this setting.',
+  '這場的發言者可能超過 8 位，發言者辨識改用舊方法，發言者分組可能較不準；可以點名字手動修正。' => 'This meeting may have more than 8 speakers, so speaker detection fell back to the previous method and the speaker grouping may be less accurate; click a name to correct it.',
 ];

@@ -218,6 +218,7 @@ class Settings {
     'language'            => 'zh-Hant',              // zh-Hant | en | ja | ko | auto
     'profile_id'          => 'meeting.balanced',
     'summarize'           => true,
+    'diarize_engine'      => 'auto',                 // auto（JTLW api 2.5：Nemotron，最多 8 人，超過自動退回）| legacy
     'webhook_endpoint_id' => '',
     'webhook_secret'      => '',                     // 註冊時 JTLW 只給一次；頁面不回填
   ];
@@ -236,6 +237,7 @@ class Settings {
     // meeting.detailed 已由 JTLW 停用（v2.25.3，從來沒有與 balanced 不同的處理）→ 一律用 balanced
     if (!preg_match('/^[a-z0-9._-]{1,64}$/', $o['profile_id']) || $o['profile_id'] === 'meeting.detailed') $o['profile_id'] = 'meeting.balanced';
     if ($o['backend'] !== 'jtlw') $o['backend'] = 'jtlw';
+    if (!in_array($o['diarize_engine'], ['auto', 'legacy'], true)) $o['diarize_engine'] = 'auto';
     return $o;
   }
 

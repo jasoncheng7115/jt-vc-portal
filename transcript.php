@@ -108,6 +108,9 @@ render_topbar($me, $ip);
     <?php elseif (!empty($tr['diarize_skipped'])): ?>
       <p class="info-box tx-hint"><?= th('這次的辨識沒有做發言者分離，所以逐字稿沒有標出是誰說的。') ?></p>
     <?php endif; ?>
+    <?php if (!empty($tr['diarization']['fallback'])): ?>
+      <p class="info-box tx-hint" id="txDiarizeFallback"><?= th('這場的發言者可能超過 8 位，發言者辨識改用舊方法，發言者分組可能較不準；可以點名字手動修正。') ?></p>
+    <?php endif; ?>
     <?php if (($e['summary_status'] ?? '') === 'failed'): ?>
       <p class="info-box tx-hint"><?= htmlspecialchars(Jtlw::describe((string)($e['summary_error'] ?? 'llm_failed'))) ?></p>
     <?php elseif (($e['summary_status'] ?? '') === 'unsupported'): ?>

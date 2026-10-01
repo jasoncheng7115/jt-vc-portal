@@ -102,6 +102,15 @@ function unzipEntry(buf, name) {
   const names = await pm.$$eval('#txSegs .mt-row .mt-s', els => els.map(e => e.textContent));
   ok('T26 改名（全部）存下，重新整理後仍在', names[0] === '陳副理', names[0]);
   ok('T26 同一代號的其他段落也一起改名', !names.includes(firstSpk), firstSpk);
+  // T73：送件帶 hints.diarize_engine=auto，取回時記下實際用的方法（mock：auto → nemotron）；退回舊方法時頁面要說明
+  const sh2 = require('child_process').execSync;
+  const dz = JSON.parse(sh2(`docker exec -u www-data ${process.env.PN} php -r "echo json_encode(json_decode(file_get_contents('/var/jaas-data/transcripts/rec-ok01/transcript.json'), true)['diarization'] ?? null);"`).toString() || 'null');
+  ok('T73 送件要求 auto，取回記下實際方法（nemotron）', !!dz && dz.requested === 'auto' && dz.engine === 'nemotron' && dz.fallback === false, JSON.stringify(dz));
+  ok('T73 沒有退回舊方法時不顯示提醒', !(await pm.isVisible('#txDiarizeFallback')));
+  sh2(`docker exec -u www-data ${process.env.PN} php -r "\\$f='/var/jaas-data/transcripts/rec-ok01/transcript.json'; \\$d=json_decode(file_get_contents(\\$f), true); \\$d['diarization']['fallback']=true; file_put_contents(\\$f, json_encode(\\$d, JSON_UNESCAPED_UNICODE));"`);
+  await pm.reload(); await pm.waitForTimeout(800);
+  ok('T73 auto 退回舊方法（超過 8 位發言者）→ 頁面提醒發言者分組可能較不準', await pm.isVisible('#txDiarizeFallback'));
+  sh2(`docker exec -u www-data ${process.env.PN} php -r "\\$f='/var/jaas-data/transcripts/rec-ok01/transcript.json'; \\$d=json_decode(file_get_contents(\\$f), true); \\$d['diarization']['fallback']=false; file_put_contents(\\$f, json_encode(\\$d, JSON_UNESCAPED_UNICODE));"`);
   const txt = await (await pm.request.get(BASE + '/transcript-download?id=rec-ok01&f=txt')).text();
   ok('T27 下載純文字：行首 [mm:ss]、套用改名', /^\uFEFF?\[\d\d:\d\d\] /.test(txt) && txt.includes('陳副理：'), txt.slice(0, 60));
   const srt = await (await pm.request.get(BASE + '/transcript-download?id=rec-ok01&f=srt')).text();
@@ -226,6 +235,7 @@ function unzipEntry(buf, name) {
   await pa.goto(BASE + '/settings#transcribe');
   ok('T29 系統設定有逐字稿卡片（目錄可切換）', await pa.isVisible('#card-transcribe') && !(await pa.isVisible('#card-sso')));
   ok('T29 設定頁不回填 JTLW 金鑰', (await pa.inputValue('#card-transcribe input[name=jtlw_key]')) === '');
+  ok('T73 系統設定有「發言者辨識方式」，預設自動', (await pa.inputValue('#card-transcribe select[name=diarize_engine]')) === 'auto');
   // 背景排程（cron）沒在跑要提醒：舊版升級者最常漏掉
   const { execSync } = require('child_process');
   execSync(`docker exec ${process.env.PN} touch -d '-20 min' /var/jaas-data/transcribe-worker.lock`);

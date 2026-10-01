@@ -219,8 +219,8 @@ test('T38 已送件後連不上 JTLW：24 小時內繼續等；超過 24 小時�
 // ---- 會議主要語言（v1.16.0）----
 test('T51 依語言決定辨識模式：台語用台語專用模式、不做發言者分離；其他語言用設定的模式並分發言者', function () {
   $cfg = ['profile_id' => 'meeting.detailed'];
-  eq(Transcripts::jobPlan('nan-Hant', $cfg), ['profile_id' => Transcripts::TAIWANESE_PROFILE, 'tasks' => ['transcribe', 'correct']]);
-  foreach (['zh-Hant', 'en', 'ja', 'ko', 'auto'] as $l) eq(Transcripts::jobPlan($l, $cfg), ['profile_id' => 'meeting.detailed', 'tasks' => ['transcribe', 'diarize', 'correct']], $l);
+  eq(Transcripts::jobPlan('nan-Hant', $cfg), ['profile_id' => Transcripts::TAIWANESE_PROFILE, 'tasks' => ['transcribe', 'correct'], 'hints' => []]);
+  foreach (['zh-Hant', 'en', 'ja', 'ko', 'auto'] as $l) eq(Transcripts::jobPlan($l, $cfg), ['profile_id' => 'meeting.detailed', 'tasks' => ['transcribe', 'diarize', 'correct'], 'hints' => ['diarize_engine' => 'auto']], $l);
   eq(array_keys(Transcripts::meetingLanguages()), Transcripts::MEETING_LANGS, '選單與允許值一致');
   ok(!in_array('auto', Transcripts::MEETING_LANGS, true), '建立會議室不提供「自動判斷」');
   eq(Transcripts::languageLabel('nan-Hant'), t('台語（閩南語）為主'));
@@ -262,6 +262,25 @@ test('T62 meeting.detailed 已由 JTLW 停用：設定成 detailed 一律改用 
   eq(Settings::getTranscribe()['profile_id'], 'meeting.balanced');
   Settings::setTranscribe(['profile_id' => 'meeting.balanced'], true);
   eq(Transcripts::jobPlan('zh-Hant', Settings::getTranscribe())['profile_id'], 'meeting.balanced');
+});
+
+test('T72 發言者辨識方式（JTLW api 2.5）：預設 auto 送 hints.diarize_engine；legacy 不送；台語不送；不送 num_speakers', function () {
+  eq(Settings::getTranscribe()['diarize_engine'], 'auto', '預設自動');
+  Settings::setTranscribe(['diarize_engine' => 'legacy'], true);
+  eq(Transcripts::jobPlan('zh-Hant', Settings::getTranscribe())['hints'], [], 'legacy：不送欄位（與 2.4 以前相同）');
+  Settings::setTranscribe(['diarize_engine' => 'nemotron'], true);
+  eq(Settings::getTranscribe()['diarize_engine'], 'auto', '不認得的值（JTLW 會回 400）一律改回 auto');
+  $p = Transcripts::jobPlan('en', Settings::getTranscribe());
+  eq($p['hints'], ['diarize_engine' => 'auto']);
+  ok(!array_key_exists('num_speakers', $p['hints']), '不送 num_speakers（與會者人數≠發言人數）');
+  eq(Transcripts::jobPlan('nan-Hant', Settings::getTranscribe())['hints'], [], '台語模式不分發言者，不送');
+  Settings::setTranscribe(['diarize_engine' => 'auto'], true);
+  // 語音服務版本：2.5 以上才送（舊版 hints 不收不認得的欄位，整件會被拒）；查不到版本也不送
+  $h = ['diarize_engine' => 'auto', 'meeting' => ['room' => 'r']];
+  eq(Transcripts::hintsFor($h, '2.5'), $h);
+  eq(Transcripts::hintsFor($h, '2.10'), $h, '版本用數字比較，不是字串');
+  eq(Transcripts::hintsFor($h, '2.4'), ['meeting' => ['room' => 'r']]);
+  eq(Transcripts::hintsFor($h, ''), ['meeting' => ['room' => 'r']]);
 });
 
 $t = $GLOBALS['__t'];

@@ -499,6 +499,12 @@ render_topbar($me, $ip);
           <input type="text" name="profile_id" value="<?= htmlspecialchars($tx['profile_id']) ?>" placeholder="meeting.balanced">
           <div class="help"><?= th('一般會議用 meeting.balanced（目前唯一的會議模式；meeting.detailed 已停用，會自動改用 balanced）。台語（閩南語）會議不看這裡，依會議主要語言自動使用台語專用模式。') ?></div></div>
       </div>
+      <div class="field"><label><?= th('發言者辨識方式') ?></label>
+        <select name="diarize_engine">
+          <option value="auto" <?= $tx['diarize_engine'] === 'auto' ? 'selected' : '' ?>><?= th('自動（建議）') ?></option>
+          <option value="legacy" <?= $tx['diarize_engine'] === 'legacy' ? 'selected' : '' ?>><?= th('舊方法') ?></option>
+        </select>
+        <div class="help"><?= th('「自動」使用語音服務較新的發言者辨識，多人會議分得準很多；語音服務版本較舊（API 2.5 以前）或發言者超過 8 位時，會自動改用舊方法。台語（閩南語）會議不分發言者，不受這裡影響。') ?></div></div>
       <div class="field"><label><input type="checkbox" name="summarize" value="1" <?= $tx['summarize'] ? 'checked' : '' ?>> <?= th('同時產生會議摘要（決議、待辦、風險、議題，附時間點）') ?></label></div>
       <div class="field"><label><?= th('完成通知（webhook）') ?></label>
         <input type="text" readonly class="mono" value="<?= htmlspecialchars(rtrim(SITE_URL, '/') . '/jtlw-webhook') ?>">

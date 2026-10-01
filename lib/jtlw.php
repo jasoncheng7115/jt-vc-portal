@@ -92,6 +92,7 @@ class Jtlw {
     return self::send('POST', '/jobs', $body, [], [], ['Idempotency-Key: ' . $idempotencyKey]);
   }
   public static function getJob(string $id): array { return self::send('GET', '/jobs/' . rawurlencode($id), null, [], [], [], false, 20); }
+  public static function getResult(string $id): array { return self::send('GET', '/jobs/' . rawurlencode($id) . '/result', null, [], [], [], false, 20); }
   public static function getSummary(string $id): array { return self::send('GET', '/jobs/' . rawurlencode($id) . '/summary'); }
   public static function getSummaryMarkdown(string $id): string { return self::send('GET', '/jobs/' . rawurlencode($id) . '/summary.md', null, [], [], [], true); }
   /** 逐字稿的一層（raw / final / speakers），自動翻頁拉完。 */
