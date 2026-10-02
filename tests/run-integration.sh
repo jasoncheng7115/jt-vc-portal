@@ -221,24 +221,29 @@ hasnt "故障頁不顯示內部位址" "$GDP" '127.0.0.1:9'
 hasnt "故障頁不載入會議畫面" "$GDP" 'JitsiMeetExternalAPI('
 hcache ok
 chk "Jitsi 正常 + 自建不需 JWT：主持人可進會議（v1.16.0 修正：jwt 為空字串時被導回儀表板）" "$(code -b $A $B/meeting)" 200
-# T74 會議室自訂「小畫面也維持較高畫質」：預設關（照 Jitsi 預設依方格大小選畫質）；勾選後主持人與來賓頁都帶較低的畫質門檻、不限全畫質人數
+# T74 會議室自訂「小畫面的接收畫質」：預設＝Jitsi 自動（不帶設定）；較高＝300px 起 720p；高＝190px 起 720p（手機 4 人並排）；主持人與來賓頁都帶
 MP=$(curl -s -b $A $B/meeting)
-hasnt "T74 預設：會議頁不帶較高畫質門檻" "$MP" "minHeightForQualityLvl"
+hasnt "T74 預設：會議頁不帶小畫面畫質門檻" "$MP" "minHeightForQualityLvl"
 has "T74 預設：關閉省頻寬自動降載（既有預設）" "$MP" "enableAdaptiveMode: false"
 T=$(csrf $A /settings)
-curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'section=meeting_custom&bw_save_off=1&hq_small=1&resolution=1080&default_view=tile' $B/save-settings
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'section=meeting_custom&bw_save_off=1&small_tile_q=mid&resolution=1080&default_view=tile' $B/save-settings
 MP=$(curl -s -b $A $B/meeting)
-has "T74 勾選後：主持人頁帶較低的畫質門檻（小方格 360p、300px 以上 720p）" "$MP" "minHeightForQualityLvl: { 100: 'standard', 300: 'high' }"
-has "T74 勾選後：主持人頁不限全畫質人數" "$MP" "maxFullResolutionParticipants: -1"
+has "T74 較高：門檻 300（小方格 360p、300px 以上 720p）" "$MP" "minHeightForQualityLvl: { 100: 'standard', 300: 'high' }"
+has "T74 較高：不限全畫質人數" "$MP" "maxFullResolutionParticipants: -1"
+T=$(csrf $A /settings)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'section=meeting_custom&bw_save_off=1&small_tile_q=high&resolution=1080&default_view=tile' $B/save-settings
+MP=$(curl -s -b $A $B/meeting)
+has "T74 高：門檻 190（手機 4 人並排也 720p）" "$MP" "minHeightForQualityLvl: { 100: 'standard', 190: 'high' }"
+hasnt "T74 門檻不可用 Jitsi 內建的 180 / 360 / 720（會被 Jitsi 原地更新、被後面的值蓋掉）" "$MP" "180: 'high'"
 GQ="$JAR/guest-hq"
 curl -s -o /dev/null -c $GQ -b $GQ $B/room/itest-down
 curl -s -o /dev/null -c $GQ -b $GQ -d 'guest_name=HQ' $B/guest
 GP=$(curl -s -b $GQ $B/guest)
-has "T74 勾選後：來賓頁同樣帶較高畫質設定" "$GP" "maxFullResolutionParticipants: -1"
-has "T74 系統設定頁有「小畫面也維持較高畫質」選項且已勾選" "$(curl -s -b $A $B/settings)" 'name="hq_small" value="1" checked'
+has "T74 高：來賓頁同樣帶 190 門檻" "$GP" "190: 'high'"
+has "T74 系統設定頁三個等級、目前選「高」" "$(curl -s -b $A $B/settings)" '<option value="high" selected'
 T=$(csrf $A /settings)
-curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'section=meeting_custom&bw_save_off=1&resolution=1080&default_view=tile' $B/save-settings
-hasnt "T74 取消勾選後：會議頁不再帶較高畫質門檻" "$(curl -s -b $A $B/meeting)" "minHeightForQualityLvl"
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'section=meeting_custom&bw_save_off=1&small_tile_q=bogus&resolution=1080&default_view=tile' $B/save-settings
+hasnt "T74 不認得的值 → 回到預設（不帶門檻）" "$(curl -s -b $A $B/meeting)" "minHeightForQualityLvl"
 T=$(csrf $A /dashboard)
 curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-down' $B/room-delete
 

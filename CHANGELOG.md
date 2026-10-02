@@ -2,6 +2,13 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.19.0 — Up to 720p on a phone in a 4-person tile view
+
+- Room customization's "Keep higher quality on small tiles" becomes a three-level "Receive quality for small tiles": **Default** (Jitsi automatic, about 180p on a phone with 4 people in tile view) / **Higher** (about 360p) / **High** (about 720p). Measured on a phone with 4 people in tile view: Higher receives about 1.2 Mbps and High about 2 Mbps; on a computer both give about 720p in tile view; 2-person meetings and speaker view are unaffected. Sites that ticked the option in v1.18.0 become "Higher" after upgrading.
+- Jitsi only has 180p / 360p / 720p layers (measured to stay the same even with a 1080p camera), so the step above 360p is 720p.
+- Fix: a threshold that equals one of Jitsi's built-in values (such as 180) is updated in place by Jitsi and then overridden by a later entry, so it had no effect; 190 is used now.
+- Tests T74 and T75 now cover the three levels.
+
 ## v1.18.0 — Video quality option for phones and multi-person meetings
 
 - Room customization adds "Keep higher quality on small tiles (phones, 3+ person tile view)" (off by default). Jitsi chooses the receive quality from each tile's size: on phones, or in tile view with 3 or more people, tiles are small and get only 180p, which looks blurry on a phone. With the option on, in a 4-person tile view a phone can receive 360p per person (was 180p) and a desktop 720p (was 360p); 2-person meetings are unaffected (measured). The trade-off is more bandwidth for every participant and more battery use and heat on phones.

@@ -83,6 +83,18 @@ test('JWT（T63）：自建主持人帶 lobby_bypass、來賓不帶（大廳房�
   Settings::setSection('jaas', ['_v' => 2, 'mode' => 'jaas']);
 });
 
+test('T74 小畫面接收畫質：v1.18.0 勾選的 hq_small 升級後視為「較高」；不認得的值回預設', function () {
+  Settings::setSection('meeting_custom', ['hq_small' => true]);
+  eq(Settings::getMeetingCustom()['small_tile_q'], 'mid', '舊的勾選 → 較高');
+  Settings::setSection('meeting_custom', ['small_tile_q' => 'ultra']);
+  eq(Settings::getMeetingCustom()['small_tile_q'], 'off');
+  Settings::setMeetingCustom(['small_tile_q' => 'high']);
+  eq(Settings::getMeetingCustom()['small_tile_q'], 'high');
+  Settings::setMeetingCustom(['small_tile_q' => '<script>']);
+  eq(Settings::getMeetingCustom()['small_tile_q'], 'off');
+  Settings::setSection('meeting_custom', []);
+});
+
 test('Settings：並發設定不互相覆蓋；webhook secret 穩定', function () {
   $s1 = Settings::getWebhookSecret();
   run_parallel(4, 'require_once "/app/lib/settings.php"; for($i=0;$i<20;$i++){ Settings::setSection("w{$WORKER}", ["i"=>$i]); }');

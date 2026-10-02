@@ -310,6 +310,9 @@ return [
   '直接安裝' => 'Direct install',
   '預設會議語言（建立會議室時沒指定的場次才用）' => 'Default meeting language (used only for meetings without one)',
   '勾選產生逐字稿的會議，建立時必須選主要語言；這裡只用在舊會議或沒指定語言的場次。「自動判斷」只看開頭約 30 秒決定整場語言，開頭有人先講另一種語言時整場都可能辨識錯。會議摘要支援中文、英文與台語（閩南語）。' => 'Meetings that generate transcripts must pick a main language when the room is created; this default is used only for older meetings or ones without a language. "Auto" decides from roughly the first 30 seconds, so if someone opens in another language the whole meeting may be recognised wrongly. Meeting summaries support Chinese, English and Taiwanese Hokkien.',
-  '小畫面也維持較高畫質（手機、多人並排）' => 'Keep higher quality on small tiles (phones, 3+ person tile view)',
-  'Jitsi 依每個人畫面方格的大小決定接收畫質：手機或 3 人以上並排時方格小，預設只收 180p，在手機上看起來較模糊。勾選後小方格也收較高畫質（約 360p–720p），但每位與會者的頻寬、手機耗電與發熱都會增加，人越多越明顯。預設不勾。' => 'Jitsi chooses the receive quality from the size of each person\'s tile: on phones, or in tile view with 3 or more people, tiles are small and get only 180p by default, which looks blurry on a phone. When ticked, small tiles also receive higher quality (about 360p–720p), but every participant uses more bandwidth and phones use more battery and run warmer — more so with more people. Off by default.',
+  '小畫面的接收畫質（手機、3 人以上並排）' => 'Receive quality for small tiles (phones, tile view with 3+ people)',
+  '預設（Jitsi 自動；手機 4 人並排約 180p）' => 'Default (Jitsi automatic; about 180p on a phone with 4 people in tile view)',
+  '較高（約 360p）' => 'Higher (about 360p)',
+  '高（約 720p）' => 'High (about 720p)',
+  'Jitsi 依每個人畫面方格的大小決定接收畫質，手機或 3 人以上並排時方格小，預設只收 180p，在手機上看起來較模糊。實測手機 4 人並排：較高約 360p（接收約 1.2 Mbps）、高約 720p（接收約 2 Mbps）；電腦並排兩者都約 720p。畫質越高，每位與會者的頻寬、手機耗電與發熱越多，人越多越明顯。2 人會議與演講者畫面不受影響。' => 'Jitsi chooses the receive quality from the size of each person\'s tile; on phones, or in tile view with 3 or more people, tiles are small and get only 180p by default, which looks blurry on a phone. Measured on a phone with 4 people in tile view: Higher gives about 360p (about 1.2 Mbps received), High about 720p (about 2 Mbps); on a computer both give about 720p in tile view. Higher quality means more bandwidth for every participant and more battery use and heat on phones, more so with more people. 2-person meetings and speaker view are not affected.',
 ];
