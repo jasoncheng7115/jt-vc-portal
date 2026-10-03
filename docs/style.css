@@ -195,6 +195,12 @@ th{background:var(--bg-muted);font-size:12px;color:var(--text);font-weight:700;t
 .compare-table th:nth-child(3),.compare-table td:nth-child(3){width:41%}
 tr:last-child td{border-bottom:0}
 
+/* 畫質與流量對照表：窄螢幕在表格內左右捲動，不撐開整頁 */
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--radius)}
+.bw-table td{white-space:nowrap}
+.bw-table th{white-space:normal;vertical-align:bottom;min-width:7.5em}
+.bw-table td:not(:first-child){font-variant-numeric:tabular-nums}
+
 /* disclaimer */
 .disclaimer{color:var(--muted);font-size:14px;background:var(--bg-soft);border:1px solid var(--border);border-radius:var(--radius);padding:24px}
 

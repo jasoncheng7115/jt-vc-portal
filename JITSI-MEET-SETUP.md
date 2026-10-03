@@ -25,6 +25,7 @@ This document explains how to configure an **official Docker-based Jitsi Meet** 
 - [3. Enable JWT Authentication (Recommended)](#3-enable-jwt-authentication-recommended)
 - [4. Start Jitsi](#4-start-jitsi)
 - [5. jt-vc-portal Settings](#5-jt-vc-portal-settings)
+  - [Small-tile receive quality and data usage](#small-tile-receive-quality-and-data-usage)
 
 **Advanced / Operations**
 
@@ -441,11 +442,39 @@ After saving, create a meeting room from jt-vc-portal and start hosting; the sel
 
 > **All of the following are passed in by jt-vc-portal when joining a meeting; no Jitsi changes needed:**
 > - **Disable the "Join in the app" deep link** (`configOverwrite.disableDeepLinking = true`): on phones, joining via the portal opens directly in the browser, without jumping to the official app install/open page (that app can't connect because of JWT).
-> - **Meeting room customization** (System settings → Meeting room customization, self-hosted mode): join muted / camera off, maximum video quality, **default view (speaker / gallery)**, and per-item toolbar toggles — all applied when joining.
+> - **Meeting room customization** (System settings → Meeting room customization, self-hosted mode): join muted / camera off, maximum video quality, **default view (speaker / gallery)**, receive quality for small tiles ([data reference below](#small-tile-receive-quality-and-data-usage)), and per-item toolbar toggles — all applied when joining.
 > - **Lobby mode**: check it when creating a meeting room; it is enabled automatically when the host joins (after obtaining moderator), and guests must be approved one by one to enter.
 > - **Codec preference** (`videoQuality.codecPreferenceOrder = VP9, H264, VP8, AV1`): desktop-only meetings use VP9 (good quality at low bandwidth); **meetings that include iPhone/iPad automatically switch to hardware H.264** (iOS Safari doesn't support VP9, otherwise it would fall back to VP8, which has the worst quality).
 
 > **Viewing quality on mobile**: remote video looking blurry on a phone over a cellular network is mainly due to mobile downlink bandwidth + adaptive bitrate (the LAN side has plenty of bandwidth, so it's sharp). VP9/H.264 already improve this as much as possible; doing better requires the native app (which this architecture can't use because of JWT), or ensuring media goes directly over UDP 10000 rather than a TCP relay.
+
+### Small-tile receive quality and data usage
+
+**System settings → Meeting room customization → "Receive quality for small tiles (phones, tile view with 3+ people)"** sets the quality each small tile requests from Jitsi in meetings with 3 or more people. Jitsi picks a quality layer from the tile size (there are only three layers — 180p / 360p / 720p — so there is no 480p option); phone screens are small, so the tiles are small too and get only 180p by default. 2-person meetings (direct peer-to-peer, already 720p) and the large speaker view are not affected.
+
+**Measured** (self-hosted Jitsi Meet stable-11031; 4-person meeting, everyone sending 720p camera video; phone = Chromium emulating a Pixel 7, computer = 1440×900 browser window; tile view)
+
+| Level | Each tile on a phone | Each tile on a computer | Phone receive rate | Data per second | About per hour of meeting |
+|---|---|---|---|---|---|
+| Default (Jitsi automatic) | 180p | 360p | ~0.3 Mbps | ~38 KB | ~135 MB |
+| Higher | 360p | 720p | ~1.2 Mbps | ~150 KB | ~540 MB |
+| High | 720p | 720p | ~2 Mbps | ~250 KB | ~900 MB |
+
+**How the numbers are calculated**
+
+- **Mbps means megabits per second** — bits, not bytes; 1 byte = 8 bits. Network speeds are usually quoted in bits, file sizes and mobile data usage in bytes.
+- **Receive rate**: the **total video from everyone** the phone receives (the other 3 people in a 4-person meeting), not per person. It is measured from the browser's WebRTC statistics (`RTCPeerConnection.getStats()`): the `bytesReceived` of every video `inbound-rtp` stream, sampled 4 seconds apart — `(after − before) × 8 ÷ 4 s` = bits per second.
+- **Data per second** = rate ÷ 8. Example: 1.2 Mbps = 1,200,000 bits ÷ 8 = 150,000 bytes ≈ 150 KB.
+- **Per hour** = data per second × 3,600 s. Example: 150 KB × 3,600 = 540,000 KB ≈ 540 MB (1 MB = 1,000 KB).
+- **Received video only**: audio, your own camera upload and screen sharing are not included.
+- **Real numbers vary** with how much moves on screen, network conditions, the number of people and Jitsi's bandwidth estimation. These are reference values measured in one environment, not guarantees. With more people each tile gets smaller, so the total does not grow in proportion to the number of people.
+- **Server side (rough estimate)**: what the JVB sends out is roughly the sum of every participant's receive rate — e.g. 4 phones on High ≈ 4 × 2 Mbps = 8 Mbps.
+
+**Which one to choose**
+
+- Mostly computers, or phone data usage matters: keep **Default**.
+- People often join 3–4-person meetings from phones and find others' video blurry: choose **Higher**.
+- Phones on Wi-Fi and you want the sharpest picture: choose **High** (more battery use and heat on phones, and more outbound bandwidth on the JVB).
 
 ---
 
