@@ -25,7 +25,7 @@ This document explains how to configure an **official Docker-based Jitsi Meet** 
 - [3. Enable JWT Authentication (Recommended)](#3-enable-jwt-authentication-recommended)
 - [4. Start Jitsi](#4-start-jitsi)
 - [5. jt-vc-portal Settings](#5-jt-vc-portal-settings)
-  - [Small-tile receive quality and data usage](#small-tile-receive-quality-and-data-usage)
+  - [Bandwidth reference (computers, server, phones)](#bandwidth-reference-computers-server-phones)
 
 **Advanced / Operations**
 
@@ -448,33 +448,70 @@ After saving, create a meeting room from jt-vc-portal and start hosting; the sel
 
 > **Viewing quality on mobile**: remote video looking blurry on a phone over a cellular network is mainly due to mobile downlink bandwidth + adaptive bitrate (the LAN side has plenty of bandwidth, so it's sharp). VP9/H.264 already improve this as much as possible; doing better requires the native app (which this architecture can't use because of JWT), or ensuring media goes directly over UDP 10000 rather than a TCP relay.
 
-### Small-tile receive quality and data usage
+### Bandwidth reference (computers, server, phones)
+
+These numbers were measured in October 2026 in real meetings on self-hosted Jitsi Meet stable-11031. Test conditions: everyone sends 1280×720 camera video at 15 frames per second that changes constantly (so the encoder runs at its limit — a conservative basis for sizing lines); computers are 1440×900 browser windows using VP9; one person has the microphone on, everyone else is muted. All figures are in **Mbps (megabits per second)** — the same unit as line plans (e.g. 300M / 100M), so you can compare them directly.
+
+#### Bandwidth each computer needs
+
+| People | Upload | Download: tile view (default quality) | Download: tile view (Higher / High) | Download: speaker view |
+|---|---|---|---|---|
+| 2 (direct peer-to-peer) | ~1.3 | ~1.3 | ~1.3 | ~1.3 |
+| 3 | ~1.3 | ~0.4 | ~1.3 | ~0.8 |
+| 4 | ~1.3 | ~0.6 | ~2.0 | ~0.9 |
+| 5 | ~1.3 | ~0.8 | ~2.5 | ~1.0 |
+| 6 | ~1.3 | ~1.0 | ~3.4 ※ | ~1.2 |
+
+- **Upload**: whoever others are viewing large (speaker view) has to send 720p, about 1.3 Mbps. Anyone can be the one shown large, so plan 1.3 Mbps for every computer. With tile view only and "Default" quality it is about 0.4 Mbps.
+- **Download** depends on how many people you see and how big each tile is. "Higher / High" is System settings → Meeting room customization → "Receive quality for small tiles"; on a computer both receive 720p in tile view, so the numbers are the same. Speaker view is one large picture (720p) plus small pictures of the others (180p) and is not affected by that setting.
+- **2-person meetings** connect directly peer-to-peer without the server; they only go through the server if the direct connection fails.
+
+#### Bandwidth the Jitsi server needs
+
+The server (JVB) **receives the sum of everyone's uploads and sends the sum of everyone's downloads**. As more people join, the server's **upload** grows fastest — check the upload speed when ordering a line.
+
+| People | Tile view (default) in / out | Tile view (Higher / High) in / out | Speaker view in / out |
+|---|---|---|---|
+| 2 | almost 0 (peer-to-peer) | almost 0 | almost 0 |
+| 3 | ~1.2 / 1.3 | ~3.9 / 4.2 | ~2.8 / 2.5 |
+| 4 | ~1.6 / 2.6 | ~5.3 / 8.3 | ~2.9 / 3.9 |
+| 5 | ~2.0 / 4.4 | ~6.3 / 13.2 | ~3.1 / 5.4 |
+| 6 | ~2.4 / 6.6 | ~7.5 / 22 ※ | ~3.2 / 7.2 |
+
+※ With 6 people at "Higher / High", the single test computer ran out of CPU and the encoders dropped to 540p by themselves, so the download and server "in" figures are calculated from the per-stream rates and server "out" uses the larger measured value. In real use each person has their own computer, so this does not happen.
+
+#### Example: 4 people, all on computers
+
+- **Each computer**: upload about 1.3 Mbps, download about 2 Mbps (tile view, Higher / High; about 0.6 with default quality, about 0.9 in speaker view).
+- **Server**: upload about 8.3 Mbps, download about 5.3 Mbps (tile view, Higher / High; about 2.6 / 1.6 with default quality).
+- **Leave headroom**: other people using the same line, unstable Wi-Fi and lots of motion on screen all push the numbers up, so plan for 1.5–2× the table values — e.g. 5 Mbps or more per computer and 20 Mbps or more of server upload is comfortable.
+
+#### Small-tile receive quality and data usage
 
 **System settings → Meeting room customization → "Receive quality for small tiles (phones, tile view with 3+ people)"** sets the quality each small tile requests from Jitsi in meetings with 3 or more people. Jitsi picks a quality layer from the tile size (there are only three layers — 180p / 360p / 720p — so there is no 480p option); phone screens are small, so the tiles are small too and get only 180p by default. 2-person meetings (direct peer-to-peer, already 720p) and the large speaker view are not affected.
 
-**Measured** (self-hosted Jitsi Meet stable-11031; 4-person meeting, everyone sending 720p camera video; phone = Chromium emulating a Pixel 7, computer = 1440×900 browser window; tile view)
+Phone, 4 people in tile view (phone = Chromium emulating a Pixel 7):
 
-| Level | Each tile on a phone | Each tile on a computer | Phone receive rate | Data per second | About per hour of meeting |
+| Level | Each tile on a phone | Each tile on a computer | Phone download | Data per second | About per hour of meeting |
 |---|---|---|---|---|---|
 | Default (Jitsi automatic) | 180p | 360p | ~0.3 Mbps | ~38 KB | ~135 MB |
 | Higher | 360p | 720p | ~1.2 Mbps | ~150 KB | ~540 MB |
 | High | 720p | 720p | ~2 Mbps | ~250 KB | ~900 MB |
 
-**How the numbers are calculated**
-
-- **Mbps means megabits per second** — bits, not bytes; 1 byte = 8 bits. Network speeds are usually quoted in bits, file sizes and mobile data usage in bytes.
-- **Receive rate**: the **total video from everyone** the phone receives (the other 3 people in a 4-person meeting), not per person. It is measured from the browser's WebRTC statistics (`RTCPeerConnection.getStats()`): the `bytesReceived` of every video `inbound-rtp` stream, sampled 4 seconds apart — `(after − before) × 8 ÷ 4 s` = bits per second.
-- **Data per second** = rate ÷ 8. Example: 1.2 Mbps = 1,200,000 bits ÷ 8 = 150,000 bytes ≈ 150 KB.
-- **Per hour** = data per second × 3,600 s. Example: 150 KB × 3,600 = 540,000 KB ≈ 540 MB (1 MB = 1,000 KB).
-- **Received video only**: audio, your own camera upload and screen sharing are not included.
-- **Real numbers vary** with how much moves on screen, network conditions, the number of people and Jitsi's bandwidth estimation. These are reference values measured in one environment, not guarantees. With more people each tile gets smaller, so the total does not grow in proportion to the number of people.
-- **Server side (rough estimate)**: what the JVB sends out is roughly the sum of every participant's receive rate — e.g. 4 phones on High ≈ 4 × 2 Mbps = 8 Mbps.
-
 **Which one to choose**
 
 - Mostly computers, or phone data usage matters: keep **Default**.
 - People often join 3–4-person meetings from phones and find others' video blurry: choose **Higher**.
-- Phones on Wi-Fi and you want the sharpest picture: choose **High** (more battery use and heat on phones, and more outbound bandwidth on the JVB).
+- Phones on Wi-Fi and you want the sharpest picture: choose **High** (more battery use and heat on phones, and more server upload bandwidth).
+
+#### How the numbers are calculated
+
+- **Mbps means megabits per second** — bits, not bytes; 1 byte = 8 bits. Line plans are quoted in bits, file sizes and mobile data usage in bytes.
+- **Each computer**: the `bytesSent` / `bytesReceived` of the `transport` entries in the browser's WebRTC statistics (`RTCPeerConnection.getStats()`) — audio, video and control packets all included — sampled 10 seconds apart: `(after − before) × 8 ÷ seconds` = bits per second. The phone table counts received video only (`bytesReceived` of `inbound-rtp`, 4 seconds apart).
+- **Server**: the received / sent byte counters of the Jitsi host's network interface (`/sys/class/net/<interface>/statistics/rx_bytes`, `tx_bytes`), also 10 seconds apart; this includes IP / UDP headers, i.e. what actually runs over the line.
+- **Data per second** = rate ÷ 8 (1.2 Mbps → 150 KB); **per hour** = data per second × 3,600 (150 KB → about 540 MB, with 1 MB = 1,000 KB).
+- **Estimating for more people**: each video stream is about 0.65 Mbps at 720p, 0.2 at 360p and 0.1 at 180p. Download per computer ≈ per-stream rate × (people − 1) (speaker view = 0.65 + 0.1 × (people − 2)); server out ≈ download per computer × people, server in ≈ upload per computer × people. 7 or more people were not measured; with more people the tiles get smaller and Jitsi switches to lower layers, so real numbers are usually below the estimate.
+- **Real numbers vary** with how much moves on screen, network conditions, the number of people and Jitsi's bandwidth estimation; these are reference values, not guarantees. Jitsi caps the bitrate for each resolution, so ordinary webcams normally stay at or below the table values.
 
 ---
 
