@@ -45,6 +45,7 @@
 
 - [ ] PHP 構文チェック：`docker run --rm -v "$PWD/app":/app -w /app php:8.4-cli sh -c 'for f in $(find . -name "*.php"); do php -l "$f" >/dev/null || exit 1; done'`
 - [ ] ユニットテスト：`tests/run-unit.sh` がすべて合格。
+- [ ] 最低サポート PHP：`PHP_IMAGE=php:8.3-cli tests/run-unit.sh` がすべて合格し、`php:8.3-cli` ですべての `.php` に `php -l` が通る（README に書いた最低バージョンで実際に動くこと）。
 - [ ] 結合テスト：`tests/run-integration.sh` がすべて合格。
 - [ ] i18n チェック：`tests/check-i18n.php` で未翻訳文字列・欠落キーがないこと（v1.7.0 以降）。
 - [ ] 上記をまとめて実行：`tests/run-all.sh`（lint → i18n → unit → integration）。

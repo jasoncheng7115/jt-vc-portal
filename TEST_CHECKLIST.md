@@ -45,6 +45,7 @@
 
 - [ ] PHP syntax: `docker run --rm -v "$PWD/app":/app -w /app php:8.4-cli sh -c 'for f in $(find . -name "*.php"); do php -l "$f" >/dev/null || exit 1; done'`
 - [ ] Unit tests: `tests/run-unit.sh` is all green.
+- [ ] Minimum supported PHP: `PHP_IMAGE=php:8.3-cli tests/run-unit.sh` is all green, and `php -l` passes for every `.php` file under `php:8.3-cli` (the minimum stated in the README must actually work).
 - [ ] Integration tests: `tests/run-integration.sh` is all green.
 - [ ] i18n check: `tests/check-i18n.php` reports no untranslated strings and no missing keys (from v1.7.0).
 - [ ] Run everything above at once: `tests/run-all.sh` (lint → i18n → unit → integration).

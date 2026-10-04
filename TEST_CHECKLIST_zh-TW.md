@@ -45,6 +45,7 @@
 
 - [ ] PHP 語法：`docker run --rm -v "$PWD/app":/app -w /app php:8.4-cli sh -c 'for f in $(find . -name "*.php"); do php -l "$f" >/dev/null || exit 1; done'`
 - [ ] 單元測試：`tests/run-unit.sh` 全綠。
+- [ ] 最低支援 PHP 版本：`PHP_IMAGE=php:8.3-cli tests/run-unit.sh` 全綠，並以 `php:8.3-cli` 對全部 `.php` 跑 `php -l`（README 寫的最低版本要真的能跑）。
 - [ ] 整合測試：`tests/run-integration.sh` 全綠。
 - [ ] i18n 檢查：`tests/check-i18n.php` 無未翻譯字串、無缺漏鍵（v1.7.0 起）。
 - [ ] 一次跑完以上：`tests/run-all.sh`（lint → i18n → 單元 → 整合）。

@@ -51,12 +51,14 @@
 
 | Item | Minimum | Recommended |
 |---|---|---|
-| PHP | 8.2 | **8.4** |
+| PHP | 8.3 | **8.4** |
 | Web server | Apache + `mod_rewrite` (`AllowOverride All`) | Same |
 | PHP extensions | `openssl`, `fileinfo`, `json`, `mbstring`, `curl`, `zlib` | Same |
 | Other | A writable data directory; the 8x8 private key for JaaS mode | Docker 24+ |
 
 > Self-hosted Jitsi Meet mode additionally requires a working Jitsi Meet server (see "Connection modes").
+
+> **PHP 8.2 is no longer supported**: PHP 8.2 only receives security fixes until 2026-12-31 (end of life). Direct installs should move to 8.3 or later (8.3 gets security fixes until 2027-12-31, 8.4 until 2028-12-31); the Docker and Release images already use 8.4 and are not affected.
 
 ---
 

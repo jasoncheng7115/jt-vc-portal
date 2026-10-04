@@ -51,12 +51,14 @@
 
 | 項目 | 最低 | 建議 |
 |---|---|---|
-| PHP | 8.2 | **8.4** |
+| PHP | 8.3 | **8.4** |
 | Web 伺服器 | Apache + `mod_rewrite`（`AllowOverride All`） | 同左 |
 | PHP 擴充 | `openssl`、`fileinfo`、`json`、`mbstring`、`curl`、`zlib` | 同左 |
 | 其他 | 可寫入的資料目錄；JaaS 模式需 8x8 私鑰 | Docker 24+ |
 
 > 自建 Jitsi Meet 模式另需一台可用的 Jitsi Meet 伺服器（詳見「連線模式」）。
+
+> **PHP 8.2 不再列為支援**：PHP 官方對 8.2 只剩安全修補，到 2026-12-31 結束（EOL）。直接安裝的站台請升到 8.3 以上（8.3 安全修補到 2027-12-31、8.4 到 2028-12-31）；Docker 與 Release 映像已是 8.4，不受影響。
 
 ---
 
