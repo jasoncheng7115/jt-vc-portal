@@ -456,11 +456,11 @@ These numbers were measured in October 2026 in real meetings on self-hosted Jits
 
 | People | Upload | Download: tile view (default quality) | Download: tile view (Higher / High) | Download: speaker view |
 |---|---|---|---|---|
-| 2 (direct peer-to-peer) | ~1.3 | ~1.3 | ~1.3 | ~1.3 |
-| 3 | ~1.3 | ~0.4 | ~1.3 | ~0.8 |
-| 4 | ~1.3 | ~0.6 | ~2.0 | ~0.9 |
-| 5 | ~1.3 | ~0.8 | ~2.5 | ~1.0 |
-| 6 | ~1.3 | ~1.0 | ~3.4 ※ | ~1.2 |
+| 2 (direct peer-to-peer) | ~1.3 Mbps | ~1.3 Mbps | ~1.3 Mbps | ~1.3 Mbps |
+| 3 | ~1.3 Mbps | ~0.4 Mbps | ~1.3 Mbps | ~0.8 Mbps |
+| 4 | ~1.3 Mbps | ~0.6 Mbps | ~2.0 Mbps | ~0.9 Mbps |
+| 5 | ~1.3 Mbps | ~0.8 Mbps | ~2.5 Mbps | ~1.0 Mbps |
+| 6 | ~1.3 Mbps | ~1.0 Mbps | ~3.4 Mbps ※ | ~1.2 Mbps |
 
 - **Upload**: whoever others are viewing large (speaker view) has to send 720p, about 1.3 Mbps. Anyone can be the one shown large, so plan 1.3 Mbps for every computer. With tile view only and "Default" quality it is about 0.4 Mbps.
 - **Download** depends on how many people you see and how big each tile is. "Higher / High" is System settings → Meeting room customization → "Receive quality for small tiles"; on a computer both receive 720p in tile view, so the numbers are the same. Speaker view is one large picture (720p) plus small pictures of the others (180p) and is not affected by that setting.
@@ -470,13 +470,13 @@ These numbers were measured in October 2026 in real meetings on self-hosted Jits
 
 The server (JVB) **receives the sum of everyone's uploads and sends the sum of everyone's downloads**. As more people join, the server's **upload** grows fastest — check the upload speed when ordering a line.
 
-| People | Tile view (default) in / out | Tile view (Higher / High) in / out | Speaker view in / out |
+| People | Tile view (default) | Tile view (Higher / High) | Speaker view |
 |---|---|---|---|
-| 2 | almost 0 (peer-to-peer) | almost 0 | almost 0 |
-| 3 | ~1.2 / 1.3 | ~3.9 / 4.2 | ~2.8 / 2.5 |
-| 4 | ~1.6 / 2.6 | ~5.3 / 8.3 | ~2.9 / 3.9 |
-| 5 | ~2.0 / 4.4 | ~6.3 / 13.2 | ~3.1 / 5.4 |
-| 6 | ~2.4 / 6.6 | ~7.5 / 22 ※ | ~3.2 / 7.2 |
+| 2 | almost 0 Mbps (peer-to-peer) | almost 0 Mbps | almost 0 Mbps |
+| 3 | in ~1.2 Mbps<br>out ~1.3 Mbps | in ~3.9 Mbps<br>out ~4.2 Mbps | in ~2.8 Mbps<br>out ~2.5 Mbps |
+| 4 | in ~1.6 Mbps<br>out ~2.6 Mbps | in ~5.3 Mbps<br>out ~8.3 Mbps | in ~2.9 Mbps<br>out ~3.9 Mbps |
+| 5 | in ~2.0 Mbps<br>out ~4.4 Mbps | in ~6.3 Mbps<br>out ~13.2 Mbps | in ~3.1 Mbps<br>out ~5.4 Mbps |
+| 6 | in ~2.4 Mbps<br>out ~6.6 Mbps | in ~7.5 Mbps<br>out ~22 Mbps ※ | in ~3.2 Mbps<br>out ~7.2 Mbps |
 
 ※ With 6 people at "Higher / High", the single test computer ran out of CPU and the encoders dropped to 540p by themselves, so the download and server "in" figures are calculated from the per-stream rates and server "out" uses the larger measured value. In real use each person has their own computer, so this does not happen.
 
@@ -494,9 +494,9 @@ Phone, 4 people in tile view (phone = Chromium emulating a Pixel 7):
 
 | Level | Each tile on a phone | Each tile on a computer | Phone download | Data per second | About per hour of meeting |
 |---|---|---|---|---|---|
-| Default (Jitsi automatic) | 180p | 360p | ~0.3 Mbps | ~38 KB | ~135 MB |
-| Higher | 360p | 720p | ~1.2 Mbps | ~150 KB | ~540 MB |
-| High | 720p | 720p | ~2 Mbps | ~250 KB | ~900 MB |
+| Default (Jitsi automatic) | 180p | 360p | ~0.3 Mbps | ~38 KB/s | ~135 MB |
+| Higher | 360p | 720p | ~1.2 Mbps | ~150 KB/s | ~540 MB |
+| High | 720p | 720p | ~2 Mbps | ~250 KB/s | ~900 MB |
 
 **Which one to choose**
 

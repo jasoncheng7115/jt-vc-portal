@@ -196,7 +196,9 @@ th{background:var(--bg-muted);font-size:12px;color:var(--text);font-weight:700;t
 tr:last-child td{border-bottom:0}
 
 /* 畫質與流量對照表：窄螢幕在表格內左右捲動，不撐開整頁 */
-.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--radius)}
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border-strong);border-radius:var(--radius);box-shadow:var(--shadow);background:#fff}
+/* 外框改畫在外層：捲動容器會切掉表格自己的外框與陰影 */
+.table-scroll>table{border:0;border-radius:0;box-shadow:none}
 .bw-table td{white-space:nowrap}
 .bw-table th{white-space:normal;vertical-align:bottom;min-width:7.5em}
 .bw-table td:not(:first-child){font-variant-numeric:tabular-nums}
