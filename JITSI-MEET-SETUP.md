@@ -452,6 +452,8 @@ After saving, create a meeting room from jt-vc-portal and start hosting; the sel
 
 These numbers were measured in October 2026 in real meetings on self-hosted Jitsi Meet stable-11031. Test conditions: everyone sends 1280×720 camera video at 15 frames per second that changes constantly (so the encoder runs at its limit — a conservative basis for sizing lines); computers are 1440×900 browser windows using VP9; one person has the microphone on, everyone else is muted. All figures are in **Mbps (megabits per second)** — the same unit as line plans (e.g. 300M / 100M), so you can compare them directly.
 
+> **Online bandwidth calculator**: the [Jitsi Meet bandwidth calculator](https://it.jason.tools/tools/jitsi-bandwidth-calc.html) uses these measurements — enter people, concurrent meetings, view and quality to get the bandwidth each computer and the Jitsi server need, and check whether your line is enough.
+
 #### Bandwidth each computer needs
 
 | People | Upload | Download: tile view (default quality) | Download: tile view (Higher / High) | Download: speaker view |
