@@ -533,6 +533,7 @@ docker compose ps
 | 大廳沒作用 | `.env` 要 `ENABLE_LOBBY=1`，且建立會議室時勾「大廳模式」 |
 | 黑畫面 / 媒體不通 | `10000/udp` 未開放，或 NAT；於 `.env` 設 `JVB_ADVERTISE_IPS=<主機公網IP>` |
 | 部分來賓（嚴格網路）連不上媒體 | 該來賓端擋 UDP / 只放行 443 → 見「媒體傳輸的自動後援」架 TURN（coturn，含 turns/443） |
+| 會議中鏡頭 / 麥克風打不開（Chrome 顯示權限被拒），但直接開 Jitsi 網址正常 | jt-vc-portal 網域被加了 `Permissions-Policy`（常見是反向代理的安全標頭），嵌入的 Jitsi 因此拿不到鏡頭和麥克風。用 `curl -sI https://vc.example.com/ \| grep -i permissions-policy` 檢查：拿掉它，或在 `camera`、`microphone`、`display-capture` 寫上 Jitsi 網域，詳見 README「公開上線資安重點」後的說明 |
 | 想統一網域體感 | jt-vc-portal 網址列恆為 `vc.example.com`；`meet.example.com` 只在 F12 / 連線中可見（正常） |
 
 ---

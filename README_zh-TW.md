@@ -192,6 +192,9 @@ server {
 > - 兩者至少做一項、建議都做。**若 `JTVC_TRUSTED_PROXIES` 留空＝沿用相容模式（盲信標頭）**：在「埠有隔離」時無妨，但若容器埠對外可直連，攻擊者即可偽造來源 IP 繞過 fail2ban、污染稽核記錄。
 > - 經 Cloudflare 時，請讓反代由 `CF-Connecting-IP` 帶入 `X-Real-IP`。
 
+> **反向代理不要再加安全標頭**：CSP、`X-Frame-Options`、`X-Content-Type-Options`、`Referrer-Policy` 由 jt-vc-portal 自己送，反向代理再加一組會變成兩組互相衝突（瀏覽器會同時套用，或只取最後一組）。特別是 **`Permissions-Policy`**：會議是把 Jitsi 從另一個網域嵌進來的，只要 portal 網域送了 `camera=(self)`、`microphone=()` 之類的值，嵌入的會議就拿不到鏡頭和麥克風（Chrome、Edge 會直接拒絕）。真的要加，`camera`、`microphone`、`display-capture` 都要寫上 Jitsi 網域，例如 `microphone=(self "https://meet.example.com")`。
+> nginx 注意：`add_header` 放在 `http` 層，或放在會被 `include /etc/nginx/conf.d/*.conf;` 自動載入的檔案裡，會套到**所有**自己沒寫 `add_header` 的站台；給特定站台用的標頭檔請放在 `conf.d` 以外（例如 `/etc/nginx/snippets/`），只在該站台的 `server` / `location` 裡 `include`。
+
 ---
 
 <br>

@@ -50,7 +50,7 @@
 - [ ] i18n チェック：`tests/check-i18n.php` で未翻訳文字列・欠落キーがないこと（v1.7.0 以降）。
 - [ ] 上記をまとめて実行：`tests/run-all.sh`（lint → i18n → unit → integration）。
 - [ ] ブラウザ e2e：`tests/run-e2e.sh` が zh-TW と英語の両方で合格すること（主催者の会議参加、ゲストの参加、CSP / SRI エラーなし）。
-- [ ] 本番環境の入室方法と関門（T64–T66）：`tests/prod-entry-gates.sh`（メンテナー、デプロイ後。Jitsi / Jibri のアップグレード後も実行）。
+- [ ] 本番環境の入室方法と関門（T64–T66、T77）：`tests/prod-entry-gates.sh`（メンテナー、デプロイ後。Jitsi / Jibri のアップグレード後も実行）。
 
 ## 2. ZAP 脆弱性スキャン（リリースゲート）
 
@@ -112,6 +112,7 @@
 - [ ] T74 会議画面カスタマイズ「小さい画面の受信画質」の 3 段階：既定は設定なし、高めは `minHeightForQualityLvl {100: standard, 300: high}`、高は `{100: standard, 190: high}`、どちらも `maxFullResolutionParticipants: -1` をホストとゲストのページに付けること。しきい値に Jitsi 組み込みの 180 / 360 / 720 を使わないこと。不明な値は既定に戻ること。v1.18.0 のオンはアップグレード後「高め」になること。
 - [ ] T75 実際の Jitsi の画質（スマートフォンのブラウザを模擬＋PC）：2 人は P2P 直結でスマートフォンは 720p を送信、4 人はビデオブリッジ経由、各段階の設定を Jitsi が受け付けること。4 人のタイル表示でスマートフォンの受信上限が 既定 180 → 高め 360 → 高 720p となり、実際の受信画質も段階ごとに上がること（高は 540p 以上）。2 人の上限は下がらないこと。**リリースごと、および Jitsi のアップグレード後に必ず実行。**
 - [ ] T76 話者識別の切り替え理由（JTLW API 2.6 `diarization.reason`）：理由コードを記録し、話者が 8 人超（`too_many_speakers` / `speakers_saturated`）と新モデルが使えない（`nemotron_unavailable` / `nemotron_failed`）で異なる説明を画面の言語で表示すること。音声サービスの中国語の `note` は表示しないこと。
+- [ ] T77 実際の Chrome、リバースプロキシ経由：ゲストページとホストの会議ページで CSP と `X-Frame-Options` がそれぞれ一組だけ。`Permissions-Policy` がある場合は `camera` と `microphone` が Jitsi のドメインを許可している。埋め込まれた Jitsi が実際にカメラとマイクを取得でき、オンにした後 Jitsi にローカルの音声と映像トラックがある（テストで getUserMedia を置き換えないこと）。**リリースごと、Jitsi のアップグレード後、リバースプロキシの設定変更後に実行。**
 
 ### 3.5 会議記録と統計
 - [ ] 主催者が退出すると `meetings.jsonl` に書き込まれる（時間、最大同時参加者数、参加者の入退室時刻）。
@@ -399,6 +400,7 @@
 | 文字起こし T42 | `tests/prod-meeting-sim.sh`（メンテナー、本番環境） |
 | セルフホストのホスト JWT `lobby_bypass` T63 | `tests/unit/test_security.php` |
 | 入室方法と関門 T64–T66（実際の Jitsi：ロール、ゲストは録画不可、ロビー、ホスト再入室、待機 / カウントダウン / 終了、3 言語での作成） | `tests/prod-entry-gates.sh`（メンテナー、本番環境） |
+| カメラ / マイクの権限とヘッダーの重複なし T77 | `tests/prod-entry-gates.sh`（メンテナー、本番環境） |
 | 録画の開始 / 停止 / 2 部屋同時 T70 | `tests/prod-entry-gates.sh`、`tests/prod-meeting-sim.sh`（メンテナー、本番環境） |
 | 言語メニュー（折りたたみ、クリックで開く、Esc） | `tests/run-e2e.sh`（`tests/e2e/meeting.cjs`） |
 | SSO S29 | メンテナーが本番環境に対して実行するスモークテストスクリプト（一時アカウント、終了後に削除） |

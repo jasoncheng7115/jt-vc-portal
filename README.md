@@ -192,6 +192,9 @@ server {
 > - Do at least one of these; doing both is recommended. **If `JTVC_TRUSTED_PROXIES` is left empty = compatibility mode (headers trusted blindly)**: this is fine when the port is isolated, but if the container port is directly reachable from outside, an attacker can forge the source IP to bypass the fail2ban-style lockout and pollute the audit log.
 > - When behind Cloudflare, have the reverse proxy populate `X-Real-IP` from `CF-Connecting-IP`.
 
+> **Don't add security headers on the reverse proxy**: jt-vc-portal sends its own CSP, `X-Frame-Options`, `X-Content-Type-Options` and `Referrer-Policy`; adding another set on the proxy produces two conflicting sets (browsers apply both, or take only the last one). This matters most for **`Permissions-Policy`**: meetings embed Jitsi from another domain, so if the portal's domain sends something like `camera=(self)` or `microphone=()`, the embedded meeting cannot use the camera or microphone (Chrome and Edge refuse outright). If you must add it, list the Jitsi domain for `camera`, `microphone` and `display-capture`, e.g. `microphone=(self "https://meet.example.com")`.
+> nginx pitfall: an `add_header` at the `http` level, or in a file auto-loaded by `include /etc/nginx/conf.d/*.conf;`, applies to **every** site that has no `add_header` of its own. Keep site-specific header files outside `conf.d` (e.g. `/etc/nginx/snippets/`) and `include` them only inside that site's `server` / `location`.
+
 ---
 
 <br>

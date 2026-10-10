@@ -50,7 +50,7 @@
 - [ ] i18n 檢查：`tests/check-i18n.php` 無未翻譯字串、無缺漏鍵（v1.7.0 起）。
 - [ ] 一次跑完以上：`tests/run-all.sh`（lint → i18n → 單元 → 整合）。
 - [ ] 瀏覽器 e2e：`tests/run-e2e.sh` 中英兩輪全綠（主持人進會議、來賓加入、無 CSP / SRI 錯誤）。
-- [ ] 正式環境進入方式與關卡（T64–T66）：`tests/prod-entry-gates.sh`（維護者，部署後；Jitsi / Jibri 升級後也要跑）。
+- [ ] 正式環境進入方式與關卡（T64–T66、T77）：`tests/prod-entry-gates.sh`（維護者，部署後；Jitsi / Jibri 升級後也要跑）。
 
 ## 2. ZAP 弱點掃描（發版閘門）
 
@@ -112,6 +112,7 @@
 - [ ] T74 會議室自訂「小畫面的接收畫質」三個等級：預設不帶設定；較高帶 `minHeightForQualityLvl {100: standard, 300: high}`、高帶 `{100: standard, 190: high}`，兩者都帶 `maxFullResolutionParticipants: -1`，主持人與來賓頁皆同；門檻不可用 Jitsi 內建的 180 / 360 / 720；不認得的值回預設；v1.18.0 的勾選升級後成為「較高」。
 - [ ] T75 真實 Jitsi 畫質（手機瀏覽器模擬＋桌機）：2 人點對點、手機送 720p；4 人改走視訊伺服器；Jitsi 收到各等級設定；4 人並排手機接收上限 預設 180 → 較高 360 → 高 720p，實際收到逐級提高（高 ≥ 540p）；2 人的上限不降低。**發版與 Jitsi 升級後都要跑。**
 - [ ] T76 發言者辨識退回原因（JTLW API 2.6 `diarization.reason`）：記下原因代碼；超過 8 位（`too_many_speakers` / `speakers_saturated`）與新模型無法使用（`nemotron_unavailable` / `nemotron_failed`）顯示不同說明，且依介面語言；不顯示語音服務的中文 `note`。
+- [ ] T77 真實 Chrome、經反向代理：來賓頁與主持人會議頁的 CSP、`X-Frame-Options` 各只有一組；`Permissions-Policy` 若存在，`camera`、`microphone` 要允許 Jitsi 網域；嵌入的 Jitsi 實際要鏡頭與麥克風會成功，打開後 Jitsi 有本機音軌與視訊（測試不可替換 getUserMedia）。**每次發版、Jitsi 升級與反向代理設定變更後都要跑。**
 
 ### 3.5 會議記錄與統計
 - [ ] 主持人離開時寫入 `meetings.jsonl`（時長、尖峰同時人數、參與者進出時間）。
@@ -399,6 +400,7 @@
 | 逐字稿 T42 | `tests/prod-meeting-sim.sh`（維護者，正式環境） |
 | 自建主持人 JWT `lobby_bypass` T63 | `tests/unit/test_security.php` |
 | 進入方式與關卡 T64–T66（真實 Jitsi：角色、來賓不能錄影、大廳、主持人重進、等候 / 倒數 / 結束、三語建立） | `tests/prod-entry-gates.sh`（維護者，正式環境） |
+| 鏡頭 / 麥克風權限與標頭不重複 T77 | `tests/prod-entry-gates.sh`（維護者，正式環境） |
 | 錄影開始 / 停止 / 兩間同時 T70 | `tests/prod-entry-gates.sh`、`tests/prod-meeting-sim.sh`（維護者，正式環境） |
 | 語言選單（收合、點選開啟、Esc） | `tests/run-e2e.sh`（`tests/e2e/meeting.cjs`） |
 | SSO S29 | 維護者對正式環境執行的冒煙測試腳本（臨時帳號，結束後清除） |

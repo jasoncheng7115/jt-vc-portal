@@ -533,6 +533,7 @@ Phone, 4 people in tile view (phone = Chromium emulating a Pixel 7):
 | Lobby has no effect | `.env` needs `ENABLE_LOBBY=1`, and "Lobby mode" must be checked when creating the meeting room |
 | Black screen / media not flowing | `10000/udp` not open, or NAT; set `JVB_ADVERTISE_IPS=<host-public-IP>` in `.env` |
 | Some guests (strict networks) can't connect media | That guest's network blocks UDP / allows only 443 → see "Automatic media transport fallback" and set up TURN (coturn, incl. turns/443) |
+| Camera / microphone won't turn on in meetings (Chrome says permission denied), but opening the Jitsi URL directly works | The jt-vc-portal domain is sending a `Permissions-Policy` (often security headers added on the reverse proxy), so the embedded Jitsi cannot get the camera or microphone. Check with `curl -sI https://vc.example.com/ \| grep -i permissions-policy`: remove it, or list the Jitsi domain for `camera`, `microphone` and `display-capture` — see the note after "Security essentials for public deployment" in the README |
 | Want a unified domain experience | The jt-vc-portal address bar always shows `vc.example.com`; `meet.example.com` is only visible in F12 / connection details (normal) |
 
 ---

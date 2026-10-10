@@ -50,7 +50,7 @@
 - [ ] i18n check: `tests/check-i18n.php` reports no untranslated strings and no missing keys (from v1.7.0).
 - [ ] Run everything above at once: `tests/run-all.sh` (lint → i18n → unit → integration).
 - [ ] Browser e2e: `tests/run-e2e.sh` passes in both zh-TW and English (host joins meeting, guest joins, no CSP / SRI errors).
-- [ ] Production entry paths and gates (T64–T66): `tests/prod-entry-gates.sh` (maintainer, after deployment; also after Jitsi / Jibri upgrades).
+- [ ] Production entry paths and gates (T64–T66, T77): `tests/prod-entry-gates.sh` (maintainer, after deployment; also after Jitsi / Jibri upgrades).
 
 ## 2. ZAP vulnerability scan (release gate)
 
@@ -112,6 +112,7 @@
 - [ ] T74 Room customization "Receive quality for small tiles", three levels: Default carries no settings; Higher carries `minHeightForQualityLvl {100: standard, 300: high}` and High `{100: standard, 190: high}`, both with `maxFullResolutionParticipants: -1`, on host and guest pages alike; thresholds must not use Jitsi's built-in 180 / 360 / 720; unknown values fall back to Default; a v1.18.0 tick becomes "Higher" after upgrading.
 - [ ] T75 Real Jitsi video quality (emulated phone browser + desktop): 2 people connect peer to peer and the phone sends 720p; 4 people go through the video bridge; Jitsi receives each level's settings; in a 4-person tile view the phone's receive limit goes Default 180 → Higher 360 → High 720p and the quality actually received rises at each level (High ≥ 540p); 2-person limits are not lowered. **Run on every release and after every Jitsi upgrade.**
 - [ ] T76 Speaker detection fallback reason (JTLW API 2.6 `diarization.reason`): the reason code is recorded; more than 8 speakers (`too_many_speakers` / `speakers_saturated`) and the new model being unavailable (`nemotron_unavailable` / `nemotron_failed`) show different explanations in the interface language; the speech service's Chinese `note` is not shown.
+- [ ] T77 Real Chrome through the reverse proxy: the guest page and the host meeting page each have exactly one CSP and one `X-Frame-Options`; if a `Permissions-Policy` is present, `camera` and `microphone` allow the Jitsi domain; the embedded Jitsi actually gets the camera and microphone, and after turning them on Jitsi has local audio and video tracks (the test must not replace getUserMedia). **Run on every release, after Jitsi upgrades and after reverse-proxy changes.**
 
 ### 3.5 Meeting records and statistics
 - [ ] When the host leaves, `meetings.jsonl` is written (duration, peak concurrent participants, participant join / leave times).
@@ -399,6 +400,7 @@ Spot-check on every release; test everything for major changes:
 | Transcripts T42 | `tests/prod-meeting-sim.sh` (maintainer, production) |
 | Self-hosted host JWT `lobby_bypass` T63 | `tests/unit/test_security.php` |
 | Entry paths and gates T64–T66 (real Jitsi: roles, guests cannot record, lobby, host rejoin, waiting / countdown / ended, create in 3 languages) | `tests/prod-entry-gates.sh` (maintainer, production) |
+| Camera / microphone permission and no duplicate headers T77 | `tests/prod-entry-gates.sh` (maintainer, production) |
 | Recording start / stop / two at once T70 | `tests/prod-entry-gates.sh`, `tests/prod-meeting-sim.sh` (maintainer, production) |
 | Language menu (collapsed, opens on click, Esc) | `tests/run-e2e.sh` (`tests/e2e/meeting.cjs`) |
 | SSO S29 | Production smoke script run by the maintainer against the live deployment (temporary accounts, cleaned up afterwards) |

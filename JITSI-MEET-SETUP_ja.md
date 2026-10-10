@@ -533,6 +533,7 @@ jt-vc-portal にログイン → **システム設定 → 接続モード設定*
 | ロビーが効かない | `.env` に `ENABLE_LOBBY=1` が必要。かつ会議室作成時に「ロビーモード」をチェックする必要がある |
 | 画面が真っ黒 / メディアが流れない | `10000/udp` が開放されていない、または NAT。`.env` に `JVB_ADVERTISE_IPS=<host-public-IP>` を設定 |
 | 一部のゲスト（厳しいネットワーク）だけメディアがつながらない | そのゲストのネットワークが UDP を遮断 / 443 のみ許可 →「メディア経路の自動フォールバック」を参照し、TURN（coturn、turns/443 を含む）を用意 |
+| 会議中にカメラ / マイクが使えない（Chrome で権限が拒否される）が、Jitsi の URL を直接開くと使える | jt-vc-portal のドメインが `Permissions-Policy` を送っている（多くはリバースプロキシで追加したセキュリティヘッダー）ため、埋め込まれた Jitsi がカメラとマイクを取得できません。`curl -sI https://vc.example.com/ \| grep -i permissions-policy` で確認し、削除するか、`camera`、`microphone`、`display-capture` に Jitsi のドメインを含めてください。詳しくは README の「公開環境へのデプロイにおけるセキュリティ上の要点」の後の説明を参照 |
 | ドメインを統一した体験にしたい | jt-vc-portal のアドレスバーは常に `vc.example.com` を表示します。`meet.example.com` は F12 / 接続の詳細でしか見えません（正常） |
 
 ---

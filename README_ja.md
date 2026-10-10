@@ -192,6 +192,9 @@ server {
 > - 少なくともどちらか一方を行い、両方行うことを推奨します。**`JTVC_TRUSTED_PROXIES` を空のままにすると互換モード（ヘッダーを無条件に信頼）**になります。ポートが分離されていれば問題ありませんが、コンテナのポートに外部から直接到達できる場合、攻撃者は送信元 IP を偽装して fail2ban 方式のロックアウトを回避し、監査ログを汚染できてしまいます。
 > - Cloudflare の配下にある場合は、リバースプロキシで `CF-Connecting-IP` から `X-Real-IP` を設定してください。
 
+> **リバースプロキシでセキュリティヘッダーを追加しないでください**：CSP、`X-Frame-Options`、`X-Content-Type-Options`、`Referrer-Policy` は jt-vc-portal 自身が送ります。プロキシでもう一組追加すると、互いに矛盾する二組になります（ブラウザーは両方を適用するか、最後の一組だけを使います）。特に **`Permissions-Policy`** に注意してください。会議は別ドメインの Jitsi を埋め込んでいるため、ポータルのドメインが `camera=(self)` や `microphone=()` のような値を送ると、埋め込まれた会議はカメラとマイクを使えません（Chrome や Edge は即座に拒否します）。どうしても追加する場合は、`camera`、`microphone`、`display-capture` に Jitsi のドメインを含めてください。例：`microphone=(self "https://meet.example.com")`。
+> nginx の落とし穴：`http` レベルの `add_header`、または `include /etc/nginx/conf.d/*.conf;` で自動的に読み込まれるファイル内の `add_header` は、自身で `add_header` を書いていない**すべての**サイトに適用されます。特定サイト用のヘッダーファイルは `conf.d` の外（例：`/etc/nginx/snippets/`）に置き、そのサイトの `server` / `location` 内でのみ `include` してください。
+
 ---
 
 <br>
