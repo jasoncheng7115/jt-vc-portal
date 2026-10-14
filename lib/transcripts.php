@@ -102,6 +102,23 @@ class Transcripts {
     return self::perm($owner) === 'auto';
   }
 
+  /**
+   * 會議室清單上的逐字稿標籤：這間會議室錄影後會不會自動產生逐字稿（規則同 autoEligible，看房間擁有者）。
+   * 會的話回 ['lang' => 會議選的語言（可能是空字串＝系統預設）, 'summary' => 會不會一併產生摘要]；不會回 null。
+   */
+  public static function roomPlan(array $room): ?array {
+    if (!Settings::transcribeReady()) return null;
+    $ownerId = (string)($room['owner'] ?? '');
+    $owner = $ownerId !== '' ? Users::find($ownerId) : null;
+    if (!$owner || !empty($owner['disabled']) || !self::canUse($owner)) return null;
+    $flag = $room['transcribe'] ?? null;
+    if (!($flag !== null ? (bool)$flag : self::perm($owner) === 'auto')) return null;
+    $lang = in_array($room['tx_lang'] ?? '', self::MEETING_LANGS, true) ? (string)$room['tx_lang'] : '';
+    $cfg = Settings::getTranscribe();
+    $eff = $lang !== '' ? $lang : (string)($cfg['language'] ?? '');
+    return ['lang' => $lang, 'summary' => !empty($cfg['summarize']) && in_array($eff, ['zh-Hant', 'en', 'nan-Hant', 'auto'], true)];   // 摘要不支援日文、韓文
+  }
+
   /** 建立一筆待處理（手動或自動）。已有進行中 / 完成的回 false。 */
   /** 會議主要語言（建立會議室、手動產生時選；值就是送給語音服務的 language）。「自動判斷」只留在系統預設。 */
   public const MEETING_LANGS = ['zh-Hant', 'en', 'ja', 'ko', 'nan-Hant'];

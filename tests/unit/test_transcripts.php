@@ -5,6 +5,7 @@
  */
 require __DIR__ . '/../bootstrap.php';
 require_once '/app/lib/transcripts.php';
+require_once '/app/lib/layout.php';
 
 reset_data();
 
@@ -281,6 +282,28 @@ test('T72 發言者辨識方式（JTLW api 2.5）：預設 auto 送 hints.diariz
   eq(Transcripts::hintsFor($h, '2.10'), $h, '版本用數字比較，不是字串');
   eq(Transcripts::hintsFor($h, '2.4'), ['meeting' => ['room' => 'r']]);
   eq(Transcripts::hintsFor($h, ''), ['meeting' => ['room' => 'r']]);
+});
+
+test('T78 會議室清單的逐字稿標籤：單場開關 > 帳號預設；權限不足或功能沒開不顯示；日文 / 韓文只有逐字稿', function () use ($none, $man, $auto) {
+  Settings::setJibri('http://10.0.0.9:9080', 'jibri-token');
+  Settings::setTranscribe(['enabled' => true, 'jtlw_url' => 'https://10.0.0.5:8790', 'jtlw_key' => 'jtlw_x_secret', 'language' => 'zh-Hant', 'summarize' => true], true);
+  ok(Settings::transcribeReady(), '測試前提：逐字稿功能已設定');
+  eq(Transcripts::roomPlan(['owner' => $man['id'], 'transcribe' => true, 'tx_lang' => 'zh-Hant']), ['lang' => 'zh-Hant', 'summary' => true]);
+  eq(Transcripts::roomPlan(['owner' => $man['id'], 'transcribe' => true, 'tx_lang' => 'ja']), ['lang' => 'ja', 'summary' => false], '日文沒有摘要');
+  eq(Transcripts::roomPlan(['owner' => $man['id'], 'transcribe' => true, 'tx_lang' => 'nan-Hant'])['summary'], true, '台語有摘要');
+  eq(Transcripts::roomPlan(['owner' => $auto['id'], 'transcribe' => false, 'tx_lang' => null]), null, '單場取消勾選 → 不顯示（即使帳號是自動）');
+  eq(Transcripts::roomPlan(['owner' => $auto['id'], 'transcribe' => null]), ['lang' => '', 'summary' => true], '沒設單場開關 → 依帳號「自動」，語言用系統預設');
+  eq(Transcripts::roomPlan(['owner' => $man['id'], 'transcribe' => null]), null, '沒設單場開關、帳號是手動 → 不顯示');
+  eq(Transcripts::roomPlan(['owner' => $none['id'], 'transcribe' => true, 'tx_lang' => 'zh-Hant']), null, '沒有逐字稿權限的帳號不能用單場開關繞過');
+  eq(Transcripts::roomPlan(['owner' => '', 'transcribe' => true]), null, '沒有擁有者的舊會議室不顯示');
+  eq(Transcripts::roomPlan(['owner' => $man['id'], 'transcribe' => true, 'tx_lang' => 'xx']), ['lang' => '', 'summary' => true], '不認得的語言當成沒選');
+  $b = tx_room_badge(['owner' => $man['id'], 'transcribe' => true, 'tx_lang' => 'zh-Hant']);
+  ok(str_contains($b, 'tx-room-badge') && str_contains($b, htmlspecialchars(t('逐字稿與摘要'))) && str_contains($b, htmlspecialchars(Transcripts::languageLabel('zh-Hant'))), $b);   // 文字依目前語言（CLI 預設英文）
+  ok(str_contains(tx_room_badge(['owner' => $man['id'], 'transcribe' => true, 'tx_lang' => 'ko']), '</svg>' . htmlspecialchars(t('逐字稿')) . '<span'), '韓文只寫逐字稿');
+  eq(tx_room_badge(['owner' => $man['id'], 'transcribe' => false]), '');
+  Settings::setTranscribe(['enabled' => false], true);
+  eq(Transcripts::roomPlan(['owner' => $man['id'], 'transcribe' => true, 'tx_lang' => 'zh-Hant']), null, '系統沒開逐字稿 → 不顯示');
+  Settings::setTranscribe(['enabled' => true], true);
 });
 
 $t = $GLOBALS['__t'];

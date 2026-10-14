@@ -197,4 +197,6 @@ return [
   '這場的發言者可能超過 8 位，發言者辨識改用舊方法，發言者分組可能較不準；可以點名字手動修正。' => 'This meeting may have more than 8 speakers, so speaker detection fell back to the previous method and the speaker grouping may be less accurate; click a name to correct it.',
   '語音服務這次無法使用新的發言者辨識，改用舊方法，發言者分組可能較不準；可以點名字手動修正。' => 'The speech service could not use its newer speaker detection this time and fell back to the previous method, so the speaker grouping may be less accurate; click a name to correct it.',
   '這場的發言者辨識改用舊方法，發言者分組可能較不準；可以點名字手動修正。' => 'Speaker detection for this meeting fell back to the previous method, so the speaker grouping may be less accurate; click a name to correct it.',
+  '錄影完成後會自動產生逐字稿與摘要' => 'A transcript and summary will be generated automatically after recording',
+  '錄影完成後會自動產生逐字稿（這個語言不支援摘要）' => 'A transcript will be generated automatically after recording (summaries are not available for this language)',
 ];

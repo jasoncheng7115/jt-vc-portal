@@ -84,4 +84,25 @@ test('evaluate：排程倒數 / 開放 / 結束', function () {
   eq(Rooms::evaluate(['starts_at' => null], $now)['status'], 'wait_host');
 });
 
+test('T79 主持人離開時帶名冊：離開前剛進場、還沒被心跳回報的人也記得到；重複的離開通知不多記一段', function () {
+  Rooms::upsert('r79', ['owner' => 'u_a', 'owner_name' => 'a']);
+  Rooms::recordHostHeartbeat('r79', [['name' => '主持人', 'in' => time() - 60, 'out' => null]]);
+  Store::update(AUTO_ALLOW_FILE, function ($d) { $d['r79']['host_joined_at'] = time() - 60; return $d; });   // 會議開了 60 秒（同一秒內結束的不記）
+  $before = count(meetings());
+  Rooms::setHostLeft('r79', [['name' => '主持人', 'in' => time() - 60, 'out' => null], ['name' => '晚到的來賓', 'in' => time() - 5, 'out' => null]]);
+  $m = meetings();
+  eq(count($m), $before + 1);
+  $last = end($m);
+  eq($last['room'], 'r79');
+  eq($last['attendees'], 2, '離開通知帶的名冊有兩人');
+  ok(in_array('晚到的來賓', array_column($last['participants'], 'name'), true), '晚到的來賓有記到');
+  Rooms::setHostLeft('r79', [['name' => '主持人', 'in' => time() - 60, 'out' => null], ['name' => '又一位', 'in' => time() - 1, 'out' => null]]);
+  eq(count(meetings()), $before + 1, '會議已結算：重複的離開通知不重開、不多記');
+  ok(empty(Rooms::get('r79')['roster']), '沒有進行中的會議時不採用送來的名冊');
+  Rooms::recordHostHeartbeat('r79', [['name' => '主持人', 'in' => time(), 'out' => null]]);
+  Store::update(AUTO_ALLOW_FILE, function ($d) { $d['r79']['host_joined_at'] = time() - 60; return $d; });   // 會議開了 60 秒（同一秒內結束的不記）
+  Rooms::setHostLeft('r79');
+  $mm = meetings(); eq(end($mm)['attendees'], 1, '舊的離開通知（不帶名冊）照舊用心跳回報的名冊');
+});
+
 summary();

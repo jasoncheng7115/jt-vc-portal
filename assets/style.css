@@ -349,6 +349,7 @@ body.is-dark .badge-success { background: rgba(34,197,94,0.18);  color: #4ade80;
 body.is-dark .badge-warning { background: rgba(245,158,11,0.18); color: #fcd34d; border-color: rgba(251,191,36,0.35); }
 body.is-dark .badge-accent  { background: rgba(59,130,246,0.20); color: #93c5fd; border-color: rgba(147,197,253,0.35); }
 body.is-dark .badge-muted   { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); }
+body.is-dark .badge-info    { background: rgba(139,92,246,0.20); color: #c4b5fd; border-color: rgba(196,181,253,0.35); }
 
 /* Empty state */
 body.is-dark .empty {
@@ -1074,6 +1075,41 @@ body.is-dark .schedule-body { border-top-color: rgba(255,255,255,0.10); backgrou
 .tx-lang-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
 .tx-lang-field .req { color: var(--danger, #dc2626); }
 .tx-lang-field select { max-width: 320px; }
+.tx-lang-field .cselect { max-width: 320px; }
+
+/* 本站樣式下拉選單（select[data-cselect]）：原生 select 留在表單裡送值與 required 檢查，外觀換成按鈕＋清單 */
+.cselect { position: relative; }
+.cselect > select.cselect-native { position: absolute; left: 0; bottom: 0; width: 100%; height: 1px; min-height: 0; padding: 0; border: 0; opacity: 0; pointer-events: none; }
+.cselect-btn {
+  display: flex; align-items: center; width: 100%; min-height: 42px; padding: 10px 34px 10px 12px;
+  font: inherit; font-size: 14px; text-align: left; color: var(--text); cursor: pointer;
+  background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 10px center;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+.cselect-btn:focus-visible, .cselect.open .cselect-btn { outline: none; border-color: var(--text); box-shadow: 0 0 0 3px rgba(24,24,27,0.08); }
+.cselect-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cselect-btn.is-placeholder .cselect-text { color: var(--text-soft); }
+.cselect.invalid .cselect-btn { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(220,38,38,0.12); }
+.cselect-menu {
+  position: fixed; z-index: 80; margin: 0; padding: 6px; list-style: none; max-height: min(320px, 60vh); overflow: auto;
+  background: #fff; border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 10px 30px rgba(15,23,42,.16);
+}
+.cselect-menu[hidden] { display: none; }
+.cselect-menu li { display: flex; align-items: center; gap: 8px; padding: 8px 12px 8px 8px; border-radius: 7px; font-size: 14px; color: var(--text); cursor: pointer; white-space: nowrap; }
+.cselect-menu li.active { background: var(--bg-muted); }
+.cselect-check { display: inline-flex; width: 14px; flex: none; visibility: hidden; }
+.cselect-menu li[aria-selected="true"] { color: var(--accent); font-weight: 600; }
+.cselect-menu li[aria-selected="true"] .cselect-check { visibility: visible; }
+body.is-dark .cselect-btn {
+  background-color: #1a1a22; border-color: rgba(255,255,255,0.14); color: #fff;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+}
+body.is-dark .cselect-btn.is-placeholder .cselect-text { color: rgba(255,255,255,0.5); }
+body.is-dark .cselect-menu { background: #1e293b; border-color: rgba(255,255,255,0.12); }
+body.is-dark .cselect-menu li { color: rgba(255,255,255,0.9); }
+body.is-dark .cselect-menu li.active { background: rgba(255,255,255,0.08); }
+body.is-dark .cselect-menu li[aria-selected="true"] { color: #93c5fd; }
 .tx-lang-field .help { margin-top: 6px; }
 .lobby-toggle .lobby-text, .schedule-head .lobby-text { display: flex; flex-direction: column; gap: 3px; }
 .lobby-toggle .lobby-title, .schedule-head .lobby-title { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--text); }
@@ -1144,6 +1180,8 @@ body.is-dark .lobby-toggle { border-color: rgba(255,255,255,0.10); }
 .badge-warning { background: var(--warning-soft); color: var(--warning); border-color: #fde68a; }
 .badge-accent  { background: var(--accent-soft);  color: var(--accent);  border-color: #bfdbfe; }
 .badge-muted   { background: var(--bg-muted);    color: var(--text-muted); }
+.badge-info    { background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe; }   /* 逐字稿與摘要 */
+.badge .badge-sub { opacity: .8; }
 
 .empty {
   padding: 20px;

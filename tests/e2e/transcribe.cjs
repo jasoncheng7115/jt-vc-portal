@@ -176,6 +176,43 @@ function unzipEntry(buf, name) {
   ok('T54 選項文字不用帶政治意涵的稱呼', (await pm.$$eval('#txLang option', o => o.map(x => x.textContent).join('|'))) === '請選擇|中文為主|英文為主|日文為主|韓文為主|台語（閩南語）為主');
   await pm.uncheck('#txChk');
   ok('T54 取消勾選 → 語言選單收起、不再必填', !(await pm.isVisible('#txLangBox')) && !(await pm.$eval('#txLang', e => e.required)));
+
+  // ---- T78（v1.20.0）：會議主要語言用本站樣式的下拉選單、會議室清單的逐字稿標籤 ----
+  await pm.check('#txChk');
+  const cs = await pm.evaluate(() => { const s = document.getElementById('txLang'), b = document.getElementById('txLangBtn'), st = getComputedStyle(s);
+    return { btn: !!b && b.offsetHeight > 30, wrapped: !!s.closest('.cselect'), hidden: st.opacity === '0' && s.tabIndex === -1, focus: document.activeElement === b, text: b ? b.textContent : '', ph: b ? b.classList.contains('is-placeholder') : false,
+      label: document.querySelector('label[for="txLangBtn"]') !== null }; });
+  ok('T78 語言選單換成本站樣式按鈕，原生下拉隱藏但留在表單裡', cs.btn && cs.wrapped && cs.hidden, JSON.stringify(cs));
+  ok('T78 勾選逐字稿後焦點移到語言按鈕；未選時顯示「請選擇」；標籤點了會到按鈕', cs.focus && cs.text === '請選擇' && cs.ph && cs.label, JSON.stringify(cs));
+  await pm.click('#txLangBtn');
+  const menuInfo = await pm.evaluate(() => { const m = document.querySelector('.cselect-menu'); const st = getComputedStyle(m); const r = m.getBoundingClientRect();
+    return { open: !m.hidden, inBody: m.parentElement === document.body, fixed: st.position === 'fixed', radius: st.borderRadius, items: [...m.querySelectorAll('li[role=option]')].map(li => li.textContent),
+      inView: r.top >= 0 && r.bottom <= innerHeight, expanded: document.getElementById('txLangBtn').getAttribute('aria-expanded') }; });
+  ok('T78 點按鈕展開本站樣式的清單（掛在 body、固定定位，不會被卡片裁掉），五個語言、沒有「請選擇」', menuInfo.open && menuInfo.inBody && menuInfo.fixed && menuInfo.radius === '10px' && menuInfo.items.join('|') === '中文為主|英文為主|日文為主|韓文為主|台語（閩南語）為主' && menuInfo.inView && menuInfo.expanded === 'true', JSON.stringify(menuInfo));
+  await pm.click('.cselect-menu li[data-value="ja"]');
+  ok('T78 點選項 → 表單值、按鈕文字更新，清單收起', (await pm.inputValue('#txLang')) === 'ja' && (await pm.textContent('#txLangBtn')) === '日文為主' && await pm.evaluate(() => document.querySelector('.cselect-menu').hidden));
+  await pm.focus('#txLangBtn'); await pm.keyboard.press('ArrowDown'); await pm.keyboard.press('ArrowDown'); await pm.keyboard.press('Enter');
+  ok('T78 鍵盤：↓ 展開、↓ 移到下一個、Enter 選定', (await pm.inputValue('#txLang')) === 'ko' && await pm.evaluate(() => document.querySelector('.cselect-menu').hidden), await pm.inputValue('#txLang'));
+  await pm.keyboard.press('ArrowDown'); await pm.keyboard.press('Escape');
+  ok('T78 鍵盤：Esc 收起、值不變', (await pm.inputValue('#txLang')) === 'ko' && await pm.evaluate(() => document.querySelector('.cselect-menu').hidden));
+  await pm.evaluate(() => { const s = document.getElementById('txLang'); s.value = ''; s.dispatchEvent(new Event('change')); });
+  await pm.fill('#room', 't78-none'); await pm.click('button[name=mode][value=create]'); await pm.waitForTimeout(500);
+  ok('T78 沒選語言就送出 → 擋下、按鈕外框變紅', !pm.url().includes('created=') && await pm.evaluate(() => document.querySelector('.cselect').classList.contains('invalid')));
+  await pm.click('#txLangBtn'); await pm.click('.cselect-menu li[data-value="zh-Hant"]');
+  ok('T78 選了語言 → 紅框消失', !(await pm.evaluate(() => document.querySelector('.cselect').classList.contains('invalid'))));
+  await pm.fill('#room', 't78-zh');
+  await Promise.all([pm.waitForURL(/created=/), pm.click('button[name=mode][value=create]')]);
+  const zhPanel = (await pm.textContent('.created-panel')) || '';
+  const zhRow = pm.locator('.room-list li:has(.room-name:text-is("t78-zh"))');
+  const zhBadge = (await zhRow.locator('.tx-room-badge').textContent().catch(() => '')) || '';
+  ok('T78 建立結果與近期會議室清單都有「逐字稿與摘要 · 中文為主」標籤', zhPanel.includes('逐字稿與摘要') && zhBadge.replace(/\s+/g, ' ').trim() === '逐字稿與摘要· 中文為主', zhBadge);
+  await pm.check('#txChk'); await pm.click('#txLangBtn'); await pm.click('.cselect-menu li[data-value="ja"]'); await pm.fill('#room', 't78-ja');
+  await Promise.all([pm.waitForURL(/created=/), pm.click('button[name=mode][value=create]')]);
+  const jaBadge = (await pm.locator('.room-list li:has(.room-name:text-is("t78-ja")) .tx-room-badge').textContent().catch(() => '')) || '';
+  ok('T78 日文會議只寫「逐字稿」（語音服務的摘要不支援日文）', jaBadge.replace(/\s+/g, ' ').trim() === '逐字稿· 日文為主', jaBadge);
+  await pm.uncheck('#txChk'); await pm.fill('#room', 't78-off');
+  await Promise.all([pm.waitForURL(/created=/), pm.click('button[name=mode][value=create]')]);
+  ok('T78 沒勾逐字稿的會議室沒有標籤', (await pm.locator('.room-list li:has(.room-name:text-is("t78-off")) .tx-room-badge').count()) === 0);
   const csrfM = await pm.$eval('input[name=_csrf]', e => e.value);
   await pm.request.post(BASE + '/start', { form: { _csrf: csrfM, room: 'lang-none', mode: 'create', transcribe_field: '1', transcribe: '1' }, maxRedirects: 0 });
   await pm.goto(BASE + '/dashboard');

@@ -2,6 +2,14 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.20.0 — Transcript badge in the room list, site-styled language picker
+
+- Recent rooms list and the "created" panel: rooms whose recordings will be transcribed automatically show a badge such as "Transcript and summary · Mainly Chinese (Mandarin)" (with the meeting's main language; for Japanese and Korean meetings the speech service makes no summary, so it says "Transcript" only). The rule matches what actually happens: the per-meeting switch wins, otherwise the host account's "automatic" setting; no badge when the host has no transcript permission or transcripts are turned off.
+- "Main meeting language" now uses a site-styled dropdown instead of the browser's native list: mouse or keyboard (↑↓, Home / End, Enter, Esc), consistent in dark themes; submitting without a language turns the button border red and the browser's message still appears.
+- Fix: guests who joined within 15 seconds before the host left were missing from the meeting record (the participant list in meeting statistics was short). Joins and leaves are now reported within about 2 seconds, and hanging up or closing the tab sends the current roster with the leave notice; repeated leave notices don't add an extra session.
+- Docs (pushed after v1.19.0): in-meeting screenshots on Pages; a meeting bandwidth reference (measured upload / download per computer and for the Jitsi server, phone data usage, how the numbers are calculated) and a link to the online bandwidth calculator; minimum PHP raised to 8.3 (PHP 8.2 security support ends 2026-12-31); README warns not to add security headers for the portal domain on the reverse proxy (a Permissions-Policy stops the embedded meeting from using the camera and microphone), with a matching JITSI-MEET-SETUP troubleshooting row.
+- Tests T77 (real Chrome through the reverse proxy: no duplicate headers, the embedded Jitsi actually gets the camera and microphone), T78, T79.
+
 ## v1.19.0 — Up to 720p on a phone in a 4-person tile view
 
 - Room customization's "Keep higher quality on small tiles" becomes a three-level "Receive quality for small tiles": **Default** (Jitsi automatic, about 180p on a phone with 4 people in tile view) / **Higher** (about 360p) / **High** (about 720p). Measured on a phone with 4 people in tile view: Higher receives about 1.2 Mbps and High about 2 Mbps; on a computer both give about 720p in tile view; 2-person meetings and speaker view are unaffected. Sites that ticked the option in v1.18.0 become "Higher" after upgrading.

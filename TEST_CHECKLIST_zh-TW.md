@@ -113,6 +113,8 @@
 - [ ] T75 真實 Jitsi 畫質（手機瀏覽器模擬＋桌機）：2 人點對點、手機送 720p；4 人改走視訊伺服器；Jitsi 收到各等級設定；4 人並排手機接收上限 預設 180 → 較高 360 → 高 720p，實際收到逐級提高（高 ≥ 540p）；2 人的上限不降低。**發版與 Jitsi 升級後都要跑。**
 - [ ] T76 發言者辨識退回原因（JTLW API 2.6 `diarization.reason`）：記下原因代碼；超過 8 位（`too_many_speakers` / `speakers_saturated`）與新模型無法使用（`nemotron_unavailable` / `nemotron_failed`）顯示不同說明，且依介面語言；不顯示語音服務的中文 `note`。
 - [ ] T77 真實 Chrome、經反向代理：來賓頁與主持人會議頁的 CSP、`X-Frame-Options` 各只有一組；`Permissions-Policy` 若存在，`camera`、`microphone` 要允許 Jitsi 網域；嵌入的 Jitsi 實際要鏡頭與麥克風會成功，打開後 Jitsi 有本機音軌與視訊（測試不可替換 getUserMedia）。**每次發版、Jitsi 升級與反向代理設定變更後都要跑。**
+- [ ] T78 建立會議室的「會議主要語言」是本站樣式下拉選單：原生 select 隱藏但留在表單、按鈕顯示「請選擇」、點按鈕展開五個語言（清單掛在 body 不被卡片裁掉）、點選與鍵盤（↓ / Enter / Esc）都能選、沒選就送出時擋下且外框變紅；近期會議室清單與建立結果顯示逐字稿標籤：中文「逐字稿與摘要 · 中文為主」、日文 / 韓文只寫「逐字稿」、沒勾不顯示；標籤規則同自動產生（單場開關優先、帳號自動、無權限或系統未開不顯示）。
+- [ ] T79 主持人離開通知帶當下名冊：離開前剛進場、還沒被心跳回報的人也寫進會議記錄；重複的離開通知不多記一段；舊的不帶名冊通知照舊用心跳的名冊；有人進出約 2 秒內回報心跳。
 
 ### 3.5 會議記錄與統計
 - [ ] 主持人離開時寫入 `meetings.jsonl`（時長、尖峰同時人數、參與者進出時間）。
@@ -401,6 +403,8 @@
 | 自建主持人 JWT `lobby_bypass` T63 | `tests/unit/test_security.php` |
 | 進入方式與關卡 T64–T66（真實 Jitsi：角色、來賓不能錄影、大廳、主持人重進、等候 / 倒數 / 結束、三語建立） | `tests/prod-entry-gates.sh`（維護者，正式環境） |
 | 鏡頭 / 麥克風權限與標頭不重複 T77 | `tests/prod-entry-gates.sh`（維護者，正式環境） |
+| 會議主要語言下拉選單、逐字稿標籤 T78 | `tests/unit/test_transcripts.php`（規則）、`tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`，畫面） |
+| 離開通知帶名冊 T79 | `tests/unit/test_rooms.php`、`tests/run-integration.sh` |
 | 錄影開始 / 停止 / 兩間同時 T70 | `tests/prod-entry-gates.sh`、`tests/prod-meeting-sim.sh`（維護者，正式環境） |
 | 語言選單（收合、點選開啟、Esc） | `tests/run-e2e.sh`（`tests/e2e/meeting.cjs`） |
 | SSO S29 | 維護者對正式環境執行的冒煙測試腳本（臨時帳號，結束後清除） |

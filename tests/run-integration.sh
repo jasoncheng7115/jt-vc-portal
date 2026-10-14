@@ -94,7 +94,22 @@ chk "擁有者離開 → 204" "$(code -b $A --data-urlencode "_csrf=$T" -d room=
 chk "擁有者從清單進入 → /meeting" "$(loc -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-room&enter=1' $B/start)" "$B/meeting"
 has "會議頁帶心跳 CSRF token" "$(curl -s -b $A $B/meeting)" "X-CSRF-Token"
 has "會議頁記錄 Jitsi 主要發言者事件（v1.13.0）" "$(curl -s -b $A $B/meeting)" "dominantSpeakerChanged"
+has "T79 會議頁的離開通知帶名冊（v1.20.0）" "$(curl -s -b $A $B/meeting)" "fd.append('roster'"
 code -b $A --data-urlencode "_csrf=$T" -d room=itest-room $B/host-left >/dev/null
+echo "== T79 主持人離開通知帶名冊（v1.20.0）"
+msess() { docker exec -u www-data $NAME php -r 'require "/var/www/html/config.php"; require_once "/var/www/html/lib/rooms.php"; $n = 0; $last = null; foreach (Rooms::meetingSessions(0, time() + 60) as $s) if (($s["room"] ?? "") === "itest-room") { $n++; $last = $s; } echo $n, " ", (int)($last["attendees"] ?? 0), " ", implode("/", array_column($last["participants"] ?? [], "name"));'; }
+NOW=$(date +%s)
+code -b $A -H "X-CSRF-Token: $T" -H 'Content-Type: application/json' -d "{\"roster\":[{\"name\":\"Host\",\"in\":$((NOW-60)),\"out\":null}]}" -X POST "$B/host-heartbeat?room=itest-room" >/dev/null
+docker exec -u www-data $NAME php -r 'require "/var/www/html/config.php"; require_once "/var/www/html/lib/rooms.php"; Store::update(AUTO_ALLOW_FILE, function ($d) { $d["itest-room"]["host_joined_at"] = time() - 60; return $d; });'
+set -- $(msess); N0=$1
+RJ="[{\"name\":\"Host\",\"in\":$((NOW-60)),\"out\":null},{\"name\":\"LateGuest\",\"in\":$((NOW-3)),\"out\":null}]"
+chk "T79 離開通知帶名冊 → 204" "$(code -b $A --data-urlencode "_csrf=$T" -d room=itest-room --data-urlencode "roster=$RJ" $B/host-left)" 204
+set -- $(msess)
+chk "T79 會議記錄多一段" "$1" "$((N0+1))"
+chk "T79 離開前剛進場、還沒被心跳回報的人也記到（與會 2 人）" "$2 $3" "2 Host/LateGuest"
+code -b $A --data-urlencode "_csrf=$T" -d room=itest-room --data-urlencode "roster=$RJ" $B/host-left >/dev/null
+set -- $(msess)
+chk "T79 重複的離開通知不多記一段" "$1" "$((N0+1))"
 chk "hostb 進入他人房間 → 擋下" "$(loc -b $HB -c $HB --data-urlencode "_csrf=$TB" -d 'room=itest-room&enter=1' $B/start)" "$B/dashboard"
 
 echo "== 設定頁不回填密鑰"

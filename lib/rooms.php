@@ -154,9 +154,31 @@ class Rooms {
   const HOST_STALE_SECONDS = 45;
 
   /** 主持人離開 → 結算本次 session 時長寫入 meetings.jsonl，並把 host_joined 標回 false */
-  public static function setHostLeft(string $room): void {
-    self::mutate(function (array &$rooms) use ($room) {
+  /** 主持人頁送來的名冊快照：[{name, in, out}]，上限 200 筆避免檔案膨脹。 */
+  public static function cleanRoster(array $roster): array {
+    $clean = [];
+    foreach (array_slice($roster, 0, 200) as $p) {
+      if (!is_array($p)) continue;
+      $in = (int)($p['in'] ?? 0);
+      if ($in <= 0) continue;
+      $clean[] = [
+        'name' => mb_substr(trim((string)($p['name'] ?? '')), 0, 64),
+        'in'   => $in,
+        'out'  => (isset($p['out']) && $p['out'] !== null) ? (int)$p['out'] : null,
+      ];
+    }
+    return $clean;
+  }
+
+  /**
+   * 主持人離開：結算這段會議。$roster＝離開當下的名冊（v1.20.0：離開通知一併帶上，
+   * 否則離開前 15 秒內進場、還沒被心跳回報的人會漏記）；只有這段會議還開著時才採用，
+   * 重複的離開通知不會重開或多記一段。
+   */
+  public static function setHostLeft(string $room, ?array $roster = null): void {
+    self::mutate(function (array &$rooms) use ($room, $roster) {
       if (!isset($rooms[$room]) || !is_array($rooms[$room])) return false;
+      if (is_array($roster) && !empty($rooms[$room]['host_joined_at'])) $rooms[$room]['roster'] = self::cleanRoster($roster);
       $r = $rooms[$room];
       if (!empty($r['host_joined_at'])) self::recordSession($room, $r, time());
       unset($rooms[$room]['roster'], $rooms[$room]['talk'], $rooms[$room]['host_seen_at'], $rooms[$room]['host_joined_at']);
@@ -203,20 +225,7 @@ class Rooms {
       $r['host_joined']  = true;
       $r['host_seen_at'] = $now;
       if (empty($r['host_joined_at'])) $r['host_joined_at'] = $now;
-      if (is_array($roster)) {
-        $clean = [];
-        foreach (array_slice($roster, 0, 200) as $p) {   // 上限 200，避免檔案膨脹
-          if (!is_array($p)) continue;
-          $in = (int)($p['in'] ?? 0);
-          if ($in <= 0) continue;
-          $clean[] = [
-            'name' => mb_substr(trim((string)($p['name'] ?? '')), 0, 64),
-            'in'   => $in,
-            'out'  => (isset($p['out']) && $p['out'] !== null) ? (int)$p['out'] : null,
-          ];
-        }
-        $r['roster'] = $clean;
-      }
+      if (is_array($roster)) $r['roster'] = self::cleanRoster($roster);
       if (is_array($talk)) $r['talk'] = self::cleanTalk($talk, $now * 1000);
       unset($r);
       return true;

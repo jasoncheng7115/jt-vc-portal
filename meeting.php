@@ -118,7 +118,12 @@ window.addEventListener('load', () => {
     }
   };
   const api = new JitsiMeetExternalAPI(<?= json_encode(Jaas::apiDomain()) ?>, options);
-  api.addEventListener('readyToClose', () => { window.location.href = '/leave'; });
+  // Hang up: send the leave notice (with the final roster) first, then go to /leave — so the session is closed with everyone who joined.
+  api.addEventListener('readyToClose', () => {
+    const go = () => { window.location.href = '/leave'; };
+    const t = setTimeout(go, 1500);
+    fetch('/host-left', { method: 'POST', body: leaveForm(), cache: 'no-store', keepalive: true, credentials: 'same-origin' }).catch(() => {}).finally(() => { clearTimeout(t); go(); });
+  });
   jitsiWatch(api);
 
   // Recording status toast (works around Jitsi's menu label not refreshing after stop; gives clear feedback)
@@ -204,13 +209,24 @@ window.addEventListener('load', () => {
   };
   beat();
   setInterval(beat, 15000);
+  // Someone joined / left / renamed: report within ~2 s instead of waiting for the next 15 s heartbeat.
+  let soonT = null;
+  const beatSoon = () => { clearTimeout(soonT); soonT = setTimeout(beat, 2000); };
+  ['participantJoined', 'participantLeft', 'displayNameChange'].forEach((ev) => api.addEventListener(ev, beatSoon));
 
   // === Notify leave via beacon on tab close / navigation (even if readyToClose did not fire) ===
   const leaveUrl = '/host-left';
-  const sendLeft = () => {
+  // The leave notice carries the roster at that moment (participants who joined since the last heartbeat would be lost otherwise).
+  function leaveForm() {
     const fd = new FormData();
     fd.append('room', room);
     fd.append('_csrf', csrf);
+    const rj = JSON.stringify(rosterArr());
+    if (rj.length <= 60000) fd.append('roster', rj);   // sendBeacon payloads are limited to 64 KB
+    return fd;
+  }
+  const sendLeft = () => {
+    const fd = leaveForm();
     if (navigator.sendBeacon) navigator.sendBeacon(leaveUrl, fd);
     else fetch(leaveUrl, { method: 'POST', body: fd, cache: 'no-store', keepalive: true, credentials: 'same-origin' }).catch(() => {});
   };

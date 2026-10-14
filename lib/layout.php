@@ -177,6 +177,16 @@ function admin_nav(string $active = ''): string {
   return $html . '</div>';
 }
 
+/** 會議室清單 / 建立結果的逐字稿標籤（v1.20.0）：錄影後會自動產生逐字稿時顯示，附會議語言；呼叫端需已載入 lib/transcripts.php。 */
+function tx_room_badge(array $room): string {
+  $p = class_exists('Transcripts') ? Transcripts::roomPlan($room) : null;
+  if (!$p) return '';
+  $label = $p['summary'] ? t('逐字稿與摘要') : t('逐字稿');
+  $title = $p['summary'] ? t('錄影完成後會自動產生逐字稿與摘要') : t('錄影完成後會自動產生逐字稿（這個語言不支援摘要）');
+  $sub = $p['lang'] !== '' ? '<span class="badge-sub">· ' . htmlspecialchars(Transcripts::languageLabel($p['lang'])) . '</span>' : '';
+  return '<span class="badge badge-info tx-room-badge" title="' . htmlspecialchars($title) . '">' . icon('file-text', 11) . htmlspecialchars($label) . $sub . '</span>';
+}
+
 function render_foot(): void { ?>
 <script <?= nonce_attr() ?>>
 /* Turn each card's h1 title into a full-width, clickable collapse header. */
@@ -225,6 +235,97 @@ function render_foot(): void { ?>
   document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) close(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
 });
+
+/* Site-styled dropdown for <select data-cselect>. The native select stays in the form (value, required, change events)
+   but is visually hidden; a button + listbox gives it the site look. The menu is position:fixed and lives in <body>,
+   so collapsible cards (overflow:hidden) cannot clip it. Keyboard: arrows / Home / End / Enter / Space / Esc. */
+(function () {
+  var CHECK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+  var seq = 0;
+  document.querySelectorAll('select[data-cselect]').forEach(function (sel) {
+    var id = 'cselect' + (++seq);
+    var wrap = document.createElement('div'); wrap.className = 'cselect';
+    sel.parentNode.insertBefore(wrap, sel); wrap.appendChild(sel);
+    sel.classList.add('cselect-native'); sel.tabIndex = -1; sel.setAttribute('aria-hidden', 'true');
+    var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'cselect-btn';
+    btn.id = (sel.id || id) + 'Btn';
+    btn.setAttribute('aria-haspopup', 'listbox'); btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', id);
+    var txt = document.createElement('span'); txt.className = 'cselect-text'; btn.appendChild(txt);
+    wrap.appendChild(btn);
+    var lab = sel.id ? document.querySelector('label[for="' + sel.id + '"]') : null;
+    if (lab) { if (!lab.id) lab.id = sel.id + 'Label'; lab.htmlFor = btn.id; btn.setAttribute('aria-labelledby', lab.id + ' ' + btn.id); }
+    var menu = document.createElement('ul'); menu.className = 'cselect-menu'; menu.id = id; menu.setAttribute('role', 'listbox'); menu.hidden = true;
+    if (lab) menu.setAttribute('aria-labelledby', lab.id);
+    document.body.appendChild(menu);
+    var items = [];
+    Array.prototype.forEach.call(sel.options, function (o, i) {
+      if (o.value === '') return;                       // the "please choose" placeholder is not a choice
+      var li = document.createElement('li'); li.setAttribute('role', 'option'); li.id = id + '-' + i; li.setAttribute('data-value', o.value);
+      var ck = document.createElement('span'); ck.className = 'cselect-check'; ck.innerHTML = CHECK;
+      var lb = document.createElement('span'); lb.textContent = o.textContent;
+      li.appendChild(ck); li.appendChild(lb); menu.appendChild(li); items.push(li);
+    });
+    var active = -1;
+    function sync() {
+      var o = sel.options[sel.selectedIndex];
+      txt.textContent = o ? o.textContent : '';
+      btn.classList.toggle('is-placeholder', !o || o.value === '');
+      items.forEach(function (li) { li.setAttribute('aria-selected', li.getAttribute('data-value') === sel.value ? 'true' : 'false'); });
+      if (sel.value !== '') wrap.classList.remove('invalid');
+    }
+    function setActive(i, fromMouse) {
+      if (!items.length) return;
+      active = (i + items.length) % items.length;
+      items.forEach(function (li, k) { li.classList.toggle('active', k === active); });
+      btn.setAttribute('aria-activedescendant', items[active].id);
+      if (!fromMouse) items[active].scrollIntoView({ block: 'nearest' });
+    }
+    function place() {
+      var r = btn.getBoundingClientRect();
+      menu.style.minWidth = r.width + 'px';
+      menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8)) + 'px';
+      var h = menu.offsetHeight, below = window.innerHeight - r.bottom;
+      menu.style.top = (below < h + 8 && r.top > below ? Math.max(8, r.top - h - 4) : r.bottom + 4) + 'px';
+    }
+    function open() {
+      if (!menu.hidden) return;
+      menu.hidden = false; wrap.classList.add('open'); btn.setAttribute('aria-expanded', 'true');
+      place();
+      var cur = -1; items.forEach(function (li, k) { if (li.getAttribute('data-value') === sel.value) cur = k; });
+      setActive(cur >= 0 ? cur : 0);
+    }
+    function close() {
+      if (menu.hidden) return;
+      menu.hidden = true; wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); btn.removeAttribute('aria-activedescendant');
+    }
+    function choose(i) {
+      var li = items[i]; if (!li) return;
+      if (sel.value !== li.getAttribute('data-value')) { sel.value = li.getAttribute('data-value'); sel.dispatchEvent(new Event('change', { bubbles: true })); }
+      sync(); close(); btn.focus();
+    }
+    btn.addEventListener('click', function () { if (menu.hidden) open(); else close(); });
+    btn.addEventListener('keydown', function (e) {
+      var k = e.key;
+      if (menu.hidden) { if (k === 'ArrowDown' || k === 'ArrowUp' || k === 'Enter' || k === ' ') { e.preventDefault(); open(); } return; }
+      if (k === 'ArrowDown') { e.preventDefault(); setActive(active + 1); }
+      else if (k === 'ArrowUp') { e.preventDefault(); setActive(active - 1); }
+      else if (k === 'Home') { e.preventDefault(); setActive(0); }
+      else if (k === 'End') { e.preventDefault(); setActive(items.length - 1); }
+      else if (k === 'Enter' || k === ' ') { e.preventDefault(); choose(active); }
+      else if (k === 'Escape') { e.preventDefault(); close(); }
+      else if (k === 'Tab') close();
+    });
+    menu.addEventListener('mousedown', function (e) { e.preventDefault(); });   // keep focus on the button
+    menu.addEventListener('click', function (e) { var li = e.target.closest('li[role=option]'); if (li) choose(items.indexOf(li)); });
+    menu.addEventListener('mousemove', function (e) { var li = e.target.closest('li[role=option]'); if (li && items.indexOf(li) !== active) setActive(items.indexOf(li), true); });
+    document.addEventListener('click', function (e) { if (!wrap.contains(e.target) && !menu.contains(e.target)) close(); });
+    window.addEventListener('resize', function () { if (!menu.hidden) place(); });
+    window.addEventListener('scroll', function () { if (!menu.hidden) place(); }, true);
+    sel.addEventListener('change', sync);                                         // value changed elsewhere
+    sel.addEventListener('invalid', function () { wrap.classList.add('invalid'); });   // required and empty on submit
+    sync();
+  });
+})();
 
 /* Click a table column header to sort (sorts visible rows; paginated tables sort the current page only). */
 (function () {

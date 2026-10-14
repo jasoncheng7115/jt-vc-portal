@@ -123,6 +123,7 @@ render_topbar($me, $ip);
         <?= th('會議室') ?> <strong style="font-family:var(--mono);color:var(--text);"><?= htmlspecialchars($created) ?></strong>
         <?php if ($created_data['starts_at']): ?> · <?= th('開放時段 {range}', ['range' => fmt_range($created_data['starts_at'], $created_data['ends_at'])]) ?><?php endif; ?>
         <?php if (!empty($created_data['lobby'])): ?> · <span style="color:var(--text);"><?= icon('lock', 12) ?><?= th('大廳模式') ?></span><?php endif; ?>
+        <?php $crb = tx_room_badge($created_data); if ($crb !== ''): ?> · <?= $crb ?><?php endif; ?>
       </div>
       <div class="panel-link"><?= htmlspecialchars($invite_url) ?></div>
       <div class="panel-actions">
@@ -212,7 +213,7 @@ render_topbar($me, $ip);
         </label>
         <div class="tx-lang-field" id="txLangBox"<?= $form_tx ? '' : ' hidden' ?>>
           <label for="txLang"><?= th('會議主要語言') ?> <span class="req">*</span></label>
-          <select id="txLang" name="tx_lang"<?= $form_tx ? ' required' : '' ?>>
+          <select id="txLang" name="tx_lang" data-cselect<?= $form_tx ? ' required' : '' ?>>
             <option value=""><?= th('請選擇') ?></option>
             <?php foreach (Transcripts::meetingLanguages() as $lv => $ll): ?>
               <option value="<?= $lv ?>"<?= ($form_values['tx_lang'] ?? '') === $lv ? ' selected' : '' ?>><?= htmlspecialchars($ll) ?></option>
@@ -255,6 +256,7 @@ render_topbar($me, $ip);
               <div class="room-meta">
                 <?= $badge ?>
                 <?php if (!empty($r['lobby'])): ?><span class="badge badge-accent"><?= icon('lock',11) ?><?= th('大廳模式') ?></span><?php endif; ?>
+                <?= tx_room_badge($r) ?>
                 <span><?= th('建立於 {when}', ['when' => fmt_when($r['created_at'])]) ?></span>
                 <?php if ($is_admin && !empty($r['owner_name'])): ?><span><?= icon('user',11) ?> <?= htmlspecialchars($r['owner_name']) ?></span><?php endif; ?>
                 <?php
@@ -451,7 +453,7 @@ document.addEventListener('click', async (e) => {
 (function(){
   const chk = document.getElementById('txChk'), box = document.getElementById('txLangBox'), sel = document.getElementById('txLang');
   if (!chk || !box || !sel) return;
-  chk.addEventListener('change', () => { box.hidden = !chk.checked; sel.required = chk.checked; if (chk.checked) sel.focus(); });
+  chk.addEventListener('change', () => { box.hidden = !chk.checked; sel.required = chk.checked; if (chk.checked) (document.getElementById('txLangBtn') || sel).focus(); });
 })();
 
 // scheduled window: expand only when checked; unchecking collapses and clears (avoid submitting stale values)

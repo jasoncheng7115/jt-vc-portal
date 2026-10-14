@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.19.0 — 會議管理系統
+# jt-vc-portal v1.20.0 — 會議管理系統
 
 > English: [README.md](README.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -210,14 +210,14 @@ server {
 
 ```bash
 # 1) 從 Release 頁下載映像與校驗檔（請改用最新版本號）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.19.0/jt-vc-portal-1.19.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.19.0/jt-vc-portal-1.19.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.20.0/jt-vc-portal-1.20.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.20.0/jt-vc-portal-1.20.0-docker-amd64.tar.gz.sha256
 
 # 2) 驗證完整性（應顯示 OK）
-sha256sum -c jt-vc-portal-1.19.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.20.0-docker-amd64.tar.gz.sha256
 
-# 3) 載入映像（會建立 jt-vc-portal:1.19.0 與 :latest 標籤）
-docker load < jt-vc-portal-1.19.0-docker-amd64.tar.gz
+# 3) 載入映像（會建立 jt-vc-portal:1.20.0 與 :latest 標籤）
+docker load < jt-vc-portal-1.20.0-docker-amd64.tar.gz
 
 # 4) 主機端準備持久化目錄（www-data UID 預設 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -264,6 +264,7 @@ Docker 映像與 Release 映像已經內含所有元件，不必另外安裝。*
 | v1.16.1 以前 | 自建 Jitsi Meet 升到 `stable-11031` 以後：`.env` 改為 `XMPP_MUC_MODULES=token_affiliation,token_lobby_bypass`、加 `JICOFO_ENABLE_AUTH=0`、停用舊的 `GLOBAL_CONFIG=disable_cascading_set = false`，再 `docker compose up -d`。否則來賓會變成主持人（可自行錄影、踢人）。詳見 [JITSI-MEET-SETUP_zh-TW.md](JITSI-MEET-SETUP_zh-TW.md)「主持人權限控制」。 |
 | v1.16.2 以前 | 自建 Jibri 升到 `stable-11031` 以後：jibri 服務的 `environment` 加 `SE_AVOID_STATS=true`、`SE_OFFLINE=true` 後重建容器，否則 Jibri 主機連外慢時按錄影會等很久再出現「全部錄製目前忙碌」。詳見 [JIBRI-SETUP_zh-TW.md](JIBRI-SETUP_zh-TW.md) 第七節。 |
 | v1.14.0 以前 | 會議記錄匯出 PDF / DOCX / ODT 需要 PHP `zlib` 擴充（Debian / Ubuntu 的 PHP 套件已內建），以及隨附字型 `lib/fonts/NotoSansTC-Regular.ttf`（`git pull` 會一起取得）。 |
+| v1.19.0 以前 | 直接安裝的站台：PHP 最低版本改為 **8.3**（PHP 8.2 只剩安全修補，2026-12-31 結束）。Docker 與 Release 映像已是 8.4，不用處理。 |
 
 可用 `php -m | grep -iE 'curl|mbstring|openssl|zlib|fileinfo|json'` 檢查。升級後打開**系統設定**：缺少的元件會列在最上方；背景排程沒在執行時，「逐字稿與摘要」卡片會警示。
 

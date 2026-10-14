@@ -13,5 +13,9 @@ Auth::csrfCheck();
 $room = Rooms::sanitize((string)($_POST['room'] ?? $_GET['room'] ?? ''));
 if ($room === '') { http_response_code(400); exit; }
 if (!Rooms::canHost(Rooms::get($room), $me)) { http_response_code(403); exit; }
-Rooms::setHostLeft($room);
+// 離開當下的名冊（v1.20.0）：FormData 欄位 roster＝JSON，上限 64KB（sendBeacon 的上限）
+$roster = null;
+$rj = (string)($_POST['roster'] ?? '');
+if ($rj !== '' && strlen($rj) <= 65536) { $d = json_decode($rj, true); if (is_array($d)) $roster = $d; }
+Rooms::setHostLeft($room, $roster);
 http_response_code(204);
