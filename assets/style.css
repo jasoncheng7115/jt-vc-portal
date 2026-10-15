@@ -1779,6 +1779,7 @@ body.is-dark .tx-more-menu { background: #1e293b; }
 .tx-model { font-size: 12px; margin: 14px 0 0; }
 .tx-video { width: 100%; max-height: 420px; background: #000; border-radius: 10px; margin: 0 0 10px; }
 .tx-err { font-size: 13px; }
+.tx-wave-note { font-size: 12.5px; margin: 6px 0 0; }
 .mt-player[hidden] { display: none; }
 .mt-segs { max-height: 560px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
 .mt-row { display: grid; grid-template-columns: 52px 120px 1fr; gap: 8px; padding: 6px 10px; border-bottom: 1px solid #f1f5f9; font-size: 14px; line-height: 1.6; }

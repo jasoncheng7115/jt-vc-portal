@@ -49,8 +49,17 @@
 - [ ] Integration tests: `tests/run-integration.sh` is all green.
 - [ ] i18n check: `tests/check-i18n.php` reports no untranslated strings and no missing keys (from v1.7.0).
 - [ ] Run everything above at once: `tests/run-all.sh` (lint → i18n → unit → integration).
-- [ ] Browser e2e: `tests/run-e2e.sh` passes in both zh-TW and English (host joins meeting, guest joins, no CSP / SRI errors).
-- [ ] Production entry paths and gates (T64–T66, T77): `tests/prod-entry-gates.sh` (maintainer, after deployment; also after Jitsi / Jibri upgrades).
+- [ ] Browser e2e: `tests/run-e2e.sh` passes in zh-TW, English and Japanese (host joins meeting, guest joins, no CSP / SRI errors).
+- [ ] Transcripts and summaries: `tests/run-transcribe.sh` is all green (official JTLW mock + fake recording service + real browser; covers waveform, exports, renaming, the language dropdown and room badges).
+- [ ] Single sign-on: `tests/run-sso.sh` is all green (disposable Keycloak + real browser).
+- [ ] Recording service: `tests/test-jibri-api.sh` is all green (the real `server.py`; the waveform checks need ffmpeg on the test machine and are marked SKIP otherwise).
+- [ ] Release rehearsal: `git archive <tag> | tar -x -C <tmp>` then `tools/ci-build-release.sh <version> <tmp> <tmp>/out` succeeds (no keys / docs / tests or other extra files in the image).
+- [ ] **Production (maintainer, required after deployment; also after Jitsi / Jibri upgrades and reverse-proxy changes)**:
+  - [ ] Entry paths and gates (T64–T66, T77): `tests/prod-entry-gates.sh` — the only test that makes the browser really request the camera and microphone; never switch it to a simulation.
+  - [ ] Simulated meeting (T42, T70, T80–T82 on the real system): `tests/prod-meeting-sim.sh` — real recording, real speech service producing the transcript and summary, the recording host computing the waveform with the Jibri container, exports after renaming.
+  - [ ] Single sign-on: `tests/prod-sso-smoke.sh` — temporary AD accounts through the real Keycloak, zero leftovers on all three sides.
+  - [ ] Video quality (T75): `tests/prod-video-quality.sh`.
+- [ ] If features or screens changed: retake the Pages screenshots in three languages (maintainer) and check each one has no real data.
 
 ## 2. ZAP vulnerability scan (release gate)
 
@@ -115,6 +124,9 @@
 - [ ] T77 Real Chrome through the reverse proxy: the guest page and the host meeting page each have exactly one CSP and one `X-Frame-Options`; if a `Permissions-Policy` is present, `camera` and `microphone` allow the Jitsi domain; the embedded Jitsi actually gets the camera and microphone, and after turning them on Jitsi has local audio and video tracks (the test must not replace getUserMedia). **Run on every release, after Jitsi upgrades and after reverse-proxy changes.**
 - [ ] T78 "Main meeting language" when creating a room is a site-styled dropdown: the native select is hidden but stays in the form, the button shows the placeholder, clicking opens the five languages (the list lives in body so cards cannot clip it), mouse and keyboard (↓ / Enter / Esc) both work, submitting without a language is blocked and the border turns red; the recent rooms list and the created panel show a transcript badge: Chinese "Transcript and summary · Mainly Chinese", Japanese / Korean "Transcript" only, none when unticked; the badge follows the same rule as automatic processing (per-meeting switch first, then the account's automatic setting; none without permission or when transcripts are off).
 - [ ] T79 The host's leave notice carries the current roster: people who joined just before the host left, not yet reported by a heartbeat, are still recorded; repeated leave notices add no extra session; old notices without a roster still use the heartbeat roster; joins and leaves trigger a heartbeat within about 2 seconds.
+- [ ] T80 Transcript waveform: the recording service's `/api/recordings/<id>/peaks` returns 1,200 values from 0 to 1 for a finished recording (sound louder than silence), caches `.peaks.json` without affecting the list; recording / unfinished 409, unknown id / path traversal 404, token required; no ffmpeg and no Jibri container → 503 no_decoder. The portal's `/recordings-peaks` uses the same permission as playback (someone else's meeting, invalid id, not signed in → 404). The page uses the service's waveform first; otherwise decodes up to 60 MB in the browser; larger files show the reason and playback still works.
+- [ ] T81 Downloaded HTML minutes look like the web page: citation chips jump to that part of the transcript (source_seqs if present, otherwise the time) and highlight it with :target; topic rows are clickable with percentage bars; speaker statistics bars in the speaker's colour; back-to-top button; only in-page links — still no script, external resources or event attributes.
+- [ ] T82 Speaker codes inside summary text are replaced by names (summary text, decision / action text, owner and due date, topic titles; web page and all exports): only renamed codes; not when glued to letters / digits (S12, S1x); not lowercase; one pass (swapping names does not chain); "AWS S3", "AWS-S3", "Amazon S3" untouched.
 
 ### 3.5 Meeting records and statistics
 - [ ] When the host leaves, `meetings.jsonl` is written (duration, peak concurrent participants, participant join / leave times).
@@ -128,7 +140,7 @@
 - [ ] Delete, cleanup by policy, capacity bar, retention policy (time / capacity / leftovers, disabled by default) are admin-only.
 - [ ] A host can only see and fetch recordings of sessions they hosted; after a room name is re-created by someone else, the new owner cannot see the old sessions.
 - [ ] Recording status (ok / recording / incomplete / orphan) is determined correctly; recordings in progress cannot be deleted.
-- [ ] Jibri recordings API: `tests/test-jibri-api.sh` passes (auth, Range 206 / 416, path traversal).
+- [ ] Jibri recordings API: `tests/test-jibri-api.sh` passes (auth, Range 206 / 416, path traversal, waveform T80).
 
 ### 3.7 System settings (admin)
 - [ ] In self-hosted mode with "No JWT" the settings page shows a warning; the create-room form explains the guessable-name risk.
@@ -265,6 +277,30 @@
 - [ ] T68 Transcript waveform: no time tooltip before the cursor is over the waveform (no empty box in the top-left); it shows the time on hover and hides again when the cursor leaves; site-wide, elements marked hidden are never displayed.
 - [ ] T69 Meeting minutes export: an extra blank line between each section heading and the paragraph before it (PDF / DOCX / ODT / HTML).
 
+### 3.13 Transcript page and exports: manual acceptance (maintainer, every release)
+
+The automated tests use simulated data and Chromium; check the following with a **real recording of 30 minutes or more** on production, in real browsers.
+
+**Waveform**
+- [ ] First visit to the transcript page: "Generating the waveform…" appears under it and the waveform shows up within a few seconds; after a reload it appears immediately (cache).
+- [ ] The waveform matches the speech (low when quiet, high when talking); hovering shows the time and the speaker at that moment; clicking jumps playback there, and the progress and transcript highlight stay in sync.
+- [ ] While the recording host computes a waveform, another meeting is being recorded: the recording carries on and Jibri does not turn busy or fail (ffmpeg runs at the lowest priority and finishes quickly).
+- [ ] After deleting the recording, its folder disappears together with `.peaks.json`.
+- [ ] Upgrade compatibility: with an older recording service, recordings up to 60 MB still get a browser-drawn waveform; larger ones show the reason, and playback and click-to-jump still work.
+
+**Renaming reaches every place**
+- [ ] After renaming S1 / S2 to people's names, all of these show names with no renamed code left: transcript speakers, citation chips, summary text, decision / action text, owner and due date, topic titles, speaker statistics, speaker suggestions.
+- [ ] Rename again (e.g. swap the two names): every place is still right, with no chained mistakes.
+- [ ] Product names like "AWS S3" in the summary are not replaced by a name; "S12" is not hit by S1.
+- [ ] Renaming a single segment's speaker only affects that segment and does not change the summary text.
+
+**Downloaded minutes**
+- [ ] PDF / DOCX / ODT / HTML / Markdown / plain text / SRT: the assigned names appear in the right places with no renamed code left; JSON keeps the original codes plus the names.
+- [ ] HTML opened offline (once each in Chrome, Safari, Firefox and on a phone): looks like the web page (citation chips, topic and speaker bars, speaker colours).
+- [ ] HTML: a citation chip scrolls to that part of the transcript and highlights it in yellow; a topic row jumps to where the topic starts; the browser's Back returns to where you were; the "back to top" button works.
+- [ ] HTML print preview keeps colours and bars, hides "back to top" and does not split segments; on a phone-width screen no horizontal scrolling is needed.
+- [ ] PDF / DOCX / ODT open in Adobe Reader (or the built-in preview), Word and LibreOffice with no missing Chinese or Japanese characters.
+
 ## 4. Internationalization (i18n)
 
 (From v1.7.0)
@@ -381,7 +417,7 @@ Spot-check on every release; test everything for major changes:
 | .ics folding / REQUEST / CANCEL / SEQUENCE, session settlement on room delete, audit length limits and retention pruning | `tests/unit/test_ical_audit.php` |
 | Audit log in the viewer's language, `system` account and empty IP T67 | `tests/unit/test_ical_audit.php` |
 | GET sign-out ignored, password change / force sign-out invalidates sessions, room delete permissions, audit | `tests/run-integration.sh` (v1.8.0 section) |
-| Jibri recordings API auth / Range / path traversal | `tests/test-jibri-api.sh` |
+| Jibri recordings API auth / Range / path traversal / waveform | `tests/test-jibri-api.sh` |
 | SSO S02–S20 (signature, claims, state, PKCE URL, groups, provisioning, SSO only, logout URL, settings) | `tests/unit/test_oidc.php` |
 | SSO S02 / S05 / S08 / S10 (mini IdP: token exchange, userinfo, fail-closed) | `tests/unit/test_oidc_flow.php` |
 | SSO S01, S05–S07, S11–S21, S23–S25, S27, S28, S30 (real Keycloak + browser, incl. OTP) | `tests/run-sso.sh` (`tests/e2e/sso.cjs`) |
@@ -405,6 +441,8 @@ Spot-check on every release; test everything for major changes:
 | Camera / microphone permission and no duplicate headers T77 | `tests/prod-entry-gates.sh` (maintainer, production) |
 | Main meeting language dropdown, transcript badge T78 | `tests/unit/test_transcripts.php` (rule), `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`, UI) |
 | Leave notice carries the roster T79 | `tests/unit/test_rooms.php`, `tests/run-integration.sh` |
+| Recording waveform (service / portal / page) T80 | `tests/test-jibri-api.sh`, `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`), `tests/run-integration.sh` |
+| HTML minutes like the web page T81, names instead of codes in summaries T82 | `tests/unit/test_txexport.php`, `tests/unit/test_transcripts.php` |
 | Recording start / stop / two at once T70 | `tests/prod-entry-gates.sh`, `tests/prod-meeting-sim.sh` (maintainer, production) |
 | Language menu (collapsed, opens on click, Esc) | `tests/run-e2e.sh` (`tests/e2e/meeting.cjs`) |
 | SSO S29 | Production smoke script run by the maintainer against the live deployment (temporary accounts, cleaned up afterwards) |

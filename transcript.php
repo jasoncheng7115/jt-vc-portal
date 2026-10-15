@@ -156,6 +156,7 @@ render_topbar($me, $ip);
       <span class="mt-clock"><b id="txNow">00:00</b><i>/</i><span id="txTot">00:00</span></span>
       <button class="btn btn-ghost btn-sm" id="txShowVideo" type="button"><?= icon('video', 14) ?><span><?= th('顯示畫面') ?></span></button>
     </div>
+    <p class="muted tx-wave-note" id="txWaveNote" hidden></p>
     <video id="txMedia" class="tx-video" preload="metadata" playsinline hidden src="/recordings-file?id=<?= rawurlencode($id) ?>"></video>
     <p class="muted tx-err" id="txMediaErr" hidden></p>
     <div class="tx-suggest" id="txSuggest" hidden>
@@ -187,6 +188,9 @@ render_topbar($me, $ip);
     'media_format' => t('瀏覽器無法播放這個錄影檔，請改用下載後播放。'),
     'media_server' => t('暫時連不到錄影服務，請稍後重新整理再試。'),
     'relogin' => t('重新登入'),
+    'waveLoading' => t('正在產生波形…（長的錄影第一次要十幾秒）'),
+    'waveBig' => t('錄影較大（{0} MB），錄影服務沒有提供波形，為了不拖垮瀏覽器這裡不畫；播放與點選跳播照常。'),
+    'waveDecode' => t('這個錄影檔瀏覽器解不開，沒有畫波形；播放與點選跳播照常。'),
   ], JSON_UNESCAPED_UNICODE) ?>;
   function fmt(s) { var a = arguments; return s.replace(/\{(\d)\}/g, function (_, i) { return a[+i + 1]; }); }
   function mmss(ms) { if (ms == null) return ''; var t = Math.round(ms / 1000); return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); }
@@ -196,6 +200,17 @@ render_topbar($me, $ip);
   function sIdx(id) { if (!id) return -1; var k = order.indexOf(id); if (k < 0) { order.push(id); k = order.length - 1; } return k % 8; }
   function nameOf(id) { return (data.speaker_names || {})[id] || id || ''; }
   function segName(s) { var ov = (data.speaker_overrides || {})[String(s.seq)]; return ov || nameOf(s.speaker); }
+  // Speaker codes inside summary text (S1 → the name you gave): only renamed codes, not glued to other letters / digits
+  // (S12 is not hit by S1), one pass (swapping S1 and S2 does not chain), product names like "AWS S3" stay (same rule as Transcripts::swapCodes).
+  function swapCodes(s) {
+    s = s == null ? '' : String(s);
+    var n = data.speaker_names || {}, m = {}, keys = [];
+    Object.keys(n).forEach(function (k) { if (/^S\d{1,3}$/.test(k) && n[k] && n[k] !== k) { m[k] = n[k]; keys.push(k); } });
+    if (!s || !keys.length) return s;
+    keys.sort(function (a, b) { return b.length - a.length; });
+    return s.replace(new RegExp('(?<![A-Za-z0-9_])(?<!AWS[ -])(?<!Amazon[ -])(' + keys.join('|') + ')(?![A-Za-z0-9_])', 'g'), function (x, k) { return m[k]; });
+  }
+  function ownerName(o) { return /^S\d{1,3}$/.test(String(o)) ? nameOf(o) : swapCodes(o); }
   async function saveSpeakers() {
     var r = await fetch('/transcript-action', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
       body: JSON.stringify({ action: 'speakers', id: data.id, map: data.speaker_names || {}, overrides: data.speaker_overrides || {} }) });
@@ -303,11 +318,11 @@ render_topbar($me, $ip);
       var c = document.createElement('div'); c.className = 'tx-item';
       var head = document.createElement('div'); head.className = 'tx-item-text';
       if (labelFn) { var tag = document.createElement('span'); tag.className = 'tx-tag ' + labelFn(it)[0]; tag.textContent = labelFn(it)[1]; head.appendChild(tag); }
-      head.appendChild(document.createTextNode(it.text || ''));
+      head.appendChild(document.createTextNode(swapCodes(it.text)));
       c.appendChild(head);
       var meta = [];
-      if (it.owner) meta.push(fmt(T.owner, nameOf(it.owner)));
-      if (it.due_text) meta.push(fmt(T.due, it.due_text));
+      if (it.owner) meta.push(fmt(T.owner, ownerName(it.owner)));
+      if (it.due_text) meta.push(fmt(T.due, swapCodes(it.due_text)));
       if (meta.length) { var m = document.createElement('div'); m.className = 'tx-item-meta'; m.textContent = meta.join('   '); c.appendChild(m); }
       c.appendChild(citeChips(it));
       box.appendChild(c);
@@ -315,8 +330,8 @@ render_topbar($me, $ip);
   }
   function renderSummary() {
     var S = data.summary; if (!S) return;
-    el('txSumText').textContent = S.text || T.none;
-    if (!S.grounded && (S.unsupported || []).length) { el('txSumWarn').textContent = fmt(T.check, S.unsupported.join(', ')); el('txSumWarn').hidden = false; }
+    el('txSumText').textContent = swapCodes(S.text) || T.none;
+    if (!S.grounded && (S.unsupported || []).length) { el('txSumWarn').textContent = fmt(T.check, swapCodes(S.unsupported.join(', '))); el('txSumWarn').hidden = false; }
     var it = S.items || {};
     // decisions and actions shown together (JTLW: the model may file the same thing under either)
     var dec = (it.decisions || []).map(function (x) { x._k = 'd'; return x; }).concat((it.actions || []).map(function (x) { x._k = 'a'; return x; }));
@@ -328,7 +343,7 @@ render_topbar($me, $ip);
       ch.forEach(function (c) {
         var row = document.createElement('button'); row.type = 'button'; row.className = 'tx-chap-row'; row.title = T.jump;
         var t = document.createElement('span'); t.className = 'mt-t'; t.textContent = mmss(c.start_ms) + '–' + mmss(c.end_ms);
-        var name = document.createElement('span'); name.className = 'tx-chap-title'; name.textContent = c.title || '';
+        var name = document.createElement('span'); name.className = 'tx-chap-title'; name.textContent = swapCodes(c.title);
         var bar = document.createElement('span'); bar.className = 'tx-bar'; var fill = document.createElement('i'); fill.style.width = Math.max(2, Math.min(100, c.percentage || 0)) + '%'; bar.appendChild(fill);
         var pct = document.createElement('span'); pct.className = 'tx-pct'; pct.textContent = (c.percentage || 0).toFixed(1) + '%';
         row.appendChild(t); row.appendChild(name); row.appendChild(bar); row.appendChild(pct);
@@ -390,16 +405,24 @@ render_topbar($me, $ip);
     else { dot.hidden = true; el('txTipWho').textContent = ''; }
     tip.hidden = false; var tw = tip.offsetWidth; tip.style.left = ((hx + tw + 4 > w) ? Math.max(0, hx - tw - 4) : hx + 4) + 'px';
   }
+  // Waveform (v1.21.0, as jtdt 1.16.93): 1) peaks computed by the recording service (any size, cached there);
+  // 2) files up to 60 MB are decoded in the browser; 3) otherwise a plain clickable timeline and a note why.
+  function shapePeaks(raw) { var top = 0; raw.forEach(function (v) { top = Math.max(top, +v || 0); }); return raw.map(function (v) { return top > 0 ? Math.sqrt((+v || 0) / top) : 0; }); }   // normalise + sqrt (meeting recordings peak low)
+  function waveNote(msg) { var n = el('txWaveNote'); n.textContent = msg || ''; n.hidden = !msg; }
   async function buildPeaks() {
-    if (!data.size || data.size > 60 * 1024 * 1024) return null;   // big files: decoding the whole PCM would crash the tab
+    waveNote(T.waveLoading);
+    try {
+      var r = await fetch('/recordings-peaks?id=' + encodeURIComponent(data.id), { credentials: 'same-origin' });
+      if (r.ok) { var j = await r.json(); if (j && Array.isArray(j.peaks) && j.peaks.length) { waveNote(''); wave.dataset.src = 'server'; return shapePeaks(j.peaks); } }
+    } catch (e) {}
+    if (!data.size || data.size > 60 * 1024 * 1024) { waveNote(data.size ? fmt(T.waveBig, Math.round(data.size / 1048576)) : ''); return null; }   // decoding the whole PCM would crash the tab
     try {
       var buf = await (await fetch(media.getAttribute('src'))).arrayBuffer();
-      var Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return null;
-      var pcm = await new Ctx().decodeAudioData(buf), ch = pcm.getChannelData(0), N = 1200, out = new Array(N), step = ch.length / N, top = 0;
-      for (var i = 0; i < N; i++) { var a = Math.floor(i * step), b = Math.min(ch.length, Math.floor((i + 1) * step)), m = 0; for (var k = a; k < b; k++) { var v = Math.abs(ch[k]); if (v > m) m = v; } out[i] = m; if (m > top) top = m; }
-      if (top > 0) for (var j = 0; j < N; j++) out[j] = Math.sqrt(out[j] / top);   // normalise + sqrt (meeting recordings peak low)
-      return out;
-    } catch (e) { return null; }
+      var Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) throw new Error('no audio');
+      var pcm = await new Ctx().decodeAudioData(buf), ch = pcm.getChannelData(0), N = 1200, out = new Array(N), step = ch.length / N;
+      for (var i = 0; i < N; i++) { var a = Math.floor(i * step), b = Math.min(ch.length, Math.floor((i + 1) * step)), m = 0; for (var k = a; k < b; k++) { var v = Math.abs(ch[k]); if (v > m) m = v; } out[i] = m; }
+      waveNote(''); wave.dataset.src = 'browser'; return shapePeaks(out);
+    } catch (e) { waveNote(T.waveDecode); return null; }
   }
   function highlight() {
     var ms = (media.currentTime || 0) * 1000, rows = el('txSegs').children, hit = null;

@@ -199,4 +199,9 @@ return [
   '這場的發言者辨識改用舊方法，發言者分組可能較不準；可以點名字手動修正。' => 'Speaker detection for this meeting fell back to the previous method, so the speaker grouping may be less accurate; click a name to correct it.',
   '錄影完成後會自動產生逐字稿與摘要' => 'A transcript and summary will be generated automatically after recording',
   '錄影完成後會自動產生逐字稿（這個語言不支援摘要）' => 'A transcript will be generated automatically after recording (summaries are not available for this language)',
+  '跳到逐字稿這一段' => 'Jump to this part of the transcript',
+  '回到上方' => 'Back to top',
+  '正在產生波形…（長的錄影第一次要十幾秒）' => 'Generating the waveform… (long recordings take a few seconds the first time)',
+  '錄影較大（{0} MB），錄影服務沒有提供波形，為了不拖垮瀏覽器這裡不畫；播放與點選跳播照常。' => 'The recording is large ({0} MB) and the recording service did not provide a waveform, so none is drawn here to avoid overloading the browser; playback and click-to-jump still work.',
+  '這個錄影檔瀏覽器解不開，沒有畫波形；播放與點選跳播照常。' => 'The browser cannot decode this recording, so no waveform is drawn; playback and click-to-jump still work.',
 ];

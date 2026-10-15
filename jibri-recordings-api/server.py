@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 錄影調閱 API：只服務 jt-vc-portal（Bearer token + 來源 IP 允許清單）。
-# 提供：列表 / 串流播放(Range) / 下載 / 容量統計 / 刪除 / 保留政策設定與自動清理。
+# 提供：列表 / 串流播放(Range) / 下載 / 波形（v1.21.0）/ 容量統計 / 刪除 / 保留政策設定與自動清理。
 # 設定與清理紀錄存於 REC_DIR 下的點開頭檔（list 只掃資料夾，故不影響列表）。
 import os, json, re, hmac, time, shutil, threading, urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -297,6 +297,103 @@ def cleanup_loop():
         except Exception as e:
             clean_log({"action": "error", "detail": str(e)})
 
+# ---------- 波形（v1.21.0）----------
+# 逐字稿頁畫波形用：整段錄影切成 PEAKS_N 段，每段取最大振幅（0–1，與 jtdt audio_peaks.wav_peaks 同格式；
+# 正規化與開根號在瀏覽器做）。大錄影在瀏覽器解碼會拖垮分頁，所以在這裡算一次、存在錄影資料夾的 .peaks.json。
+# 解碼用 ffmpeg：主機有就用主機的；沒有就借執行中 Jibri 容器裡的 ffmpeg（docker-jitsi-meet 的 Jibri 映像內建，
+# 錄影目錄也掛在容器裡），一律最低優先權（nice 19），不影響正在錄影的 Jibri。降成 1 kHz 單聲道：只看音量起伏。
+PEAKS_N    = 1200
+PEAKS_RATE = 1000
+PEAKS_FILE = ".peaks.json"
+_peaks_lock = threading.Lock()
+
+def _decode_cmd(mp4path):
+    tail = ["-nostdin", "-v", "error", "-i", "{IN}", "-vn", "-ac", "1", "-ar", str(PEAKS_RATE), "-f", "s16le", "-"]
+    ff = shutil.which("ffmpeg")
+    if ff:
+        return (["nice", "-n", "19"] if shutil.which("nice") else []) + [ff] + [mp4path if x == "{IN}" else x for x in tail]
+    import subprocess
+    try:
+        names = [n.strip() for n in subprocess.run(["docker", "ps", "--format", "{{.Names}}"], capture_output=True, text=True, timeout=4).stdout.splitlines() if "jibri" in n.lower()]
+    except Exception:
+        return None
+    real = os.path.realpath(mp4path)
+    for n in names:
+        if not re.fullmatch(r"[A-Za-z0-9._-]+", n):
+            continue
+        try:
+            mounts = json.loads(subprocess.run(["docker", "inspect", "-f", "{{json .Mounts}}", n], capture_output=True, text=True, timeout=4).stdout or "[]")
+        except Exception:
+            continue
+        for m in mounts or []:
+            src = os.path.realpath(m.get("Source") or "")
+            if src and real.startswith(src.rstrip("/") + "/"):
+                inner = (m.get("Destination") or "").rstrip("/") + real[len(src.rstrip("/")):]
+                return ["docker", "exec", n, "nice", "-n", "19", "ffmpeg"] + [inner if x == "{IN}" else x for x in tail]
+    return None
+
+def peaks(rid):
+    """回 (HTTP 狀態, 內容)。只算已完成的錄影；算好就快取，錄影檔沒變就直接讀快取。"""
+    import subprocess, sys
+    from array import array
+    d = _safe_dir(rid)
+    mp4 = mp4_path(rid) if d else None
+    if not mp4:
+        return 404, {"ok": False, "error": "not_found"}
+    st = os.stat(mp4)
+    if not os.path.isfile(os.path.join(d, "metadata.json")) or _mp4_duration(mp4) <= 0:
+        return 409, {"ok": False, "error": "not_finished"}    # 錄製中 / 中斷殘留：不算
+    cache = os.path.join(d, PEAKS_FILE)
+    def cached():
+        try:
+            if os.path.getmtime(cache) >= st.st_mtime:
+                with open(cache) as f:
+                    c = json.load(f)
+                if isinstance(c.get("peaks"), list) and c["peaks"]:
+                    return c
+        except Exception:
+            pass
+        return None
+    c = cached()
+    if c:
+        return 200, {"ok": True, **c}
+    if not _peaks_lock.acquire(timeout=150):               # 一次只解一個檔；別人正在算同一個就等它算完
+        return 503, {"ok": False, "error": "busy"}
+    try:
+        c = cached()
+        if c:
+            return 200, {"ok": True, **c}
+        cmd = _decode_cmd(mp4)
+        if not cmd:
+            return 503, {"ok": False, "error": "no_decoder"}
+        try:
+            raw = subprocess.run(cmd, capture_output=True, timeout=600).stdout   # 6 小時錄影 ≈ 43 MB
+        except Exception:
+            return 503, {"ok": False, "error": "decode_failed"}
+        a = array("h")
+        a.frombytes(raw[: len(raw) // 2 * 2])
+        if sys.byteorder != "little":
+            a.byteswap()
+        total = len(a)
+        if total == 0:
+            return 422, {"ok": False, "error": "no_audio"}
+        n = min(PEAKS_N, total)
+        out = []
+        for i in range(n):
+            seg = a[i * total // n: (i + 1) * total // n]
+            out.append(round(min(1.0, max(max(seg), -min(seg)) / 32768.0), 4) if len(seg) else 0.0)
+        c = {"n": n, "peaks": out, "duration": round(total / PEAKS_RATE, 1)}
+        tmp = cache + ".tmp"
+        try:
+            with open(tmp, "w") as f:
+                json.dump(c, f)
+            os.replace(tmp, cache)
+        except OSError:
+            pass                                              # 寫不進去就下次再算，不影響這次回應
+        return 200, {"ok": True, **c}
+    finally:
+        _peaks_lock.release()
+
 # ---------- HTTP ----------
 def mp4_path(rid):
     d = _safe_dir(rid)
@@ -328,7 +425,7 @@ class H(BaseHTTPRequestHandler):
             return self._deny()
         u = urllib.parse.urlparse(self.path)
         if u.path == "/api/ping":
-            return self._json({"ok": True, "service": "jibri-recordings-api", "version": 2})
+            return self._json({"ok": True, "service": "jibri-recordings-api", "version": 3})
         if u.path == "/api/stats":
             return self._json({"ok": True, **stats()})
         if u.path == "/api/config":
@@ -340,6 +437,10 @@ class H(BaseHTTPRequestHandler):
         m = re.fullmatch(r"/api/recordings/([^/]+)/file", u.path)
         if m:
             return self._serve(urllib.parse.unquote(m.group(1)), urllib.parse.parse_qs(u.query))
+        m = re.fullmatch(r"/api/recordings/([^/]+)/peaks", u.path)
+        if m:
+            code, obj = peaks(urllib.parse.unquote(m.group(1)))
+            return self._json(obj, code)
         self.send_response(404); self.end_headers()
 
     def do_POST(self):

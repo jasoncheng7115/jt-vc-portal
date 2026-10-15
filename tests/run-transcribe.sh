@@ -36,6 +36,10 @@ rows=[("rec-ok01","room-man",now-200),("rec-sum01","room-man",now-190),("rec-fai
       ("rec-slow01","room-man",now-160),("rec-auto01","room-auto",now-150),("rec-old01","room-auto",now-100000),("rec-dup01","room-man",now-140),
       ("rec-gone01","room-man",now-130),("rec-sum02","room-man",now-125),("rec-other01","room-other",now-120),("rec-lang01","room-man",now-115),("rec-retry01","room-man",now-110),("rec-dzfb01","room-man",now-105)]
 recs=[{"id":i,"room":r,"file":f"{r}.mp4","size":20000,"mtime":m,"status":"ok","duration":120} for i,r,m in rows]
+for x in recs:
+    if x["id"] == "rec-dzfb01": x["size"] = 200 * 1024 * 1024   # T80：標成 200 MB、錄影服務沒給波形 → 頁面顯示說明
+import math
+json.dump({"ok": True, "n": 1200, "peaks": [round(abs(math.sin(i / 40)) * (0.3 + 0.7 * (i % 300) / 300), 4) for i in range(1200)]}, open(f"{d}/rec-sum01.peaks.json", "w"))   # T80：錄影服務算好的波形
 recs.append({"id":"rec-live01","room":"room-man","file":"room-man-live.mp4","size":4000,"mtime":now-5,"status":"recording","duration":0})
 json.dump(recs,open(f"{d}/recs.json","w"))
 PY

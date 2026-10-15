@@ -58,6 +58,7 @@ chk "GET /twofa → 404" "$(code $B/twofa)" 404
 chk "GET /twofa-verify → 404" "$(code $B/twofa-verify)" 404
 chk "未登入 /logout → 導回 /" "$(loc $B/logout)" "$B/"
 chk "未登入 /dashboard → 404" "$(code $B/dashboard)" 404
+chk "T80 未登入 /recordings-peaks → 404" "$(code "$B/recordings-peaks?id=rec1")" 404
 
 echo "== 登入"
 A="$JAR/admin"

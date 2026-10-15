@@ -92,6 +92,24 @@ function unzipEntry(buf, name) {
   await pm.waitForTimeout(300);
   ok('T68 波形時間提示：游標離開後再隱藏', (await tipVis()) === false);
   ok('T68 全站規則：[hidden] 元素一律不顯示', (await pm.$$eval('[hidden]', els => els.filter(e => getComputedStyle(e).display !== 'none').length)) === 0);
+  await pm.waitForFunction(() => document.getElementById('txWave').dataset.src, null, { timeout: 15000 }).catch(() => {});
+  if (process.env.MEDIA_OK === '1') ok('T80 小錄影（錄影服務沒給波形）→ 在瀏覽器解碼畫波形、沒有說明文字', (await pm.evaluate(() => document.getElementById('txWave').dataset.src)) === 'browser' && !(await pm.isVisible('#txWaveNote')));
+
+  // ---- T80（v1.21.0）：錄影服務算好的波形、大檔的說明、端點權限 ----
+  const waveInk = (p) => p.evaluate(() => { const c = document.getElementById('txWave'), g = c.getContext('2d'), d = g.getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 0) n++; return n / (c.width * c.height); });
+  await pm.goto(BASE + '/transcript?id=rec-sum01');
+  await pm.waitForFunction(() => document.getElementById('txWave').dataset.src === 'server', null, { timeout: 15000 }).catch(() => {});
+  const ink = await waveInk(pm);
+  ok('T80 有錄影服務算好的波形 → 直接用（不必下載整個錄影）、畫得出來、沒有說明文字', (await pm.evaluate(() => document.getElementById('txWave').dataset.src)) === 'server' && ink > 0.15 && !(await pm.isVisible('#txWaveNote')), 'ink ' + ink.toFixed(2));
+  await pm.goto(BASE + '/transcript?id=rec-dzfb01');
+  await pm.waitForFunction(() => !document.getElementById('txWaveNote').hidden && !/…/.test(document.getElementById('txWaveNote').textContent), null, { timeout: 15000 }).catch(() => {});
+  const note = (await pm.textContent('#txWaveNote')) || '';
+  ok('T80 大錄影（200 MB）且錄影服務沒給波形 → 不在瀏覽器解碼、顯示原因', note.includes('200 MB') && (await pm.evaluate(() => document.getElementById('txWave').dataset.src)) === undefined, note);
+  const pk = await pm.request.get(BASE + '/recordings-peaks?id=rec-sum01');
+  ok('T80 波形端點：自己的場次 → 1200 個 0–1 的數字', pk.status() === 200 && ((await pk.json()).peaks || []).length === 1200);
+  ok('T80 波形端點：別人的場次 → 404', (await pm.request.get(BASE + '/recordings-peaks?id=rec-other01')).status() === 404);
+  ok('T80 波形端點：不合法的 id → 404', (await pm.request.get(BASE + '/recordings-peaks?id=..%2Fx')).status() === 404);
+  await pm.goto(BASE + '/transcript?id=rec-ok01'); await pm.waitForTimeout(500);   // 回到原本的逐字稿頁，後面的改名測試接著用
 
   // 改名（全部）→ 重新整理仍在、同一代號的每一段都改
   const firstSpk = await pm.$eval('#txSegs .mt-row .mt-s', e => e.textContent);

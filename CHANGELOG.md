@@ -2,6 +2,13 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.21.0 — Waveform for long recordings, clickable HTML minutes, names instead of S1 in summaries
+
+- **Waveform on the transcript page**: recordings over 60 MB (meetings longer than about 15 minutes) used to get no waveform, because the browser would have to download and decode the whole file. The recording host's `jibri-recordings-api` now computes 1,200 loudness values (on first request, cached afterwards), so long recordings get a waveform too; with an older recording service, files up to 60 MB are still decoded in the browser and larger ones show why there is no waveform (following jtdt 1.16.93). **Self-hosted Jibri: update `server.py`** (see JIBRI-SETUP).
+- **Downloaded HTML minutes** now look like the web page: citations are chips (time · speaker, in the speaker's colour) that jump to that part of the transcript and highlight it; the topic timeline and speaker statistics have bars; the transcript is coloured by speaker; a "back to top" button. Still a single file with no script — the same offline, forwarded or printed.
+- **Speaker codes inside summary text** (e.g. "send it to S1 for review") are replaced by the names you assigned: summary text, decision / action text, owner and due date, topic titles — on the web page and in PDF / DOCX / ODT / HTML / Markdown exports. Only renamed codes are replaced, never when glued to other letters or digits (S12 is not hit by S1), and product names like "AWS S3" or "Amazon S3" are left alone; the stored data is not rewritten, so renaming again stays correct.
+- Tests T80, T81, T82.
+
 ## v1.20.0 — Transcript badge in the room list, site-styled language picker
 
 - Recent rooms list and the "created" panel: rooms whose recordings will be transcribed automatically show a badge such as "Transcript and summary · Mainly Chinese (Mandarin)" (with the meeting's main language; for Japanese and Korean meetings the speech service makes no summary, so it says "Transcript" only). The rule matches what actually happens: the per-meeting switch wins, otherwise the host account's "automatic" setting; no badge when the host has no transcript permission or transcripts are turned off.

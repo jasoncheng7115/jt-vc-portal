@@ -40,7 +40,8 @@ final class TxExport {
 
   /**
    * 內容區塊：['title',s] ['meta',[[label,value]]] ['h',s] ['p',s] ['warn',s] ['item',kind|null,tag,text,meta,cites]
-   *          ['table',[header],[[cells]],[寬度比]] ['segs',[[time,name,text,color]]] ['foot',s]
+   *          ['table',[header],[[cells]],[寬度比],(['chap'|'spk',[每列資料]])] ['segs',[[time,name,text,color,seq]]] ['foot',s]
+   *          item 第 7 欄＝出處的結構化資料 [{t,n,ci,seq}]（HTML 匯出用；其他格式只用第 6 欄的文字）
    */
   public static function model(array $rec, array $tr, ?array $sum, ?array $sess): array {
     $names = (array)($tr['speaker_names'] ?? []); $ovr = (array)($tr['speaker_overrides'] ?? []);
@@ -53,8 +54,23 @@ final class TxExport {
     // 顏色依逐字稿出現順序（同網頁）
     foreach ($tr['segments'] as $s) $color((string)($s['speaker'] ?? ''));
     $nameOf = fn(?string $id) => ($id !== null && $id !== '') ? (string)($names[$id] ?? $id) : '';
+    $codeMap = Transcripts::codeNames($tr);
+    $sw = fn(string $x) => Transcripts::swapCodes($x, $codeMap);   // 摘要文字裡的 S1 → 名字（v1.21.0）
     $segName = function (array $s) use ($ovr, $nameOf) { $o = (string)($ovr[(string)$s['seq']] ?? ''); return $o !== '' ? $o : $nameOf((string)($s['speaker'] ?? '')); };
 
+    // 出處 / 議題 → 逐字稿的哪一段（HTML 匯出點了跳過去，v1.21.0）：先用 JTLW 給的 source_seqs，沒有就找那個時間點的段落
+    $seqSet = []; $timed = [];
+    foreach ($tr['segments'] as $s) { $seqSet[(int)$s['seq']] = true; if (isset($s['start_ms'])) $timed[] = [(int)$s['start_ms'], (int)$s['seq']]; }
+    $seqAt = function (?int $ms) use ($timed): ?int {
+      if ($ms === null || !$timed) return null;
+      $hit = $timed[0][1];
+      foreach ($timed as [$st, $q]) { if ($st > $ms) break; $hit = $q; }
+      return $hit;
+    };
+    $target = function (array $c) use ($seqSet, $seqAt): ?int {
+      foreach ((array)($c['source_seqs'] ?? []) as $q) if (isset($seqSet[(int)$q])) return (int)$q;
+      return $seqAt(isset($c['start_ms']) ? (int)$c['start_ms'] : null);
+    };
     $room = (string)($rec['room'] ?? '');
     $start = (int)($rec['mtime'] ?? 0) - (int)($rec['duration'] ?? 0);
     $dur = (int)($rec['duration'] ?? 0);
@@ -73,10 +89,14 @@ final class TxExport {
         $c = array_map(fn($x) => self::mmss(isset($x['start_ms']) ? (int)$x['start_ms'] : null) . (($n = $nameOf($x['speaker_id'] ?? null)) !== '' ? ' ' . $n : ''), (array)($it['citations'] ?? []));
         return $c ? t('出處：') . implode(self::sep('list'), $c) : '';
       };
-      $itemMeta = function (array $it) use ($nameOf): string {
+      $citeData = function (array $it) use ($nameOf, $color, $target): array {
+        return array_map(fn($x) => ['t' => self::mmss(isset($x['start_ms']) ? (int)$x['start_ms'] : null), 'n' => $nameOf($x['speaker_id'] ?? null),
+          'ci' => $color((string)($x['speaker_id'] ?? '')), 'seq' => $target((array)$x)], (array)($it['citations'] ?? []));
+      };
+      $itemMeta = function (array $it) use ($nameOf, $sw): string {
         $m = [];
-        if (!empty($it['owner'])) $m[] = t('負責：{0}', [preg_replace_callback('/\\bS\\d+\\b/', fn($x) => $nameOf($x[0]), (string)$it['owner'])]);
-        if (!empty($it['due_text'])) $m[] = t('期限：{0}', [(string)$it['due_text']]);
+        if (!empty($it['owner'])) { $o = (string)$it['owner']; $m[] = t('負責：{0}', [preg_match('/^S\\d{1,3}$/', $o) ? $nameOf($o) : $sw($o)]); }
+        if (!empty($it['due_text'])) $m[] = t('期限：{0}', [$sw((string)$it['due_text'])]);
         return implode(self::sep('gap'), $m);
       };
       $items = (array)($sum['items'] ?? []);
@@ -84,16 +104,16 @@ final class TxExport {
         $b[] = ['warn', t('台語（閩南語）會議的摘要僅供參考：台語辨識會有錯字、英文大多被翻成中文，而且沒有發言者，負責人只能從內容裡提到的稱呼判斷。重要的決議與待辦請對照錄影確認。')];
       }
       $b[] = ['h', t('重點摘要')];
-      $b[] = ['p', (string)($sum['summary']['text'] ?? '') ?: t('沒有找到')];
+      $b[] = ['p', $sw((string)($sum['summary']['text'] ?? '')) ?: t('沒有找到')];
       if (empty($sum['summary']['grounded'] ?? true) && !empty($sum['summary']['unsupported'])) {
-        $b[] = ['warn', t('摘要裡有些數字或詞在逐字稿裡找不到，請核對：{0}', [implode(', ', (array)$sum['summary']['unsupported'])])];
+        $b[] = ['warn', t('摘要裡有些數字或詞在逐字稿裡找不到，請核對：{0}', [$sw(implode(', ', (array)$sum['summary']['unsupported']))])];
       }
-      $sec = function (string $title, array $list) use (&$b, $cite, $itemMeta) {
+      $sec = function (string $title, array $list) use (&$b, $cite, $citeData, $itemMeta, $sw) {
         $b[] = ['h', $title];
         if (!$list) { $b[] = ['p', t('沒有找到')]; return; }
         foreach ($list as [$kind, $it]) {
           $tag = $kind === 'd' ? t('決議') : ($kind === 'a' ? t('待辦') : '');
-          $b[] = ['item', $kind, $tag, (string)($it['text'] ?? ''), $itemMeta($it), $cite($it)];
+          $b[] = ['item', $kind, $tag, $sw((string)($it['text'] ?? '')), $itemMeta($it), $cite($it), $citeData($it)];
         }
       };
       $wrap = fn(array $l, ?string $k) => array_map(fn($x) => [$k, (array)$x], $l);
@@ -104,8 +124,9 @@ final class TxExport {
       if (!empty($sum['chapters'])) {
         $b[] = ['h', t('議題時間軸')];
         $b[] = ['table', [t('時間'), t('議題'), t('比例')],
-          array_map(fn($c) => [self::mmss((int)($c['start_ms'] ?? 0)) . '–' . self::mmss((int)($c['end_ms'] ?? 0)), (string)($c['title'] ?? ''), sprintf('%.1f%%', (float)($c['percentage'] ?? 0))], (array)$sum['chapters']),
-          [0.2, 0.65, 0.15]];
+          array_map(fn($c) => [self::mmss((int)($c['start_ms'] ?? 0)) . '–' . self::mmss((int)($c['end_ms'] ?? 0)), $sw((string)($c['title'] ?? '')), sprintf('%.1f%%', (float)($c['percentage'] ?? 0))], (array)$sum['chapters']),
+          [0.2, 0.65, 0.15],
+          ['chap', array_map(fn($c) => ['pct' => (float)($c['percentage'] ?? 0), 'seq' => $seqAt((int)($c['start_ms'] ?? 0))], (array)$sum['chapters'])]];
       }
       $sum['speakers'] = array_values(array_filter((array)($sum['speakers'] ?? []), fn($x) => ($x['speaker_id'] ?? null) !== null && $x['speaker_id'] !== ''));
       if (!empty($sum['speakers'])) {
@@ -113,11 +134,12 @@ final class TxExport {
         $b[] = ['table', [t('發言者'), t('發言時間'), t('發言次數'), t('字數')],
           array_map(fn($s) => [$nameOf((string)($s['speaker_id'] ?? '')), self::mmss((int)($s['speaking_ms'] ?? 0)) . sprintf(' (%.1f%%)', (float)($s['percentage'] ?? 0)),
                                (string)(int)($s['turn_count'] ?? 0), (int)($s['chars'] ?? 0) . sprintf(' (%.1f%%)', (float)($s['char_pct'] ?? 0))], (array)$sum['speakers']),
-          [0.34, 0.26, 0.16, 0.24]];
+          [0.34, 0.26, 0.16, 0.24],
+          ['spk', array_map(fn($s) => ['ci' => $color((string)($s['speaker_id'] ?? '')), 'pct' => (float)($s['percentage'] ?? 0)], (array)$sum['speakers'])]];
       }
     }
     $b[] = ['h', t('逐字稿')];
-    $b[] = ['segs', array_map(fn($s) => [self::mmss(isset($s['start_ms']) ? (int)$s['start_ms'] : null), $segName($s), (string)$s['text'], $color((string)($s['speaker'] ?? ''))], $tr['segments'])];
+    $b[] = ['segs', array_map(fn($s) => [self::mmss(isset($s['start_ms']) ? (int)$s['start_ms'] : null), $segName($s), (string)$s['text'], $color((string)($s['speaker'] ?? '')), (int)$s['seq']], $tr['segments'])];
     $foot = [];
     if ($sum && ($sum['model'] ?? '') !== '') $foot[] = t('摘要模型：{m}', ['m' => (string)$sum['model']]);
     $foot[] = t('發言者代號（S1、S2…）是語音辨識分出的聲音，不一定是人名。');
@@ -431,13 +453,16 @@ final class TxExport {
   /**
    * 自成一檔：樣式內嵌、沒有 script、不連外部資源，離線打開、轉寄、列印都一樣。
    * 所有內容一律跳脫；下載時是附件（Content-Disposition: attachment），不會在本站網域執行。
+   * v1.21.0：外觀照網頁版（出處標籤、議題 / 發言統計長條圖、依發言者配色），點出處或議題跳到逐字稿那一段並標亮
+   * （頁內連結 + :target，不用 script；標亮色同 jtdt），右下角「回到上方」。
    */
   private static function html(array $blocks, string $title, string $lang): string {
     $e = fn(string $s) => htmlspecialchars($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $jump = fn(?int $seq) => $seq !== null ? ' href="#s' . $seq . '"' : '';
     $h = '';
     foreach ($blocks as $bl) {
       switch ($bl[0]) {
-        case 'title': $h .= '<h1>' . $e($bl[1]) . "</h1>\n"; break;
+        case 'title': $h .= '<h1 id="top">' . $e($bl[1]) . "</h1>\n"; break;
         case 'meta':
           $h .= '<table class="meta">';
           foreach ($bl[1] as [$k, $v]) $h .= '<tr><th>' . $e($k) . '</th><td>' . $e($v) . '</td></tr>';
@@ -446,41 +471,83 @@ final class TxExport {
         case 'p': $h .= '<p>' . nl2br($e($bl[1])) . "</p>\n"; break;
         case 'warn': $h .= '<p class="warn">' . $e($bl[1]) . "</p>\n"; break;
         case 'item':
-          [, $kind, $tag, $text, $meta, $cites] = $bl;
-          $h .= '<div class="item">' . ($tag !== '' ? '<span class="tag tag-' . ($kind === 'd' ? 'd' : 'a') . '">' . $e($tag) . '</span>' : '<span class="dot"></span>')
-            . '<div><div>' . $e($text) . '</div>' . ($meta !== '' ? '<div class="small meta-line">' . $e($meta) . '</div>' : '')
-            . ($cites !== '' ? '<div class="small">' . $e($cites) . '</div>' : '') . "</div></div>\n";
+          $kind = $bl[1]; $tag = $bl[2]; $text = $bl[3]; $meta = $bl[4]; $cites = $bl[5]; $cd = (array)($bl[6] ?? []);
+          $h .= '<div class="item"><div class="item-text">' . ($tag !== '' ? '<span class="tag tag-' . ($kind === 'd' ? 'd' : 'a') . '">' . $e($tag) . '</span>' : '') . $e($text) . '</div>'
+            . ($meta !== '' ? '<div class="item-meta">' . $e($meta) . '</div>' : '');
+          if ($cd) {
+            $h .= '<div class="cites">';
+            foreach ($cd as $c) {
+              $lab = $c['t'] . ($c['n'] !== '' ? ' · ' . $c['n'] : '');
+              $cls = 'cite' . ($c['ci'] >= 0 ? ' c' . $c['ci'] : '');
+              $h .= $c['seq'] !== null ? '<a class="' . $cls . '"' . $jump($c['seq']) . ' title="' . $e(t('跳到逐字稿這一段')) . '">' . $e($lab) . '</a>' : '<span class="' . $cls . '">' . $e($lab) . '</span>';
+            }
+            $h .= '</div>';
+          } elseif ($cites !== '') $h .= '<div class="item-meta">' . $e($cites) . '</div>';
+          $h .= "</div>\n";
           break;
         case 'table':
-          [, $head, $rows, $ratio] = $bl;
-          $h .= '<table class="grid"><colgroup>' . implode('', array_map(fn($r) => '<col style="width:' . round($r * 100, 1) . '%">', $ratio)) . '</colgroup><thead><tr>';
+          [, $head, $rows, $ratio] = $bl; $x = $bl[4] ?? null;
+          if ($x && $x[0] === 'chap') {                       // 議題時間軸：時間、議題、長條、比例；整列可點
+            $h .= '<div class="chap">';
+            foreach ($rows as $k => $row) {
+              $d = $x[1][$k] ?? ['pct' => 0, 'seq' => null];
+              $w = max(2, min(100, (float)$d['pct']));
+              $h .= '<a class="chap-row"' . $jump($d['seq']) . '><span class="t">' . $e((string)$row[0]) . '</span><span class="chap-title">' . $e((string)$row[1]) . '</span>'
+                . '<span class="bar"><i style="width:' . $w . '%"></i></span><span class="pct">' . $e((string)$row[2]) . '</span></a>';
+            }
+            $h .= "</div>\n"; break;
+          }
+          $h .= '<table class="grid' . ($x && $x[0] === 'spk' ? ' spk' : '') . '"><colgroup>' . implode('', array_map(fn($r) => '<col style="width:' . round($r * 100, 1) . '%">', $ratio)) . '</colgroup><thead><tr>';
           foreach ($head as $c) $h .= '<th>' . $e($c) . '</th>';
           $h .= '</tr></thead><tbody>';
-          foreach ($rows as $row) { $h .= '<tr>'; foreach ($row as $c) $h .= '<td>' . $e((string)$c) . '</td>'; $h .= '</tr>'; }
-          $h .= "</tbody></table>\n"; break;
-        case 'segs':
-          $h .= '<table class="grid segs"><colgroup><col style="width:9%"><col style="width:16%"><col></colgroup><thead><tr><th>' . $e(t('時間')) . '</th><th>' . $e(t('發言者')) . '</th><th>' . $e(t('內容')) . '</th></tr></thead><tbody>';
-          foreach ($bl[1] as [$time, $name, $text, $ci]) {
-            $h .= '<tr' . ($ci >= 0 ? ' class="b' . $ci . '"' : '') . '><td class="time">' . $e($time) . '</td><td class="spk' . ($ci >= 0 ? ' c' . $ci : '') . '">' . $e($name) . '</td><td>' . $e($text) . '</td></tr>';
+          foreach ($rows as $k => $row) {
+            $h .= '<tr>';
+            if ($x && $x[0] === 'spk') {                         // 發言統計：名字配色、發言時間長條
+              $d = $x[1][$k] ?? ['ci' => -1, 'pct' => 0]; $ci = (int)$d['ci'];
+              $h .= '<td class="spk-name' . ($ci >= 0 ? ' c' . $ci : '') . '">' . $e((string)$row[0]) . '</td>'
+                . '<td><span class="bar"><i class="' . ($ci >= 0 ? 'd' . $ci : '') . '" style="width:' . max(2, min(100, (float)$d['pct'])) . '%"></i></span> ' . $e((string)$row[1]) . '</td>'
+                . '<td class="num">' . $e((string)$row[2]) . '</td><td class="num">' . $e((string)$row[3]) . '</td>';
+            } else {
+              foreach ($row as $c) $h .= '<td>' . $e((string)$c) . '</td>';
+            }
+            $h .= '</tr>';
           }
           $h .= "</tbody></table>\n"; break;
+        case 'segs':
+          $h .= '<div class="segs">';
+          foreach ($bl[1] as $sg) {
+            [$time, $name, $text, $ci] = $sg; $seq = $sg[4] ?? null;
+            $h .= '<div class="row' . ($ci >= 0 ? ' b' . $ci : '') . '"' . ($seq !== null ? ' id="s' . (int)$seq . '"' : '') . '><span class="t">' . $e($time) . '</span><span class="who' . ($ci >= 0 ? ' c' . $ci : '') . '">' . $e($name) . '</span><span class="say">' . $e($text) . '</span></div>';
+          }
+          $h .= "</div>\n"; break;
         case 'foot': $h .= '<p class="foot">' . $e($bl[1]) . "</p>\n"; break;
       }
     }
-    $css = 'body{margin:0;background:#f8fafc;color:#0f172a;font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Noto Sans JP","PingFang TC","Microsoft JhengHei","Hiragino Sans","Yu Gothic",sans-serif}'
+    $css = 'html{scroll-behavior:smooth}body{margin:0;background:#f8fafc;color:#0f172a;font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Noto Sans JP","PingFang TC","Microsoft JhengHei","Hiragino Sans","Yu Gothic",sans-serif}'
       . 'main{max-width:960px;margin:32px auto;padding:36px 44px;background:#fff;border:1px solid #e2e8f0;border-radius:14px}'
-      . 'h1{font-size:26px;margin:0 0 18px}h2{font-size:18px;margin:48px 0 10px;padding-left:10px;border-left:4px solid #2563eb;break-after:avoid}'
-      . 'table{border-collapse:collapse;width:100%}.meta{background:#f1f5f9;border-radius:8px}.meta th{width:110px;text-align:left;font-weight:400;color:#64748b;padding:5px 14px;vertical-align:top}.meta td{padding:5px 14px 5px 0}'
-      . '.grid{margin:6px 0 10px;table-layout:fixed}.grid th{background:#f1f5f9;color:#475569;text-align:left;font-size:13px;padding:7px 10px}.grid td{padding:7px 10px;border-bottom:1px solid #e2e8f0;vertical-align:top;overflow-wrap:break-word}'
-      . '.segs td{border-bottom:2px solid #fff}.time{color:#64748b;font-size:13px;font-variant-numeric:tabular-nums}.spk{font-weight:700}'
-      . '.item{display:flex;gap:10px;align-items:flex-start;margin:10px 0}.tag{flex:none;font-size:12px;font-weight:700;padding:1px 8px;border-radius:5px;margin-top:3px}.tag-d{background:#dcfce7;color:#15803d}.tag-a{background:#dbeafe;color:#1d4ed8}'
-      . '.dot{flex:none;width:6px;height:6px;border-radius:50%;background:#94a3b8;margin:10px 4px 0 2px}.small{font-size:12.5px;color:#64748b}.meta-line{color:#475569}.warn{color:#b45309}.foot{margin-top:28px;font-size:12px;color:#94a3b8}';
-    foreach (self::FG as $i => $c) $css .= '.c' . $i . '{color:#' . $c . '}';
-    foreach (self::BG as $i => $c) $css .= '.b' . $i . ' td{background:#' . $c . '}';
-    $css .= '@media print{body{background:#fff}main{margin:0;padding:0;border:0;max-width:none}tr{break-inside:avoid}.segs td,.meta,.grid th,.tag{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
-      . '@media (max-width:700px){main{margin:0;padding:20px 16px;border:0;border-radius:0}}';
+      . 'h1{font-size:26px;margin:0 0 18px}h2{font-size:18px;margin:48px 0 12px;padding-left:10px;border-left:4px solid #2563eb;break-after:avoid}'
+      . 'a{color:inherit;text-decoration:none}table{border-collapse:collapse;width:100%}'
+      . '.meta{background:#f1f5f9;border-radius:8px}.meta th{width:110px;text-align:left;font-weight:400;color:#64748b;padding:5px 14px;vertical-align:top}.meta td{padding:5px 14px 5px 0}'
+      . '.grid{margin:6px 0 10px;table-layout:fixed}.grid th{background:#f1f5f9;color:#475569;text-align:left;font-size:13px;padding:7px 10px}.grid td{padding:7px 10px;border-bottom:1px solid #e2e8f0;vertical-align:middle;overflow-wrap:break-word}'
+      . '.item{padding:10px 14px;margin:8px 0;border:1px solid #e2e8f0;border-radius:10px}.item-text{font-size:14.5px;line-height:1.6}'
+      . '.tag{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:999px;margin-right:7px;vertical-align:1px}.tag-d{background:#dcfce7;color:#15803d}.tag-a{background:#dbeafe;color:#1d4ed8}'
+      . '.item-meta{font-size:12.5px;color:#64748b;margin-top:3px}.cites{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}'
+      . '.cite{font:600 12px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:1px 9px;border-radius:999px;border:1px solid #e2e8f0;background:#f8fafc}a.cite:hover{border-color:#2563eb;background:#eff6ff}'
+      . '.chap{display:flex;flex-direction:column;gap:2px}.chap-row{display:grid;grid-template-columns:118px 1fr 140px 56px;gap:10px;align-items:center;padding:6px 8px;border-radius:8px}a.chap-row[href]:hover{background:#f1f5f9}'
+      . '.t{color:#94a3b8;font-size:13px;font-variant-numeric:tabular-nums}.chap-title{font-size:14.5px}.pct,.num{font:12.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#64748b}.pct{text-align:right}'
+      . '.bar{display:inline-block;width:120px;height:8px;border-radius:999px;background:#e2e8f0;overflow:hidden;vertical-align:middle}.bar i{display:block;height:100%;border-radius:999px;background:#2563eb}'
+      . '.spk td{font-size:14px}.spk-name{font-weight:600}'
+      . '.segs{border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}.row{display:grid;grid-template-columns:56px 140px 1fr;gap:8px;padding:6px 12px;border-bottom:1px solid #fff;font-size:14.5px;line-height:1.6;scroll-margin-top:35vh}'
+      . '.row:last-child{border-bottom:0}.row:target{background:#fef9c3!important;box-shadow:inset 3px 0 #ca8a04}.who{font-weight:600;overflow:hidden;text-overflow:ellipsis}'
+      . '.warn{color:#b45309}.foot{margin-top:28px;font-size:12px;color:#94a3b8}'
+      . '.totop{position:fixed;right:22px;bottom:22px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#2563eb;color:#fff;font-size:20px;box-shadow:0 6px 18px rgba(37,99,235,.35)}.totop:hover{background:#1d4ed8}';
+    foreach (self::FG as $i => $c) $css .= '.c' . $i . '{color:#' . $c . '}.d' . $i . '{background:#' . $c . '!important}';
+    foreach (self::BG as $i => $c) $css .= '.b' . $i . '{background:#' . $c . '}';
+    $css .= '@media print{html{scroll-behavior:auto}body{background:#fff}main{margin:0;padding:0;border:0;max-width:none}.totop{display:none}.row,.item,.chap-row{break-inside:avoid}.row,.meta,.grid th,.tag,.bar,.bar i,.cite{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
+      . '@media (max-width:700px){main{margin:0;padding:20px 16px;border:0;border-radius:0}.chap-row{grid-template-columns:96px 1fr}.chap-row .bar,.chap-row .pct{display:none}.row{grid-template-columns:48px 1fr}.row .say{grid-column:1/-1}}';
     $hl = str_starts_with($lang, 'ja') ? 'ja' : (str_starts_with($lang, 'en') ? 'en' : 'zh-Hant');
     return "<!DOCTYPE html>\n<html lang=\"" . $hl . "\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
-      . "<meta name=\"generator\" content=\"jt-vc-portal\">\n<title>" . $e($title) . "</title>\n<style>" . $css . "</style>\n</head>\n<body>\n<main>\n" . $h . "</main>\n</body>\n</html>\n";
+      . "<meta name=\"generator\" content=\"jt-vc-portal\">\n<title>" . $e($title) . "</title>\n<style>" . $css . "</style>\n</head>\n<body>\n<main>\n" . $h . "</main>\n"
+      . '<a class="totop" href="#top" title="' . $e(t('回到上方')) . '" aria-label="' . $e(t('回到上方')) . "\">↑</a>\n</body>\n</html>\n";
   }
 }

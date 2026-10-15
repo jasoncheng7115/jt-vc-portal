@@ -338,6 +338,8 @@ docker build -t jibri-cjk:stable-11031 ./jibri-cjk
 
 隨附 `jibri-recordings-api`（純 Python 標準庫、零第三方套件），讓 jt-vc-portal 線上**列表 / 播放 / 下載 / 刪除**錄影、顯示**主機容量**、套用**保留政策**。
 
+> **逐字稿頁的波形（v1.21.0 起）**：服務也提供 `/api/recordings/<id>/peaks`，把錄影的音量起伏算成 1200 個數字，給逐字稿頁畫波形（長錄影也有，不必讓瀏覽器下載整個檔案）。第一次被要求時才算，存成錄影資料夾裡的 `.peaks.json`，刪錄影時一起刪掉。解碼用 ffmpeg：主機有裝就用主機的；沒有就借執行中 Jibri 容器裡內建的 ffmpeg（docker-jitsi-meet 的 Jibri 映像都有，錄影資料夾也掛在容器裡），一律以最低優先權執行，不影響正在錄影的 Jibri。兩者都沒有時，長錄影的逐字稿頁只會顯示時間軸並說明原因。從舊版升級：更新 `server.py` 後 `systemctl restart jibri-recordings-api`（`/api/ping` 回 `version: 3`）。
+
 1) 放置程式（`server.py` 在本 repo 的 `jibri-recordings-api/` 目錄）：
 
 ```bash

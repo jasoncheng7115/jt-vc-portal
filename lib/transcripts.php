@@ -102,6 +102,30 @@ class Transcripts {
     return self::perm($owner) === 'auto';
   }
 
+  /** 已改名的發言者代號 → 名字（只收 S1、S12 這種代號，且名字和代號不同）。 */
+  public static function codeNames(array $tr): array {
+    $out = [];
+    foreach ((array)($tr['speaker_names'] ?? []) as $k => $v) {
+      $k = (string)$k; $v = trim((string)$v);
+      if ($v !== '' && $v !== $k && preg_match('/^S\d{1,3}$/', $k)) $out[$k] = $v;
+    }
+    return $out;
+  }
+
+  /**
+   * 摘要文字裡的發言者代號換成名字（v1.21.0，參考 jtdt 1.16.93 的 _rename_in_result）：只換已改名的代號，
+   * 前後緊接英數字就不換（S12 不會被 S1 換到）；一次換完（S1、S2 互換名字不會連鎖換錯）；
+   * 「AWS S3」「Amazon S3」這類產品名不換。原始資料不改，顯示 / 匯出時才換，之後再改名也不會錯。
+   */
+  public static function swapCodes(string $s, array $map): string {
+    if (!$map || $s === '') return $s;
+    $keys = array_keys($map);
+    usort($keys, fn($a, $b) => strlen($b) - strlen($a));
+    $alt = implode('|', array_map(fn($k) => preg_quote($k, '/'), $keys));
+    return preg_replace_callback('/(?<![A-Za-z0-9_])(?<!AWS )(?<!AWS-)(?<!Amazon )(?<!Amazon-)(' . $alt . ')(?![A-Za-z0-9_])/u',
+      fn($m) => $map[$m[1]], $s) ?? $s;
+  }
+
   /**
    * 會議室清單上的逐字稿標籤：這間會議室錄影後會不會自動產生逐字稿（規則同 autoEligible，看房間擁有者）。
    * 會的話回 ['lang' => 會議選的語言（可能是空字串＝系統預設）, 'summary' => 會不會一併產生摘要]；不會回 null。

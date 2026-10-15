@@ -71,6 +71,7 @@ switch ($f) {
   case 'md':
     $md = Transcripts::summaryMarkdown($id);
     if ($md === null) Auth::notFound();
+    $md = Transcripts::swapCodes($md, Transcripts::codeNames($tr));   // 摘要裡的 S1 → 改好的名字（v1.21.0）
     $send($md, 'text/markdown; charset=utf-8', "$base-summary.md");
   case 'summary':
     $sum = Transcripts::summary($id);

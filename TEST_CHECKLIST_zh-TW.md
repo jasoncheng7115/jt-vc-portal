@@ -49,8 +49,17 @@
 - [ ] 整合測試：`tests/run-integration.sh` 全綠。
 - [ ] i18n 檢查：`tests/check-i18n.php` 無未翻譯字串、無缺漏鍵（v1.7.0 起）。
 - [ ] 一次跑完以上：`tests/run-all.sh`（lint → i18n → 單元 → 整合）。
-- [ ] 瀏覽器 e2e：`tests/run-e2e.sh` 中英兩輪全綠（主持人進會議、來賓加入、無 CSP / SRI 錯誤）。
-- [ ] 正式環境進入方式與關卡（T64–T66、T77）：`tests/prod-entry-gates.sh`（維護者，部署後；Jitsi / Jibri 升級後也要跑）。
+- [ ] 瀏覽器 e2e：`tests/run-e2e.sh` 中、英、日三輪全綠（主持人進會議、來賓加入、無 CSP / SRI 錯誤）。
+- [ ] 逐字稿與摘要整合：`tests/run-transcribe.sh` 全綠（JTLW 官方模擬服務＋假錄影服務＋真瀏覽器；含波形、匯出、改名、下拉選單與清單標籤）。
+- [ ] 單一登入：`tests/run-sso.sh` 全綠（拋棄式 Keycloak＋真瀏覽器）。
+- [ ] 錄影服務：`tests/test-jibri-api.sh` 全綠（真的 `server.py`；本機要有 ffmpeg 才測得到波形，沒有會標示 SKIP）。
+- [ ] 發版預演：`git archive <tag> | tar -x -C <暫存>` 後 `tools/ci-build-release.sh <版本> <暫存> <暫存>/out` 成功（映像內沒有金鑰 / 文件 / 測試等多餘檔案）。
+- [ ] **正式環境（維護者，部署後必跑；Jitsi / Jibri 升級、反向代理設定變更後也要跑）**：
+  - [ ] 進入方式與關卡（T64–T66、T77）：`tests/prod-entry-gates.sh`——唯一用瀏覽器真的要鏡頭與麥克風的測試，不可改成模擬。
+  - [ ] 模擬會議（T42、T70、T80–T82 實機）：`tests/prod-meeting-sim.sh`——真的錄影、真的語音服務產生逐字稿與摘要、錄影主機用 Jibri 容器算波形、改名後的匯出。
+  - [ ] 單一登入：`tests/prod-sso-smoke.sh`——臨時 AD 帳號走真的 Keycloak，結束後三邊殘留 0。
+  - [ ] 視訊畫質（T75）：`tests/prod-video-quality.sh`。
+- [ ] 功能或畫面有改：重拍 Pages 中英日截圖（維護者）並逐張檢查沒有真實資料。
 
 ## 2. ZAP 弱點掃描（發版閘門）
 
@@ -115,6 +124,9 @@
 - [ ] T77 真實 Chrome、經反向代理：來賓頁與主持人會議頁的 CSP、`X-Frame-Options` 各只有一組；`Permissions-Policy` 若存在，`camera`、`microphone` 要允許 Jitsi 網域；嵌入的 Jitsi 實際要鏡頭與麥克風會成功，打開後 Jitsi 有本機音軌與視訊（測試不可替換 getUserMedia）。**每次發版、Jitsi 升級與反向代理設定變更後都要跑。**
 - [ ] T78 建立會議室的「會議主要語言」是本站樣式下拉選單：原生 select 隱藏但留在表單、按鈕顯示「請選擇」、點按鈕展開五個語言（清單掛在 body 不被卡片裁掉）、點選與鍵盤（↓ / Enter / Esc）都能選、沒選就送出時擋下且外框變紅；近期會議室清單與建立結果顯示逐字稿標籤：中文「逐字稿與摘要 · 中文為主」、日文 / 韓文只寫「逐字稿」、沒勾不顯示；標籤規則同自動產生（單場開關優先、帳號自動、無權限或系統未開不顯示）。
 - [ ] T79 主持人離開通知帶當下名冊：離開前剛進場、還沒被心跳回報的人也寫進會議記錄；重複的離開通知不多記一段；舊的不帶名冊通知照舊用心跳的名冊；有人進出約 2 秒內回報心跳。
+- [ ] T80 逐字稿頁波形：錄影服務 `/api/recordings/<id>/peaks` 對已完成的錄影回 1200 個 0–1 的值（有聲音的段落比靜音高）、存快取 `.peaks.json` 且不影響列表；錄製中 / 未完成 409、不存在 / 路徑穿越 404、要 token；沒有 ffmpeg 也找不到 Jibri 容器回 503 no_decoder。portal `/recordings-peaks` 權限同播放（別人的場次、不合法 id、未登入都 404）。頁面先用錄影服務的波形；沒有時 60 MB 以下在瀏覽器解碼；更大的顯示原因、播放照常。
+- [ ] T81 下載的 HTML 會議記錄像網頁：出處標籤可點、跳到逐字稿那一段（有 source_seqs 用它，沒有就用時間點）並以 :target 標亮；議題整列可點、有比例長條；發言統計依發言者配色的長條；右下角回到上方；只有頁內連結，仍不含 script、外部資源與事件屬性。
+- [ ] T82 摘要內文的發言者代號換成名字（重點摘要、決議 / 待辦內文與負責人與期限、議題標題；網頁與各種匯出）：只換已改名的代號；前後接英數字不換（S12、S1x）；小寫不換；一次換完（互換名字不連鎖）；「AWS S3」「AWS-S3」「Amazon S3」不換。
 
 ### 3.5 會議記錄與統計
 - [ ] 主持人離開時寫入 `meetings.jsonl`（時長、尖峰同時人數、參與者進出時間）。
@@ -128,7 +140,7 @@
 - [ ] 刪除、依政策清理、容量條、保留政策（時間 / 容量 / 殘留，預設停用）僅 admin。
 - [ ] host 只看得到、只取得到自己主持場次的錄影；房名被他人重新建立後，新擁有者看不到舊場次。
 - [ ] 錄影狀態（ok / recording / incomplete / orphan）判定正確；錄製中不可刪除。
-- [ ] Jibri 錄影 API：`tests/test-jibri-api.sh` 全綠（授權、Range 206 / 416、路徑穿越）。
+- [ ] Jibri 錄影 API：`tests/test-jibri-api.sh` 全綠（授權、Range 206 / 416、路徑穿越、波形 T80）。
 
 ### 3.7 系統設定（admin）
 - [ ] 自建模式「不需 JWT」時設定頁顯示警示；建立會議室表單提示好猜的房名風險。
@@ -265,6 +277,30 @@
 - [ ] T68 逐字稿波形：還沒移到波形上時不顯示時間提示（左上不可有空白框），移上去顯示時間、移開後隱藏；全站標為 hidden 的元素一律不顯示。
 - [ ] T69 會議記錄匯出：每個章節標題與上一段之間多空一行（PDF / DOCX / ODT / HTML）。
 
+### 3.13 逐字稿頁與匯出：人工驗收（維護者，每次發版）
+
+自動化測試用的是模擬資料與 Chromium；以下用正式機一場**真實、30 分鐘以上**的錄影，在真的瀏覽器裡逐項看過。
+
+**波形**
+- [ ] 第一次打開逐字稿頁：波形下方先顯示「正在產生波形…」，十幾秒內出現波形；重新整理後立刻出現（讀快取）。
+- [ ] 波形高低跟實際說話吻合（安靜處低、說話處高）；移到波形上顯示時間與當時的發言者；點波形跳到那個時間播放，播放時進度與逐字稿標亮同步。
+- [ ] 錄影主機算波形時另一場會議正在錄影：錄影照常、Jibri 不會變成忙碌或失敗（ffmpeg 以最低優先權執行、很快結束）。
+- [ ] 刪除這場錄影後，錄影資料夾連同 `.peaks.json` 一起消失。
+- [ ] 升級相容：錄影服務還是舊版時，60 MB 以下的錄影照舊在瀏覽器畫波形；更大的顯示原因，播放與點選跳播照常。
+
+**改名後每個地方都要換到**
+- [ ] 把 S1 / S2 改成人名後，以下都顯示名字、沒有殘留已改名的代號：逐字稿發言者、出處標籤、重點摘要、決議與待辦的內文 / 負責人 / 期限、議題標題、發言統計、發言者建議。
+- [ ] 再改一次（例如兩人互換名字），每個地方仍正確，不會連鎖換錯。
+- [ ] 摘要提到「AWS S3」這類產品名時不會被換成人名；「S12」不會被 S1 換到。
+- [ ] 只改某一段的發言者（單段改名）只影響那一段，不改摘要內文。
+
+**下載的會議記錄**
+- [ ] PDF / DOCX / ODT / HTML / Markdown / 純文字 / SRT：改好的名字都出現在對應位置，沒有殘留已改名的代號；JSON 保留原始代號並附名稱。
+- [ ] HTML 離線打開（Chrome、Safari、Firefox、手機各一次）：外觀與網頁版一致（出處標籤、議題與發言統計長條、發言者配色）。
+- [ ] HTML 點出處標籤 → 捲到逐字稿那一段並黃底標亮；點議題 → 跳到議題開始的段落；按瀏覽器「上一頁」回到原位置；右下角「回到上方」可用。
+- [ ] HTML 列印預覽：保留顏色與長條、不印「回到上方」、段落不被切成兩半；手機寬度不需左右捲動。
+- [ ] PDF / DOCX / ODT 用 Adobe Reader（或內建預覽）、Word、LibreOffice 都能開，中文、日文沒有缺字。
+
 ## 4. 多語系（i18n）
 
 （v1.7.0 起）
@@ -381,7 +417,7 @@
 | .ics 折行 / REQUEST / CANCEL / SEQUENCE、刪除會議室結算、稽核長度上限與保留清理 | `tests/unit/test_ical_audit.php` |
 | 稽核記錄依看的人語言顯示、system 帳號與空白 IP T67 | `tests/unit/test_ical_audit.php` |
 | GET 登出無效、改密碼 / 強制登出讓 session 失效、刪除會議室權限、稽核 | `tests/run-integration.sh`（v1.8.0 段） |
-| Jibri 錄影 API 授權 / Range / 路徑穿越 | `tests/test-jibri-api.sh` |
+| Jibri 錄影 API 授權 / Range / 路徑穿越 / 波形 | `tests/test-jibri-api.sh` |
 | SSO S02–S20（驗簽、聲明、state、PKCE URL、群組、佈建、僅限 SSO、登出網址、設定） | `tests/unit/test_oidc.php` |
 | SSO S02 / S05 / S08 / S10（迷你 IdP：token 交換、userinfo、fail-closed） | `tests/unit/test_oidc_flow.php` |
 | SSO S01、S05–S07、S11–S21、S23–S25、S27、S28、S30（真實 Keycloak + 瀏覽器，含 OTP） | `tests/run-sso.sh`（`tests/e2e/sso.cjs`） |
@@ -405,6 +441,8 @@
 | 鏡頭 / 麥克風權限與標頭不重複 T77 | `tests/prod-entry-gates.sh`（維護者，正式環境） |
 | 會議主要語言下拉選單、逐字稿標籤 T78 | `tests/unit/test_transcripts.php`（規則）、`tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`，畫面） |
 | 離開通知帶名冊 T79 | `tests/unit/test_rooms.php`、`tests/run-integration.sh` |
+| 錄影波形（錄影服務 / portal / 頁面）T80 | `tests/test-jibri-api.sh`、`tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`）、`tests/run-integration.sh` |
+| HTML 會議記錄像網頁 T81、摘要代號換成名字 T82 | `tests/unit/test_txexport.php`、`tests/unit/test_transcripts.php` |
 | 錄影開始 / 停止 / 兩間同時 T70 | `tests/prod-entry-gates.sh`、`tests/prod-meeting-sim.sh`（維護者，正式環境） |
 | 語言選單（收合、點選開啟、Esc） | `tests/run-e2e.sh`（`tests/e2e/meeting.cjs`） |
 | SSO S29 | 維護者對正式環境執行的冒煙測試腳本（臨時帳號，結束後清除） |

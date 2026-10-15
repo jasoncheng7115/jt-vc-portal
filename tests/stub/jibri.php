@@ -20,6 +20,12 @@ if (preg_match('#^/api/recordings/([A-Za-z0-9_-]+)/file$#', $path, $m)) {
   header('Content-Type: video/mp4'); header('Content-Length: ' . filesize($f)); header('Accept-Ranges: bytes');
   readfile($f); return true;
 }
+// 波形（v1.21.0）：有 /data/<id>.peaks.json 就回；沒有＝舊版錄影服務（404）
+if (preg_match('#^/api/recordings/([A-Za-z0-9_-]+)/peaks$#', $path, $m)) {
+  $f = "$data/{$m[1]}.peaks.json";
+  if (!is_file($f)) { http_response_code(404); echo '{}'; return true; }
+  echo file_get_contents($f); return true;
+}
 if (preg_match('#^/api/recordings/([A-Za-z0-9_-]+)$#', $path, $m) && $_SERVER['REQUEST_METHOD'] === 'DELETE') {
   $recs = array_values(array_filter($recs, fn($r) => $r['id'] !== $m[1]));
   file_put_contents("$data/recs.json", json_encode($recs)); @unlink("$data/{$m[1]}.mp4");

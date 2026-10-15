@@ -306,6 +306,21 @@ test('T78 會議室清單的逐字稿標籤：單場開關 > 帳號預設；權�
   Settings::setTranscribe(['enabled' => true], true);
 });
 
+test('T82 swapCodes：只換已改名的代號；前後接英數字不換；一次換完（互換不連鎖）；AWS S3 / Amazon S3 不換', function () {
+  $m = Transcripts::codeNames(['speaker_names' => ['S1' => '王經理', 'S2' => '陳工程師', 'S3' => 'S3', 'X' => '某人', 'S4' => '']]);
+  eq($m, ['S1' => '王經理', 'S2' => '陳工程師'], '只收像代號、有名字、名字不等於代號的');
+  eq(Transcripts::swapCodes('傳給S1確認', $m), '傳給王經理確認', '中文緊鄰也要換');
+  eq(Transcripts::swapCodes('S1、S2 一起看', $m), '王經理、陳工程師 一起看');
+  eq(Transcripts::swapCodes('S12 與 S1x 與 xS1', $m), 'S12 與 S1x 與 xS1', '前後接英數字不換');
+  eq(Transcripts::swapCodes('s1 小寫不換', $m), 's1 小寫不換');
+  eq(Transcripts::swapCodes('S3 沒改名', ['S1' => 'A']), 'S3 沒改名');
+  eq(Transcripts::swapCodes('S1 與 S2', ['S1' => 'S2', 'S2' => 'S1']), 'S2 與 S1', '互換名字不會連鎖換錯');
+  $m3 = ['S3' => '林小姐'];
+  eq(Transcripts::swapCodes('備份到 AWS S3、AWS-S3、Amazon S3；S3 負責', $m3), '備份到 AWS S3、AWS-S3、Amazon S3；林小姐 負責', '雲端儲存的產品名不換');
+  eq(Transcripts::swapCodes('', $m), '');
+  eq(Transcripts::swapCodes('S1', []), 'S1');
+});
+
 $t = $GLOBALS['__t'];
 echo "\n{$t['pass']} passed, {$t['fail']} failed\n";
 exit($t['fail'] ? 1 : 0);

@@ -83,6 +83,18 @@ class Recordings {
     return $r['ok'] ? ($r['data'] ?? null) : null;
   }
 
+  /**
+   * 錄影的波形（v1.21.0）：錄影主機算好的 1200 段最大振幅（0–1）。第一次要算，長錄影可能要十幾秒，之後讀快取。
+   * 舊版錄影服務沒有這個端點、或主機解不開時回 null（頁面退回瀏覽器自己解碼或時間軸）。
+   */
+  public static function peaks(string $id): ?array {
+    if (!preg_match('/^[A-Za-z0-9._-]+$/', $id)) return null;
+    $r = self::req('GET', '/api/recordings/' . rawurlencode($id) . '/peaks', null, 170);
+    $p = $r['ok'] ? ($r['data']['peaks'] ?? null) : null;
+    if (!is_array($p) || !$p || count($p) > 5000) return null;
+    return array_map(fn($v) => max(0.0, min(1.0, (float)$v)), array_values($p));
+  }
+
   public static function listRecordings(): array {
     $r = self::req('GET', '/api/recordings');
     return $r['ok'] ? (array)($r['data']['recordings'] ?? []) : [];

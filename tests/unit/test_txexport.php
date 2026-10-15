@@ -142,8 +142,39 @@ test('T45 HTML：單一檔案（樣式內嵌、沒有 script、不連外部）�
   ok(!preg_match('/@import|url\\(/i', $html), '樣式不可載入外部資源');
   $d = new DOMDocument(); ok(@$d->loadHTML('<?xml encoding="utf-8"?>' . $html) === true);
   $x = new DOMXPath($d);
-  eq($x->query('//script|//img|//link|//iframe|//object|//embed|//form|//a')->length, 0, '不可有 script / 外部資源 / 連結');
-  eq($x->query('//@*[starts-with(name(), "on")]|//@src|//@href')->length, 0, '不可有事件屬性或外部位址');
+  eq($x->query('//script|//img|//link|//iframe|//object|//embed|//form')->length, 0, '不可有 script / 外部資源');
+  eq($x->query('//@*[starts-with(name(), "on")]|//@src')->length, 0, '不可有事件屬性或外部位址');
+  foreach ($x->query('//@href') as $h) ok(str_starts_with($h->value, '#'), '連結只能是頁內跳轉：' . $h->value);
+});
+
+test('T81 HTML 像網頁版：出處標籤點了跳到逐字稿那一段（頁內連結＋:target 標亮）、議題與發言統計有長條、回到上方', function () {
+  [$rec, $tr, $sum, $sess] = sample();
+  $sum['items']['decisions'][0]['citations'][0]['source_seqs'] = [3];
+  $html = TxExport::render('html', TxExport::model($rec, $tr, $sum, $sess), '會議記錄', 'zh-Hant');
+  $d = new DOMDocument(); @$d->loadHTML('<?xml encoding="utf-8"?>' . $html); $x = new DOMXPath($d);
+  $cites = $x->query('//a[contains(@class,"cite")]');
+  ok($cites->length >= 2, '出處是可點的標籤');
+  eq($cites->item(0)->getAttribute('href'), '#s3', '有 source_seqs 就跳到那一段');
+  eq($cites->item(1)->getAttribute('href'), '#s2', '沒有 source_seqs 就跳到那個時間點的段落（4500 ms → 第 2 段）');
+  ok(str_contains($cites->item(0)->textContent, '00:09') && str_contains($cites->item(0)->textContent, '王經理'), '標籤寫時間與發言者');
+  foreach ([1, 2, 3] as $q) eq($x->query('//*[@id="s' . $q . '"]')->length, 1, "逐字稿第 $q 段有跳轉目標");
+  ok(str_contains($html, '.row:target{background:#fef9c3'), '跳過去的那一段標亮（同 jtdt）');
+  eq($x->query('//a[contains(@class,"chap-row")][@href="#s1"]')->length, 1, '議題整列可點，跳到開始的段落');
+  ok($x->query('//div[@class="chap"]//span[@class="bar"]/i[contains(@style,"width:100%")]')->length === 1, '議題比例長條');
+  ok($x->query('//table[contains(@class,"spk")]//span[@class="bar"]/i[contains(@class,"d0")]')->length === 1, '發言統計長條、依發言者配色');
+  eq($x->query('//a[@class="totop"][@href="#top"]')->length, 1, '右下角回到上方');
+  eq($x->query('//*[@id="top"]')->length, 1);
+  ok(!str_contains($html, '<script'), '仍然沒有 script');
+});
+
+test('T82 摘要內文裡的發言者代號換成名字（網頁、匯出都換；只換已改名的；AWS S3 不換）', function () {
+  [$rec, $tr, $sum, $sess] = sample();
+  $sum['items']['actions'][0]['text'] = '製作架構圖並傳給S1確認，S2 負責備份到 AWS S3；S12 不相干';
+  $sum['summary']['text'] = '由 S2 報告進度';
+  $sum['chapters'][0]['title'] = 'S1 的時程';
+  $html = TxExport::render('html', TxExport::model($rec, $tr, $sum, $sess), '會議記錄', 'zh-Hant');
+  ok(str_contains($html, '製作架構圖並傳給王經理確認，陳工程師 負責備份到 AWS S3；S12 不相干'), '內文的代號換掉、S12 與 AWS S3 不動');
+  ok(str_contains($html, '由 陳工程師 報告進度') && str_contains($html, '王經理 的時程'), '重點摘要與議題標題也換');
 });
 
 test('T69 章節標題前多空一行（DOCX / ODT / HTML；PDF 由截圖檢查）', function () {

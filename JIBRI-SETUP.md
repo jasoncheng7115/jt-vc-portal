@@ -338,6 +338,8 @@ Keep `JIBRI_RECORDING_DIR` as `/config/recordings` inside the container. Each re
 
 The bundled `jibri-recordings-api` (pure Python standard library, zero third-party packages) lets jt-vc-portal **list / play / download / delete** recordings online, show **host storage capacity**, and apply **retention policies**.
 
+> **Waveform on the transcript page (from v1.21.0)**: the service also provides `/api/recordings/<id>/peaks`, which turns the recording's loudness into 1,200 numbers for the transcript page's waveform (long recordings included, without the browser downloading the whole file). They are computed the first time they are requested and stored as `.peaks.json` in the recording's folder, which is removed together with the recording. Decoding uses ffmpeg: the host's if installed; otherwise the ffmpeg built into a running Jibri container (every docker-jitsi-meet Jibri image has it, and the recordings folder is mounted in the container), always at the lowest priority so recordings in progress are not affected. If neither is available, long recordings show only a timeline on the transcript page, with the reason. Upgrading: update `server.py` and run `systemctl restart jibri-recordings-api` (`/api/ping` returns `version: 3`).
+
 1) Install the program (`server.py` is in this repo's `jibri-recordings-api/` directory):
 
 ```bash
