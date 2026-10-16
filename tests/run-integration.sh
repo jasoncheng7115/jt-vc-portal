@@ -241,9 +241,11 @@ chk "Jitsi 正常 + 自建不需 JWT：主持人可進會議（v1.16.0 修正：
 MP=$(curl -s -b $A $B/meeting)
 hasnt "T74 預設：會議頁不帶小畫面畫質門檻" "$MP" "minHeightForQualityLvl"
 has "T74 預設：關閉省頻寬自動降載（既有預設）" "$MP" "enableAdaptiveMode: false"
+has "T84 預設：共用畫面每秒 5 格（Jitsi 標成 detail，頻寬不足時保解析度）" "$MP" "desktopSharingFrameRate: { min: 5, max: 5 }"
 T=$(csrf $A /settings)
-curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'section=meeting_custom&bw_save_off=1&small_tile_q=mid&resolution=1080&default_view=tile' $B/save-settings
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'section=meeting_custom&bw_save_off=1&small_tile_q=mid&share_mode=motion&resolution=1080&default_view=tile' $B/save-settings
 MP=$(curl -s -b $A $B/meeting)
+has "T84 選「動態流暢」→ 每秒 15–30 格" "$MP" "desktopSharingFrameRate: { min: 15, max: 30 }"
 has "T74 較高：門檻 300（小方格 360p、300px 以上 720p）" "$MP" "minHeightForQualityLvl: { 100: 'standard', 300: 'high' }"
 has "T74 較高：不限全畫質人數" "$MP" "maxFullResolutionParticipants: -1"
 T=$(csrf $A /settings)
@@ -256,9 +258,12 @@ curl -s -o /dev/null -c $GQ -b $GQ $B/room/itest-down
 curl -s -o /dev/null -c $GQ -b $GQ -d 'guest_name=HQ' $B/guest
 GP=$(curl -s -b $GQ $B/guest)
 has "T74 高：來賓頁同樣帶 190 門檻" "$GP" "190: 'high'"
+has "T84 沒送共用畫面設定 → 回到「文字清晰」，來賓頁同樣每秒 5 格" "$GP" "desktopSharingFrameRate: { min: 5, max: 5 }"
+has "T84 系統設定頁有共用畫面選項" "$(curl -s -b $A $B/settings)" 'name="share_mode"'
 has "T74 系統設定頁三個等級、目前選「高」" "$(curl -s -b $A $B/settings)" '<option value="high" selected'
 T=$(csrf $A /settings)
-curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'section=meeting_custom&bw_save_off=1&small_tile_q=bogus&resolution=1080&default_view=tile' $B/save-settings
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'section=meeting_custom&bw_save_off=1&small_tile_q=bogus&share_mode=bogus&resolution=1080&default_view=tile' $B/save-settings
+has "T84 不認得的共用畫面值 → 文字清晰" "$(curl -s -b $A $B/meeting)" "desktopSharingFrameRate: { min: 5, max: 5 }"
 hasnt "T74 不認得的值 → 回到預設（不帶門檻）" "$(curl -s -b $A $B/meeting)" "minHeightForQualityLvl"
 T=$(csrf $A /dashboard)
 curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-down' $B/room-delete

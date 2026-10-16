@@ -88,6 +88,7 @@ if ($section === 'meeting_custom') {
     'default_view' => $_POST['default_view'] ?? 'speaker',
     'bw_save_off' => !empty($_POST['bw_save_off']),
     'small_tile_q' => (string)($_POST['small_tile_q'] ?? 'off'),
+    'share_mode' => (string)($_POST['share_mode'] ?? 'detail'),
     'toolbar'    => $tb,
   ]);
   Audit::log('settings_update', tk('會議室自訂（自建 Jitsi Meet）'));

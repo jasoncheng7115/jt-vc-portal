@@ -63,7 +63,8 @@ class Audit {
     $dk = null; $dv = [];
     if (is_array($detail)) {
       $dk = (string)($detail['k'] ?? ''); $dv = array_map('strval', (array)($detail['v'] ?? []));
-      $detail = I18n::t($dk, $dv);
+      $detail = self::render($dk, $dv);
+      if (str_contains($dk, '{rec}') && ($dv['id'] ?? '') !== '') $detail .= ' [' . $dv['id'] . ']';   // SIEM 仍帶完整錄影 id 方便追查
     }
     $cli = PHP_SAPI === 'cli';
     $actor = $opts['actor']      ?? ($_SESSION['username'] ?? ($cli ? 'system' : ''));
@@ -135,7 +136,7 @@ class Audit {
         if ($fromTs !== null && $ts < $fromTs) continue;
         if ($toTs !== null && $ts > $toTs) continue;
         if ($q !== '') {
-          $hay = mb_strtolower(($e['actor'] ?? '') . ' ' . ($e['actor_name'] ?? '') . ' ' . self::detailText($e) . ' ' . ($e['ip'] ?? ''));
+          $hay = mb_strtolower(($e['actor'] ?? '') . ' ' . ($e['actor_name'] ?? '') . ' ' . self::detailText($e) . ' ' . ($e['ip'] ?? '') . ' ' . implode(' ', array_map('strval', (array)($e['dv'] ?? []))));   // 錄影 id 不再顯示但仍可搜尋
           if (mb_strpos($hay, $q) === false) continue;
         }
         $rows[] = $e;
@@ -167,7 +168,7 @@ class Audit {
       if ($fromTs !== null && $ts < $fromTs) continue;
       if ($toTs !== null && $ts > $toTs) continue;
       if ($q !== '') {
-        $hay = mb_strtolower(($e['actor'] ?? '') . ' ' . ($e['actor_name'] ?? '') . ' ' . self::detailText($e) . ' ' . ($e['ip'] ?? ''));
+        $hay = mb_strtolower(($e['actor'] ?? '') . ' ' . ($e['actor_name'] ?? '') . ' ' . self::detailText($e) . ' ' . ($e['ip'] ?? '') . ' ' . implode(' ', array_map('strval', (array)($e['dv'] ?? []))));   // 錄影 id 不再顯示但仍可搜尋
         if (mb_strpos($hay, $q) === false) continue;
       }
       $rows[] = $e;
@@ -177,8 +178,68 @@ class Audit {
 
   /** 顯示用詳細內容：有延後翻譯的鍵就依目前（看的人）語言翻譯，否則用寫入時的文字。 */
   public static function detailText(array $e): string {
-    if (!empty($e['dk']) && is_string($e['dk'])) return I18n::t($e['dk'], array_map('strval', (array)($e['dv'] ?? [])));
+    if (!empty($e['dk']) && is_string($e['dk'])) return self::render($e['dk'], array_map('strval', (array)($e['dv'] ?? [])));
     return (string)($e['detail'] ?? '');
+  }
+
+  /**
+   * 錄影類訊息（v1.22.0）：不再把錄影 UUID 寫進說明，改成「{rec}」＝錄影開始時間與長度（例：10/15 21:40 的錄影（46 分））。
+   * 舊記錄（v1.16.2–v1.21.0 的鍵是「錄影 {id}」）顯示時對應到新鍵；記錄本身不改。完整 id 仍在 dv，可搜尋、SIEM 也帶。
+   */
+  private const REC_KEYS = [
+    '{what}逐字稿與摘要：會議室「{room}」錄影 {id}' => '{what}逐字稿與摘要：會議室「{room}」{rec}',   // i18n-ignore（比對舊記錄用的鍵）
+    '取消逐字稿作業：會議室「{room}」錄影 {id}' => '取消逐字稿作業：會議室「{room}」{rec}',   // i18n-ignore（比對舊記錄用的鍵）
+    '重做會議摘要：會議室「{room}」錄影 {id}' => '重做會議摘要：會議室「{room}」{rec}',   // i18n-ignore（比對舊記錄用的鍵）
+    '修改逐字稿發言者名稱：會議室「{room}」錄影 {id}' => '修改逐字稿發言者名稱：會議室「{room}」{rec}',   // i18n-ignore（比對舊記錄用的鍵）
+    '下載逐字稿 / 摘要（{f}）：會議室「{room}」錄影 {id}' => '下載逐字稿 / 摘要（{f}）：會議室「{room}」{rec}',   // i18n-ignore（比對舊記錄用的鍵）
+    '檢視逐字稿與摘要：會議室「{room}」錄影 {id}' => '檢視逐字稿與摘要：會議室「{room}」{rec}',   // i18n-ignore（比對舊記錄用的鍵）
+    '下載錄影 {id}' => '下載錄影：會議室「{room}」{rec}',   // i18n-ignore（比對舊記錄用的鍵）
+    '刪除錄影 {id}' => '刪除錄影：會議室「{room}」{rec}',   // i18n-ignore（比對舊記錄用的鍵）
+    '自動產生逐字稿：會議室「{room}」錄影 {id}' => '自動產生逐字稿：會議室「{room}」{rec}',   // i18n-ignore（比對舊記錄用的鍵）
+    '自動重做會議摘要（第 {n} 次）：會議室「{room}」錄影 {id}' => '自動重做會議摘要（第 {n} 次）：會議室「{room}」{rec}',   // i18n-ignore（比對舊記錄用的鍵）
+    '自動重試辨識（第 {n} 次）：會議室「{room}」錄影 {id}' => '自動重試辨識（第 {n} 次）：會議室「{room}」{rec}',   // i18n-ignore（比對舊記錄用的鍵）
+    '逐字稿產生失敗：會議室「{room}」錄影 {id}（{code}）' => '逐字稿產生失敗：會議室「{room}」{rec}（{code}）',   // i18n-ignore（比對舊記錄用的鍵）
+    '逐字稿作業已取消：會議室「{room}」錄影 {id}' => '逐字稿作業已取消：會議室「{room}」{rec}',   // i18n-ignore（比對舊記錄用的鍵）
+    '逐字稿已產生：會議室「{room}」錄影 {id}（{n} 段；摘要：{s}）' => '逐字稿已產生：會議室「{room}」{rec}（{n} 段；摘要：{s}）',   // i18n-ignore（比對舊記錄用的鍵）
+    '刪除逐字稿與摘要：會議室「{room}」錄影 {id}（{why}）' => '刪除逐字稿與摘要：會議室「{room}」{rec}（{why}）',   // i18n-ignore（比對舊記錄用的鍵）
+  ];
+
+  private static function render(string $dk, array $dv): string {
+    $dk = self::REC_KEYS[$dk] ?? $dk;
+    if (str_contains($dk, '{rec}')) {
+      if (($dv['when'] ?? '') === '' || ($dv['room'] ?? null) === null) {   // 舊記錄：到錄影清單補時間與會議室
+        $r = self::recFind((string)($dv['id'] ?? ''));
+        if ($r) { $dv += self::rec($r, (string)$dv['id']); $dv['room'] ??= (string)($r['room'] ?? ''); }
+      }
+      $dv['room'] ??= '—';
+      $dv['rec'] = self::recLabel($dv);
+    }
+    return I18n::t($dk, $dv);
+  }
+
+  /** 稽核用的錄影變數：id 與開始時間 / 長度（$r 可以是錄影清單的一筆或逐字稿索引的一筆）。 */
+  public static function rec(?array $r, string $id): array {
+    $mt = (int)($r['mtime'] ?? $r['rec_mtime'] ?? 0); $dur = (int)($r['duration'] ?? 0);
+    if ($mt <= 0) return ['id' => $id];
+    return ['id' => $id, 'when' => date('m/d H:i', $mt - max(0, $dur)), 'min' => $dur > 0 ? (string)max(1, (int)round($dur / 60)) : ''];
+  }
+
+  private static ?array $recIndex = null;
+  /** 舊記錄用：錄影清單裡找這個 id（每個請求只查一次清單；錄影已刪就找不到）。 */
+  private static function recFind(string $id): ?array {
+    if ($id === '') return null;
+    if (self::$recIndex === null) {
+      self::$recIndex = [];
+      if (!class_exists('Recordings') && is_file(__DIR__ . '/recordings.php')) require_once __DIR__ . '/recordings.php';
+      if (class_exists('Recordings') && Settings::hasJibri()) foreach (Recordings::listRecordings() as $r) self::$recIndex[(string)($r['id'] ?? '')] = $r;
+    }
+    return self::$recIndex[$id] ?? null;
+  }
+  /** 「10/15 21:40 的錄影（46 分）」；沒有時間（錄影已刪的舊記錄）就寫「錄影（代號 c97c8526）」。 */
+  private static function recLabel(array $dv): string {
+    $when = (string)($dv['when'] ?? ''); $min = (string)($dv['min'] ?? '');
+    if ($when !== '') return $min !== '' ? t('{when} 的錄影（{min} 分）', ['when' => $when, 'min' => $min]) : t('{when} 開始的錄影', ['when' => $when]);
+    return t('錄影（代號 {short}）', ['short' => substr((string)($dv['id'] ?? ''), 0, 8)]);
   }
 
   /** 查詢（新→舊），可選 action / 關鍵字（actor / detail / ip）過濾。 */
@@ -193,7 +254,7 @@ class Audit {
       if (!empty($filters['action']) && ($e['action'] ?? '') !== $filters['action']) continue;
       if (!empty($filters['q'])) {
         $q = mb_strtolower($filters['q']);
-        $hay = mb_strtolower(($e['actor'] ?? '') . ' ' . ($e['actor_name'] ?? '') . ' ' . self::detailText($e) . ' ' . ($e['ip'] ?? ''));
+        $hay = mb_strtolower(($e['actor'] ?? '') . ' ' . ($e['actor_name'] ?? '') . ' ' . self::detailText($e) . ' ' . ($e['ip'] ?? '') . ' ' . implode(' ', array_map('strval', (array)($e['dv'] ?? []))));   // 錄影 id 不再顯示但仍可搜尋
         if (mb_strpos($hay, $q) === false) continue;
       }
       $out[] = $e;

@@ -365,6 +365,12 @@ render_topbar($me, $ip);
           <option value="high" <?= ($mc['small_tile_q'] ?? 'off') === 'high' ? 'selected' : '' ?>><?= th('高（約 720p）') ?></option>
         </select>
         <div class="help"><?= th('Jitsi 依每個人畫面方格的大小決定接收畫質，手機或 3 人以上並排時方格小，預設只收 180p，在手機上看起來較模糊。實測手機 4 人並排：較高約 360p（接收約 1.2 Mbps）、高約 720p（接收約 2 Mbps）；電腦並排兩者都約 720p。畫質越高，每位與會者的頻寬、手機耗電與發熱越多，人越多越明顯。2 人會議與演講者畫面不受影響。') ?></div>
+        <label style="display:block;margin:12px 0 4px;"><?= th('共用畫面') ?></label>
+        <select name="share_mode">
+          <option value="detail" <?= ($mc['share_mode'] ?? 'detail') === 'detail' ? 'selected' : '' ?>><?= th('文字清晰（每秒 5 格，建議）') ?></option>
+          <option value="motion" <?= ($mc['share_mode'] ?? 'detail') === 'motion' ? 'selected' : '' ?>><?= th('動態流暢（每秒 15–30 格，播影片用）') ?></option>
+        </select>
+        <div class="help"><?= th('簡報、文件、程式碼請用「文字清晰」：網路或電腦較慢時會降低每秒格數，文字維持清楚。「動態流暢」會優先保持動作順暢，分享的人上傳頻寬不夠時會降低解析度，文字可能糊掉，適合分享影片或動畫。設定在下次進入會議時生效。') ?></div>
       </div>
 
       <div class="field">

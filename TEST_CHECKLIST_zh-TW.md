@@ -59,6 +59,7 @@
   - [ ] 模擬會議（T42、T70、T80–T82 實機）：`tests/prod-meeting-sim.sh`——真的錄影、真的語音服務產生逐字稿與摘要、錄影主機用 Jibri 容器算波形、改名後的匯出。
   - [ ] 單一登入：`tests/prod-sso-smoke.sh`——臨時 AD 帳號走真的 Keycloak，結束後三邊殘留 0。
   - [ ] 視訊畫質（T75）：`tests/prod-video-quality.sh`。
+  - [ ] 共用畫面畫質（T85）：`tests/prod-screenshare.sh`（暫時用 tc 限制 dev1 往 Jitsi 媒體埠的上傳，測完移除）。
 - [ ] 功能或畫面有改：重拍 Pages 中英日截圖（維護者）並逐張檢查沒有真實資料。
 
 ## 2. ZAP 弱點掃描（發版閘門）
@@ -127,6 +128,9 @@
 - [ ] T80 逐字稿頁波形：錄影服務 `/api/recordings/<id>/peaks` 對已完成的錄影回 1200 個 0–1 的值（有聲音的段落比靜音高）、存快取 `.peaks.json` 且不影響列表；錄製中 / 未完成 409、不存在 / 路徑穿越 404、要 token；沒有 ffmpeg 也找不到 Jibri 容器回 503 no_decoder。portal `/recordings-peaks` 權限同播放（別人的場次、不合法 id、未登入都 404）。頁面先用錄影服務的波形；沒有時 60 MB 以下在瀏覽器解碼；更大的顯示原因、播放照常。
 - [ ] T81 下載的 HTML 會議記錄像網頁：出處標籤可點、跳到逐字稿那一段（有 source_seqs 用它，沒有就用時間點）並以 :target 標亮；議題整列可點、有比例長條；發言統計依發言者配色的長條；右下角回到上方；只有頁內連結，仍不含 script、外部資源與事件屬性。
 - [ ] T82 摘要內文的發言者代號換成名字（重點摘要、決議 / 待辦內文與負責人與期限、議題標題；網頁與各種匯出）：只換已改名的代號；前後接英數字不換（S12、S1x）；小寫不換；一次換完（互換名字不連鎖）；「AWS S3」「AWS-S3」「Amazon S3」不換。
+- [ ] T83 稽核記錄的錄影類訊息不顯示 UUID：新記錄寫「會議室「…」MM/DD HH:MM 的錄影（N 分）」（三語），錄製中的寫「… 開始的錄影」；舊記錄（「錄影 {id}」）顯示時換成新說法，錄影已刪的寫「錄影（代號 前 8 碼）」、沒有會議室寫「—」；完整 id 仍存在記錄裡、可搜尋，SIEM 文字也附上。
+- [ ] T84 會議室自訂「共用畫面」：預設「文字清晰」＝ `desktopSharingFrameRate: { min: 5, max: 5 }`；「動態流暢」＝ `{ min: 15, max: 30 }`；主持人與來賓頁相同；不認得的值回到文字清晰。
+- [ ] T85 正式環境共用畫面畫質（維護者）：`tests/prod-screenshare.sh` 用 tc 把送往 Jitsi 媒體埠的上傳限在 1 Mbps，主持人分享 1920×1080 小字簡報、兩位來賓觀看；文字清晰時 Jitsi 標記 detail、來賓收到 1080p，動態流暢標記 motion、解析度明顯較低；`RATE=none` 時兩者都是原尺寸。測完限速一定移除。
 
 ### 3.5 會議記錄與統計
 - [ ] 主持人離開時寫入 `meetings.jsonl`（時長、尖峰同時人數、參與者進出時間）。
@@ -443,6 +447,9 @@
 | 離開通知帶名冊 T79 | `tests/unit/test_rooms.php`、`tests/run-integration.sh` |
 | 錄影波形（錄影服務 / portal / 頁面）T80 | `tests/test-jibri-api.sh`、`tests/run-transcribe.sh`（`tests/e2e/transcribe.cjs`）、`tests/run-integration.sh` |
 | HTML 會議記錄像網頁 T81、摘要代號換成名字 T82 | `tests/unit/test_txexport.php`、`tests/unit/test_transcripts.php` |
+| 稽核記錄不顯示錄影 UUID T83 | `tests/unit/test_ical_audit.php` |
+| 共用畫面每秒格數設定 T84 | `tests/run-integration.sh` |
+| 共用畫面在上傳受限時的畫質 T85 | `tests/prod-screenshare.sh`（維護者，正式環境） |
 | 錄影開始 / 停止 / 兩間同時 T70 | `tests/prod-entry-gates.sh`、`tests/prod-meeting-sim.sh`（維護者，正式環境） |
 | 語言選單（收合、點選開啟、Esc） | `tests/run-e2e.sh`（`tests/e2e/meeting.cjs`） |
 | SSO S29 | 維護者對正式環境執行的冒煙測試腳本（臨時帳號，結束後清除） |

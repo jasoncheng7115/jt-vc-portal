@@ -107,7 +107,9 @@ window.addEventListener('load', () => {
       transcription: { enabled: false, autoCaptionOnRecord: false },
       liveStreamingEnabled: false,
       liveStreaming: { enabled: false },
-      desktopSharingFrameRate: { min: 15, max: 30 },
+      // Screen sharing: Jitsi marks the track "detail" (keep resolution, drop frames) when max ≤ 5, "motion" (keep frames,
+      // drop resolution) above 5. Text / slides need detail — at 30 fps a sender with limited upload got blurry slides (v1.22.0).
+      desktopSharingFrameRate: <?= $mui['share_mode'] === 'motion' ? '{ min: 15, max: 30 }' : '{ min: 5, max: 5 }' ?>,
       constraints: { video: { height: { ideal: 1080, max: 1080, min: 720 } } },
       toolbarButtons: <?= json_encode($mui['toolbar']) ?>
     },

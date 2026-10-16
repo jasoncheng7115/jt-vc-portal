@@ -131,8 +131,8 @@ return [
   '無對應的參與者記錄（此場可能在參與者統計功能上線前錄製，或主持人未在場回報）。' => 'No matching participant records (this meeting may predate participant statistics, or the host was not present to report them).',
   '播放錄影' => 'Play recording',
   '播放錄影 · ' => 'Play recording · ',
-  '下載錄影 {id}' => 'Downloaded recording {id}',
-  '刪除錄影 {id}' => 'Deleted recording {id}',
+  '下載錄影：會議室「{room}」{rec}' => 'Downloaded recording: room "{room}", {rec}',
+  '刪除錄影：會議室「{room}」{rec}' => 'Deleted recording: room "{room}", {rec}',
   '已刪除該筆錄影。' => 'Recording deleted.',
   '刪除失敗（可能正在錄製或服務無法連線）。' => 'Delete failed (it may still be recording, or the service is unreachable).',
   '清理失敗（服務無法連線）。' => 'Cleanup failed (service unreachable).',
@@ -151,4 +151,7 @@ return [
   '下載錄影檔' => 'Download the recording file',
   '刪除這筆錄影（逐字稿與摘要一併刪除）' => 'Delete this recording (its transcript and summary are deleted too)',
   '合計' => 'Total',
+  '{when} 的錄影（{min} 分）' => 'the {when} recording ({min} min)',
+  '{when} 開始的錄影' => 'the recording started {when}',
+  '錄影（代號 {short}）' => 'recording (ID {short})',
 ];

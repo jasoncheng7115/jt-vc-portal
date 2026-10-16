@@ -334,6 +334,8 @@ class Settings {
       'bw_save_off' => $d['bw_save_off'] ?? true,   // 關閉「視訊省頻寬」自動降載（預設開＝不自動關他人視訊）
       // 小畫面（手機、多人並排）接收畫質：off＝Jitsi 預設｜mid＝360p｜high＝720p（v1.19.0；v1.18.0 的 hq_small=true 視為 mid）
       'small_tile_q' => in_array($d['small_tile_q'] ?? '', ['off', 'mid', 'high'], true) ? $d['small_tile_q'] : (!empty($d['hq_small']) ? 'mid' : 'off'),
+      // 共用畫面：detail＝文字清晰（每秒 5 格，Jitsi 預設）｜motion＝動態流暢（每秒 15–30 格，播影片用）（v1.22.0）
+      'share_mode' => in_array($d['share_mode'] ?? '', ['detail', 'motion'], true) ? $d['share_mode'] : 'detail',
       'toolbar'    => $toolbar,
     ];
   }
@@ -355,6 +357,7 @@ class Settings {
       'default_view' => $view,
       'bw_save_off' => !empty($v['bw_save_off']),
       'small_tile_q' => in_array($v['small_tile_q'] ?? '', ['off', 'mid', 'high'], true) ? $v['small_tile_q'] : 'off',
+      'share_mode' => in_array($v['share_mode'] ?? '', ['detail', 'motion'], true) ? $v['share_mode'] : 'detail',
       'toolbar'    => $toolbar,
     ];
     self::save($d);
@@ -372,6 +375,7 @@ class Settings {
         'default_view' => 'speaker',
         'bw_save_off' => false,
         'small_tile_q' => 'off',
+        'share_mode' => 'detail',
         'toolbar'    => array_merge(self::MEETING_BASE_BUTTONS, $allToggles),
       ];
     }
@@ -389,6 +393,7 @@ class Settings {
       'default_view' => $mc['default_view'],
       'bw_save_off' => (bool)$mc['bw_save_off'],
       'small_tile_q' => (string)$mc['small_tile_q'],
+      'share_mode' => (string)$mc['share_mode'],
       'toolbar'    => array_values($toolbar),
     ];
   }

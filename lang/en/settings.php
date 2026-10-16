@@ -315,4 +315,8 @@ return [
   '較高（約 360p）' => 'Higher (about 360p)',
   '高（約 720p）' => 'High (about 720p)',
   'Jitsi 依每個人畫面方格的大小決定接收畫質，手機或 3 人以上並排時方格小，預設只收 180p，在手機上看起來較模糊。實測手機 4 人並排：較高約 360p（接收約 1.2 Mbps）、高約 720p（接收約 2 Mbps）；電腦並排兩者都約 720p。畫質越高，每位與會者的頻寬、手機耗電與發熱越多，人越多越明顯。2 人會議與演講者畫面不受影響。' => 'Jitsi chooses the receive quality from the size of each person\'s tile; on phones, or in tile view with 3 or more people, tiles are small and get only 180p by default, which looks blurry on a phone. Measured on a phone with 4 people in tile view: Higher gives about 360p (about 1.2 Mbps received), High about 720p (about 2 Mbps); on a computer both give about 720p in tile view. Higher quality means more bandwidth for every participant and more battery use and heat on phones, more so with more people. 2-person meetings and speaker view are not affected.',
+  '共用畫面' => 'Screen sharing',
+  '文字清晰（每秒 5 格，建議）' => 'Sharp text (5 frames per second, recommended)',
+  '動態流暢（每秒 15–30 格，播影片用）' => 'Smooth motion (15–30 frames per second, for videos)',
+  '簡報、文件、程式碼請用「文字清晰」：網路或電腦較慢時會降低每秒格數，文字維持清楚。「動態流暢」會優先保持動作順暢，分享的人上傳頻寬不夠時會降低解析度，文字可能糊掉，適合分享影片或動畫。設定在下次進入會議時生效。' => 'Use "Sharp text" for slides, documents and code: on a slow network or computer the frame rate drops but text stays sharp. "Smooth motion" keeps movement smooth first; if the presenter\'s upload bandwidth is short, the resolution drops and text may blur — use it for videos or animation. Takes effect the next time people join a meeting.',
 ];

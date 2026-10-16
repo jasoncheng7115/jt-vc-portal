@@ -2,6 +2,12 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.22.0 — Shared slides stay sharp, no recording IDs in the audit log
+
+- **Screen sharing back to 5 frames per second (sharp text)**: it was set to 15–30 fps, which makes Jitsi treat the share as motion and lower the resolution first when the presenter's upload is short, so slide text blurred (it happened to a participant sharing only a PowerPoint window). Measured with the presenter limited to 1 Mbps upload: at 5 fps guests still received 1920×1080, at 15–30 fps only 960×540; with enough bandwidth both are full size. Settings → meeting room customization gains "Screen sharing": sharp text (default) / smooth motion (for videos).
+- **The audit log no longer shows recording UUIDs**: entries read like "room "tung-graylog", the 10/15 21:40 recording (47 min)"; older entries are shown the same way, and deleted recordings appear as "recording (ID c97c8526)". The full ID is still stored, searchable, and included in the text sent to the SIEM.
+- Tests T83, T84, T85 (production screen-share quality, with tc simulating limited upload).
+
 ## v1.21.0 — Waveform for long recordings, clickable HTML minutes, names instead of S1 in summaries
 
 - **Waveform on the transcript page**: recordings over 60 MB (meetings longer than about 15 minutes) used to get no waveform, because the browser would have to download and decode the whole file. The recording host's `jibri-recordings-api` now computes 1,200 loudness values (on first request, cached afterwards), so long recordings get a waveform too; with an older recording service, files up to 60 MB are still decoded in the browser and larger ones show why there is no waveform (following jtdt 1.16.93). **Self-hosted Jibri: update `server.py`** (see JIBRI-SETUP).

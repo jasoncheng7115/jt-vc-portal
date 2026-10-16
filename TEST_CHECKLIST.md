@@ -59,6 +59,7 @@
   - [ ] Simulated meeting (T42, T70, T80–T82 on the real system): `tests/prod-meeting-sim.sh` — real recording, real speech service producing the transcript and summary, the recording host computing the waveform with the Jibri container, exports after renaming.
   - [ ] Single sign-on: `tests/prod-sso-smoke.sh` — temporary AD accounts through the real Keycloak, zero leftovers on all three sides.
   - [ ] Video quality (T75): `tests/prod-video-quality.sh`.
+  - [ ] Screen-share quality (T85): `tests/prod-screenshare.sh` (temporarily throttles upload to the Jitsi media port with tc; removed afterwards).
 - [ ] If features or screens changed: retake the Pages screenshots in three languages (maintainer) and check each one has no real data.
 
 ## 2. ZAP vulnerability scan (release gate)
@@ -127,6 +128,9 @@
 - [ ] T80 Transcript waveform: the recording service's `/api/recordings/<id>/peaks` returns 1,200 values from 0 to 1 for a finished recording (sound louder than silence), caches `.peaks.json` without affecting the list; recording / unfinished 409, unknown id / path traversal 404, token required; no ffmpeg and no Jibri container → 503 no_decoder. The portal's `/recordings-peaks` uses the same permission as playback (someone else's meeting, invalid id, not signed in → 404). The page uses the service's waveform first; otherwise decodes up to 60 MB in the browser; larger files show the reason and playback still works.
 - [ ] T81 Downloaded HTML minutes look like the web page: citation chips jump to that part of the transcript (source_seqs if present, otherwise the time) and highlight it with :target; topic rows are clickable with percentage bars; speaker statistics bars in the speaker's colour; back-to-top button; only in-page links — still no script, external resources or event attributes.
 - [ ] T82 Speaker codes inside summary text are replaced by names (summary text, decision / action text, owner and due date, topic titles; web page and all exports): only renamed codes; not when glued to letters / digits (S12, S1x); not lowercase; one pass (swapping names does not chain); "AWS S3", "AWS-S3", "Amazon S3" untouched.
+- [ ] T83 Recording-related audit messages show no UUID: new entries read "room "…", the MM/DD HH:MM recording (N min)" (three languages), recordings in progress read "the recording started …"; old entries ("recording {id}") are shown in the new form, deleted recordings as "recording (ID first 8 characters)", missing room as "—"; the full ID is still stored, searchable, and included in the SIEM text.
+- [ ] T84 Meeting room customization "Screen sharing": default "Sharp text" = `desktopSharingFrameRate: { min: 5, max: 5 }`; "Smooth motion" = `{ min: 15, max: 30 }`; same on the host and guest pages; unknown values fall back to sharp text.
+- [ ] T85 Production screen-share quality (maintainer): `tests/prod-screenshare.sh` limits upload to the Jitsi media port to 1 Mbps with tc; the host shares a 1920×1080 slide with small text and two guests watch; with sharp text Jitsi marks it detail and guests receive 1080p, with smooth motion it is marked motion and the resolution is clearly lower; with `RATE=none` both are full size. The throttle is always removed afterwards.
 
 ### 3.5 Meeting records and statistics
 - [ ] When the host leaves, `meetings.jsonl` is written (duration, peak concurrent participants, participant join / leave times).
@@ -443,6 +447,9 @@ Spot-check on every release; test everything for major changes:
 | Leave notice carries the roster T79 | `tests/unit/test_rooms.php`, `tests/run-integration.sh` |
 | Recording waveform (service / portal / page) T80 | `tests/test-jibri-api.sh`, `tests/run-transcribe.sh` (`tests/e2e/transcribe.cjs`), `tests/run-integration.sh` |
 | HTML minutes like the web page T81, names instead of codes in summaries T82 | `tests/unit/test_txexport.php`, `tests/unit/test_transcripts.php` |
+| No recording UUIDs in the audit log T83 | `tests/unit/test_ical_audit.php` |
+| Screen-share frame-rate setting T84 | `tests/run-integration.sh` |
+| Screen-share quality with limited upload T85 | `tests/prod-screenshare.sh` (maintainer, production) |
 | Recording start / stop / two at once T70 | `tests/prod-entry-gates.sh`, `tests/prod-meeting-sim.sh` (maintainer, production) |
 | Language menu (collapsed, opens on click, Esc) | `tests/run-e2e.sh` (`tests/e2e/meeting.cjs`) |
 | SSO S29 | Production smoke script run by the maintainer against the live deployment (temporary accounts, cleaned up afterwards) |
