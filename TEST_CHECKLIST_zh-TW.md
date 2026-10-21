@@ -69,6 +69,13 @@
 - [ ] Low / Informational 逐項判讀，於發版紀錄寫明「接受 / 誤報」理由（例：測試容器為 HTTP，Secure cookie / HSTS 由正式反向代理提供）。
 - [ ] 報告只存本機 `zap-reports/`，不進 GitHub（可能含內部資訊）。
 
+### 2.1 GitHub CodeQL 程式碼掃描（發版閘門）
+
+CodeQL 掃描本 repo 的 Python（`jibri-recordings-api/`）、JavaScript（`tests/`、Pages）與 GitHub Actions；PHP 不在 CodeQL 支援範圍內，由 ZAP 與 OWASP 逐項複查涵蓋。
+
+- [ ] **發版前**（打 tag 前）：查 `main` 的 Code scanning，未處理警示 High / Critical = 0；其他等級逐筆判斷修正或記錄不修的理由。
+- [ ] **發版後**：等該 commit 的 CodeQL 分析跑完（三種語言都有結果）再查一次，有新增警示就回報並修正。查詢用的唯讀 token 只放維護者本機，不可 commit。
+
 ## 3. 功能測試
 
 ### 3.1 認證與帳號

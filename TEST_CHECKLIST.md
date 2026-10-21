@@ -69,6 +69,13 @@
 - [ ] Review each Low / Informational finding and record the "accepted / false positive" rationale in the release notes (e.g. the test container is HTTP; Secure cookies / HSTS are provided by the production reverse proxy).
 - [ ] Reports are kept only in the local `zap-reports/` and never committed to GitHub (they may contain internal information).
 
+### 2.1 GitHub CodeQL code scanning (release gate)
+
+CodeQL scans the Python (`jibri-recordings-api/`), JavaScript (`tests/`, Pages) and GitHub Actions code in this repo; PHP is not supported by CodeQL and is covered by ZAP and the OWASP review instead.
+
+- [ ] **Before release** (before tagging): check Code scanning for `main`; open High / Critical alerts = 0. Review every other alert and either fix it or record why it is accepted.
+- [ ] **After release**: once CodeQL has finished analysing that commit (results for all three languages), check again; report and fix any new alert. The read-only token used for the query stays on the maintainer's machine and is never committed.
+
 ## 3. Functional tests
 
 ### 3.1 Authentication and accounts

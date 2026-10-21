@@ -69,6 +69,13 @@
 - [ ] Low / Informational の各検出結果を確認し、「許容 / 誤検知」の根拠をリリースノートに記録する（例：テストコンテナは HTTP であり、Secure cookie / HSTS は本番のリバースプロキシが提供する）。
 - [ ] レポートはローカルの `zap-reports/` にのみ保管し、GitHub には決して commit しない（内部情報を含む可能性があるため）。
 
+### 2.1 GitHub CodeQL コードスキャン（リリースゲート）
+
+CodeQL は本リポジトリの Python（`jibri-recordings-api/`）、JavaScript（`tests/`、Pages）、GitHub Actions をスキャンする。PHP は CodeQL の対象外のため、ZAP と OWASP の項目別レビューでカバーする。
+
+- [ ] **リリース前**（tag を付ける前）：`main` の Code scanning を確認し、未対応の High / Critical アラートが 0 であること。その他のレベルは 1 件ずつ判断し、修正するか許容理由を記録する。
+- [ ] **リリース後**：その commit の CodeQL 分析が完了（3 言語すべてに結果あり）してから再確認し、新しいアラートがあれば報告して修正する。照会用の読み取り専用トークンはメンテナーのローカルにのみ置き、commit しない。
+
 ## 3. 機能テスト
 
 ### 3.1 認証とアカウント
