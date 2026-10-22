@@ -17,6 +17,7 @@ RUN sed -i 's/80/58189/g' /etc/apache2/ports.conf /etc/apache2/sites-available/0
 RUN sed -i 's|AllowOverride None|AllowOverride All|g' /etc/apache2/apache2.conf
 
 # PHP 安全強化（OWASP A02/A10）：不顯示錯誤、不洩漏 PHP 版本、session 加固、隱藏 Apache 版本
+# 本系統不用上傳進度功能，關閉 session.upload_progress（PHP 2026-10 安全公告 GHSA-w8hw-w9fx-j79w / GHSA-6wmf-4rv5-p3rp 的緩解）
 RUN { \
       echo 'display_errors = Off'; \
       echo 'display_startup_errors = Off'; \
@@ -25,6 +26,7 @@ RUN { \
       echo 'session.cookie_httponly = 1'; \
       echo 'session.cookie_samesite = "Lax"'; \
       echo 'session.use_strict_mode = 1'; \
+      echo 'session.upload_progress.enabled = Off'; \
     } > /usr/local/etc/php/conf.d/zz-hardening.ini \
  && { \
       echo 'ServerTokens Prod'; \

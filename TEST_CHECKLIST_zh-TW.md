@@ -138,6 +138,7 @@ CodeQL 掃描本 repo 的 Python（`jibri-recordings-api/`）、JavaScript（`te
 - [ ] T83 稽核記錄的錄影類訊息不顯示 UUID：新記錄寫「會議室「…」MM/DD HH:MM 的錄影（N 分）」（三語），錄製中的寫「… 開始的錄影」；舊記錄（「錄影 {id}」）顯示時換成新說法，錄影已刪的寫「錄影（代號 前 8 碼）」、沒有會議室寫「—」；完整 id 仍存在記錄裡、可搜尋，SIEM 文字也附上。
 - [ ] T84 會議室自訂「共用畫面」：預設「文字清晰」＝ `desktopSharingFrameRate: { min: 5, max: 5 }`；「動態流暢」＝ `{ min: 15, max: 30 }`；主持人與來賓頁相同；不認得的值回到文字清晰。
 - [ ] T85 正式環境共用畫面畫質（維護者）：`tests/prod-screenshare.sh` 用 tc 把送往 Jitsi 媒體埠的上傳限在 1 Mbps，主持人分享 1920×1080 小字簡報、兩位來賓觀看；文字清晰時 Jitsi 標記 detail、來賓收到 1080p，動態流暢標記 motion、解析度明顯較低；`RATE=none` 時兩者都是原尺寸。測完限速一定移除。
+- [ ] T86 PHP 安全設定：容器內 `session.upload_progress.enabled` 為關閉（`tests/run-integration.sh`）；PHP 為最新修補版（`php -v`，2026-10 起 8.4.27 / 8.3.36 以上）。
 
 ### 3.5 會議記錄與統計
 - [ ] 主持人離開時寫入 `meetings.jsonl`（時長、尖峰同時人數、參與者進出時間）。
@@ -457,6 +458,7 @@ CodeQL 掃描本 repo 的 Python（`jibri-recordings-api/`）、JavaScript（`te
 | 稽核記錄不顯示錄影 UUID T83 | `tests/unit/test_ical_audit.php` |
 | 共用畫面每秒格數設定 T84 | `tests/run-integration.sh` |
 | 共用畫面在上傳受限時的畫質 T85 | `tests/prod-screenshare.sh`（維護者，正式環境） |
+| PHP 安全設定 T86 | `tests/run-integration.sh` |
 | 錄影開始 / 停止 / 兩間同時 T70 | `tests/prod-entry-gates.sh`、`tests/prod-meeting-sim.sh`（維護者，正式環境） |
 | 語言選單（收合、點選開啟、Esc） | `tests/run-e2e.sh`（`tests/e2e/meeting.cjs`） |
 | SSO S29 | 維護者對正式環境執行的冒煙測試腳本（臨時帳號，結束後清除） |

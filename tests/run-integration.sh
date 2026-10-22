@@ -12,7 +12,7 @@ cleanup() { docker rm -f $NAME >/dev/null 2>&1; rm -rf "$DATA" "$KEYS" "$JAR"; }
 trap cleanup EXIT
 openssl genrsa -out "$KEYS/private.key" 2048 2>/dev/null; chmod 644 "$KEYS/private.key"
 chown 33:33 "$DATA"
-docker build -q -t $IMG "${SRC:-$ROOT/app}" >/dev/null || { echo "build failed"; exit 1; }
+docker build --pull -q -t $IMG "${SRC:-$ROOT/app}" >/dev/null || { echo "build failed"; exit 1; }
 docker run -d --name $NAME -p 127.0.0.1:$PORT:58189 -e JTVC_ADMIN_PASSWORD="$ADMIN_PW" \
   -v "$KEYS":/var/www/html/keys:ro -v "$DATA":/var/jaas-data $IMG >/dev/null
 B="http://127.0.0.1:$PORT"
@@ -40,6 +40,9 @@ chk "首頁 200" "$(code $B/)" 200
 H=$(curl -sI $B/)
 has "X-Frame-Options" "$H" "X-Frame-Options: SAMEORIGIN"
 has "nosniff" "$H" "X-Content-Type-Options: nosniff"
+# T86：PHP 2026-10 安全公告緩解——關閉 session.upload_progress（本系統用不到）
+chk "T86 session.upload_progress 已關閉" "$(docker exec $NAME php -r 'echo ini_get("session.upload_progress.enabled") ? "on" : "off";')" off
+chk "T86 PHP 為 2026-10 安全修補版以上（8.4.27 / 8.3.36）" "$(docker exec $NAME php -r 'echo (PHP_VERSION_ID >= 80427 || (PHP_VERSION_ID >= 80336 && PHP_VERSION_ID < 80400)) ? "ok" : PHP_VERSION;')" ok
 has "CSP" "$H" "Content-Security-Policy"
 CSP=$(printf '%s' "$H" | grep -i '^Content-Security-Policy' )
 has "CSP script-src 用 nonce" "$CSP" "script-src 'self' 'nonce-"

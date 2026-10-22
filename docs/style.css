@@ -231,3 +231,10 @@ footer a{color:var(--muted)}
 .lightbox-close svg{width:22px;height:22px}
 @keyframes lb-fade{from{opacity:0}to{opacity:1}}
 footer .ftlinks{display:flex;gap:18px;flex-wrap:wrap}
+
+/* 安全更新提醒（hero 內） */
+.sec-notice{text-align:left;display:flex;gap:10px;align-items:flex-start;max-width:860px;margin:14px 0 4px;padding:12px 16px;border:1px solid #f5c26b;border-left:4px solid #d97706;border-radius:10px;background:#fffbeb;color:#78350f;font-size:14px;line-height:1.7}
+.sec-notice .ln-ico{flex:none;width:20px;height:20px;margin-top:2px;color:#d97706}
+.sec-notice code{background:#fef3c7;padding:0 4px;border-radius:4px;font-size:13px;white-space:nowrap}
+.sec-notice code.long{white-space:normal;overflow-wrap:anywhere}
+.sec-notice a{color:#b45309;font-weight:600;margin-left:4px}

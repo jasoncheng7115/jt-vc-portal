@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.22.0 — 會議管理系統
+# jt-vc-portal v1.22.1 — 會議管理系統
 
 > English: [README.md](README.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -9,6 +9,9 @@
 > 內建多帳號 / 角色 / 2FA、完整稽核記錄與 SIEM 外拋、fail2ban、預約時段等企業功能。
 
 [^8x8]: **8x8** 自 2018 年起為 Jitsi / Jitsi Meet 的開發與維護公司；**8x8 JaaS（Jitsi as a Service）** 即其官方雲端託管的 Jitsi 服務。
+
+> [!IMPORTANT]
+> **安全更新（2026-10-21）：請儘快升級到 v1.22.1。** PHP 官方發布安全修補（8.4.27 / 8.3.36）。Docker 安裝：改用 v1.22.1 映像或 `docker build --pull` 重建；直接安裝：把 PHP 更新到 8.4.27 / 8.3.36 以上，並在 `php.ini` 設 `session.upload_progress.enabled=Off`。詳見 [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md)。
 
 **介紹頁 / Demo：** <https://jasoncheng7115.github.io/jt-vc-portal/>
 
@@ -133,7 +136,7 @@ systemctl reload apache2
 - 反向代理信任：`JTVC_TRUSTED_PROXIES`（逗號分隔 IP/CIDR）。設定後只採信來自這些來源的 `X-Real-IP` / `X-Forwarded-*`，避免來源 IP 偽造繞過 fail2ban；留空＝相容模式（盲信標頭，須搭配容器埠隔離）。詳見「公開上線資安重點」。
 - Session 逾時：`JTVC_SESSION_IDLE`（閒置秒數，預設 1800）、`JTVC_SESSION_ABSOLUTE`（絕對秒數，預設 43200）。
 
-PHP 安全強化（建議於 `php.ini` 或 conf.d）：`display_errors=Off`、`expose_php=Off`、`session.cookie_httponly=1`、`session.cookie_samesite=Lax`、`session.use_strict_mode=1`。
+PHP 安全強化（建議於 `php.ini` 或 conf.d）：`display_errors=Off`、`expose_php=Off`、`session.cookie_httponly=1`、`session.cookie_samesite=Lax`、`session.use_strict_mode=1`、`session.upload_progress.enabled=Off`（本系統用不到；也是 PHP 2026-10 安全公告的緩解措施）。PHP 請保持在最新修補版（8.4.27 / 8.3.36 以上）。
 
 ---
 
@@ -210,14 +213,14 @@ server {
 
 ```bash
 # 1) 從 Release 頁下載映像與校驗檔（請改用最新版本號）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.22.0/jt-vc-portal-1.22.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.22.0/jt-vc-portal-1.22.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.22.1/jt-vc-portal-1.22.1-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.22.1/jt-vc-portal-1.22.1-docker-amd64.tar.gz.sha256
 
 # 2) 驗證完整性（應顯示 OK）
-sha256sum -c jt-vc-portal-1.22.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.22.1-docker-amd64.tar.gz.sha256
 
-# 3) 載入映像（會建立 jt-vc-portal:1.22.0 與 :latest 標籤）
-docker load < jt-vc-portal-1.22.0-docker-amd64.tar.gz
+# 3) 載入映像（會建立 jt-vc-portal:1.22.1 與 :latest 標籤）
+docker load < jt-vc-portal-1.22.1-docker-amd64.tar.gz
 
 # 4) 主機端準備持久化目錄（www-data UID 預設 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -265,6 +268,7 @@ Docker 映像與 Release 映像已經內含所有元件，不必另外安裝。*
 | v1.16.2 以前 | 自建 Jibri 升到 `stable-11031` 以後：jibri 服務的 `environment` 加 `SE_AVOID_STATS=true`、`SE_OFFLINE=true` 後重建容器，否則 Jibri 主機連外慢時按錄影會等很久再出現「全部錄製目前忙碌」。詳見 [JIBRI-SETUP_zh-TW.md](JIBRI-SETUP_zh-TW.md) 第七節。 |
 | v1.14.0 以前 | 會議記錄匯出 PDF / DOCX / ODT 需要 PHP `zlib` 擴充（Debian / Ubuntu 的 PHP 套件已內建），以及隨附字型 `lib/fonts/NotoSansTC-Regular.ttf`（`git pull` 會一起取得）。 |
 | v1.19.0 以前 | 直接安裝的站台：PHP 最低版本改為 **8.3**（PHP 8.2 只剩安全修補，2026-12-31 結束）。Docker 與 Release 映像已是 8.4，不用處理。 |
+| v1.22.1 以前 | 直接安裝的站台：PHP 更新到 8.4.27 / 8.3.36 以上（2026-10-21 安全更新），並在 `php.ini` 設 `session.upload_progress.enabled=Off`。Docker 安裝重建映像即可（`docker build --pull`）。 |
 | v1.20.0 以前 | 有自建 Jibri 時，請更新 Jibri 主機上的 `jibri-recordings-api/server.py` 並 `systemctl restart jibri-recordings-api`，長錄影的逐字稿頁才會有波形（不更新也能用，只是超過 60 MB 的錄影沒有波形）。解碼用主機的 ffmpeg，沒有就自動借 Jibri 容器裡的，不必另外安裝。 |
 
 可用 `php -m | grep -iE 'curl|mbstring|openssl|zlib|fileinfo|json'` 檢查。升級後打開**系統設定**：缺少的元件會列在最上方；背景排程沒在執行時，「逐字稿與摘要」卡片會警示。

@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.22.0 — 会議管理システム
+# jt-vc-portal v1.22.1 — 会議管理システム
 
 > English: [README.md](README.md) · 繁體中文: [README_zh-TW.md](README_zh-TW.md)
 
@@ -9,6 +9,9 @@
 > 複数アカウント / ロール / 2FA、SIEM 転送付きの完全な監査ログ、fail2ban 方式のロックアウト、予約時間帯などのエンタープライズ機能を標準で備えています。
 
 [^8x8]: **8x8** は 2018 年以降 Jitsi / Jitsi Meet の開発と保守を担っている企業で、**8x8 JaaS（Jitsi as a Service）**はその公式クラウドホスト型 Jitsi サービスです。
+
+> [!IMPORTANT]
+> **セキュリティ更新（2026-10-21）：できるだけ早く v1.22.1 に更新してください。** PHP がセキュリティ修正（8.4.27 / 8.3.36）を公開しました。Docker の場合は v1.22.1 のイメージを使うか `docker build --pull` で再ビルド、直接インストールの場合は PHP を 8.4.27 / 8.3.36 以降に更新し、`php.ini` で `session.upload_progress.enabled=Off` を設定してください。詳細は [CHANGELOG_ja.md](CHANGELOG_ja.md)。
 
 **プロジェクトページ / デモ：** <https://jasoncheng7115.github.io/jt-vc-portal/>
 
@@ -133,7 +136,7 @@ systemctl reload apache2
 - リバースプロキシの信頼：`JTVC_TRUSTED_PROXIES`（カンマ区切りの IP / CIDR）。設定すると、`X-Real-IP` / `X-Forwarded-*` はこれらの送信元から来た場合にのみ信頼され、送信元 IP の偽装による fail2ban 方式のロックアウトの回避を防ぎます。空のままにすると互換モード（ヘッダーを無条件に信頼。コンテナのポート分離との併用が必須）になります。「公開環境へのデプロイにおけるセキュリティ上の要点」を参照してください。
 - セッションのタイムアウト：`JTVC_SESSION_IDLE`（無操作の秒数、既定 1800）、`JTVC_SESSION_ABSOLUTE`（絶対的な秒数、既定 43200）。
 
-PHP のハードニング（`php.ini` または conf.d での設定を推奨）：`display_errors=Off`、`expose_php=Off`、`session.cookie_httponly=1`、`session.cookie_samesite=Lax`、`session.use_strict_mode=1`。
+PHP のハードニング（`php.ini` または conf.d での設定を推奨）：`display_errors=Off`、`expose_php=Off`、`session.cookie_httponly=1`、`session.cookie_samesite=Lax`、`session.use_strict_mode=1`、`session.upload_progress.enabled=Off`（本システムでは使用しない。PHP の 2026 年 10 月のセキュリティ勧告の緩和策でもある）。PHP は最新のパッチ版（8.4.27 / 8.3.36 以降）を維持すること。
 
 ---
 
@@ -210,14 +213,14 @@ server {
 
 ```bash
 # 1) Release ページからイメージとチェックサムファイルをダウンロード（最新のバージョン番号を使用）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.22.0/jt-vc-portal-1.22.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.22.0/jt-vc-portal-1.22.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.22.1/jt-vc-portal-1.22.1-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.22.1/jt-vc-portal-1.22.1-docker-amd64.tar.gz.sha256
 
 # 2) 完全性を検証（OK と表示されるはず）
-sha256sum -c jt-vc-portal-1.22.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.22.1-docker-amd64.tar.gz.sha256
 
-# 3) イメージを読み込む（jt-vc-portal:1.22.0 と :latest のタグが作成される）
-docker load < jt-vc-portal-1.22.0-docker-amd64.tar.gz
+# 3) イメージを読み込む（jt-vc-portal:1.22.1 と :latest のタグが作成される）
+docker load < jt-vc-portal-1.22.1-docker-amd64.tar.gz
 
 # 4) ホスト側で永続ディレクトリを準備（www-data の UID は既定で 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -265,6 +268,7 @@ Docker イメージと Release イメージにはすべて含まれているた�
 | v1.16.2 より前 | セルフホストの Jibri が `stable-11031` 以降の場合：jibri サービスの `environment` に `SE_AVOID_STATS=true`、`SE_OFFLINE=true` を追加してコンテナーを作り直してください。そうしないと Jibri ホストの外部接続が遅いとき、録画開始を押してしばらく待った後に「すべての録画が現在使用中」と表示されます。[JIBRI-SETUP_ja.md](JIBRI-SETUP_ja.md) の 7 節を参照。 |
 | v1.14.0 より前 | 議事録の PDF / DOCX / ODT エクスポートには PHP の `zlib` 拡張（Debian / Ubuntu の PHP パッケージには組み込み済み）と、同梱フォント `lib/fonts/NotoSansTC-Regular.ttf`（`git pull` で取得されます）が必要です。 |
 | v1.19.0 より前 | 直接インストールしたサイト：PHP の最低バージョンは **8.3** になりました（PHP 8.2 のセキュリティ修正は 2026-12-31 で終了）。Docker イメージと Release イメージはすでに 8.4 のため対応不要です。 |
+| v1.22.1 より前 | 直接インストールしたサイト：PHP を 8.4.27 / 8.3.36 以降に更新（2026-10-21 のセキュリティ更新）し、`php.ini` で `session.upload_progress.enabled=Off` を設定してください。Docker の場合はイメージを再ビルド（`docker build --pull`）するだけです。 |
 | v1.20.0 より前 | セルフホストの Jibri では、Jibri ホストの `jibri-recordings-api/server.py` を更新して `systemctl restart jibri-recordings-api` を実行すると、長い録画の文字起こしページにも波形が表示されます（更新しなくても使えますが、60 MB を超える録画には波形が出ません）。デコードはホストの ffmpeg、なければ Jibri コンテナー内のものを自動で使うため、追加のインストールは不要です。 |
 
 `php -m | grep -iE 'curl|mbstring|openssl|zlib|fileinfo|json'` で確認できます。アップグレード後に**システム設定**を開くと、不足しているコンポーネントが上部に表示され、バックグラウンドジョブが動いていない場合は「文字起こしと要約」カードに警告が出ます。

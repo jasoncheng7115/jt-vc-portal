@@ -2,6 +2,12 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.22.1 — PHP security update
+
+- Follows the PHP security advisory of 2026-10-21 (patched in 8.4.27 / 8.3.36): the Docker and Release images now use PHP 8.4.27 and turn off `session.upload_progress`, which this app does not use.
+- Direct installs: update PHP to 8.4.27 / 8.3.36 or later and set `session.upload_progress.enabled=Off` in `php.ini`.
+- Test T86.
+
 ## v1.22.0 — Shared slides stay sharp, no recording IDs in the audit log
 
 - **Screen sharing back to 5 frames per second (sharp text)**: it was set to 15–30 fps, which makes Jitsi treat the share as motion and lower the resolution first when the presenter's upload is short, so slide text blurred (it happened to a participant sharing only a PowerPoint window). Measured with the presenter limited to 1 Mbps upload: at 5 fps guests still received 1920×1080, at 15–30 fps only 960×540; with enough bandwidth both are full size. Settings → meeting room customization gains "Screen sharing": sharp text (default) / smooth motion (for videos).

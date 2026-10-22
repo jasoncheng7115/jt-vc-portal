@@ -138,6 +138,7 @@ CodeQL は本リポジトリの Python（`jibri-recordings-api/`）、JavaScript
 - [ ] T83 監査ログの録画関連メッセージに UUID を表示しない：新しい記録は「会議室「…」MM/DD HH:MM の録画（N 分）」（3 言語）、録画中は「… 開始の録画」。古い記録（「録画 {id}」）は新しい表記で表示し、削除済みの録画は「録画（ID 先頭 8 文字）」、会議室がない場合は「—」。完全な ID は記録に残り、検索でき、SIEM の文字列にも含まれる。
 - [ ] T84 会議室のカスタマイズ「画面共有」：既定の「文字を鮮明に」＝ `desktopSharingFrameRate: { min: 5, max: 5 }`、「動きを滑らかに」＝ `{ min: 15, max: 30 }`。ホストとゲストのページで同じ。不明な値は文字を鮮明にに戻る。
 - [ ] T85 本番環境の画面共有の画質（メンテナー）：`tests/prod-screenshare.sh` が tc で Jitsi のメディアポートへのアップロードを 1 Mbps に制限し、ホストが小さい文字の 1920×1080 のスライドを共有、ゲスト 2 人が視聴。文字を鮮明にでは Jitsi が detail と標記しゲストは 1080p を受信、動きを滑らかにでは motion と標記し解像度が明らかに低い。`RATE=none` ではどちらも元の解像度。制限は終了後に必ず解除。
+- [ ] T86 PHP のセキュリティ設定：コンテナ内で `session.upload_progress.enabled` が無効（`tests/run-integration.sh`）。PHP が最新のパッチ版（`php -v`、2026-10 以降は 8.4.27 / 8.3.36 以上）。
 
 ### 3.5 会議記録と統計
 - [ ] 主催者が退出すると `meetings.jsonl` に書き込まれる（時間、最大同時参加者数、参加者の入退室時刻）。
@@ -457,6 +458,7 @@ CodeQL は本リポジトリの Python（`jibri-recordings-api/`）、JavaScript
 | 監査ログに録画の UUID を表示しない T83 | `tests/unit/test_ical_audit.php` |
 | 画面共有のフレーム数の設定 T84 | `tests/run-integration.sh` |
 | アップロード制限時の画面共有の画質 T85 | `tests/prod-screenshare.sh`（メンテナー、本番環境） |
+| PHP のセキュリティ設定 T86 | `tests/run-integration.sh` |
 | 録画の開始 / 停止 / 2 部屋同時 T70 | `tests/prod-entry-gates.sh`、`tests/prod-meeting-sim.sh`（メンテナー、本番環境） |
 | 言語メニュー（折りたたみ、クリックで開く、Esc） | `tests/run-e2e.sh`（`tests/e2e/meeting.cjs`） |
 | SSO S29 | メンテナーが本番環境に対して実行するスモークテストスクリプト（一時アカウント、終了後に削除） |

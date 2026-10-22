@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.22.0 — Meeting Management System
+# jt-vc-portal v1.22.1 — Meeting Management System
 
 > 繁體中文: [README_zh-TW.md](README_zh-TW.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -9,6 +9,9 @@
 > Built-in enterprise features include multiple accounts / roles / 2FA, a complete audit log with SIEM forwarding, fail2ban-style lockout, scheduled time slots, and more.
 
 [^8x8]: **8x8** has been the company developing and maintaining Jitsi / Jitsi Meet since 2018; **8x8 JaaS (Jitsi as a Service)** is its official cloud-hosted Jitsi service.
+
+> [!IMPORTANT]
+> **Security update (2026-10-21): please upgrade to v1.22.1 as soon as possible.** PHP has released security fixes (8.4.27 / 8.3.36). Docker installs: use the v1.22.1 image or rebuild with `docker build --pull`. Direct installs: update PHP to 8.4.27 / 8.3.36 or later and set `session.upload_progress.enabled=Off` in `php.ini`. See [CHANGELOG.md](CHANGELOG.md).
 
 **Project page / Demo:** <https://jasoncheng7115.github.io/jt-vc-portal/>
 
@@ -133,7 +136,7 @@ Key settings (`config.php`):
 - Reverse proxy trust: `JTVC_TRUSTED_PROXIES` (comma-separated IPs/CIDRs). Once set, `X-Real-IP` / `X-Forwarded-*` are trusted only when coming from these sources, preventing source-IP spoofing to bypass the fail2ban-style lockout; leaving it empty = compatibility mode (headers are trusted blindly, must be combined with container port isolation). See "Security essentials for public deployment".
 - Session timeouts: `JTVC_SESSION_IDLE` (idle seconds, default 1800), `JTVC_SESSION_ABSOLUTE` (absolute seconds, default 43200).
 
-PHP hardening (recommended in `php.ini` or conf.d): `display_errors=Off`, `expose_php=Off`, `session.cookie_httponly=1`, `session.cookie_samesite=Lax`, `session.use_strict_mode=1`.
+PHP hardening (recommended in `php.ini` or conf.d): `display_errors=Off`, `expose_php=Off`, `session.cookie_httponly=1`, `session.cookie_samesite=Lax`, `session.use_strict_mode=1`, `session.upload_progress.enabled=Off` (not used by this app; also a mitigation for the October 2026 PHP security advisory). Keep PHP on the latest patch release (8.4.27 / 8.3.36 or later).
 
 ---
 
@@ -210,14 +213,14 @@ Don't want to build it yourself? Download the packaged image (`linux/amd64`) att
 
 ```bash
 # 1) Download the image and checksum file from the Release page (use the latest version number)
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.22.0/jt-vc-portal-1.22.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.22.0/jt-vc-portal-1.22.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.22.1/jt-vc-portal-1.22.1-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.22.1/jt-vc-portal-1.22.1-docker-amd64.tar.gz.sha256
 
 # 2) Verify integrity (should print OK)
-sha256sum -c jt-vc-portal-1.22.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.22.1-docker-amd64.tar.gz.sha256
 
-# 3) Load the image (creates the jt-vc-portal:1.22.0 and :latest tags)
-docker load < jt-vc-portal-1.22.0-docker-amd64.tar.gz
+# 3) Load the image (creates the jt-vc-portal:1.22.1 and :latest tags)
+docker load < jt-vc-portal-1.22.1-docker-amd64.tar.gz
 
 # 4) Prepare persistent directories on the host (www-data UID defaults to 33)
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -265,6 +268,7 @@ The Docker image and the Release image already contain everything — nothing to
 | before v1.16.2 | Self-hosted Jibri on `stable-11031` or later: add `SE_AVOID_STATS=true` and `SE_OFFLINE=true` to the jibri service `environment` and recreate the containers; otherwise, when the Jibri host's outbound connection is slow, starting a recording waits a long time and then says "All recorders are currently busy". See section 7 of [JIBRI-SETUP.md](JIBRI-SETUP.md). |
 | before v1.14.0 | Exporting meeting minutes as PDF / DOCX / ODT needs the PHP `zlib` extension (built into the Debian / Ubuntu PHP packages) and the bundled font `lib/fonts/NotoSansTC-Regular.ttf`, which comes with `git pull`. |
 | before v1.19.0 | Direct installs: the minimum PHP version is now **8.3** (PHP 8.2 only gets security fixes until 2026-12-31). The Docker and Release images already use 8.4; nothing to do there. |
+| before v1.22.1 | Direct installs: update PHP to 8.4.27 / 8.3.36 or later (security update of 2026-10-21) and set `session.upload_progress.enabled=Off` in `php.ini`. Docker installs: just rebuild the image (`docker build --pull`). |
 | before v1.20.0 | With a self-hosted Jibri, update `jibri-recordings-api/server.py` on the Jibri host and run `systemctl restart jibri-recordings-api` so long recordings get a waveform on the transcript page (it works without the update; recordings over 60 MB just have no waveform). Decoding uses the host's ffmpeg or, if missing, the one inside the Jibri containers — nothing to install. |
 
 Check with `php -m | grep -iE 'curl|mbstring|openssl|zlib|fileinfo|json'`. After upgrading, open **System settings**: any missing component is listed at the top, and the Transcripts card warns if the background job is not running.
