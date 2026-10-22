@@ -6,7 +6,7 @@
 
 接續 [JITSI-MEET-SETUP_zh-TW.md](JITSI-MEET-SETUP_zh-TW.md)，本文在同一套 docker-jitsi-meet 上加上 **Jibri 錄影**，並特別處理兩個重點：**同時多會議室錄製**與**錄影中文顯示**。
 
-> 適用版本：docker-jitsi-meet / `jitsi/jibri` **`stable-11031`**。
+> 適用版本：docker-jitsi-meet / `ghcr.io/jitsi/jibri` **`stable-11248`**（2026-10-23 實際驗證）。從 `stable-11031` 以前升級：見[第八節](#從-stable-11031-以前升級到-stable-11146-以後)。
 > 本文以 **同時 2 場錄製（2 個 Jibri 容器）** 為目標撰寫；要增減場數時，把文中所有「2」一起調整即可。
 
 ---
@@ -30,6 +30,8 @@
 
 - [七、疑難排解](#七疑難排解)
 - [八、升級 SOP](#八升級-sop)
+  - [從 stable-11031 以前升級到 stable-11146 以後](#從-stable-11031-以前升級到-stable-11146-以後)
+  - [升級時要保留的自訂項目](#升級時要保留的自訂項目)
 - [九、獨立 Jibri VM（與 Jitsi 分機）](#九獨立-jibri-vm與-jitsi-分機實作步驟)
 
 ---
@@ -194,7 +196,8 @@ ENABLE_RECORDING=1
 TZ=Asia/Taipei
 
 # 錄影輸出目錄（容器內路徑，對應 host volume）
-JIBRI_RECORDING_DIR=/config/recordings
+# stable-11146 以後：/storage/recordings（stable-11031 以前：/config/recordings）
+JIBRI_RECORDING_DIR=/storage/recordings
 # 錄完後處理腳本（選用：上傳物件儲存 / 通知；不設則只留檔）
 # JIBRI_FINALIZE_RECORDING_SCRIPT_PATH=/config/finalize.sh
 ```
@@ -209,9 +212,10 @@ Jibri 容器需存取主機 `/dev/snd`（jibri.yml 已設 `devices: /dev/snd`）
 
 ### 錄影輸出位置（host 端）
 
-- jibri 的設定 / 錄影 volume 預設掛在主機 **`~/.jitsi-meet-cfg/jibri`** → 容器 `/config`；錄影檔即在主機 **`~/.jitsi-meet-cfg/jibri/recordings/`** 下。
+- `stable-11146` 起，jibri 的資料 volume 預設掛在主機 **`~/.jitsi-meet-cfg/storage/jibri`** → 容器 `/storage`；錄影檔即在主機 **`~/.jitsi-meet-cfg/storage/jibri/recordings/`** 下（log 在 `storage/jibri/logs/`）。設定仍在 `~/.jitsi-meet-cfg/jibri` → `/config`。`stable-11031` 以前錄影檔在 `~/.jitsi-meet-cfg/jibri/recordings/`。
+- 容器以 uid 1000 執行，這些目錄的擁有者要是 uid 1000（`chown -R 1000:1000 ~/.jitsi-meet-cfg/jibri ~/.jitsi-meet-cfg/storage`）。
 - 每場會議自成一個子資料夾（含 `.mp4` 與 metadata），檔名 / 時間依 `TZ` 設定。
-- 想改放別處：在 `jibri.yml` 把該 volume 對應的主機路徑改掉（例如指到大容量磁碟 / NFS 掛載點），`JIBRI_RECORDING_DIR` 維持容器內 `/config/recordings` 即可。
+- 想改放別處：在 `jibri.yml` 把該 volume 對應的主機路徑改掉（例如指到大容量磁碟 / NFS 掛載點），`JIBRI_RECORDING_DIR` 維持容器內 `/storage/recordings` 即可。
 - `CONFIG` 變數（docker-jitsi-meet `.env`，預設 `~/.jitsi-meet-cfg`）決定所有元件設定 / 資料的主機根目錄；要整批換位置改它。
 
 ---
@@ -290,24 +294,26 @@ Jibri 是用 headless Chrome「把會議畫面錄下來」。**官方 `jitsi/jib
 
 ```dockerfile
 # jibri-cjk/Dockerfile
-FROM jitsi/jibri:stable-11031
+FROM ghcr.io/jitsi/jibri:stable-11248
 USER root
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       fonts-noto-cjk fonts-noto-cjk-extra fonts-noto-color-emoji \
  && fc-cache -f \
  && rm -rf /var/lib/apt/lists/*
-# 重要：不要切回 USER jibri。jibri 映像以 root 啟動 s6（會自行降權到 jibri 跑服務）；
-# 若結尾加 USER jibri，容器啟動會出現 "s6-mkdir: /var/run/s6: Permission denied" 並不斷重啟。
+# stable-11146 以後的映像以 uid 1000（s6）執行；裝完字型要切回來
+USER s6
 ```
+
+> **最後一行依版本而定**：`stable-11146` 起映像以非特權使用者 `s6`（uid 1000）執行，Dockerfile 結尾必須是 `USER s6`。**`stable-11031` 以前**剛好相反：映像以 root 啟動 s6，Dockerfile 要以 root 結尾（`USER root` 後面不再加 `USER`）——當時若結尾加 `USER jibri`，容器會出現 `s6-mkdir: /var/run/s6: Permission denied` 並不斷重啟。
 
 build 並讓 compose 改用它：
 
 ```bash
-docker build -t jibri-cjk:stable-11031 ./jibri-cjk
+docker build -t jibri-cjk:stable-11248 ./jibri-cjk
 ```
 
-在 `jibri.yml`（或 `docker-compose.override.yml`）把 jibri 服務的 `image:` 改成 `jibri-cjk:stable-11031`，再重啟。
+在 `jibri.yml`（或 `docker-compose.override.yml`）把 jibri 服務的 `image:` 改成 `jibri-cjk:stable-11248`，再重啟。
 
 > 驗證：錄一段含中文姓名的會議，播放確認中文正常（非缺字方框）。Noto CJK 對繁體中文覆蓋最完整。
 
@@ -329,10 +335,13 @@ docker build -t jibri-cjk:stable-11031 ./jibri-cjk
 ```yaml
     volumes:
       - ${CONFIG}/jibri:/config:Z
-      - /srv/recordings:/config/recordings
+      - ${CONFIG}/storage/jibri:/storage:Z
+      - /srv/recordings:/storage/recordings
 ```
 
-`JIBRI_RECORDING_DIR` 維持容器內 `/config/recordings`。每場錄影一個子資料夾（UUID），內含 `<room>_<時間>.mp4` 與 `metadata.json`。
+`JIBRI_RECORDING_DIR` 維持容器內 `/storage/recordings`（`stable-11031` 以前：對應 `/srv/recordings:/config/recordings`，並用 `/config/recordings`）。容器以 uid 1000 執行，要把資料夾交給它：`chown -R 1000:1000 /srv/recordings`。每場錄影一個子資料夾（UUID），內含 `<room>_<時間>.mp4` 與 `metadata.json`。
+
+> 容器內路徑改變時，下面的 jibri-recordings-api 不用改：它會自己從 `docker inspect` 的掛載資訊找出 `/srv/recordings` 在容器內的路徑，而且是以 root 在主機上執行。
 
 ### 錄影調閱服務
 
@@ -430,6 +439,7 @@ systemctl is-active jibri-recordings-api
 | log 出現 `Failed to run finalize script /path/to/finalize` | **無害**——未設 finalize 腳本時的預設佔位路徑，停止錄影時會嘗試執行而失敗，但**不影響錄影檔產出**。要消除就設 `JIBRI_FINALIZE_RECORDING_SCRIPT_PATH` 指向一個存在的腳本（或一個空的 `.sh`）。 |
 | 錄影檔顯示「錄製中」一直不變 | portal 用 `metadata.json` 是否存在判定是否結束（Jibri 在 finalize 後才寫它）；若 finalize 異常未寫出，會卡在「錄製中」→ 查 jibri log 是否有 finalize 錯誤 |
 | 按「開始錄影」等很久才出現「全部錄製目前忙碌」，兩台 Jibri 其實都閒置、健康 | `stable-11031` 起 Jibri 用 Selenium 4.4x，開始錄影時會先連外網送使用統計、查瀏覽器版本；Jibri 主機連不出去或 DNS 慢時，這一步卡十幾到三十秒，超過 jicofo 等待的 15 秒，jicofo 便判定每台都失敗。在 jibri 服務的 `environment` 加 `SE_AVOID_STATS=true`、`SE_OFFLINE=true`（用映像內的 Chrome / chromedriver），重建 jibri 容器。用 docker-jitsi-meet 內建 `jibri.yml` 的，加在 `docker-compose.override.yml` 的 jibri 服務。正常情況下從按下到開始錄影只要 2–3 秒。 |
+| 升到 `stable-11146` 以後，jibri 容器一直重啟並出現「Permission denied」 | 容器改以 uid 1000 執行、寫不進自己的目錄 → `chown -R 1000:1000 ~/.jitsi-meet-cfg/jibri ~/.jitsi-meet-cfg/storage /srv/recordings`；並確認 `jibri-cjk/Dockerfile` 結尾是 `USER s6`（第五節） |
 | 按「停止錄影」沒有反應，jicofo log 出現 `Rejecting STOP request for an unknown session` | 在錄影請求進行中重啟了 Jibri，jicofo 把舊請求轉給新起來的 Jibri、卻沒登記這個 session。處理：所有人離開會議室後 Jibri 會自動停止並保存檔案；或在 Jibri 主機執行 `docker exec <jibri 容器> curl -s -X POST http://127.0.0.1:2222/jibri/api/v1.0/stopService`。**重啟 Jibri 前先確認沒有人在按錄影**。 |
 
 ---
@@ -475,9 +485,92 @@ docker compose -f docker-compose.yml -f jibri.yml ps     # web/prosody/jicofo/jv
 - 開一場會議按錄影 → 確認能錄、且**中文非缺字方框**（第五節）。
 - 同時開 2 間會議室都能錄 → 確認並行（第四節）未受升級影響。
 
-> 本文以 `stable-11031` 實際驗證；把上面 `<新版本>` 換成要升的 tag 即可。**Jibri 要與 Jitsi 主機升到同一個版本**，升級前確認兩台 Jibri 都是閒置（`curl -s http://127.0.0.1:2222/jibri/api/v1.0/health` 為 `IDLE`）。
-> **`stable-11146` 起是結構性改版**（Debian 13、容器非 root、映像改放 GHCR），上面 `jibri-cjk/Dockerfile` 的 `USER root` 做法要重新確認，請先在測試環境演練。
+> 本文以 `stable-11248` 實際驗證（2026-10-23）；把上面 `<新版本>` 換成要升的 tag 即可。**Jibri 要與 Jitsi 主機升到同一個版本**（先升 Jitsi、再升 Jibri），升級前確認每台 Jibri 都是閒置（`curl -s http://127.0.0.1:2222/jibri/api/v1.0/health` 為 `IDLE`）。
+> **從 `stable-11031` 以前升級**是結構性改版，請照下一小節。
 > `snd-aloop` 是核心模組、與映像版本無關，升級時不用重設（除非你重灌了 VM）。
+
+### 從 stable-11031 以前升級到 stable-11146 以後
+
+`stable-11146` 起映像改放 GitHub Container Registry（`ghcr.io/jitsi/jibri`）、基底改 Debian 13、容器改以非特權使用者 `s6`（uid 1000）執行。對 Jibri 來說：
+
+- 錄影檔與 log 從容器內的 `/config` 移到 `/storage`：`JIBRI_RECORDING_DIR=/storage/recordings`。
+- `jibri-cjk/Dockerfile` 結尾必須是 `USER s6`（第五節）。
+- Jibri 不再需要 `cap_add: SYS_ADMIN`（Chrome 以 `--no-sandbox` 執行）；根檔案系統改唯讀，`/run`、`/tmp` 用 tmpfs。
+- `/dev/snd` 照常可用：容器使用者在 `audio` 群組（gid 29），與 Ubuntu 主機上 `/dev/snd` 的群組相同。
+- jibri-recordings-api 不用改（會自己找出 `/srv/recordings` 在容器內的路徑）。
+
+先升 Jitsi 主機（[JITSI-MEET-SETUP_zh-TW.md](JITSI-MEET-SETUP_zh-TW.md#從-stable-11031-以前升級到-stable-11146-以後)），再升 Jibri VM，並先在測試機演練。獨立 Jibri VM（第九節）的步驟：
+
+```bash
+cd /opt/docker-jitsi-meet        # Jibri VM 上
+
+# (1) 每台 Jibri 都要是 IDLE——有人在錄影時絕不能重啟 Jibri
+for c in $(docker ps --format '{{.Names}}' | grep jibri); do docker exec $c curl -s 127.0.0.1:2222/jibri/api/v1.0/health; echo; done
+
+# (2) 備份（.env、compose 檔、jibri-cjk、Jibri 設定），並記下 /srv/recordings 原本的擁有者
+T=$(date +%Y%m%d-%H%M)
+tar czpf ~/jibri-backup-$T.tgz -C / "${PWD#/}/.env" "${PWD#/}/docker-compose.jibri-standalone.yml" "${PWD#/}/jibri-cjk" "${HOME#/}/.jitsi-meet-cfg/jibri"
+git rev-parse HEAD > ~/jibri-backup-$T.gitref
+stat -c '%u:%g' /srv/recordings > ~/jibri-backup-$T.rec-owner
+
+# (3) 錄影改寫到容器內的 /storage/recordings
+sed -i 's|^JIBRI_RECORDING_DIR=.*|JIBRI_RECORDING_DIR=/storage/recordings|' .env
+
+# (4) 建新目錄，Jibri 會寫的地方都交給 uid 1000
+mkdir -p ~/.jitsi-meet-cfg/storage/jibri
+chown -R 1000:1000 ~/.jitsi-meet-cfg/jibri ~/.jitsi-meet-cfg/storage /srv/recordings
+
+# (5) 換版本並重 build 中文映像（jibri-cjk/Dockerfile 照第五節改：FROM ghcr.io/jitsi/jibri:stable-11248 … USER s6）
+git fetch --tags && git checkout stable-11248
+docker build -t jibri-cjk:stable-11248 ./jibri-cjk
+
+# (6) docker-compose.jibri-standalone.yml 照第九節改（映像、read_only、tmpfs、/storage volume、拿掉 cap_add），再啟動
+docker compose -f docker-compose.jibri-standalone.yml up -d --scale jibri=2
+```
+
+驗證：
+
+- 兩個容器都在執行、health 都是 `IDLE`（同第 (1) 步的迴圈），主機 jicofo 看得到 2 台 Jibri（第 9-3 節）。
+- 錄一段測試：`/srv/recordings` 下新的資料夾有 `.mp4` 與 `metadata.json`、擁有者是 uid 1000（`ls -ln /srv/recordings/<資料夾>`），且 portal 能播放。
+
+回滾（舊的 `jibri-cjk:stable-11031` 映像仍在本機）：
+
+```bash
+docker compose -f docker-compose.jibri-standalone.yml down
+git checkout $(cat ~/jibri-backup-<時間>.gitref)
+tar xzpf ~/jibri-backup-<時間>.tgz -C /                        # 還原舊的 .env、compose 檔、Dockerfile、設定
+chown -R $(cat ~/jibri-backup-<時間>.rec-owner) /srv/recordings
+docker compose -f docker-compose.jibri-standalone.yml up -d --scale jibri=2
+```
+
+### 升級時要保留的自訂項目
+
+下面列出這套部署所有的自訂項目。**沒有任何一項是改在容器裡面**：全都是容器外的檔案、`.env` 設定或延伸映像，所以拉新映像時會保留。升級後逐項確認。
+
+**Jibri VM**
+
+| 項目 | 位置 | 用途 |
+|---|---|---|
+| `jibri-cjk/Dockerfile` | docker-jitsi-meet 目錄 | 中文字型、結尾 `USER s6`；每次換版都要重 build |
+| `docker-compose.jibri-standalone.yml` | docker-jitsi-meet 目錄 | 映像、`read_only`、volume、`/dev/snd`、`extra_hosts`、`SE_AVOID_STATS` / `SE_OFFLINE` |
+| `.env` | docker-jitsi-meet 目錄（不在 git 版控內） | `JIBRI_RECORDING_DIR`、`XMPP_*`、Jibri 密碼 |
+| snd-aloop 設定 | `/etc/modules-load.d/`、`/etc/modprobe.d/` | loopback 音效卡（第二節） |
+| `/srv/recordings` | 主機 | 錄影檔；擁有者 uid 1000 |
+| jibri-recordings-api | `/opt/jibri-recordings-api`、`/etc/jibri-recordings-api.env`、systemd | 主機上的錄影調閱服務；不用改 |
+
+**Jitsi 主機**（細節見 [JITSI-MEET-SETUP_zh-TW.md](JITSI-MEET-SETUP_zh-TW.md#升級時要保留的自訂項目)）
+
+| 項目 | 位置 | 用途 |
+|---|---|---|
+| `.env` | docker-jitsi-meet 目錄（不在 git 版控內） | JWT、大廳、錄影、TURN、`JVB_ADVERTISE_IPS`、三個主持人權限設定 |
+| `docker-compose.override.yml` | docker-jitsi-meet 目錄（不在 git 版控內） | jvb `4443`（選用）、給 Jibri VM 用、綁內網 IP 的 prosody `5222` |
+| `jvb/custom-jvb.conf` | `~/.jitsi-meet-cfg` | TCP 4443（選用） |
+| `web/custom-config.js`、`web/custom-interface_config.js` | `~/.jitsi-meet-cfg` | logo、`hiddenDomain` |
+| `web/keys/cert.crt`、`cert.key` 與續約腳本 | `~/.jitsi-meet-cfg` | 自有憑證；擁有者要是 uid 1000 |
+| coturn | 自己的 compose 檔 | TURN；不受影響 |
+| 主機上的反向代理 / nginx | 主機 | 不受影響 |
+
+> **規則**：不要改執行中容器裡面的檔案——升級後就不見了。改動一律放在設定目錄（`custom-*` 檔）、`.env`、compose override 或延伸映像，並記到這張表。
 
 ---
 
@@ -521,7 +614,8 @@ grep -E '^JIBRI_XMPP_PASSWORD=|^JIBRI_RECORDER_PASSWORD=' .env   # 兩個密碼�
 # XMPP domains（用映像預設即可，本版為）：
 #   XMPP_DOMAIN=meet.jitsi  AUTH=auth.meet.jitsi  INTERNAL_MUC=internal-muc.meet.jitsi
 #   RECORDER(hidden)=hidden.meet.jitsi   brewery=jibribrewery
-# 可從 prosody 確認：docker exec docker-jitsi-meet-prosody-1 sh -c 'grep -E "^VirtualHost|^Component" /config/conf.d/jitsi-meet.cfg.lua'
+# 可從 prosody 確認：docker exec docker-jitsi-meet-prosody-1 sh -c 'grep -E "^VirtualHost|^Component" /run/prosody/config/conf.d/jitsi-meet.cfg.lua'
+#   （stable-11031 以前路徑是 /config/conf.d/jitsi-meet.cfg.lua）
 ```
 
 ### 9-2 Jibri VM 端
@@ -532,9 +626,10 @@ grep -E '^JIBRI_XMPP_PASSWORD=|^JIBRI_RECORDER_PASSWORD=' .env   # 兩個密碼�
 
 ```bash
 cd /opt && git clone https://github.com/jitsi/docker-jitsi-meet.git
-cd docker-jitsi-meet && git checkout stable-11031
+cd docker-jitsi-meet && git checkout stable-11248
 cp env.example .env && ./gen-passwords.sh        # 先填齊欄位
-mkdir -p ~/.jitsi-meet-cfg/jibri/recordings
+mkdir -p ~/.jitsi-meet-cfg/jibri ~/.jitsi-meet-cfg/storage/jibri /srv/recordings
+chown -R 1000:1000 ~/.jitsi-meet-cfg/jibri ~/.jitsi-meet-cfg/storage /srv/recordings   # 容器以 uid 1000 執行
 
 # 設定（換成你的主機 IP / 網域；JIBRI_*_PASSWORD 填主機那兩個值）
 cat >> .env <<'EOF'
@@ -552,7 +647,7 @@ XMPP_RECORDER_DOMAIN=hidden.meet.jitsi
 JIBRI_BREWERY_MUC=jibribrewery
 JIBRI_XMPP_USER=jibri
 JIBRI_RECORDER_USER=recorder
-JIBRI_RECORDING_DIR=/config/recordings
+JIBRI_RECORDING_DIR=/storage/recordings
 JIBRI_XMPP_PASSWORD=<貼主機的 JIBRI_XMPP_PASSWORD>
 JIBRI_RECORDER_PASSWORD=<貼主機的 JIBRI_RECORDER_PASSWORD>
 EOF
@@ -560,7 +655,7 @@ EOF
 
 > **關鍵**：`XMPP_SERVER` 指向主機、`XMPP_TRUST_ALL_CERTS=1`（prosody 內部憑證為自簽）、`JIBRI_*_PASSWORD` 與主機**完全一致**（jibri/recorder 帳號是註冊在主機 prosody 上）；XMPP domains 與主機相同。
 
-3) 建 CJK 映像（第五節，**注意不要 `USER jibri`**）。
+3) 建 CJK 映像（第五節，**Dockerfile 結尾必須是 `USER s6`**）。
 
 4) 建獨立 compose（只跑 jibri、自帶 `/dev/snd` 與 `extra_hosts`）：
 
@@ -568,13 +663,19 @@ EOF
 # docker-compose.jibri-standalone.yml
 services:
   jibri:
-    image: jibri-cjk:stable-11031
+    image: jibri-cjk:stable-11248
     restart: unless-stopped
+    read_only: true                    # 根檔案系統唯讀，可寫的部分用 tmpfs
+    tmpfs:
+      - /run:size=256M,mode=1750,exec
+      - /tmp:size=256M,mode=1777,noexec
     volumes:
       - ${CONFIG}/jibri:/config:Z
+      - ${CONFIG}/storage/jibri:/storage:Z
+      - /srv/recordings:/storage/recordings   # 錄影檔（第六節）
     shm_size: "2gb"
-    cap_add: [ SYS_ADMIN ]
-    devices: [ "/dev/snd:/dev/snd" ]
+    devices:
+      - /dev/snd:/dev/snd
     extra_hosts:
       - "meet.example.com:10.0.0.10"   # 讓錄影 Chrome 解析到主機內網 IP
     environment:
@@ -599,6 +700,8 @@ services:
       - SE_OFFLINE=true        # Selenium 不上網找瀏覽器 / driver，用映像內附的
 ```
 
+> `stable-11146` 起 Jibri 不再需要 `cap_add: SYS_ADMIN`（Chrome 以 `--no-sandbox` 執行）。`stable-11031` 以前這個檔有 `cap_add: [ SYS_ADMIN ]`、只有一個 `${CONFIG}/jibri:/config` volume、沒有 `read_only` / `tmpfs`，且 `JIBRI_RECORDING_DIR=/config/recordings`。
+
 5) 起 2 路：
 
 ```bash
@@ -618,4 +721,4 @@ docker logs docker-jitsi-meet-jicofo-1 2>&1 | grep -i "brewery instance"
 
 最後開一場會議按錄影實測（中文不缺字、可同時錄 2 間）。
 
-> 常見坑：① CJK Dockerfile 結尾誤加 `USER jibri` → 容器一直重啟（s6 權限）。② `JIBRI_*_PASSWORD` 與主機不一致 → log 顯示 authentication 失敗。③ 主機 prosody 5222 未對 Jibri VM 開放 → 連不上。④ Jibri VM 解析不到 `meet.example.com` 內網 IP → 用 `extra_hosts` 或內部 DNS 解決。
+> 常見坑：① CJK Dockerfile 結尾不是 `USER s6`（`stable-11146` 以後），或 Jibri 目錄 / `/srv/recordings` 的擁有者不是 uid 1000 → 容器一直重啟（權限）。② `JIBRI_*_PASSWORD` 與主機不一致 → log 顯示 authentication 失敗。③ 主機 prosody 5222 未對 Jibri VM 開放 → 連不上。④ Jibri VM 解析不到 `meet.example.com` 內網 IP → 用 `extra_hosts` 或內部 DNS 解決。

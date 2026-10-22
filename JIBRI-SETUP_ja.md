@@ -6,7 +6,7 @@
 
 本ガイドは [JITSI-MEET-SETUP_ja.md](JITSI-MEET-SETUP_ja.md) の続きとして、同じ docker-jitsi-meet 環境に **Jibri による録画** を追加します。特に次の 2 点に重点を置いています：**複数の会議室を同時に録画すること**、そして **録画内の中国語（CJK）テキストを正しく表示すること** です。
 
-> 対象バージョン：docker-jitsi-meet / `jitsi/jibri` **`stable-11031`**。
+> 対象バージョン：docker-jitsi-meet / `ghcr.io/jitsi/jibri` **`stable-11248`**（2026-10-23 に検証）。`stable-11031` 以前からのアップグレードは[第 8 節](#stable-11031-以前から-stable-11146-以降へのアップグレード)を参照してください。
 > 本ガイドは **同時録画 2 本（Jibri コンテナ 2 台）** を前提に書かれています。本数を増減する場合は、本文中の「2」をすべて合わせて調整してください。
 
 ---
@@ -30,6 +30,8 @@
 
 - [7. トラブルシューティング](#7-トラブルシューティング)
 - [8. アップグレード SOP](#8-アップグレード-sop)
+  - [stable-11031 以前から stable-11146 以降へのアップグレード](#stable-11031-以前から-stable-11146-以降へのアップグレード)
+  - [アップグレード時に残すカスタマイズ](#アップグレード時に残すカスタマイズ)
 - [9. Jibri 専用 VM（Jitsi と分離）](#9-jibri-専用-vmjitsi-と分離手順)
 
 ---
@@ -194,7 +196,8 @@ ENABLE_RECORDING=1
 TZ=Asia/Taipei
 
 # 録画の出力先ディレクトリ（コンテナ内のパス。ホストのボリュームにマッピングされる）
-JIBRI_RECORDING_DIR=/config/recordings
+# stable-11146 以降：/storage/recordings（stable-11031 以前：/config/recordings）
+JIBRI_RECORDING_DIR=/storage/recordings
 # 録画後に実行するスクリプト（任意：オブジェクトストレージへのアップロード / 通知送信など。未設定ならファイルを保存するだけ）
 # JIBRI_FINALIZE_RECORDING_SCRIPT_PATH=/config/finalize.sh
 ```
@@ -209,9 +212,10 @@ Jibri コンテナはホストの `/dev/snd` へのアクセスを必要とし�
 
 ### 録画の出力先（ホスト側）
 
-- 既定では、jibri の設定 / 録画ボリュームはホストの **`~/.jitsi-meet-cfg/jibri`** → コンテナの `/config` にマウントされ、録画はホストの **`~/.jitsi-meet-cfg/jibri/recordings/`** 以下に保存されます。
+- `stable-11146` 以降の既定では、jibri のデータボリュームはホストの **`~/.jitsi-meet-cfg/storage/jibri`** → コンテナの `/storage` にマウントされ、録画はホストの **`~/.jitsi-meet-cfg/storage/jibri/recordings/`** 以下に保存されます（ログは `storage/jibri/logs/`）。設定は引き続き `~/.jitsi-meet-cfg/jibri` → `/config` です。`stable-11031` 以前は録画が `~/.jitsi-meet-cfg/jibri/recordings/` にありました。
+- コンテナは uid 1000 で動くため、これらのディレクトリの所有者は uid 1000 にする必要があります（`chown -R 1000:1000 ~/.jitsi-meet-cfg/jibri ~/.jitsi-meet-cfg/storage`）。
 - 会議ごとに専用のサブフォルダ（`.mp4` とメタデータを含む）が作られます。ファイル名 / 時刻は `TZ` の設定に従います。
-- 別の場所に保存したい場合：`jibri.yml` でそのボリュームにマッピングするホスト側のパスを変更します（例：大容量ディスク / NFS のマウントポイント）。コンテナ内の `JIBRI_RECORDING_DIR` は `/config/recordings` のままにしてください。
+- 別の場所に保存したい場合：`jibri.yml` でそのボリュームにマッピングするホスト側のパスを変更します（例：大容量ディスク / NFS のマウントポイント）。コンテナ内の `JIBRI_RECORDING_DIR` は `/storage/recordings` のままにしてください。
 - `CONFIG` 変数（docker-jitsi-meet の `.env`、既定値 `~/.jitsi-meet-cfg`）は、全コンポーネントの設定 / データのホスト側ルートディレクトリを指定します。これを変更すればまとめて移動できます。
 
 ---
@@ -290,24 +294,26 @@ Jibri は headless Chrome を使って「会議画面を録画」します。**�
 
 ```dockerfile
 # jibri-cjk/Dockerfile
-FROM jitsi/jibri:stable-11031
+FROM ghcr.io/jitsi/jibri:stable-11248
 USER root
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       fonts-noto-cjk fonts-noto-cjk-extra fonts-noto-color-emoji \
  && fc-cache -f \
  && rm -rf /var/lib/apt/lists/*
-# 重要：USER jibri に戻さないこと。jibri イメージは s6 を root で起動します（サービスについては自身で jibri に権限を落とします）。
-# 最後に USER jibri を追加すると、コンテナは "s6-mkdir: /var/run/s6: Permission denied" で失敗し、再起動を繰り返します。
+# stable-11146 以降のイメージは uid 1000（s6）で動くため、フォントのインストール後に戻す
+USER s6
 ```
+
+> **最後の行はバージョンによって異なります**：`stable-11146` 以降のイメージは非特権ユーザー `s6`（uid 1000）で動くため、Dockerfile は `USER s6` で終える必要があります。**`stable-11031` 以前**は逆で、イメージが s6 を root で起動していたため、Dockerfile は root のまま終える（`USER root` の後に `USER` を書かない）必要がありました。当時は最後に `USER jibri` を追加すると、コンテナが `s6-mkdir: /var/run/s6: Permission denied` で失敗し、再起動を繰り返しました。
 
 ビルドして compose で使用するようにします：
 
 ```bash
-docker build -t jibri-cjk:stable-11031 ./jibri-cjk
+docker build -t jibri-cjk:stable-11248 ./jibri-cjk
 ```
 
-`jibri.yml`（または `docker-compose.override.yml`）で、jibri サービスの `image:` を `jibri-cjk:stable-11031` に変更し、再起動します。
+`jibri.yml`（または `docker-compose.override.yml`）で、jibri サービスの `image:` を `jibri-cjk:stable-11248` に変更し、再起動します。
 
 > 確認：中国語の参加者名を含む会議を録画し、再生時に中国語が正しく表示される（豆腐の四角がない）ことを確認してください。Noto CJK は繁体字中国語のカバー範囲が最も充実しています。
 
@@ -329,10 +335,13 @@ docker build -t jibri-cjk:stable-11031 ./jibri-cjk
 ```yaml
     volumes:
       - ${CONFIG}/jibri:/config:Z
-      - /srv/recordings:/config/recordings
+      - ${CONFIG}/storage/jibri:/storage:Z
+      - /srv/recordings:/storage/recordings
 ```
 
-コンテナ内の `JIBRI_RECORDING_DIR` は `/config/recordings` のままにします。各録画には専用のサブフォルダ（UUID）が作られ、`<room>_<time>.mp4` と `metadata.json` が格納されます。
+コンテナ内の `JIBRI_RECORDING_DIR` は `/storage/recordings` のままにします（`stable-11031` 以前は `/srv/recordings:/config/recordings` をマッピングし、`/config/recordings` を使用）。コンテナは uid 1000 で動くため、フォルダーの所有者を変更します：`chown -R 1000:1000 /srv/recordings`。各録画には専用のサブフォルダ（UUID）が作られ、`<room>_<time>.mp4` と `metadata.json` が格納されます。
+
+> コンテナ内のパスが変わっても、後述の jibri-recordings-api は変更不要です。`docker inspect` のマウント情報から `/srv/recordings` のコンテナ内パスを自動で見つけ、ホスト上で root として動作します。
 
 ### 録画再生サービス
 
@@ -430,6 +439,7 @@ systemctl is-active jibri-recordings-api
 | ログに `Failed to run finalize script /path/to/finalize` と表示される | **無害** です。finalize スクリプトを設定していない場合の既定のプレースホルダーパスで、録画停止時に実行を試みて失敗しますが、**録画の出力には影響しません**。表示を消したい場合は、`JIBRI_FINALIZE_RECORDING_SCRIPT_PATH` に実在するスクリプト（または空の `.sh`）を設定してください。 |
 | 録画がいつまでも「録画中」のまま | ポータルは `metadata.json` の有無で録画が完了したかどうかを判定します（Jibri は finalize の後にのみこれを書き込みます）。finalize が失敗して書き込まれなかった場合、「録画中」のままになります → jibri のログで finalize のエラーを確認する |
 | 「録画開始」を押してしばらく待つと「すべての録画が現在使用中」と表示されるが、2 台の Jibri はアイドルで正常 | `stable-11031` から Jibri は Selenium 4.4x を使い、録画開始時にまず外部へ接続（利用統計の送信、ブラウザのバージョン確認）します。Jibri ホストが外に出られない、または DNS が遅いと、この処理が 10〜30 秒止まり、jicofo の待ち時間 15 秒を超えるため、jicofo はすべての Jibri を失敗と判断します。jibri サービスの `environment` に `SE_AVOID_STATS=true`、`SE_OFFLINE=true` を追加し（イメージ内の Chrome / chromedriver を使用）、jibri コンテナーを作り直してください。docker-jitsi-meet 標準の `jibri.yml` を使う場合は `docker-compose.override.yml` の jibri サービスに追加します。通常はボタンを押してから 2〜3 秒で録画が始まります。 |
+| `stable-11146` 以降にアップグレードした後、jibri コンテナが「Permission denied」で再起動を繰り返す | コンテナが uid 1000 で動くようになり、自分のディレクトリに書き込めない → `chown -R 1000:1000 ~/.jitsi-meet-cfg/jibri ~/.jitsi-meet-cfg/storage /srv/recordings`。また `jibri-cjk/Dockerfile` が `USER s6` で終わっていることを確認する（第 5 節） |
 | 「録画停止」が効かず、jicofo のログに `Rejecting STOP request for an unknown session` が出る | 録画の要求中に Jibri を再起動したため、jicofo が古い要求を再起動後の Jibri に渡したものの、セッションを登録していません。対処：全員が会議室を出ると Jibri は自動で停止しファイルを保存します。または Jibri ホストで `docker exec <jibri コンテナー> curl -s -X POST http://127.0.0.1:2222/jibri/api/v1.0/stopService` を実行します。**Jibri を再起動する前に、録画を開始しようとしている人がいないことを確認してください。** |
 
 ---
@@ -475,9 +485,92 @@ docker compose -f docker-compose.yml -f jibri.yml ps     # web/prosody/jicofo/jv
 - 会議を開始して録画をクリック → 録画できること、そして **中国語が豆腐の四角にならないこと**（第 5 節）を確認します。
 - 2 つの会議室を同時に録画 → 同時録画（第 4 節）がアップグレードの影響を受けていないことを確認します。
 
-> 本ガイドは `stable-11031` で検証しています。上記の `<new-version>` をアップグレード先のタグに置き換えるだけです。**Jibri は Jitsi ホストと同じバージョンに揃えてください**。アップグレード前に 2 台の Jibri がどちらもアイドル（`curl -s http://127.0.0.1:2222/jibri/api/v1.0/health` が `IDLE`）であることを確認します。
-> **`stable-11146` 以降は構造的な変更**です（Debian 13、非 root コンテナ、イメージは GHCR）。上記 `jibri-cjk/Dockerfile` の `USER root` の方法は再確認が必要なので、まずテスト環境でリハーサルしてください。
+> 本ガイドは `stable-11248` で検証しています（2026-10-23）。上記の `<new-version>` をアップグレード先のタグに置き換えるだけです。**Jibri は Jitsi ホストと同じバージョンに揃えてください**（先に Jitsi、次に Jibri）。アップグレード前にすべての Jibri がアイドル（`curl -s http://127.0.0.1:2222/jibri/api/v1.0/health` が `IDLE`）であることを確認します。
+> **`stable-11031` 以前から**の場合は構造的な変更なので、次の小節に従ってください。
 > `snd-aloop` はカーネルモジュールでありイメージのバージョンとは無関係なので、アップグレード時に再設定する必要はありません（VM を再インストールした場合を除く）。
+
+### stable-11031 以前から stable-11146 以降へのアップグレード
+
+`stable-11146` 以降、イメージは GitHub Container Registry（`ghcr.io/jitsi/jibri`）で公開され、ベースは Debian 13、コンテナは非特権ユーザー `s6`（uid 1000）で動きます。Jibri にとっては次の変更があります：
+
+- 録画とログはコンテナ内の `/config` から `/storage` に移りました：`JIBRI_RECORDING_DIR=/storage/recordings`。
+- `jibri-cjk/Dockerfile` は `USER s6` で終える必要があります（第 5 節）。
+- Jibri に `cap_add: SYS_ADMIN` は不要になりました（Chrome は `--no-sandbox` で動作）。ルートファイルシステムは読み取り専用で、`/run` と `/tmp` は tmpfs です。
+- `/dev/snd` は引き続き使えます。コンテナのユーザーは `audio` グループ（gid 29）に属しており、Ubuntu ホストで `/dev/snd` を所有するグループと同じです。
+- jibri-recordings-api は変更不要です（`/srv/recordings` のコンテナ内パスを自動で見つけます）。
+
+先に Jitsi ホスト（[JITSI-MEET-SETUP_ja.md](JITSI-MEET-SETUP_ja.md#stable-11031-以前から-stable-11146-以降へのアップグレード)）、次に Jibri VM を上げます。まずテスト機でリハーサルしてください。Jibri 専用 VM（第 9 節）での手順：
+
+```bash
+cd /opt/docker-jitsi-meet        # Jibri VM 上で
+
+# (1) すべての Jibri が IDLE であること。録画中に Jibri を再起動しないこと
+for c in $(docker ps --format '{{.Names}}' | grep jibri); do docker exec $c curl -s 127.0.0.1:2222/jibri/api/v1.0/health; echo; done
+
+# (2) バックアップ（.env、compose ファイル、jibri-cjk、Jibri の設定）と /srv/recordings の元の所有者の記録
+T=$(date +%Y%m%d-%H%M)
+tar czpf ~/jibri-backup-$T.tgz -C / "${PWD#/}/.env" "${PWD#/}/docker-compose.jibri-standalone.yml" "${PWD#/}/jibri-cjk" "${HOME#/}/.jitsi-meet-cfg/jibri"
+git rev-parse HEAD > ~/jibri-backup-$T.gitref
+stat -c '%u:%g' /srv/recordings > ~/jibri-backup-$T.rec-owner
+
+# (3) 録画の出力先をコンテナ内の /storage/recordings に変更
+sed -i 's|^JIBRI_RECORDING_DIR=.*|JIBRI_RECORDING_DIR=/storage/recordings|' .env
+
+# (4) 新しいディレクトリを作り、Jibri が書き込む場所をすべて uid 1000 の所有にする
+mkdir -p ~/.jitsi-meet-cfg/storage/jibri
+chown -R 1000:1000 ~/.jitsi-meet-cfg/jibri ~/.jitsi-meet-cfg/storage /srv/recordings
+
+# (5) 新しいバージョンと CJK イメージ（jibri-cjk/Dockerfile を第 5 節のとおりに：FROM ghcr.io/jitsi/jibri:stable-11248 … USER s6）
+git fetch --tags && git checkout stable-11248
+docker build -t jibri-cjk:stable-11248 ./jibri-cjk
+
+# (6) docker-compose.jibri-standalone.yml を第 9 節のとおりに更新（イメージ、read_only、tmpfs、/storage ボリューム、cap_add を削除）して起動
+docker compose -f docker-compose.jibri-standalone.yml up -d --scale jibri=2
+```
+
+確認：
+
+- 2 台のコンテナがどちらも動作中で `IDLE` を返すこと（手順 (1) と同じループ）、メインホストの jicofo から Jibri が 2 台見えること（第 9-3 節）。
+- テスト録画を行い、`/srv/recordings` の新しいフォルダーに `.mp4` と `metadata.json` があり、所有者が uid 1000 であること（`ls -ln /srv/recordings/<フォルダー>`）、ポータルで再生できることを確認します。
+
+ロールバック（旧 `jibri-cjk:stable-11031` イメージはホストに残っています）：
+
+```bash
+docker compose -f docker-compose.jibri-standalone.yml down
+git checkout $(cat ~/jibri-backup-<時刻>.gitref)
+tar xzpf ~/jibri-backup-<時刻>.tgz -C /                        # 旧 .env、compose ファイル、Dockerfile、設定を復元
+chown -R $(cat ~/jibri-backup-<時刻>.rec-owner) /srv/recordings
+docker compose -f docker-compose.jibri-standalone.yml up -d --scale jibri=2
+```
+
+### アップグレード時に残すカスタマイズ
+
+この構成でカスタマイズしているものをすべて以下に挙げます。**コンテナ内部を編集しているものは 1 つもありません**。すべてコンテナ外のファイル、`.env` の設定、または派生イメージなので、新しいイメージを取得しても残ります。アップグレード後に 1 つずつ確認してください。
+
+**Jibri VM**
+
+| 項目 | 場所 | 用途 |
+|---|---|---|
+| `jibri-cjk/Dockerfile` | docker-jitsi-meet ディレクトリ | CJK フォント、最後に `USER s6`。バージョンを変えるたびに再ビルド |
+| `docker-compose.jibri-standalone.yml` | docker-jitsi-meet ディレクトリ | イメージ、`read_only`、ボリューム、`/dev/snd`、`extra_hosts`、`SE_AVOID_STATS` / `SE_OFFLINE` |
+| `.env` | docker-jitsi-meet ディレクトリ（git 管理外） | `JIBRI_RECORDING_DIR`、`XMPP_*`、Jibri のパスワード |
+| snd-aloop の設定 | `/etc/modules-load.d/`、`/etc/modprobe.d/` | ループバックサウンドカード（第 2 節） |
+| `/srv/recordings` | ホスト | 録画ファイル。所有者は uid 1000 |
+| jibri-recordings-api | `/opt/jibri-recordings-api`、`/etc/jibri-recordings-api.env`、systemd | ホスト上の録画再生サービス。変更不要 |
+
+**Jitsi ホスト**（詳細は [JITSI-MEET-SETUP_ja.md](JITSI-MEET-SETUP_ja.md#アップグレード時に残すカスタマイズ)）
+
+| 項目 | 場所 | 用途 |
+|---|---|---|
+| `.env` | docker-jitsi-meet ディレクトリ（git 管理外） | JWT、ロビー、録画、TURN、`JVB_ADVERTISE_IPS`、モデレーター権限の 3 つの設定 |
+| `docker-compose.override.yml` | docker-jitsi-meet ディレクトリ（git 管理外） | jvb の `4443`（任意）、Jibri VM 用に LAN IP へバインドした prosody の `5222` |
+| `jvb/custom-jvb.conf` | `~/.jitsi-meet-cfg` | TCP 4443（任意） |
+| `web/custom-config.js`、`web/custom-interface_config.js` | `~/.jitsi-meet-cfg` | ロゴ、`hiddenDomain` |
+| `web/keys/cert.crt`、`cert.key` と更新スクリプト | `~/.jitsi-meet-cfg` | 独自の証明書。所有者は uid 1000 |
+| coturn | 専用の compose ファイル | TURN。影響なし |
+| ホストのリバースプロキシ / nginx | ホスト | 影響なし |
+
+> **ルール**：実行中のコンテナ内のファイルを編集しないでください。アップグレードで消えます。変更は必ず設定ディレクトリ（`custom-*` ファイル）、`.env`、compose の override、または派生イメージに置き、この表に記録してください。
 
 ---
 
@@ -521,7 +614,8 @@ grep -E '^JIBRI_XMPP_PASSWORD=|^JIBRI_RECORDER_PASSWORD=' .env   # 2 つのパ�
 # XMPP ドメイン（イメージの既定値で問題なし。このバージョンでは次のとおり）：
 #   XMPP_DOMAIN=meet.jitsi  AUTH=auth.meet.jitsi  INTERNAL_MUC=internal-muc.meet.jitsi
 #   RECORDER(hidden)=hidden.meet.jitsi   brewery=jibribrewery
-# prosody から確認可能：docker exec docker-jitsi-meet-prosody-1 sh -c 'grep -E "^VirtualHost|^Component" /config/conf.d/jitsi-meet.cfg.lua'
+# prosody から確認可能：docker exec docker-jitsi-meet-prosody-1 sh -c 'grep -E "^VirtualHost|^Component" /run/prosody/config/conf.d/jitsi-meet.cfg.lua'
+#   （stable-11031 以前のパスは /config/conf.d/jitsi-meet.cfg.lua）
 ```
 
 ### 9-2 Jibri VM での作業
@@ -532,9 +626,10 @@ grep -E '^JIBRI_XMPP_PASSWORD=|^JIBRI_RECORDER_PASSWORD=' .env   # 2 つのパ�
 
 ```bash
 cd /opt && git clone https://github.com/jitsi/docker-jitsi-meet.git
-cd docker-jitsi-meet && git checkout stable-11031
+cd docker-jitsi-meet && git checkout stable-11248
 cp env.example .env && ./gen-passwords.sh        # まず全項目を埋める
-mkdir -p ~/.jitsi-meet-cfg/jibri/recordings
+mkdir -p ~/.jitsi-meet-cfg/jibri ~/.jitsi-meet-cfg/storage/jibri /srv/recordings
+chown -R 1000:1000 ~/.jitsi-meet-cfg/jibri ~/.jitsi-meet-cfg/storage /srv/recordings   # コンテナは uid 1000 で動く
 
 # 設定（自分のホスト IP / ドメインに置き換える。JIBRI_*_PASSWORD はメインホストの 2 つの値にする）
 cat >> .env <<'EOF'
@@ -552,7 +647,7 @@ XMPP_RECORDER_DOMAIN=hidden.meet.jitsi
 JIBRI_BREWERY_MUC=jibribrewery
 JIBRI_XMPP_USER=jibri
 JIBRI_RECORDER_USER=recorder
-JIBRI_RECORDING_DIR=/config/recordings
+JIBRI_RECORDING_DIR=/storage/recordings
 JIBRI_XMPP_PASSWORD=<メインホストの JIBRI_XMPP_PASSWORD を貼り付け>
 JIBRI_RECORDER_PASSWORD=<メインホストの JIBRI_RECORDER_PASSWORD を貼り付け>
 EOF
@@ -560,7 +655,7 @@ EOF
 
 > **ポイント**：`XMPP_SERVER` はメインホストを指し、`XMPP_TRUST_ALL_CERTS=1`（prosody の内部証明書は自己署名のため）、`JIBRI_*_PASSWORD` はメインホストと **完全に** 一致させる必要があります（jibri / recorder アカウントはメインホストの prosody に登録されています）。XMPP ドメインはメインホストと同じです。
 
-3) CJK イメージをビルドします（第 5 節。**`USER jibri` を追加しないよう注意**）。
+3) CJK イメージをビルドします（第 5 節。**Dockerfile は `USER s6` で終えること**）。
 
 4) スタンドアロン用の compose ファイルを作成します（jibri のみを動かし、専用の `/dev/snd` と `extra_hosts` を持たせる）：
 
@@ -568,13 +663,19 @@ EOF
 # docker-compose.jibri-standalone.yml
 services:
   jibri:
-    image: jibri-cjk:stable-11031
+    image: jibri-cjk:stable-11248
     restart: unless-stopped
+    read_only: true                    # ルートファイルシステムは読み取り専用。書き込む部分は tmpfs
+    tmpfs:
+      - /run:size=256M,mode=1750,exec
+      - /tmp:size=256M,mode=1777,noexec
     volumes:
       - ${CONFIG}/jibri:/config:Z
+      - ${CONFIG}/storage/jibri:/storage:Z
+      - /srv/recordings:/storage/recordings   # 録画ファイル（第 6 節）
     shm_size: "2gb"
-    cap_add: [ SYS_ADMIN ]
-    devices: [ "/dev/snd:/dev/snd" ]
+    devices:
+      - /dev/snd:/dev/snd
     extra_hosts:
       - "meet.example.com:10.0.0.10"   # 録画用 Chrome がメインホストの内部 IP に名前解決するようにする
     environment:
@@ -599,6 +700,8 @@ services:
       - SE_OFFLINE=true        # Selenium Manager がブラウザ / ドライバーをオンラインで探さない。イメージ内のものを使う
 ```
 
+> `stable-11146` 以降、Jibri に `cap_add: SYS_ADMIN` は不要です（Chrome は `--no-sandbox` で動作）。`stable-11031` 以前のこのファイルには `cap_add: [ SYS_ADMIN ]` があり、ボリュームは `${CONFIG}/jibri:/config` の 1 つだけ、`read_only` / `tmpfs` はなく、`JIBRI_RECORDING_DIR=/config/recordings` でした。
+
 5) 録画機を 2 台起動します：
 
 ```bash
@@ -618,4 +721,4 @@ docker logs docker-jitsi-meet-jicofo-1 2>&1 | grep -i "brewery instance"
 
 最後に会議を開始し、録画をクリックして実際にテストします（中国語が正しく表示され、2 つの会議室を同時に録画できること）。
 
-> よくある落とし穴：① CJK の Dockerfile の最後に誤って `USER jibri` を追加する → コンテナが再起動を繰り返す（s6 の権限）。② `JIBRI_*_PASSWORD` がメインホストと一致しない → ログに認証失敗が表示される。③ メインホストの prosody の 5222 番ポートが Jibri VM に開放されていない → 接続できない。④ Jibri VM が `meet.example.com` を内部 IP に名前解決できない → `extra_hosts` または内部 DNS で解決する。
+> よくある落とし穴：① CJK の Dockerfile が `USER s6` で終わっていない（`stable-11146` 以降）、または Jibri のディレクトリ / `/srv/recordings` の所有者が uid 1000 でない → コンテナが再起動を繰り返す（権限）。② `JIBRI_*_PASSWORD` がメインホストと一致しない → ログに認証失敗が表示される。③ メインホストの prosody の 5222 番ポートが Jibri VM に開放されていない → 接続できない。④ Jibri VM が `meet.example.com` を内部 IP に名前解決できない → `extra_hosts` または内部 DNS で解決する。

@@ -6,7 +6,7 @@
 
 This guide continues from [JITSI-MEET-SETUP.md](JITSI-MEET-SETUP.md) and adds **Jibri recording** to the same docker-jitsi-meet deployment, with special attention to two points: **recording multiple meeting rooms at the same time** and **rendering Chinese (CJK) text correctly in recordings**.
 
-> Applies to: docker-jitsi-meet / `jitsi/jibri` **`stable-11031`**.
+> Applies to: docker-jitsi-meet / `ghcr.io/jitsi/jibri` **`stable-11248`** (verified 2026-10-23). Upgrading from `stable-11031` or earlier: see [Section 8](#upgrading-from-stable-11031-or-earlier-to-stable-11146-and-later).
 > This guide targets **2 simultaneous recordings (2 Jibri containers)**; to scale up or down, adjust every "2" in this document accordingly.
 
 ---
@@ -30,6 +30,8 @@ This guide continues from [JITSI-MEET-SETUP.md](JITSI-MEET-SETUP.md) and adds **
 
 - [7. Troubleshooting](#7-troubleshooting)
 - [8. Upgrade SOP](#8-upgrade-sop)
+  - [Upgrading from stable-11031 or earlier to stable-11146 and later](#upgrading-from-stable-11031-or-earlier-to-stable-11146-and-later)
+  - [Customizations to keep when upgrading](#customizations-to-keep-when-upgrading)
 - [9. Dedicated Jibri VM (separate from Jitsi)](#9-dedicated-jibri-vm-separate-from-jitsi-step-by-step)
 
 ---
@@ -194,7 +196,8 @@ ENABLE_RECORDING=1
 TZ=Asia/Taipei
 
 # Recording output directory (path inside the container, mapped to a host volume)
-JIBRI_RECORDING_DIR=/config/recordings
+# stable-11146 and later: /storage/recordings (up to stable-11031: /config/recordings)
+JIBRI_RECORDING_DIR=/storage/recordings
 # Post-recording script (optional: upload to object storage / send notifications; if unset, files are just kept)
 # JIBRI_FINALIZE_RECORDING_SCRIPT_PATH=/config/finalize.sh
 ```
@@ -209,9 +212,10 @@ The Jibri container needs access to the host's `/dev/snd` (jibri.yml already set
 
 ### Recording output location (host side)
 
-- By default, jibri's config / recording volume is mounted from the host's **`~/.jitsi-meet-cfg/jibri`** → container `/config`; recordings end up under **`~/.jitsi-meet-cfg/jibri/recordings/`** on the host.
+- By default (since `stable-11146`), jibri's data volume is mounted from the host's **`~/.jitsi-meet-cfg/storage/jibri`** → container `/storage`; recordings end up under **`~/.jitsi-meet-cfg/storage/jibri/recordings/`** on the host (logs under `storage/jibri/logs/`). Configuration stays in `~/.jitsi-meet-cfg/jibri` → `/config`. Up to `stable-11031` recordings were in `~/.jitsi-meet-cfg/jibri/recordings/`.
+- The container runs as uid 1000, so these directories must be owned by uid 1000 (`chown -R 1000:1000 ~/.jitsi-meet-cfg/jibri ~/.jitsi-meet-cfg/storage`).
 - Each meeting gets its own subfolder (containing the `.mp4` and metadata); file names / times follow the `TZ` setting.
-- To store them elsewhere: in `jibri.yml`, change the host path mapped to that volume (e.g. a large disk / NFS mount point); keep `JIBRI_RECORDING_DIR` as `/config/recordings` inside the container.
+- To store them elsewhere: in `jibri.yml`, change the host path mapped to that volume (e.g. a large disk / NFS mount point); keep `JIBRI_RECORDING_DIR` as `/storage/recordings` inside the container.
 - The `CONFIG` variable (docker-jitsi-meet `.env`, default `~/.jitsi-meet-cfg`) sets the host root directory for all components' configuration / data; change it to relocate everything at once.
 
 ---
@@ -290,24 +294,26 @@ Build an extended image:
 
 ```dockerfile
 # jibri-cjk/Dockerfile
-FROM jitsi/jibri:stable-11031
+FROM ghcr.io/jitsi/jibri:stable-11248
 USER root
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       fonts-noto-cjk fonts-noto-cjk-extra fonts-noto-color-emoji \
  && fc-cache -f \
  && rm -rf /var/lib/apt/lists/*
-# Important: do NOT switch back to USER jibri. The jibri image starts s6 as root (it drops privileges to jibri for the services itself);
-# if you add USER jibri at the end, the container fails with "s6-mkdir: /var/run/s6: Permission denied" and keeps restarting.
+# stable-11146+ images run as uid 1000 (s6); switch back after installing fonts
+USER s6
 ```
+
+> **The last line depends on the version**: from `stable-11146` the image runs as the unprivileged user `s6` (uid 1000), so the Dockerfile must end with `USER s6`. **Up to `stable-11031`** it was the opposite: the image started s6 as root, so the Dockerfile had to end as root (no `USER` line after `USER root`) — adding `USER jibri` there made the container fail with `s6-mkdir: /var/run/s6: Permission denied` and keep restarting.
 
 Build it and make compose use it:
 
 ```bash
-docker build -t jibri-cjk:stable-11031 ./jibri-cjk
+docker build -t jibri-cjk:stable-11248 ./jibri-cjk
 ```
 
-In `jibri.yml` (or `docker-compose.override.yml`), change the jibri service's `image:` to `jibri-cjk:stable-11031`, then restart.
+In `jibri.yml` (or `docker-compose.override.yml`), change the jibri service's `image:` to `jibri-cjk:stable-11248`, then restart.
 
 > Verify: record a meeting with Chinese participant names and check during playback that the Chinese renders correctly (no tofu boxes). Noto CJK has the most complete coverage of Traditional Chinese.
 
@@ -329,10 +335,13 @@ It is recommended to write recordings to a dedicated, easy-to-manage path (not a
 ```yaml
     volumes:
       - ${CONFIG}/jibri:/config:Z
-      - /srv/recordings:/config/recordings
+      - ${CONFIG}/storage/jibri:/storage:Z
+      - /srv/recordings:/storage/recordings
 ```
 
-Keep `JIBRI_RECORDING_DIR` as `/config/recordings` inside the container. Each recording gets its own subfolder (UUID) containing `<room>_<time>.mp4` and `metadata.json`.
+Keep `JIBRI_RECORDING_DIR` as `/storage/recordings` inside the container (up to `stable-11031`: map `/srv/recordings:/config/recordings` and use `/config/recordings`). The container runs as uid 1000, so give it the folder: `chown -R 1000:1000 /srv/recordings`. Each recording gets its own subfolder (UUID) containing `<room>_<time>.mp4` and `metadata.json`.
+
+> jibri-recordings-api (below) needs no change when the container path moves: it finds the container path of `/srv/recordings` from the `docker inspect` mounts by itself, and it runs as root on the host.
 
 ### Recording playback service
 
@@ -430,6 +439,7 @@ Configure them in the portal's recording settings card; they are pushed to the s
 | Log shows `Failed to run finalize script /path/to/finalize` | **Harmless** — this is the default placeholder path when no finalize script is set; it attempts to run it when recording stops and fails, but **does not affect the recording output**. To silence it, set `JIBRI_FINALIZE_RECORDING_SCRIPT_PATH` to an existing script (or an empty `.sh`). |
 | A recording stays in "Recording" status indefinitely | The portal decides whether a recording has finished based on whether `metadata.json` exists (Jibri writes it only after finalize); if finalize failed and never wrote it, it stays "Recording" → check the jibri log for finalize errors |
 | After pressing "Start recording" it takes a long time and then says "All recorders are currently busy", although both Jibris are idle and healthy | From `stable-11031` Jibri uses Selenium 4.4x, which first contacts the internet (usage stats, browser version lookup) when a recording starts. If the Jibri host cannot get out or DNS is slow, this step hangs for 10–30 seconds — longer than the 15 seconds jicofo waits — so jicofo marks every Jibri as failed. Add `SE_AVOID_STATS=true` and `SE_OFFLINE=true` to the jibri service `environment` (uses the Chrome / chromedriver in the image) and recreate the jibri containers. With the built-in `jibri.yml` of docker-jitsi-meet, add them to the jibri service in `docker-compose.override.yml`. Normally recording starts 2–3 seconds after pressing the button. |
+| After upgrading to `stable-11146` or later the jibri container keeps restarting with "Permission denied" | The container now runs as uid 1000 and cannot write its directories → `chown -R 1000:1000 ~/.jitsi-meet-cfg/jibri ~/.jitsi-meet-cfg/storage /srv/recordings`; also check that the `jibri-cjk/Dockerfile` ends with `USER s6` (Section 5) |
 | "Stop recording" does nothing and the jicofo log shows `Rejecting STOP request for an unknown session` | Jibri was restarted while a recording request was in progress; jicofo handed the old request to the restarted Jibri but did not register the session. Fix: once everyone leaves the room Jibri stops by itself and keeps the file; or on the Jibri host run `docker exec <jibri container> curl -s -X POST http://127.0.0.1:2222/jibri/api/v1.0/stopService`. **Make sure nobody is starting a recording before restarting Jibri.** |
 
 ---
@@ -475,9 +485,92 @@ docker compose -f docker-compose.yml -f jibri.yml ps     # web/prosody/jicofo/jv
 - Start a meeting and click record → confirm recording works and **Chinese text is not rendered as tofu boxes** (Section 5).
 - Record 2 meeting rooms at the same time → confirm concurrency (Section 4) is unaffected by the upgrade.
 
-> This guide was verified on `stable-11031`; just replace `<new-version>` above with the tag you are upgrading to. **Upgrade Jibri to the same version as the Jitsi host**, and before upgrading make sure both Jibri instances are idle (`curl -s http://127.0.0.1:2222/jibri/api/v1.0/health` shows `IDLE`).
-> **`stable-11146` and later is a structural change** (Debian 13, non-root containers, images on GHCR); the `USER root` approach in the `jibri-cjk/Dockerfile` above must be re-checked, so rehearse in a test environment first.
+> This guide was verified on `stable-11248` (2026-10-23); just replace `<new-version>` above with the tag you are upgrading to. **Upgrade Jibri to the same version as the Jitsi host** (Jitsi first, then Jibri), and before upgrading make sure every Jibri is idle (`curl -s http://127.0.0.1:2222/jibri/api/v1.0/health` shows `IDLE`).
+> **Coming from `stable-11031` or earlier**, this is a structural change — follow the next subsection.
 > `snd-aloop` is a kernel module and independent of the image version, so it does not need to be reconfigured on upgrade (unless you reinstalled the VM).
+
+### Upgrading from stable-11031 or earlier to stable-11146 and later
+
+From `stable-11146` the images are on the GitHub Container Registry (`ghcr.io/jitsi/jibri`), the base is Debian 13, and the container runs as the unprivileged user `s6` (uid 1000). For Jibri this means:
+
+- Recordings and logs moved from `/config` to `/storage` inside the container: `JIBRI_RECORDING_DIR=/storage/recordings`.
+- The `jibri-cjk/Dockerfile` must end with `USER s6` (Section 5).
+- Jibri no longer needs `cap_add: SYS_ADMIN` (Chrome runs with `--no-sandbox`); the root filesystem is read-only with tmpfs for `/run` and `/tmp`.
+- `/dev/snd` keeps working: the container user is in group `audio` (gid 29), the same group that owns `/dev/snd` on Ubuntu hosts.
+- jibri-recordings-api needs no change (it finds the container path of `/srv/recordings` by itself).
+
+Upgrade the Jitsi host first ([JITSI-MEET-SETUP.md](JITSI-MEET-SETUP.md#upgrading-from-stable-11031-or-earlier-to-stable-11146-and-later)), then the Jibri VM. Rehearse on a test machine first. Steps on a dedicated Jibri VM (Section 9):
+
+```bash
+cd /opt/docker-jitsi-meet        # on the Jibri VM
+
+# (1) Every Jibri must be IDLE — never restart Jibri while someone is recording
+for c in $(docker ps --format '{{.Names}}' | grep jibri); do docker exec $c curl -s 127.0.0.1:2222/jibri/api/v1.0/health; echo; done
+
+# (2) Back up (.env, compose file, jibri-cjk, Jibri config) and note the owner of /srv/recordings
+T=$(date +%Y%m%d-%H%M)
+tar czpf ~/jibri-backup-$T.tgz -C / "${PWD#/}/.env" "${PWD#/}/docker-compose.jibri-standalone.yml" "${PWD#/}/jibri-cjk" "${HOME#/}/.jitsi-meet-cfg/jibri"
+git rev-parse HEAD > ~/jibri-backup-$T.gitref
+stat -c '%u:%g' /srv/recordings > ~/jibri-backup-$T.rec-owner
+
+# (3) Recordings now go to /storage/recordings inside the container
+sed -i 's|^JIBRI_RECORDING_DIR=.*|JIBRI_RECORDING_DIR=/storage/recordings|' .env
+
+# (4) New directory, and everything Jibri writes owned by uid 1000
+mkdir -p ~/.jitsi-meet-cfg/storage/jibri
+chown -R 1000:1000 ~/.jitsi-meet-cfg/jibri ~/.jitsi-meet-cfg/storage /srv/recordings
+
+# (5) New version and CJK image (edit jibri-cjk/Dockerfile as in Section 5: FROM ghcr.io/jitsi/jibri:stable-11248 ... USER s6)
+git fetch --tags && git checkout stable-11248
+docker build -t jibri-cjk:stable-11248 ./jibri-cjk
+
+# (6) Update docker-compose.jibri-standalone.yml as in Section 9 (image, read_only, tmpfs, /storage volumes, no cap_add), then start
+docker compose -f docker-compose.jibri-standalone.yml up -d --scale jibri=2
+```
+
+Verify:
+
+- Both containers are running and report `IDLE` (same loop as step 1), and the main host's jicofo sees 2 Jibri instances (Section 9-3).
+- Make a test recording: the new folder under `/srv/recordings` contains the `.mp4` and `metadata.json`, owned by uid 1000 (`ls -ln /srv/recordings/<folder>`), and it plays in the portal.
+
+Rollback (the old `jibri-cjk:stable-11031` image is still on the host):
+
+```bash
+docker compose -f docker-compose.jibri-standalone.yml down
+git checkout $(cat ~/jibri-backup-<time>.gitref)
+tar xzpf ~/jibri-backup-<time>.tgz -C /                        # old .env, compose file, Dockerfile, config
+chown -R $(cat ~/jibri-backup-<time>.rec-owner) /srv/recordings
+docker compose -f docker-compose.jibri-standalone.yml up -d --scale jibri=2
+```
+
+### Customizations to keep when upgrading
+
+Everything this deployment customizes is listed below. **None of it is an edit inside a container**: all are files, `.env` settings or a derived image outside the containers, so pulling new images keeps them. Check each one after an upgrade.
+
+**Jibri VM**
+
+| Item | Where | Purpose |
+|---|---|---|
+| `jibri-cjk/Dockerfile` | docker-jitsi-meet directory | CJK fonts, ends with `USER s6`; rebuild for every new version |
+| `docker-compose.jibri-standalone.yml` | docker-jitsi-meet directory | image, `read_only`, volumes, `/dev/snd`, `extra_hosts`, `SE_AVOID_STATS` / `SE_OFFLINE` |
+| `.env` | docker-jitsi-meet directory (git-ignored) | `JIBRI_RECORDING_DIR`, `XMPP_*`, Jibri passwords |
+| snd-aloop config | `/etc/modules-load.d/`, `/etc/modprobe.d/` | loopback sound cards (Section 2) |
+| `/srv/recordings` | host | recordings; owner uid 1000 |
+| jibri-recordings-api | `/opt/jibri-recordings-api`, `/etc/jibri-recordings-api.env`, systemd | recording playback service on the host; no change needed |
+
+**Jitsi host** (details in [JITSI-MEET-SETUP.md](JITSI-MEET-SETUP.md#customizations-to-keep-when-upgrading))
+
+| Item | Where | Purpose |
+|---|---|---|
+| `.env` | docker-jitsi-meet directory (git-ignored) | JWT, lobby, recording, TURN, `JVB_ADVERTISE_IPS`, the three moderator-control settings |
+| `docker-compose.override.yml` | docker-jitsi-meet directory (git-ignored) | jvb `4443` (optional), prosody `5222` bound to the LAN IP for the Jibri VM |
+| `jvb/custom-jvb.conf` | `~/.jitsi-meet-cfg` | TCP 4443 (optional) |
+| `web/custom-config.js`, `web/custom-interface_config.js` | `~/.jitsi-meet-cfg` | logo, `hiddenDomain` |
+| `web/keys/cert.crt`, `cert.key` and any renewal script | `~/.jitsi-meet-cfg` | your own certificate; owner must be uid 1000 |
+| coturn | its own compose file | TURN; not affected |
+| Reverse proxy / nginx on the host | host | not affected |
+
+> **Rule**: do not edit files inside a running container — they are lost on upgrade. Put changes in the config directory (`custom-*` files), `.env`, the compose override, or a derived image, and record them in this table.
 
 ---
 
@@ -521,7 +614,8 @@ grep -E '^JIBRI_XMPP_PASSWORD=|^JIBRI_RECORDER_PASSWORD=' .env   # two passwords
 # XMPP domains (image defaults are fine; for this version they are):
 #   XMPP_DOMAIN=meet.jitsi  AUTH=auth.meet.jitsi  INTERNAL_MUC=internal-muc.meet.jitsi
 #   RECORDER(hidden)=hidden.meet.jitsi   brewery=jibribrewery
-# Can be confirmed from prosody: docker exec docker-jitsi-meet-prosody-1 sh -c 'grep -E "^VirtualHost|^Component" /config/conf.d/jitsi-meet.cfg.lua'
+# Can be confirmed from prosody: docker exec docker-jitsi-meet-prosody-1 sh -c 'grep -E "^VirtualHost|^Component" /run/prosody/config/conf.d/jitsi-meet.cfg.lua'
+#   (up to stable-11031 the path was /config/conf.d/jitsi-meet.cfg.lua)
 ```
 
 ### 9-2 On the Jibri VM
@@ -532,9 +626,10 @@ grep -E '^JIBRI_XMPP_PASSWORD=|^JIBRI_RECORDER_PASSWORD=' .env   # two passwords
 
 ```bash
 cd /opt && git clone https://github.com/jitsi/docker-jitsi-meet.git
-cd docker-jitsi-meet && git checkout stable-11031
+cd docker-jitsi-meet && git checkout stable-11248
 cp env.example .env && ./gen-passwords.sh        # fill in all fields first
-mkdir -p ~/.jitsi-meet-cfg/jibri/recordings
+mkdir -p ~/.jitsi-meet-cfg/jibri ~/.jitsi-meet-cfg/storage/jibri /srv/recordings
+chown -R 1000:1000 ~/.jitsi-meet-cfg/jibri ~/.jitsi-meet-cfg/storage /srv/recordings   # the container runs as uid 1000
 
 # Settings (replace with your host IP / domain; set JIBRI_*_PASSWORD to the two values from the main host)
 cat >> .env <<'EOF'
@@ -552,7 +647,7 @@ XMPP_RECORDER_DOMAIN=hidden.meet.jitsi
 JIBRI_BREWERY_MUC=jibribrewery
 JIBRI_XMPP_USER=jibri
 JIBRI_RECORDER_USER=recorder
-JIBRI_RECORDING_DIR=/config/recordings
+JIBRI_RECORDING_DIR=/storage/recordings
 JIBRI_XMPP_PASSWORD=<paste the main host's JIBRI_XMPP_PASSWORD>
 JIBRI_RECORDER_PASSWORD=<paste the main host's JIBRI_RECORDER_PASSWORD>
 EOF
@@ -560,7 +655,7 @@ EOF
 
 > **Key points**: `XMPP_SERVER` points to the main host, `XMPP_TRUST_ALL_CERTS=1` (prosody's internal certificate is self-signed), and `JIBRI_*_PASSWORD` must match the main host **exactly** (the jibri/recorder accounts are registered on the main host's prosody); the XMPP domains are the same as on the main host.
 
-3) Build the CJK image (Section 5; **make sure not to add `USER jibri`**).
+3) Build the CJK image (Section 5; **the Dockerfile must end with `USER s6`**).
 
 4) Create a standalone compose file (runs only jibri, with its own `/dev/snd` and `extra_hosts`):
 
@@ -568,13 +663,19 @@ EOF
 # docker-compose.jibri-standalone.yml
 services:
   jibri:
-    image: jibri-cjk:stable-11031
+    image: jibri-cjk:stable-11248
     restart: unless-stopped
+    read_only: true                    # read-only root filesystem; writable parts are tmpfs
+    tmpfs:
+      - /run:size=256M,mode=1750,exec
+      - /tmp:size=256M,mode=1777,noexec
     volumes:
       - ${CONFIG}/jibri:/config:Z
+      - ${CONFIG}/storage/jibri:/storage:Z
+      - /srv/recordings:/storage/recordings   # recordings (Section 6)
     shm_size: "2gb"
-    cap_add: [ SYS_ADMIN ]
-    devices: [ "/dev/snd:/dev/snd" ]
+    devices:
+      - /dev/snd:/dev/snd
     extra_hosts:
       - "meet.example.com:10.0.0.10"   # make the recording Chrome resolve to the main host's internal IP
     environment:
@@ -599,6 +700,8 @@ services:
       - SE_OFFLINE=true        # Selenium Manager: do not look up browsers / drivers online; use the ones in the image
 ```
 
+> Since `stable-11146` Jibri no longer needs `cap_add: SYS_ADMIN` (Chrome runs with `--no-sandbox`). Up to `stable-11031` this file had `cap_add: [ SYS_ADMIN ]`, a single `${CONFIG}/jibri:/config` volume, no `read_only` / `tmpfs`, and `JIBRI_RECORDING_DIR=/config/recordings`.
+
 5) Start 2 recorders:
 
 ```bash
@@ -618,4 +721,4 @@ docker logs docker-jitsi-meet-jicofo-1 2>&1 | grep -i "brewery instance"
 
 Finally, start a meeting and click record for a real test (Chinese text renders correctly, and 2 rooms can be recorded at the same time).
 
-> Common pitfalls: ① Mistakenly adding `USER jibri` at the end of the CJK Dockerfile → container keeps restarting (s6 permissions). ② `JIBRI_*_PASSWORD` does not match the main host → log shows authentication failures. ③ The main host's prosody port 5222 is not open to the Jibri VM → cannot connect. ④ The Jibri VM cannot resolve `meet.example.com` to the internal IP → fix with `extra_hosts` or internal DNS.
+> Common pitfalls: ① The CJK Dockerfile does not end with `USER s6` (`stable-11146` and later), or the Jibri directories / `/srv/recordings` are not owned by uid 1000 → container keeps restarting (permissions). ② `JIBRI_*_PASSWORD` does not match the main host → log shows authentication failures. ③ The main host's prosody port 5222 is not open to the Jibri VM → cannot connect. ④ The Jibri VM cannot resolve `meet.example.com` to the internal IP → fix with `extra_hosts` or internal DNS.

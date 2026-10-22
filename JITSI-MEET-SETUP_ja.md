@@ -6,7 +6,7 @@
 
 本書では、**公式の Docker 版 Jitsi Meet** を jt-vc-portal の「認証ゲートウェイ」と連携して動作させるための設定方法を説明します。
 
-> 対象バージョン：[docker-jitsi-meet](https://github.com/jitsi/docker-jitsi-meet) **`stable-11031`**（2026-06-08 リリース）。他の安定版でも手順は同じで、バージョン番号を置き換えるだけです。
+> 対象バージョン：[docker-jitsi-meet](https://github.com/jitsi/docker-jitsi-meet) **`stable-11248`**（2026-09-14 リリース、2026-10-23 に検証）。他の安定版でも手順は同じで、バージョン番号を置き換えるだけです。`stable-11031` 以前からのアップグレードは[第 9 節](#stable-11031-以前から-stable-11146-以降へのアップグレード)を参照してください。
 
 ---
 
@@ -33,6 +33,8 @@
 - [7. 録画（Jibri）](#7-録画jibri任意)
 - [8. ブランドロゴと録画者の非表示](#8-ブランドロゴと録画者の非表示サーバーの-configjs)
 - [9. Jitsi のアップグレード](#9-jitsi-のアップグレード)
+  - [stable-11031 以前から stable-11146 以降へのアップグレード](#stable-11031-以前から-stable-11146-以降へのアップグレード)
+  - [アップグレード時に残すカスタマイズ](#アップグレード時に残すカスタマイズ)
 
 ---
 
@@ -97,7 +99,7 @@
 - ファイアウォール / クラウドの Security Group で、上記を**インバウンド**として許可する必要があります。
 - シグナリング（参加、チャット）は 443/TCP、メディア（音声と映像）は 10000/UDP を使います。どちらかが欠けると「参加はできるが画面が真っ黒 / 音が出ない」状態になります。
 
-> **注意（旧バージョンとの違い）**：現在の Jitsi（`stable-11031` を含む）の JVB は **UDP 10000 番の単一ポート**で多重化しており、全参加者のメディアがこの 1 ポートを共有します。「10000–20000 の範囲をまるごと開放する」必要は**もうありません**。それは何年も前の旧バージョンのやり方（`org.ice4j.ice.harvest.MIN/MAX_PORT` による動的ポート範囲）で、docker の単一ポートモードでは過去のものです。`UDP 10000`（+ 任意で `TCP 4443`）を許可するだけで十分です。
+> **注意（旧バージョンとの違い）**：現在の Jitsi（`stable-11248` を含む）の JVB は **UDP 10000 番の単一ポート**で多重化しており、全参加者のメディアがこの 1 ポートを共有します。「10000–20000 の範囲をまるごと開放する」必要は**もうありません**。それは何年も前の旧バージョンのやり方（`org.ice4j.ice.harvest.MIN/MAX_PORT` による動的ポート範囲）で、docker の単一ポートモードでは過去のものです。`UDP 10000`（+ 任意で `TCP 4443`）を許可するだけで十分です。
 
 ### NAT / ファイアウォールの内側にある場合（ホストがプライベート IP）
 
@@ -140,7 +142,33 @@ JVB_ADVERTISE_IPS=<public-IP>,<host-private-IP>
 
 #### 第 2 層：TCP 4443（JVB へ直接、任意 / 旧方式）
 
-現在の Jitsi は JVB 内蔵の TCP ハーベスターを**デフォルトで無効**にしており、上流ではフォールバックを TURN で一元的に処理するようになっています。`stable-11031` の docker `.env` にも対応するスイッチは**ありません**。強制的に有効にするには、カスタム設定を重ねて TCP ハーベスターを再度有効にし、`TCP 4443` を開放する必要があります。**ほとんどの場面では不要なので、直接第 3 層の TURN を用意してください**。
+現在の Jitsi は JVB 内蔵の TCP ハーベスターを**デフォルトで無効**にしており、上流ではフォールバックを TURN で一元的に処理するようになっています。docker 版の `.env`（`stable-11248` を含む）にも対応するスイッチは**ありません**。**ほとんどの場面では不要で、推奨するフォールバックは第 3 層の TURN（coturn）です。** それでも TCP 4443 の直接接続を使いたい場合は、次の 2 つのファイルが必要です：
+
+**(1)** `~/.jitsi-meet-cfg/jvb/custom-jvb.conf`（JVB コンテナーが生成する `jvb.conf` がこのファイルを読み込みます）：
+
+```
+videobridge {
+    ice {
+        tcp {
+            enabled = true
+            port = 4443
+        }
+    }
+}
+```
+
+**(2)** `docker-compose.override.yml`（`docker-compose.yml` と同じディレクトリ）でポートを公開します：
+
+```yaml
+services:
+  jvb:
+    ports:
+      - "4443:4443"
+```
+
+> override に書ける `services:` ブロックは 1 つだけです。ほかのサービス（例：Jibri 専用 VM 構成の `prosody`）がすでにある場合は、`jvb` を同じブロックにまとめてください。
+
+続いて `chown 1000:1000 ~/.jitsi-meet-cfg/jvb/custom-jvb.conf`（`stable-11146` 以降、コンテナーは uid 1000 で動きます）と `docker compose up -d` を実行し、ファイアウォールで `TCP 4443` を許可 / 転送します。
 
 #### 第 3 層：TURN（coturn、turns/443 を含む）
 
@@ -232,15 +260,17 @@ external_services = {
 ```bash
 git clone https://github.com/jitsi/docker-jitsi-meet.git
 cd docker-jitsi-meet
-git checkout stable-11031
+git checkout stable-11248
 
 cp env.example .env
 ./gen-passwords.sh         # 各内部コンポーネントのランダムなパスワードを生成（.env に書き戻す）
 
 mkdir -p ~/.jitsi-meet-cfg/{web,transcripts,prosody/config,prosody/prosody-plugins-custom,jicofo,jvb,jigasi,jibri}
+mkdir -p ~/.jitsi-meet-cfg/storage/{jibri,prosody,transcripts,web} ~/.jitsi-meet-cfg/tmp/{web-crontabs,web-load-test}
+chown -R 1000:1000 ~/.jitsi-meet-cfg    # コンテナーは uid 1000 で動き、これらに書き込めないと起動を拒否する
 ```
 
-> `.env` の `JITSI_IMAGE_VERSION` は `stable-11031`（チェックアウトしたタグと一致）にしておくと、対応するイメージが取得されます。
+> `.env` の `JITSI_IMAGE_VERSION` は `stable-11248`（チェックアウトしたタグと一致）にしておくと、対応するイメージが取得されます。`stable-11146` 以降、イメージは GitHub Container Registry（`ghcr.io/jitsi/web`、`prosody`、`jicofo`、`jvb`、`jibri`）で公開されており、そのタグの `docker-compose.yml` はすでにこちらを指しています（Docker Hub の `jitsi/*` イメージは 2026 年 6 月で更新が止まっています）。ベースは Debian 13 で、すべてのコンテナーが非特権ユーザー `s6`（uid / gid 1000）で動きます。
 
 ---
 
@@ -288,11 +318,12 @@ ENABLE_LETSENCRYPT=0
 mkdir -p ~/.jitsi-meet-cfg/web/keys
 cp your-fullchain.pem ~/.jitsi-meet-cfg/web/keys/cert.crt   # 中間証明書チェーンを含む完全な証明書
 cp your-private.key   ~/.jitsi-meet-cfg/web/keys/cert.key   # 対応する秘密鍵
+chown 1000:1000 ~/.jitsi-meet-cfg/web/keys/cert.*            # web コンテナー（uid 1000）が読めるようにする
 # 再起動して web コンテナーに読み込ませる
 docker compose up -d
 ```
 
-> ファイル名は固定です：**`cert.crt`（フルチェーン）** と **`cert.key`（秘密鍵）** を `~/.jitsi-meet-cfg/web/keys/`（コンテナー内では `/config/keys/`）に置きます。`HTTPS_PORT=443` は変更しません。証明書の期限が切れる前にファイルを差し替え、`docker compose restart web` を実行してください。
+> ファイル名は固定です：**`cert.crt`（フルチェーン）** と **`cert.key`（秘密鍵）** を `~/.jitsi-meet-cfg/web/keys/`（コンテナー内では `/config/keys/`）に置きます。`HTTPS_PORT=443` は変更しません。証明書の期限が切れる前にファイルを差し替えて `chown 1000:1000` し、`docker compose restart web` を実行してください。**証明書を更新・コピーするスクリプトも、コピー後に必ずファイルへ `chown 1000:1000` を実行してください。** そうしないと web コンテナーが読めません（`stable-11146` 以降）。
 
 **(C) 前段のリバースプロキシで TLS を処理**（証明書は nginx / Traefik / HAProxy 側にある場合）：コンテナーは HTTP のみを提供し、TLS はリバースプロキシに任せます —
 
@@ -377,7 +408,7 @@ JWT を有効にしても `https://meet.example.com/` のフロントエンド�
 >
 > **(1) ウェルカムページを非表示にする**（`.env`）：`ENABLE_WELCOME_PAGE=0`。ただし無効にすると、`/` に直接アクセスした際にランダムな会議室名が自動生成され、スマートフォンでは「アプリで参加」のディープリンクページが引き続き表示されます（タップしても JWT によって遮断されます）。
 >
-> **(2) よりすっきりした方法 — ルートをポータルへリダイレクト**：web コンテナーに既にある `include /config/nginx-custom/*.conf;` を利用し、`/` だけをリダイレクトする設定を置きます（会議室の URL、`external_api.js`、IFrame 埋め込みには影響しません）：
+> **(2) よりすっきりした方法 — ルートをポータルへリダイレクト**：web コンテナーに既にある `nginx-custom/*.conf` の読み込みを利用し、`/` だけをリダイレクトする設定を置きます（会議室の URL、`external_api.js`、IFrame 埋め込みには影響しません）：
 >
 > ```bash
 > mkdir -p ~/.jitsi-meet-cfg/web/nginx-custom
@@ -386,7 +417,8 @@ JWT を有効にしても `https://meet.example.com/` のフロントエンド�
 >     return 302 https://vc.example.com/;   # 自分の jt-vc-portal の URL に置き換える
 > }
 > EOF
-> docker exec docker-jitsi-meet-web-1 nginx -s reload
+> chown -R 1000:1000 ~/.jitsi-meet-cfg/web/nginx-custom
+> docker restart docker-jitsi-meet-web-1    # stable-11146 以降は起動時に設定をコピーするため、reload だけでは反映されない
 > ```
 >
 > これで `meet.example.com` に直接アクセスするとポータルへリダイレクトされ、ポータル経由で埋め込まれたリクエスト（`/<room>` + `external_api.js`）だけが通常どおり処理されます。
@@ -565,7 +597,7 @@ jt-vc-portal にログイン → **システム設定 → 接続モード設定*
 - **Jibri の録画**は自前のブラウザーで **Jitsi サーバーに直接接続**し、**ポータルの IFrame を経由しません** — そのため、ポータルが渡す設定は録画には効かず、サーバーの `config.js` だけが「ライブ + 録画」の両方に効きます。
 - 録画者の非表示（`hiddenDomain`）は IFrame の `configOverwrite` では確実に効かないため、サーバー側で設定するのが最も確実です。
 
-docker-jitsi-meet のコンテナーは起動のたびに `~/.jitsi-meet-cfg/web/custom-config.js` と `custom-interface_config.js` を生成された設定の末尾に自動で**追記**します（web コンテナーの `/etc/cont-init.d/10-config` を参照）。そのため、この 2 ファイルを置けば設定は永続化されます。
+docker-jitsi-meet のコンテナーは起動のたびに `~/.jitsi-meet-cfg/web/custom-config.js` と `custom-interface_config.js` を生成された設定の末尾に自動で**追記**します（web コンテナーの起動時の設定スクリプトが行います。`stable-11248` でも同じです）。そのため、この 2 ファイルを置けば設定は永続化されます。
 
 **設定（2 ファイル）：**
 
@@ -594,12 +626,14 @@ docker restart docker-jitsi-meet-web-1
 
 - `https://vc.example.com/logo` は自分の jt-vc-portal の公開 URL + `/logo` に置き換えてください（ポータルは「システム設定 → サイト設定」でアップロードしたロゴをここで PNG として返します。Jibri ホストからもこの URL に到達できる必要があります）。
 - 以後、ポータルでロゴ画像を変更すると自動的に反映されます（URL は変わらないため、**Jitsi を再起動し直す必要はありません**）。
-- `hidden.meet.jitsi` は docker-jitsi-meet の録画者ドメイン（`XMPP_RECORDER_DOMAIN`）で、通常はこの値です。`docker exec docker-jitsi-meet-prosody-1 grep -i VirtualHost /config/conf.d/*.lua` で確認できます。
+- `hidden.meet.jitsi` は docker-jitsi-meet の録画者ドメイン（`XMPP_RECORDER_DOMAIN`）で、通常はこの値です。`docker exec docker-jitsi-meet-prosody-1 sh -c 'grep -i VirtualHost /run/prosody/config/conf.d/*.lua'` で確認できます（`stable-11031` 以前のパスは `/config/conf.d/`）。
+- root でこれらのファイルを作成した場合は、web コンテナー（uid 1000）が読めるように `chown 1000:1000 ~/.jitsi-meet-cfg/web/custom-*.js` を実行してください。
 
 **検証：**
 
 ```bash
-docker exec docker-jitsi-meet-web-1 grep -E "defaultLogoUrl|hiddenDomain" /config/config.js
+docker exec docker-jitsi-meet-web-1 grep -E "defaultLogoUrl|hiddenDomain" /run/web/config/config.js   # stable-11031 以前：/config/config.js
+curl -s https://meet.example.com/config.js | grep -E "defaultLogoUrl|hiddenDomain"                   # ブラウザーが実際に受け取る内容
 ```
 
 その後テスト録画を行い、再生時に左上にカスタムロゴが表示されている（Jitsi デフォルトのウォーターマークではない）こと、参加者リスト / 人数に録画者が**含まれていない**ことを確認します。
@@ -643,4 +677,95 @@ JWT と連携の設定は変更不要です（`custom-config.js` / `custom-inter
 - **Jitsi ホストと Jibri ホストは同じバージョンに揃えてください**（[JIBRI-SETUP_ja.md](JIBRI-SETUP_ja.md) のアップグレードの節を参照）。バージョンが離れすぎると録画が接続できないことがあります。
 - ロールバック：`git checkout <元のバージョン>` の後に `docker compose up -d`（旧イメージはホストに残っています）。
 - アップグレード後、テスト会議を開いて 2 人で互いの声が聞こえること、短い録画が再生できることを確認してください。
-- 本ガイドは `stable-11031` で検証しています。**`stable-11146` 以降は構造的な変更**です（ベースが Debian 13、コンテナが非 root 実行、イメージが GitHub Container Registry へ移動、web コンテナの内部ポートと WebSocket 設定が変更）。単なるバージョン変更ではないため、公式リリースノートを読み、テスト環境でリハーサルしてからアップグレードしてください。独自の `jibri-cjk` イメージも再確認が必要です。
+- 本ガイドは `stable-11248` で検証しています（2026-10-23）。`stable-11031` 以前からの場合は単なるバージョン変更ではないため、次の小節の手順に従ってください。
+
+### stable-11031 以前から stable-11146 以降へのアップグレード
+
+**`stable-11146` 以降は構造的な変更**です。ベースが Debian 13 になり、すべてのコンテナーが非特権ユーザー `s6`（uid / gid 1000、s6-overlay v3）で動き、イメージは GitHub Container Registry（`ghcr.io/jitsi/...`）に移りました。公式リリースノートを読み、**まずテスト機でリハーサルしてください**。以下は `stable-11031` から `stable-11248` へ上げたときに実際に使った手順です。先に Jitsi ホスト、次に Jibri ホスト（[JIBRI-SETUP_ja.md](JIBRI-SETUP_ja.md)）の順に上げ、最終的に両方を同じバージョンにします。
+
+```bash
+cd /opt/docker-jitsi-meet        # 自分の docker-jitsi-meet ディレクトリ
+
+# (1) 会議中の人がいないこと：conferences が 0（Jibri の録画中もないこと）
+docker exec docker-jitsi-meet-jicofo-1 curl -s 127.0.0.1:8888/stats
+
+# (2) バックアップ（p で元の所有者を保持。ロールバックに必要）と現在のコミットの記録
+#     docker-compose.override.yml がない場合はその項目を外す
+T=$(date +%Y%m%d-%H%M)
+tar czpf ~/jitsi-backup-$T.tgz -C / "${HOME#/}/.jitsi-meet-cfg" "${PWD#/}/.env" "${PWD#/}/docker-compose.override.yml"
+git rev-parse HEAD > ~/jitsi-backup-$T.gitref
+
+# (3) バージョンの切り替え（.env と docker-compose.override.yml は git 管理外なのでそのまま残る。
+#     .env に JITSI_IMAGE_VERSION がある場合は stable-11248 に変更する）
+git fetch --tags
+git checkout stable-11248
+
+# (4) 新しいディレクトリを作り、設定ディレクトリ全体を uid 1000 の所有にする
+mkdir -p ~/.jitsi-meet-cfg/storage/{jibri,prosody,transcripts,web} ~/.jitsi-meet-cfg/tmp/{web-crontabs,web-load-test}
+chown -R 1000:1000 ~/.jitsi-meet-cfg
+
+# (5) 新しいイメージ（ghcr.io/jitsi/...）を取得してコンテナーを作り直す
+docker compose pull
+docker compose up -d
+```
+
+変わる点と注意点：
+
+- **所有者**：書き込み可能なディレクトリに uid 1000 が書き込めないと、コンテナーは起動を拒否します。そのため手順 (4) で `chown` します。独自の TLS 証明書（`web/keys/cert.crt`、`cert.key`）は uid 1000 が読める必要があり、**証明書を更新・コピーするスクリプトはコピー後に必ず `chown 1000:1000` してください**。
+- **prosody のデータ**は初回起動時に `prosody/config/data` から `storage/prosody` へ自動でコピーされ、アカウント（Jibri の `jibri` / `recorder` を含む）は保持されます。初回起動時に prosody のログに「User exists」と出るのは正常です。
+- **生成される設定**はコンテナー内の `/run/<サービス>/config` に置かれるようになり、`/config` は読み取り専用の入力になりました。設定ディレクトリの `custom-config.js`、`custom-interface_config.js`、`custom-jvb.conf` は引き続き適用されます。`/config/config.js` や `/config/conf.d/` を読んでいたコマンドは、`/run/web/config/config.js`、`/run/prosody/config/conf.d/` を読むように変わります（[第 8 節](#8-ブランドロゴと録画者の非表示サーバーの-configjs)）。
+- **ポート**：web コンテナーの内部ポートは 8000 / 8443 になり、compose が `HTTP_PORT:8000`、`HTTPS_PORT:8443` に対応付けるため、`.env` の `HTTP_PORT` / `HTTPS_PORT` はそのままで構いません。
+- **削除されたもの**：colibri WebSocket（jt-vc-portal は使っていません）と、コンテナー内の `/etc/localtime` リンク（`.env` の `TZ` は引き続き有効）。
+- **モデレーター権限の制御**（[第 3 節](#モデレーター権限の制御重要設定しないと全員がモデレーターになる)）は変更不要です。`ENABLE_AUTO_OWNER=0`、`XMPP_MUC_MODULES=token_affiliation,token_lobby_bypass`、`JICOFO_ENABLE_AUTH=0` はそのまま機能します。
+
+アップグレード後の確認：
+
+```bash
+docker compose ps                                                              # web、prosody、jicofo、jvb がすべて Up
+docker exec docker-jitsi-meet-jicofo-1 curl -s 127.0.0.1:8888/stats | grep -o '"bridge_count":[0-9]*'   # 1（または JVB の台数）
+docker exec docker-jitsi-meet-prosody-1 sh -c 'grep -E "token_affiliation|token_lobby_bypass" /run/prosody/config/conf.d/jitsi-meet.cfg.lua'   # 2 つのモジュールが有効
+curl -s https://meet.example.com/config.js | grep -E "defaultLogoUrl|hiddenDomain"                       # custom-config.js の内容がある
+```
+
+- jt-vc-portal から会議を開始：ホストはモデレーター、ゲストはモデレーターではない（「録画開始」がなく、退出させられない）こと、トークンなしで `https://meet.example.com/<room>` を開くと拒否されることを確認します。
+- TCP 4443 を使っている場合は、UDP を遮断したネットワークから一度テストします。
+- 続いて Jibri を同じバージョンに上げます（[JIBRI-SETUP_ja.md](JIBRI-SETUP_ja.md) のアップグレードの節を参照）。
+
+ロールバック（旧イメージはホストに残っています）：
+
+```bash
+docker compose down
+git checkout $(cat ~/jitsi-backup-<時刻>.gitref)
+tar xzpf ~/jitsi-backup-<時刻>.tgz -C /     # 旧ファイルと元の所有者を復元
+docker compose up -d
+```
+
+### アップグレード時に残すカスタマイズ
+
+この構成でカスタマイズしているものをすべて以下に挙げます。**コンテナー内部を編集しているものは 1 つもありません**。すべてコンテナー外のファイル、`.env` の設定、または派生イメージなので、新しいイメージを取得しても残ります。アップグレード後に 1 つずつ確認してください。
+
+**Jitsi ホスト**
+
+| 項目 | 場所 | 用途 |
+|---|---|---|
+| `.env` | docker-jitsi-meet ディレクトリ（git 管理外） | JWT、ロビー、録画、TURN、`JVB_ADVERTISE_IPS`、モデレーター権限の 3 つの設定（`ENABLE_AUTO_OWNER`、`XMPP_MUC_MODULES`、`JICOFO_ENABLE_AUTH`） |
+| `docker-compose.override.yml` | docker-jitsi-meet ディレクトリ（git 管理外） | jvb の `4443`（任意）、Jibri 専用 VM 用に LAN IP へバインドした prosody の `5222` |
+| `jvb/custom-jvb.conf` | `~/.jitsi-meet-cfg` | TCP 4443（任意） |
+| `web/custom-config.js`、`web/custom-interface_config.js` | `~/.jitsi-meet-cfg` | ロゴ、`hiddenDomain`（[第 8 節](#8-ブランドロゴと録画者の非表示サーバーの-configjs)） |
+| `web/nginx-custom/*.conf` | `~/.jitsi-meet-cfg` | ルートをポータルへリダイレクト（任意、[第 3 節](#jwt-有効化後のアクセス動作匿名アクセスはデフォルトで遮断)） |
+| `web/keys/cert.crt`、`cert.key` と更新スクリプト | `~/.jitsi-meet-cfg` | 独自の証明書。所有者は uid 1000 |
+| coturn | 専用の compose ファイル | TURN。Jitsi のアップグレードの影響を受けない |
+| ホストのリバースプロキシ / nginx | ホスト | 影響なし（TURN の構成 B、または TLS の方式 C） |
+
+**Jibri VM**（詳細は [JIBRI-SETUP_ja.md](JIBRI-SETUP_ja.md)）
+
+| 項目 | 場所 | 用途 |
+|---|---|---|
+| `jibri-cjk/Dockerfile` | docker-jitsi-meet ディレクトリ | CJK フォント、最後に `USER s6`。バージョンを変えるたびに再ビルド |
+| `docker-compose.jibri-standalone.yml` | docker-jitsi-meet ディレクトリ | イメージ、`read_only`、ボリューム、`/dev/snd`、`extra_hosts`、`SE_AVOID_STATS` / `SE_OFFLINE` |
+| `.env` | docker-jitsi-meet ディレクトリ（git 管理外） | `JIBRI_RECORDING_DIR`、`XMPP_*`、Jibri のパスワード |
+| snd-aloop の設定 | `/etc/modules-load.d/`、`/etc/modprobe.d/` | ループバックサウンドカード |
+| `/srv/recordings` | ホスト | 録画ファイル。所有者は uid 1000 |
+| jibri-recordings-api | `/opt/jibri-recordings-api`、`/etc/jibri-recordings-api.env`、systemd | ホスト上の録画再生サービス。変更不要 |
+
+> **ルール**：実行中のコンテナー内のファイルを編集しないでください。アップグレードで消えます。変更は必ず設定ディレクトリ（`custom-*` ファイル）、`.env`、compose の override、または派生イメージに置き、この表に記録してください。

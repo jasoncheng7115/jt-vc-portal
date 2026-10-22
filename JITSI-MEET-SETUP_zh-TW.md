@@ -6,7 +6,7 @@
 
 本文說明如何把一套**官方 Docker 版 Jitsi Meet**，設定成可與 jt-vc-portal「認證入口」搭配使用。
 
-> 適用版本：[docker-jitsi-meet](https://github.com/jitsi/docker-jitsi-meet) **`stable-11031`**（2026-06-08 發佈）。其他穩定版步驟相同，只需替換版本號。
+> 適用版本：[docker-jitsi-meet](https://github.com/jitsi/docker-jitsi-meet) **`stable-11248`**（2026-09-14 發佈，2026-10-23 實際驗證）。其他穩定版步驟相同，只需替換版本號。從 `stable-11031` 以前升級：見[第九節](#從-stable-11031-以前升級到-stable-11146-以後)。
 
 ---
 
@@ -33,6 +33,8 @@
 - [七、錄影（Jibri）](#七錄影jibri選用)
 - [八、品牌 logo 與隱藏錄製者](#八品牌-logo-與隱藏錄製者伺服器-configjs)
 - [九、升級 Jitsi](#九升級-jitsi)
+  - [從 stable-11031 以前升級到 stable-11146 以後](#從-stable-11031-以前升級到-stable-11146-以後)
+  - [升級時要保留的自訂項目](#升級時要保留的自訂項目)
 
 ---
 
@@ -97,7 +99,7 @@
 - 防火牆 / 雲端 Security Group 需放行上述 **inbound**。
 - 信令（join、聊天）走 443/TCP；媒體（聲音畫面）走 10000/UDP——兩者缺一都會「進得去但黑畫面 / 沒聲音」。
 
-> **注意（與舊版不同）**：現代 Jitsi（含 `stable-11031`）的 JVB 採「**單一 UDP 埠 10000**」多工，所有與會者媒體都共用這一個埠——**不需要**再開「10000–20000 一整段範圍」。那是多年前舊版（`org.ice4j.ice.harvest.MIN/MAX_PORT` 動態埠範圍）的做法，docker 版單埠模式已淘汰。只要放行 `UDP 10000`（+ 選用 `TCP 4443`）即可。
+> **注意（與舊版不同）**：現代 Jitsi（含 `stable-11248`）的 JVB 採「**單一 UDP 埠 10000**」多工，所有與會者媒體都共用這一個埠——**不需要**再開「10000–20000 一整段範圍」。那是多年前舊版（`org.ice4j.ice.harvest.MIN/MAX_PORT` 動態埠範圍）的做法，docker 版單埠模式已淘汰。只要放行 `UDP 10000`（+ 選用 `TCP 4443`）即可。
 
 ### 位於 NAT / 防火牆後（主機是私有 IP）
 
@@ -140,7 +142,33 @@ JVB_ADVERTISE_IPS=<公網IP>,<主機私有IP>
 
 #### 第 2 層：TCP 4443（JVB 直連，選用 / legacy）
 
-現代 Jitsi **預設停用** JVB 內建 TCP harvester，官方已改用 TURN 統一處理後援；`stable-11031` 的 docker `.env` **沒有**對應開關。要硬開需以 custom config 疊加重啟 TCP harvester 並開放 `TCP 4443`——**多數情境不需要，直接做第 3 層 TURN 即可**。
+現代 Jitsi **預設停用** JVB 內建 TCP harvester，官方已改用 TURN 統一處理後援；docker 版 `.env`（含 `stable-11248`）**沒有**對應開關。**多數情境不需要，建議的後援是第 3 層 TURN（coturn）。** 若仍要開 TCP 4443 直連，需要兩個檔：
+
+**(1)** `~/.jitsi-meet-cfg/jvb/custom-jvb.conf`（JVB 容器產生的 `jvb.conf` 會引入這個檔）：
+
+```
+videobridge {
+    ice {
+        tcp {
+            enabled = true
+            port = 4443
+        }
+    }
+}
+```
+
+**(2)** 在 `docker-compose.override.yml`（與 `docker-compose.yml` 同目錄）發佈這個埠：
+
+```yaml
+services:
+  jvb:
+    ports:
+      - "4443:4443"
+```
+
+> override 的 `services:` 區塊只能有一個；已有其他服務（例如獨立 Jibri VM 做法的 `prosody`）時，把 `jvb` 併進同一個區塊。
+
+接著執行 `chown 1000:1000 ~/.jitsi-meet-cfg/jvb/custom-jvb.conf`（`stable-11146` 起容器以 uid 1000 執行）與 `docker compose up -d`，並在防火牆放行 / 轉發 `TCP 4443`。
 
 #### 第 3 層：TURN（coturn，含 turns/443）
 
@@ -232,15 +260,17 @@ external_services = {
 ```bash
 git clone https://github.com/jitsi/docker-jitsi-meet.git
 cd docker-jitsi-meet
-git checkout stable-11031
+git checkout stable-11248
 
 cp env.example .env
 ./gen-passwords.sh         # 產生各內部元件的隨機密碼（寫回 .env）
 
 mkdir -p ~/.jitsi-meet-cfg/{web,transcripts,prosody/config,prosody/prosody-plugins-custom,jicofo,jvb,jigasi,jibri}
+mkdir -p ~/.jitsi-meet-cfg/storage/{jibri,prosody,transcripts,web} ~/.jitsi-meet-cfg/tmp/{web-crontabs,web-load-test}
+chown -R 1000:1000 ~/.jitsi-meet-cfg    # 容器以 uid 1000 執行，這些目錄不可寫時容器會拒絕啟動
 ```
 
-> `.env` 內的 `JITSI_IMAGE_VERSION` 應為 `stable-11031`（與 checkout 的 tag 一致），確保拉到對應映像。
+> `.env` 內的 `JITSI_IMAGE_VERSION` 應為 `stable-11248`（與 checkout 的 tag 一致），確保拉到對應映像。`stable-11146` 起映像改放 GitHub Container Registry（`ghcr.io/jitsi/web`、`prosody`、`jicofo`、`jvb`、`jibri`），該 tag 的 `docker-compose.yml` 已指向這裡（Docker Hub 的 `jitsi/*` 映像 2026 年 6 月起不再更新）。基底為 Debian 13，所有容器都以非特權使用者 `s6`（uid / gid 1000）執行。
 
 ---
 
@@ -288,11 +318,12 @@ ENABLE_LETSENCRYPT=0
 mkdir -p ~/.jitsi-meet-cfg/web/keys
 cp your-fullchain.pem ~/.jitsi-meet-cfg/web/keys/cert.crt   # 含中繼鏈的完整憑證
 cp your-private.key   ~/.jitsi-meet-cfg/web/keys/cert.key   # 對應私鑰
+chown 1000:1000 ~/.jitsi-meet-cfg/web/keys/cert.*            # web 容器（uid 1000）要讀得到
 # 重新啟動讓 web 容器套用
 docker compose up -d
 ```
 
-> 檔名固定為 **`cert.crt`（完整鏈）** 與 **`cert.key`（私鑰）**，放在 `~/.jitsi-meet-cfg/web/keys/`（容器內 `/config/keys/`）。`HTTPS_PORT=443` 維持不變。憑證到期前換檔再 `docker compose restart web` 即可。
+> 檔名固定為 **`cert.crt`（完整鏈）** 與 **`cert.key`（私鑰）**，放在 `~/.jitsi-meet-cfg/web/keys/`（容器內 `/config/keys/`）。`HTTPS_PORT=443` 維持不變。憑證到期前換檔、`chown 1000:1000` 後再 `docker compose restart web` 即可。**任何續約或複製憑證的腳本，複製完也都要對檔案執行 `chown 1000:1000`**，否則 web 容器讀不到（`stable-11146` 起）。
 
 **(C) 由前端反向代理處理 TLS**（憑證在 nginx / Traefik / HAProxy 上）：容器只出 HTTP，TLS 交給反代——
 
@@ -377,7 +408,7 @@ JICOFO_ENABLE_AUTH=0                           # 主持人身分改由上面的�
 >
 > **(1) 隱藏歡迎頁**（`.env`）：`ENABLE_WELCOME_PAGE=0`。注意關掉後直接打 `/` 會自動產生隨機房名，手機仍會跳「在應用程式中加入」深層連結頁（點了也會被 JWT 擋）。
 >
-> **(2) 更乾淨——根目錄導回 portal**：利用 web 容器既有的 `include /config/nginx-custom/*.conf;`，丟一個只對 `/` 轉址的設定（房間網址、`external_api.js`、IFrame 內嵌都不受影響）：
+> **(2) 更乾淨——根目錄導回 portal**：利用 web 容器既有的 `nginx-custom/*.conf` 引入，丟一個只對 `/` 轉址的設定（房間網址、`external_api.js`、IFrame 內嵌都不受影響）：
 >
 > ```bash
 > mkdir -p ~/.jitsi-meet-cfg/web/nginx-custom
@@ -386,7 +417,8 @@ JICOFO_ENABLE_AUTH=0                           # 主持人身分改由上面的�
 >     return 302 https://vc.example.com/;   # 換成你的 jt-vc-portal 網址
 > }
 > EOF
-> docker exec docker-jitsi-meet-web-1 nginx -s reload
+> chown -R 1000:1000 ~/.jitsi-meet-cfg/web/nginx-custom
+> docker restart docker-jitsi-meet-web-1    # stable-11146 起容器啟動時才複製設定，只 reload 不會生效
 > ```
 >
 > 這樣直接打 `meet.example.com` 會轉到入口 portal；只有經 portal 內嵌（`/<房間>` + `external_api.js`）的請求照常服務。
@@ -565,7 +597,7 @@ docker compose ps
 - **Jibri 錄影**用它自己的瀏覽器**直接連 Jitsi 伺服器**，**不經過 portal 的 IFrame**——所以 portal 帶入的設定對錄影無效，只有伺服器 `config.js` 才會同時影響「現場 + 錄影」。
 - 隱藏錄製者（`hiddenDomain`）用 IFrame `configOverwrite` 覆寫不一定生效，設在伺服器端最可靠。
 
-docker-jitsi-meet 每次容器啟動時，會把 `~/.jitsi-meet-cfg/web/custom-config.js`、`custom-interface_config.js` 自動**附加**到產生的設定後（見 web 容器 `/etc/cont-init.d/10-config`），放這兩個檔即可持久化。
+docker-jitsi-meet 每次容器啟動時，會把 `~/.jitsi-meet-cfg/web/custom-config.js`、`custom-interface_config.js` 自動**附加**到產生的設定後（由 web 容器啟動時的設定腳本處理，`stable-11248` 仍是如此），放這兩個檔即可持久化。
 
 **設定（兩個檔）：**
 
@@ -594,12 +626,14 @@ docker restart docker-jitsi-meet-web-1
 
 - `https://vc.example.com/logo` 換成你的 jt-vc-portal 對外網址 + `/logo`（portal 把「系統設定 → 站台設定」上傳的 logo 服務在此，回傳 PNG；Jibri 主機也要連得到此網址）。
 - 之後在 portal 換 logo 圖檔即自動生效（網址不變，**不必再重啟 Jitsi**）。
-- `hidden.meet.jitsi` 是 docker-jitsi-meet 的錄製者網域（`XMPP_RECORDER_DOMAIN`），通常即此值；可用 `docker exec docker-jitsi-meet-prosody-1 grep -i VirtualHost /config/conf.d/*.lua` 確認。
+- `hidden.meet.jitsi` 是 docker-jitsi-meet 的錄製者網域（`XMPP_RECORDER_DOMAIN`），通常即此值；可用 `docker exec docker-jitsi-meet-prosody-1 sh -c 'grep -i VirtualHost /run/prosody/config/conf.d/*.lua'` 確認（`stable-11031` 以前路徑是 `/config/conf.d/`）。
+- 若以 root 建立這些檔案，執行 `chown 1000:1000 ~/.jitsi-meet-cfg/web/custom-*.js`，讓 web 容器（uid 1000）讀得到。
 
 **驗證：**
 
 ```bash
-docker exec docker-jitsi-meet-web-1 grep -E "defaultLogoUrl|hiddenDomain" /config/config.js
+docker exec docker-jitsi-meet-web-1 grep -E "defaultLogoUrl|hiddenDomain" /run/web/config/config.js   # stable-11031 以前：/config/config.js
+curl -s https://meet.example.com/config.js | grep -E "defaultLogoUrl|hiddenDomain"                   # 瀏覽器實際拿到的內容
 ```
 
 再錄一段測試：播放確認左上是自訂 logo（非 jitsi 預設浮水印），且與會者清單/人數**不含**錄製者。
@@ -643,4 +677,95 @@ JWT 與整合設定不需更動（`custom-config.js` / `custom-interface_config.
 - **Jitsi 主機與 Jibri 主機要升到同一個版本**（見 [JIBRI-SETUP_zh-TW.md](JIBRI-SETUP_zh-TW.md) 的升級一節），版本差太多時錄影可能連不上。
 - 回滾：`git checkout <原版本>` 後再 `docker compose up -d`（舊映像仍在本機）。
 - 升級後開一場測試會議、兩人互相聽得到、錄一段影片確認可播放。
-- 本文以 `stable-11031` 實際驗證。**`stable-11146` 起是結構性改版**（基底改 Debian 13、容器改非 root 執行、映像改放 GitHub Container Registry、web 容器內部埠與 WebSocket 設定變更），不是單純換版號，請先讀官方 release notes 並在測試環境演練後再升級；自建的 `jibri-cjk` 映像也要重新檢查。
+- 本文以 `stable-11248` 實際驗證（2026-10-23）。從 `stable-11031` 以前升級不是單純換版號，請改照下一小節。
+
+### 從 stable-11031 以前升級到 stable-11146 以後
+
+**`stable-11146` 起是結構性改版**：基底改 Debian 13、所有容器改以非特權使用者 `s6`（uid / gid 1000，s6-overlay v3）執行、映像改放 GitHub Container Registry（`ghcr.io/jitsi/...`）。請先讀官方 release notes，並**先在測試機演練**。以下是我們從 `stable-11031` 升到 `stable-11248` 實際用的步驟。先升 Jitsi 主機、再升 Jibri 主機（[JIBRI-SETUP_zh-TW.md](JIBRI-SETUP_zh-TW.md)），兩台最後要是同一個版本。
+
+```bash
+cd /opt/docker-jitsi-meet        # 你的 docker-jitsi-meet 目錄
+
+# (1) 確認沒人在開會：conferences 要是 0（也沒有 Jibri 在錄影）
+docker exec docker-jitsi-meet-jicofo-1 curl -s 127.0.0.1:8888/stats
+
+# (2) 備份（p 保留原本的擁有者，回滾要用）並記下目前的 commit
+#     沒有 docker-compose.override.yml 的話就拿掉這一項
+T=$(date +%Y%m%d-%H%M)
+tar czpf ~/jitsi-backup-$T.tgz -C / "${HOME#/}/.jitsi-meet-cfg" "${PWD#/}/.env" "${PWD#/}/docker-compose.override.yml"
+git rev-parse HEAD > ~/jitsi-backup-$T.gitref
+
+# (3) 換版本（.env 與 docker-compose.override.yml 不在 git 版控內，會原樣保留；
+#     .env 若有設 JITSI_IMAGE_VERSION，改成 stable-11248）
+git fetch --tags
+git checkout stable-11248
+
+# (4) 建新目錄，並把整個設定目錄交給 uid 1000
+mkdir -p ~/.jitsi-meet-cfg/storage/{jibri,prosody,transcripts,web} ~/.jitsi-meet-cfg/tmp/{web-crontabs,web-load-test}
+chown -R 1000:1000 ~/.jitsi-meet-cfg
+
+# (5) 拉新映像（ghcr.io/jitsi/...）並重建容器
+docker compose pull
+docker compose up -d
+```
+
+改了什麼、要注意什麼：
+
+- **擁有者**：容器的可寫目錄若不是 uid 1000 可寫，容器會拒絕啟動，所以第 (4) 步要 `chown`。自有 TLS 憑證（`web/keys/cert.crt`、`cert.key`）要讓 uid 1000 讀得到；**任何續約 / 複製憑證的腳本，複製完都要 `chown 1000:1000`**。
+- **prosody 資料**第一次啟動時會自動從 `prosody/config/data` 複製到 `storage/prosody`，帳號（含 Jibri 的 `jibri` / `recorder`）都會保留。第一次啟動時 prosody log 出現「User exists」屬正常。
+- **產生的設定**改放容器內的 `/run/<服務>/config`，`/config` 只當輸入、唯讀。設定目錄裡的 `custom-config.js`、`custom-interface_config.js`、`custom-jvb.conf` 照樣套用。原本讀 `/config/config.js`、`/config/conf.d/` 的指令，改讀 `/run/web/config/config.js`、`/run/prosody/config/conf.d/`（[第八節](#八品牌-logo-與隱藏錄製者伺服器-configjs)）。
+- **連接埠**：web 容器內部改聽 8000 / 8443，compose 對應成 `HTTP_PORT:8000`、`HTTPS_PORT:8443`，所以 `.env` 的 `HTTP_PORT` / `HTTPS_PORT` 維持原值。
+- **已移除**：colibri WebSocket（jt-vc-portal 沒用到），以及容器內的 `/etc/localtime` 連結（`.env` 的 `TZ` 仍有效）。
+- **主持人權限控制**（[第三節](#主持人權限控制重要否則所有人都是主持人)）不用改：`ENABLE_AUTO_OWNER=0`、`XMPP_MUC_MODULES=token_affiliation,token_lobby_bypass`、`JICOFO_ENABLE_AUTH=0` 照樣有效。
+
+升級後驗證：
+
+```bash
+docker compose ps                                                              # web、prosody、jicofo、jvb 都 Up
+docker exec docker-jitsi-meet-jicofo-1 curl -s 127.0.0.1:8888/stats | grep -o '"bridge_count":[0-9]*'   # 1（或你的 JVB 台數）
+docker exec docker-jitsi-meet-prosody-1 sh -c 'grep -E "token_affiliation|token_lobby_bypass" /run/prosody/config/conf.d/jitsi-meet.cfg.lua'   # 兩個模組都有啟用
+curl -s https://meet.example.com/config.js | grep -E "defaultLogoUrl|hiddenDomain"                       # 有 custom-config.js 的內容
+```
+
+- 從 jt-vc-portal 開一場會議：主持人是 moderator；來賓不是（沒有「開始錄影」、不能踢人）；不帶 token 直接開 `https://meet.example.com/<房間>` 會被拒絕。
+- 有用 TCP 4443 的話，從擋 UDP 的網路測一次。
+- 接著把 Jibri 升到同一個版本（見 [JIBRI-SETUP_zh-TW.md](JIBRI-SETUP_zh-TW.md) 的升級一節）。
+
+回滾（舊映像仍在本機）：
+
+```bash
+docker compose down
+git checkout $(cat ~/jitsi-backup-<時間>.gitref)
+tar xzpf ~/jitsi-backup-<時間>.tgz -C /     # 還原舊檔案與原本的擁有者
+docker compose up -d
+```
+
+### 升級時要保留的自訂項目
+
+下面列出這套部署所有的自訂項目。**沒有任何一項是改在容器裡面**：全都是容器外的檔案、`.env` 設定或延伸映像，所以拉新映像時會保留。升級後逐項確認。
+
+**Jitsi 主機**
+
+| 項目 | 位置 | 用途 |
+|---|---|---|
+| `.env` | docker-jitsi-meet 目錄（不在 git 版控內） | JWT、大廳、錄影、TURN、`JVB_ADVERTISE_IPS`、三個主持人權限設定（`ENABLE_AUTO_OWNER`、`XMPP_MUC_MODULES`、`JICOFO_ENABLE_AUTH`） |
+| `docker-compose.override.yml` | docker-jitsi-meet 目錄（不在 git 版控內） | jvb `4443`（選用）、給獨立 Jibri VM 用、綁內網 IP 的 prosody `5222` |
+| `jvb/custom-jvb.conf` | `~/.jitsi-meet-cfg` | TCP 4443（選用） |
+| `web/custom-config.js`、`web/custom-interface_config.js` | `~/.jitsi-meet-cfg` | logo、`hiddenDomain`（[第八節](#八品牌-logo-與隱藏錄製者伺服器-configjs)） |
+| `web/nginx-custom/*.conf` | `~/.jitsi-meet-cfg` | 根目錄導回 portal（選用，[第三節](#啟用-jwt-後的存取行為預設已擋匿名)） |
+| `web/keys/cert.crt`、`cert.key` 與續約腳本 | `~/.jitsi-meet-cfg` | 自有憑證；擁有者要是 uid 1000 |
+| coturn | 自己的 compose 檔 | TURN；不受 Jitsi 升級影響 |
+| 主機上的反向代理 / nginx | 主機 | 不受影響（TURN 拓撲 B 或 TLS 選項 C） |
+
+**Jibri VM**（細節見 [JIBRI-SETUP_zh-TW.md](JIBRI-SETUP_zh-TW.md)）
+
+| 項目 | 位置 | 用途 |
+|---|---|---|
+| `jibri-cjk/Dockerfile` | docker-jitsi-meet 目錄 | 中文字型、結尾 `USER s6`；每次換版都要重 build |
+| `docker-compose.jibri-standalone.yml` | docker-jitsi-meet 目錄 | 映像、`read_only`、volume、`/dev/snd`、`extra_hosts`、`SE_AVOID_STATS` / `SE_OFFLINE` |
+| `.env` | docker-jitsi-meet 目錄（不在 git 版控內） | `JIBRI_RECORDING_DIR`、`XMPP_*`、Jibri 密碼 |
+| snd-aloop 設定 | `/etc/modules-load.d/`、`/etc/modprobe.d/` | loopback 音效卡 |
+| `/srv/recordings` | 主機 | 錄影檔；擁有者 uid 1000 |
+| jibri-recordings-api | `/opt/jibri-recordings-api`、`/etc/jibri-recordings-api.env`、systemd | 主機上的錄影調閱服務；不用改 |
+
+> **規則**：不要改執行中容器裡面的檔案——升級後就不見了。改動一律放在設定目錄（`custom-*` 檔）、`.env`、compose override 或延伸映像，並記到這張表。
