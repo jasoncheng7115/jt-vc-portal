@@ -299,8 +299,13 @@ USER root
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       fonts-noto-cjk fonts-noto-cjk-extra fonts-noto-color-emoji \
+ && apt-get install -y --only-upgrade ca-certificates ca-certificates-java \
+ && rm -f /etc/ssl/certs/java/cacerts && update-ca-certificates -f \
  && fc-cache -f \
  && rm -rf /var/lib/apt/lists/*
+# The two lines above refresh the CA trust store (OS and Java). Upstream images can ship an
+# outdated ca-certificates; e.g. in Oct 2026 the compromised eMudhra "emSign ECC Root CA - G3"
+# was still trusted. Rebuilding this image (docker build --pull) picks up the latest list.
 # stable-11146+ images run as uid 1000 (s6); switch back after installing fonts
 USER s6
 ```
@@ -310,7 +315,7 @@ USER s6
 Build it and make compose use it:
 
 ```bash
-docker build -t jibri-cjk:stable-11248 ./jibri-cjk
+docker build --pull -t jibri-cjk:stable-11248 ./jibri-cjk
 ```
 
 In `jibri.yml` (or `docker-compose.override.yml`), change the jibri service's `image:` to `jibri-cjk:stable-11248`, then restart.
@@ -468,7 +473,7 @@ git checkout stable-<new-version>
 
 # (3) Rebuild the CJK jibri image (with the new version number)
 sed -i 's/stable-[0-9]*/stable-<new-version>/' jibri-cjk/Dockerfile
-docker build -t jibri-cjk:stable-<new-version> ./jibri-cjk
+docker build --pull -t jibri-cjk:stable-<new-version> ./jibri-cjk
 #   Also change the jibri service's image: in jibri.yml / override to jibri-cjk:stable-<new-version>
 
 # (4) Pull the remaining official images and restart (keeping 2 jibri containers)
@@ -522,7 +527,7 @@ chown -R 1000:1000 ~/.jitsi-meet-cfg/jibri ~/.jitsi-meet-cfg/storage /srv/record
 
 # (5) New version and CJK image (edit jibri-cjk/Dockerfile as in Section 5: FROM ghcr.io/jitsi/jibri:stable-11248 ... USER s6)
 git fetch --tags && git checkout stable-11248
-docker build -t jibri-cjk:stable-11248 ./jibri-cjk
+docker build --pull -t jibri-cjk:stable-11248 ./jibri-cjk
 
 # (6) Update docker-compose.jibri-standalone.yml as in Section 9 (image, read_only, tmpfs, /storage volumes, no cap_add), then start
 docker compose -f docker-compose.jibri-standalone.yml up -d --scale jibri=2

@@ -299,8 +299,12 @@ USER root
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       fonts-noto-cjk fonts-noto-cjk-extra fonts-noto-color-emoji \
+ && apt-get install -y --only-upgrade ca-certificates ca-certificates-java \
+ && rm -f /etc/ssl/certs/java/cacerts && update-ca-certificates -f \
  && fc-cache -f \
  && rm -rf /var/lib/apt/lists/*
+# 上面兩行更新 CA 憑證信任清單（作業系統與 Java 都更新）。上游映像的 ca-certificates 可能過舊，
+# 例如 2026-10 eMudhra 事件時仍信任已出事的「emSign ECC Root CA - G3」。重建本映像（docker build --pull）即套用最新清單。
 # stable-11146 以後的映像以 uid 1000（s6）執行；裝完字型要切回來
 USER s6
 ```
@@ -310,7 +314,7 @@ USER s6
 build 並讓 compose 改用它：
 
 ```bash
-docker build -t jibri-cjk:stable-11248 ./jibri-cjk
+docker build --pull -t jibri-cjk:stable-11248 ./jibri-cjk
 ```
 
 在 `jibri.yml`（或 `docker-compose.override.yml`）把 jibri 服務的 `image:` 改成 `jibri-cjk:stable-11248`，再重啟。
@@ -468,7 +472,7 @@ git checkout stable-<新版本>
 
 # (3) 重 build CJK 版 jibri 映像（用新版號）
 sed -i 's/stable-[0-9]*/stable-<新版本>/' jibri-cjk/Dockerfile
-docker build -t jibri-cjk:stable-<新版本> ./jibri-cjk
+docker build --pull -t jibri-cjk:stable-<新版本> ./jibri-cjk
 #   jibri.yml / override 內 jibri 服務的 image: 也改成 jibri-cjk:stable-<新版本>
 
 # (4) 拉取其餘官方映像並重啟（維持 2 個 jibri 容器）
@@ -522,7 +526,7 @@ chown -R 1000:1000 ~/.jitsi-meet-cfg/jibri ~/.jitsi-meet-cfg/storage /srv/record
 
 # (5) 換版本並重 build 中文映像（jibri-cjk/Dockerfile 照第五節改：FROM ghcr.io/jitsi/jibri:stable-11248 … USER s6）
 git fetch --tags && git checkout stable-11248
-docker build -t jibri-cjk:stable-11248 ./jibri-cjk
+docker build --pull -t jibri-cjk:stable-11248 ./jibri-cjk
 
 # (6) docker-compose.jibri-standalone.yml 照第九節改（映像、read_only、tmpfs、/storage volume、拿掉 cap_add），再啟動
 docker compose -f docker-compose.jibri-standalone.yml up -d --scale jibri=2

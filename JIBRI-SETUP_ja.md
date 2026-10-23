@@ -299,8 +299,13 @@ USER root
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       fonts-noto-cjk fonts-noto-cjk-extra fonts-noto-color-emoji \
+ && apt-get install -y --only-upgrade ca-certificates ca-certificates-java \
+ && rm -f /etc/ssl/certs/java/cacerts && update-ca-certificates -f \
  && fc-cache -f \
  && rm -rf /var/lib/apt/lists/*
+# 上の 2 行で CA 証明書の信頼リスト（OS と Java）を更新する。上流イメージの ca-certificates は古い場合があり、
+# 例えば 2026 年 10 月の eMudhra 事案の時点でも問題の「emSign ECC Root CA - G3」を信頼していた。
+# このイメージを再ビルド（docker build --pull）すれば最新のリストが適用される。
 # stable-11146 以降のイメージは uid 1000（s6）で動くため、フォントのインストール後に戻す
 USER s6
 ```
@@ -310,7 +315,7 @@ USER s6
 ビルドして compose で使用するようにします：
 
 ```bash
-docker build -t jibri-cjk:stable-11248 ./jibri-cjk
+docker build --pull -t jibri-cjk:stable-11248 ./jibri-cjk
 ```
 
 `jibri.yml`（または `docker-compose.override.yml`）で、jibri サービスの `image:` を `jibri-cjk:stable-11248` に変更し、再起動します。
@@ -468,7 +473,7 @@ git checkout stable-<new-version>
 
 # (3) CJK 版 jibri イメージを再ビルド（新しいバージョン番号で）
 sed -i 's/stable-[0-9]*/stable-<new-version>/' jibri-cjk/Dockerfile
-docker build -t jibri-cjk:stable-<new-version> ./jibri-cjk
+docker build --pull -t jibri-cjk:stable-<new-version> ./jibri-cjk
 #   jibri.yml / override の jibri サービスの image: も jibri-cjk:stable-<new-version> に変更する
 
 # (4) 残りの公式イメージを取得して再起動（jibri コンテナは 2 台のまま）
@@ -522,7 +527,7 @@ chown -R 1000:1000 ~/.jitsi-meet-cfg/jibri ~/.jitsi-meet-cfg/storage /srv/record
 
 # (5) 新しいバージョンと CJK イメージ（jibri-cjk/Dockerfile を第 5 節のとおりに：FROM ghcr.io/jitsi/jibri:stable-11248 … USER s6）
 git fetch --tags && git checkout stable-11248
-docker build -t jibri-cjk:stable-11248 ./jibri-cjk
+docker build --pull -t jibri-cjk:stable-11248 ./jibri-cjk
 
 # (6) docker-compose.jibri-standalone.yml を第 9 節のとおりに更新（イメージ、read_only、tmpfs、/storage ボリューム、cap_add を削除）して起動
 docker compose -f docker-compose.jibri-standalone.yml up -d --scale jibri=2
