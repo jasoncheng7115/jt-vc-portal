@@ -11,7 +11,7 @@
 [^8x8]: **8x8** 自 2018 年起為 Jitsi / Jitsi Meet 的開發與維護公司；**8x8 JaaS（Jitsi as a Service）** 即其官方雲端託管的 Jitsi 服務。
 
 > [!IMPORTANT]
-> **安全更新（2026-10-21）：請儘快升級到 v1.22.1。** PHP 官方發布安全修補（8.4.27 / 8.3.36）。Docker 安裝：改用 v1.22.1 映像或 `docker build --pull` 重建；直接安裝：把 PHP 更新到 8.4.27 / 8.3.36 以上，並在 `php.ini` 設 `session.upload_progress.enabled=Off`。詳見 [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md)。
+> **安全更新（2026-10-21）：請儘快升級到 v1.22.1。** PHP 官方發布安全修補（8.4.27 / 8.3.36）。Docker 安裝：改用 v1.22.1 映像或 `docker build --pull` 重建；直接安裝：把 PHP 更新到 8.4.27 / 8.3.36 以上，並在 `php.ini` 設 `session.upload_progress.enabled=Off`。這個設定也能擋下 10/23 新揭露、目前**還沒有修補版**的 CVE-2026-115560，請一定要設。詳見 [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md)。
 
 **介紹頁 / Demo：** <https://jasoncheng7115.github.io/jt-vc-portal/>
 

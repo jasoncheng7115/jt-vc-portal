@@ -11,7 +11,7 @@
 [^8x8]: **8x8** has been the company developing and maintaining Jitsi / Jitsi Meet since 2018; **8x8 JaaS (Jitsi as a Service)** is its official cloud-hosted Jitsi service.
 
 > [!IMPORTANT]
-> **Security update (2026-10-21): please upgrade to v1.22.1 as soon as possible.** PHP has released security fixes (8.4.27 / 8.3.36). Docker installs: use the v1.22.1 image or rebuild with `docker build --pull`. Direct installs: update PHP to 8.4.27 / 8.3.36 or later and set `session.upload_progress.enabled=Off` in `php.ini`. See [CHANGELOG.md](CHANGELOG.md).
+> **Security update (2026-10-21): please upgrade to v1.22.1 as soon as possible.** PHP has released security fixes (8.4.27 / 8.3.36). Docker installs: use the v1.22.1 image or rebuild with `docker build --pull`. Direct installs: update PHP to 8.4.27 / 8.3.36 or later and set `session.upload_progress.enabled=Off` in `php.ini`. This setting also blocks CVE-2026-115560, disclosed on 10/23 and **not yet patched**, so be sure to set it. See [CHANGELOG.md](CHANGELOG.md).
 
 **Project page / Demo:** <https://jasoncheng7115.github.io/jt-vc-portal/>
 
