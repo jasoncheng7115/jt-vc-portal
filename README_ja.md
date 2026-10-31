@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.22.1 — 会議管理システム
+# jt-vc-portal v1.23.0 — 会議管理システム
 
 > English: [README.md](README.md) · 繁體中文: [README_zh-TW.md](README_zh-TW.md)
 
@@ -11,7 +11,7 @@
 [^8x8]: **8x8** は 2018 年以降 Jitsi / Jitsi Meet の開発と保守を担っている企業で、**8x8 JaaS（Jitsi as a Service）**はその公式クラウドホスト型 Jitsi サービスです。
 
 > [!IMPORTANT]
-> **セキュリティ更新（2026-10-21）：できるだけ早く v1.22.1 に更新してください。** PHP がセキュリティ修正（8.4.27 / 8.3.36）を公開しました。Docker の場合は v1.22.1 のイメージを使うか `docker build --pull` で再ビルド、直接インストールの場合は PHP を 8.4.27 / 8.3.36 以降に更新し、`php.ini` で `session.upload_progress.enabled=Off` を設定してください。この設定は 10/23 に公表され、まだ**修正版がない** CVE-2026-115560 も防ぐため、必ず設定してください。詳細は [CHANGELOG_ja.md](CHANGELOG_ja.md)。
+> **セキュリティ更新（2026-10-21）：できるだけ早く v1.22.1 以降に更新してください。** PHP がセキュリティ修正（8.4.27 / 8.3.36）を公開しました。Docker の場合は v1.22.1 以降のイメージを使うか `docker build --pull` で再ビルド、直接インストールの場合は PHP を 8.4.27 / 8.3.36 以降に更新し、`php.ini` で `session.upload_progress.enabled=Off` を設定してください。この設定は 10/23 に公表され、まだ**修正版がない** CVE-2026-115560 も防ぐため、必ず設定してください。詳細は [CHANGELOG_ja.md](CHANGELOG_ja.md)。
 
 **プロジェクトページ / デモ：** <https://jasoncheng7115.github.io/jt-vc-portal/>
 
@@ -30,7 +30,7 @@
 - **予約時間帯**：開放する時間帯を設定できます。開始前はゲストにフリップ時計のカウントダウンが表示され、ホストが早めに入室すると自動的に開放されます。
 - **ゲストの流れ**：ゲストは参加前に表示名の入力が必須です。開放時間外は待機 / カウントダウン / 終了のページが表示されます。
 - **ロビーモード**：会議室の作成時に選択できます。ホストの入室時に自動で有効になり、ゲストはホストが 1 人ずつ許可して入室させます。
-- **メール招待**：参加者のメールアドレスを入力すると、ワンクリックでカレンダーに追加できる `.ics` 添付（METHOD:REQUEST）付きの招待を送信します。
+- **メール招待**：参加者のメールアドレスを入力すると、ワンクリックでカレンダーに追加できる `.ics` 添付（METHOD:REQUEST）付きの招待を送信します。会議室の作成後も、最近の会議室一覧の「招待」から追加で招待できます。
 - **複数アカウント / ロール / 2FA**：管理者はすべての会議室を、ホストは自分が作成した会議室のみを参照できます。TOTP による二要素認証に対応しています。
 - **シングルサインオン（OIDC）**：ホストと管理者は Keycloak / Entra ID 経由で会社アカウントでログイン可能（AD グループ → ロール、MFA は IdP 側）。ポータルは AD / LDAP に直接接続しません。IP 制限付きの緊急用管理者を残した「SSO のみ」モードに対応。構築手順：[KEYCLOAK-SETUP_ja.md](KEYCLOAK-SETUP_ja.md)。
 - **会議の文字起こしと要約（jt-live-whisper）**：自前ホストの Jibri での録画が完了すると、ポータルはそれを [jt-live-whisper](https://github.com/jasoncheng7115/jt-live-whisper)（JTLW）に渡し、発言者付きの文字起こしと会議要約を生成できます。要点、決定事項とアクション項目、出来事、リスク、未解決の課題、議題、発言統計を含み、各項目に録画内の時刻が付きます。アカウントごとの権限（利用不可 / 手動 / 自動）と会議ごとの設定に対応し、管理者はどの会議でも生成できます。ビューアーには波形プレーヤー、クリックでその位置から再生、発言者の名前変更、発言者の対応候補（Jitsi の発言者タイムラインに基づく）を備え、議事録一式を PDF / DOCX / ODT / HTML（ほかに TXT / SRT / JSON / Markdown）でエクスポートできます。ポータル自体が言語モデルに接続することはありません。設定の詳細は [TRANSCRIPTS-SETUP_ja.md](TRANSCRIPTS-SETUP_ja.md) を参照してください。
@@ -213,14 +213,14 @@ server {
 
 ```bash
 # 1) Release ページからイメージとチェックサムファイルをダウンロード（最新のバージョン番号を使用）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.22.1/jt-vc-portal-1.22.1-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.22.1/jt-vc-portal-1.22.1-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.23.0/jt-vc-portal-1.23.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.23.0/jt-vc-portal-1.23.0-docker-amd64.tar.gz.sha256
 
 # 2) 完全性を検証（OK と表示されるはず）
-sha256sum -c jt-vc-portal-1.22.1-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.23.0-docker-amd64.tar.gz.sha256
 
-# 3) イメージを読み込む（jt-vc-portal:1.22.1 と :latest のタグが作成される）
-docker load < jt-vc-portal-1.22.1-docker-amd64.tar.gz
+# 3) イメージを読み込む（jt-vc-portal:1.23.0 と :latest のタグが作成される）
+docker load < jt-vc-portal-1.23.0-docker-amd64.tar.gz
 
 # 4) ホスト側で永続ディレクトリを準備（www-data の UID は既定で 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data

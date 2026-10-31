@@ -112,6 +112,7 @@ CodeQL は本リポジトリの Python（`jibri-recordings-api/`）、JavaScript
 - [ ] 無効なメールアドレスはメッセージ付きで拒否される。
 - [ ] 同じ会議室の招待を再送：`.ics` の SEQUENCE が増加し、UID は変わらず、カレンダー上で古い予定が置き換えられる。長い中国語タイトルも折り返し後に正しく表示される。
 - [ ] SMTP テストメールの送信が成功し、失敗時のメッセージも正しく表示される。
+- [ ] T87 作成済みの会議室への追加招待：最近の会議室一覧の「招待」ボタン（所有者 / 管理者のみ、SMTP が有効で会議が終了していない場合に表示）→ ダイアログに会議室名と時間帯、招待済みの人が表示される → 複数のメールアドレスを入力（カンマ / スペース / 改行）→ 各自に招待リンクと `.ics`（METHOD:REQUEST）付きのメールが届き、名簿は重複しない。形式が不正なアドレスがある場合や 50 人を超える場合は全件送信しない。所有者以外、CSRF なし、終了した会議、SMTP 無効はすべて拒否される。会議室を削除するとこれらの招待者にも取消通知が届く（`tests/run-integration.sh`、`tests/unit/test_rooms.php`、`tests/e2e/meeting.cjs`）。
 
 ### 3.4 ゲスト
 - [ ] 招待リンク `/room/<name>` と旧形式の `/invite?room=` のどちらも機能する。
@@ -458,6 +459,7 @@ CodeQL は本リポジトリの Python（`jibri-recordings-api/`）、JavaScript
 | 監査ログに録画の UUID を表示しない T83 | `tests/unit/test_ical_audit.php` |
 | 画面共有のフレーム数の設定 T84 | `tests/run-integration.sh` |
 | アップロード制限時の画面共有の画質 T85 | `tests/prod-screenshare.sh`（メンテナー、本番環境） |
+| 作成済みの会議室への追加招待 T87 | `tests/run-integration.sh`（テスト用 SMTP 受信 `tests/stub/smtp-sink.php`）、`tests/unit/test_rooms.php`、`tests/e2e/meeting.cjs` |
 | PHP のセキュリティ設定 T86 | `tests/run-integration.sh` |
 | 録画の開始 / 停止 / 2 部屋同時 T70 | `tests/prod-entry-gates.sh`、`tests/prod-meeting-sim.sh`（メンテナー、本番環境） |
 | 言語メニュー（折りたたみ、クリックで開く、Esc） | `tests/run-e2e.sh`（`tests/e2e/meeting.cjs`） |

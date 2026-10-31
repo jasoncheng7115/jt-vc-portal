@@ -2,6 +2,13 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.23.0 — Send invitations for rooms that already exist
+
+- New "Invite" button in the recent rooms list: enter one or more emails (separated by commas, spaces or new lines) and each person receives an email with the invitation link and a calendar invite (.ics) that Google / Outlook / Apple calendars can add directly. A booked time slot is used if the room has one; otherwise the entry is one hour from when the invitation is sent. The dialog lists people already invited; sending again to the same person replaces the earlier calendar entry.
+- Visible only to the room owner or an admin, requires SMTP, and disappears once the meeting has ended. Up to 50 recipients at a time; any invalid address rejects the whole batch and is listed. New invitees join the room's invitee list and also receive the cancellation if the room is deleted.
+- Recent rooms list at phone width: the buttons move to their own line and wrap, instead of squeezing the room details into one character per line.
+- Test T87 (the integration test receives the mail with a test SMTP receiver and checks the .ics and recipients).
+
 ## v1.22.1 — PHP security update
 
 - Follows the PHP security advisory of 2026-10-21 (patched in 8.4.27 / 8.3.36): the Docker and Release images now use PHP 8.4.27 and turn off `session.upload_progress`, which this app does not use.

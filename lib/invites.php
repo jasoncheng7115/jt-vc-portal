@@ -11,6 +11,22 @@ require_once __DIR__ . '/settings.php';
 require_once __DIR__ . '/rooms.php';
 
 class Invites {
+  /** 單次最多寄送幾位（防止被拿來大量寄信） */
+  public const MAX_PER_SEND = 50;
+
+  /** 解析 email 清單（換行 / 逗號 / 分號 / 空白分隔），回傳 [合法且不重複, 不合法]。 */
+  public static function parseEmails(string $raw): array {
+    $ok = []; $bad = []; $seen = [];
+    foreach (preg_split('/[\s,;]+/', $raw) as $e) {
+      $e = trim($e);
+      if ($e === '') continue;
+      if (!Mailer::isValidEmail($e)) { $bad[] = $e; continue; }
+      if (isset($seen[strtolower($e)])) continue;
+      $seen[strtolower($e)] = true; $ok[] = $e;
+    }
+    return [$ok, $bad];
+  }
+
   /**
    * 寄出邀請（$method=REQUEST）或取消（CANCEL）。回傳 "sent_N_fail_M" 或 "smtp_off"。
    * $room 為房間資料（需含 created_at；starts_at / ends_at 可為 null）。

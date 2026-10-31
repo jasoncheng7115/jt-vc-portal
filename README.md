@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.22.1 — Meeting Management System
+# jt-vc-portal v1.23.0 — Meeting Management System
 
 > 繁體中文: [README_zh-TW.md](README_zh-TW.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -11,7 +11,7 @@
 [^8x8]: **8x8** has been the company developing and maintaining Jitsi / Jitsi Meet since 2018; **8x8 JaaS (Jitsi as a Service)** is its official cloud-hosted Jitsi service.
 
 > [!IMPORTANT]
-> **Security update (2026-10-21): please upgrade to v1.22.1 as soon as possible.** PHP has released security fixes (8.4.27 / 8.3.36). Docker installs: use the v1.22.1 image or rebuild with `docker build --pull`. Direct installs: update PHP to 8.4.27 / 8.3.36 or later and set `session.upload_progress.enabled=Off` in `php.ini`. This setting also blocks CVE-2026-115560, disclosed on 10/23 and **not yet patched**, so be sure to set it. See [CHANGELOG.md](CHANGELOG.md).
+> **Security update (2026-10-21): please upgrade to v1.22.1 or later as soon as possible.** PHP has released security fixes (8.4.27 / 8.3.36). Docker installs: use the v1.22.1 or later image or rebuild with `docker build --pull`. Direct installs: update PHP to 8.4.27 / 8.3.36 or later and set `session.upload_progress.enabled=Off` in `php.ini`. This setting also blocks CVE-2026-115560, disclosed on 10/23 and **not yet patched**, so be sure to set it. See [CHANGELOG.md](CHANGELOG.md).
 
 **Project page / Demo:** <https://jasoncheng7115.github.io/jt-vc-portal/>
 
@@ -30,7 +30,7 @@
 - **Scheduled time slots**: set an open time window; before it starts, guests see a flip-clock countdown, and the room opens automatically if the host joins early.
 - **Guest flow**: guests must enter a display name before joining; outside the open window they see a waiting / countdown / ended page.
 - **Lobby mode**: optional when creating a room; it is enabled automatically when the host joins, and guests must be admitted one by one by the host.
-- **Email invitations**: enter attendee email addresses to send invitations with an `.ics` attachment (METHOD:REQUEST) that can be added to a calendar in one click.
+- **Email invitations**: enter attendee email addresses to send invitations with an `.ics` attachment (METHOD:REQUEST) that can be added to a calendar in one click; after a room is created, use "Invite" in the recent rooms list to invite more people.
 - **Multiple accounts / roles / 2FA**: admins see all rooms, hosts see only the rooms they created; TOTP two-factor authentication supported.
 - **Single sign-on (OIDC)**: hosts and admins can sign in with their company account through Keycloak / Entra ID (AD groups → roles, MFA at the IdP); the portal never connects to AD / LDAP directly. SSO-only mode with an IP-restricted emergency admin. Setup: [KEYCLOAK-SETUP.md](KEYCLOAK-SETUP.md).
 - **Meeting transcripts and summaries (jt-live-whisper)**: after a self-hosted Jibri recording finishes, the portal can send it to [jt-live-whisper](https://github.com/jasoncheng7115/jt-live-whisper) (JTLW) to produce a speaker-labelled transcript and a meeting summary — key points, decisions and action items, events, risks, open questions, topics and speaker statistics, every item citing the time in the recording. Per-account permission (off / manual / automatic), a per-meeting switch, and admins can generate for any meeting. Viewer with a waveform player, click-to-seek, speaker renaming and speaker suggestions (from Jitsi's speaker timeline); the whole record exports as PDF / DOCX / ODT / HTML (plus TXT / SRT / JSON / Markdown). The portal itself never connects to a language model. Full setup: [TRANSCRIPTS-SETUP.md](TRANSCRIPTS-SETUP.md).
@@ -213,14 +213,14 @@ Don't want to build it yourself? Download the packaged image (`linux/amd64`) att
 
 ```bash
 # 1) Download the image and checksum file from the Release page (use the latest version number)
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.22.1/jt-vc-portal-1.22.1-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.22.1/jt-vc-portal-1.22.1-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.23.0/jt-vc-portal-1.23.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.23.0/jt-vc-portal-1.23.0-docker-amd64.tar.gz.sha256
 
 # 2) Verify integrity (should print OK)
-sha256sum -c jt-vc-portal-1.22.1-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.23.0-docker-amd64.tar.gz.sha256
 
-# 3) Load the image (creates the jt-vc-portal:1.22.1 and :latest tags)
-docker load < jt-vc-portal-1.22.1-docker-amd64.tar.gz
+# 3) Load the image (creates the jt-vc-portal:1.23.0 and :latest tags)
+docker load < jt-vc-portal-1.23.0-docker-amd64.tar.gz
 
 # 4) Prepare persistent directories on the host (www-data UID defaults to 33)
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data

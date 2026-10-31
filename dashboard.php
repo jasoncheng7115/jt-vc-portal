@@ -5,6 +5,9 @@ require_once __DIR__ . '/lib/layout.php';
 require_once __DIR__ . '/lib/rooms.php';
 require_once __DIR__ . '/lib/settings.php';
 require_once __DIR__ . '/lib/transcripts.php';
+require_once __DIR__ . '/lib/mailer.php';
+require_once __DIR__ . '/lib/invites.php';
+$smtp_on = !empty(Mailer::config()['enabled']);
 
 $me = Auth::requireLogin();
 
@@ -280,6 +283,9 @@ render_topbar($me, $ip);
               <button type="button" class="btn btn-secondary btn-sm" data-qr="<?= htmlspecialchars($invite) ?>" data-room="<?= htmlspecialchars($name) ?>" title="<?= th('顯示 QR Code') ?>"><?= icon('qr', 14) ?>QR</button>
               <?= enter_room_form($name, icon('arrow-right', 14) . th('進入'), 'btn btn-secondary btn-sm') ?>
               <?php if ($is_admin || ($r['owner'] ?? '') === $me['id']): ?>
+              <?php if ($smtp_on && !($e && $e < $now)): ?>
+              <button type="button" class="btn btn-secondary btn-sm" data-invite-room="<?= htmlspecialchars($name) ?>" data-invite-time="<?= $s !== null ? htmlspecialchars(fmt_range($s, $e)) : '' ?>" data-invited="<?= htmlspecialchars(json_encode(array_values($r['attendees'] ?? []), JSON_UNESCAPED_UNICODE)) ?>" title="<?= th('寄出會議邀請（含行事曆）') ?>"><?= icon('mail', 14) ?><?= th('邀請') ?></button>
+              <?php endif; ?>
               <form method="POST" action="/room-delete" style="display:inline;" data-confirm="<?= !empty($r['attendees']) ? th('確定刪除會議室「{room}」？受邀者會收到取消通知。', ['room' => $name]) : th('確定刪除會議室「{room}」？', ['room' => $name]) ?>">
                 <?= Auth::csrfField() ?>
                 <input type="hidden" name="room" value="<?= htmlspecialchars($name) ?>">
@@ -293,6 +299,29 @@ render_topbar($me, $ip);
     <?php endif; ?>
   </div>
 </main>
+
+<!-- invite modal -->
+<div class="modal-backdrop" id="inviteModal">
+  <div class="modal">
+    <h2><?= icon('mail', 18) ?> <?= th('寄出會議邀請') ?></h2>
+    <p class="modal-sub"><?= th('會議室：') ?><strong id="invRoom"></strong> <span class="muted" id="invTime"></span></p>
+    <form method="POST" action="/room-invite" id="inviteForm">
+      <?= Auth::csrfField() ?>
+      <input type="hidden" name="room" id="invRoomInput" value="">
+      <div class="field">
+      <label for="invEmails"><?= th('受邀者 email') ?></label>
+      <textarea id="invEmails" name="emails" rows="4" required placeholder="alice@example.com, bob@example.com"></textarea>
+      <p class="help"><?= th('可填多個，用逗號、空白或換行分隔，一次最多 {n} 位。每人會收到含邀請連結與行事曆邀請（.ics）的信。', ['n' => Invites::MAX_PER_SEND]) ?></p>
+      <p class="help" id="invNoTime" hidden><?= th('這間會議室沒有預約時段，行事曆會以寄出時間起 1 小時登記。') ?></p>
+      <p class="help" id="invDoneWrap" hidden><?= th('已邀請：') ?><span id="invDone"></span></p>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary"><?= icon('mail', 14) ?><?= th('寄出邀請') ?></button>
+        <button type="button" class="btn btn-secondary" id="invClose"><?= icon('x', 14) ?><?= th('關閉') ?></button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <!-- QR Code modal -->
 <div class="modal-backdrop" id="qrModal">
@@ -375,6 +404,36 @@ document.addEventListener('click', async (e) => {
     a.href = src; a.download = (document.getElementById('qrRoom').textContent || 'room') + '-qr.png';
     document.body.appendChild(a); a.click(); a.remove();
   };
+})();
+
+// invite modal: enter emails and send invitations (with .ics)
+(function(){
+  const modal = document.getElementById('inviteModal');
+  if (!modal) return;
+  const emails = document.getElementById('invEmails');
+  function open(b){
+    const room = b.getAttribute('data-invite-room') || '';
+    const time = b.getAttribute('data-invite-time') || '';
+    let done = [];
+    try { done = JSON.parse(b.getAttribute('data-invited') || '[]'); } catch (e) {}
+    document.getElementById('invRoom').textContent = room;
+    document.getElementById('invRoomInput').value = room;
+    document.getElementById('invTime').textContent = time;
+    document.getElementById('invNoTime').hidden = time !== '';
+    document.getElementById('invDone').textContent = done.join(', ');
+    document.getElementById('invDoneWrap').hidden = done.length === 0;
+    emails.value = '';
+    modal.classList.add('open');
+    setTimeout(() => emails.focus(), 50);
+  }
+  function close(){ modal.classList.remove('open'); }
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-invite-room]');
+    if (b) open(b);
+  });
+  document.getElementById('invClose').onclick = close;
+  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('open')) close(); });
 })();
 
 // live room-name conversion: whitespace -> '-', strip non-ASCII (Jitsi rejects non-ASCII room names)

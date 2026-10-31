@@ -105,4 +105,17 @@ test('T79 主持人離開時帶名冊：離開前剛進場、還沒被心跳回�
   $mm = meetings(); eq(end($mm)['attendees'], 1, '舊的離開通知（不帶名冊）照舊用心跳回報的名冊');
 });
 
+test('T87 已建立的會議室補寄邀請：email 解析與受邀名單合併', function () {
+  require_once '/app/lib/invites.php';
+  [$ok, $bad] = Invites::parseEmails("a@example.com, B@Example.com;\nb@example.com  not-an-email\n\nc@example.com");
+  eq($ok, ['a@example.com', 'B@Example.com', 'c@example.com'], '逗號 / 分號 / 空白 / 換行都能分隔，大小寫不同視為同一人');
+  eq($bad, ['not-an-email'], '格式不對的另外列出');
+  ok(Invites::MAX_PER_SEND === 50, '單次上限 50 位');
+  Rooms::upsert('r87', ['owner' => 'u_a', 'owner_name' => 'a', 'attendees' => ['old@example.com']]);
+  eq(Rooms::addAttendees('r87', ['new@example.com', 'OLD@example.com']), ['old@example.com', 'new@example.com'], '併入名單、不重複、保留原順序');
+  eq(Rooms::get('r87')['attendees'], ['old@example.com', 'new@example.com'], '寫進房間資料');
+  eq(Rooms::get('r87')['owner'], 'u_a', '其他欄位不受影響');
+  ok(Rooms::addAttendees('no-such-room', ['x@example.com']) === null, '房間不存在回 null');
+});
+
 summary();

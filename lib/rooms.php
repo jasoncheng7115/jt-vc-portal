@@ -308,6 +308,22 @@ class Rooms {
     return $out;
   }
 
+  /** 把 email 併入會議室受邀名單（不重複、保留原順序）。回傳更新後的名單；房間不存在回 null。 */
+  public static function addAttendees(string $room, array $emails): ?array {
+    $out = null;
+    self::mutate(function (array &$rooms) use ($room, $emails, &$out) {
+      if (!isset($rooms[$room])) return false;
+      $list = is_array($rooms[$room]['attendees'] ?? null) ? $rooms[$room]['attendees'] : [];
+      $seen = array_map('strtolower', $list);
+      foreach ($emails as $e) {
+        if (!in_array(strtolower($e), $seen, true)) { $list[] = $e; $seen[] = strtolower($e); }
+      }
+      $rooms[$room]['attendees'] = $out = $list;
+      return true;
+    });
+    return $out;
+  }
+
   /** 遞增並回傳該房間的 .ics SEQUENCE（房間不存在回 0）。 */
   public static function bumpIcsSeq(string $room): int {
     $seq = 0;

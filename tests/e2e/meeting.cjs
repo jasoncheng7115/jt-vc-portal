@@ -33,6 +33,13 @@ function watch(page, bag) {
     if (await hp.$('#txChk') && await hp.isChecked('#txChk')) await hp.uncheck('#txChk');   // 逐字稿預設勾選（v1.16.3）；這裡不測逐字稿
     await Promise.all([hp.waitForURL(/created=/), hp.click('button[name=mode][value=create]')]);
     ok('建立會議室', hp.url().includes('created=' + room));
+    // T87：近期會議室的「邀請」按鈕 → 對話框帶入會議室名稱、游標在 email 欄、Esc 關閉（SMTP 已在測試設定啟用；不實際寄出）
+    await hp.click(`[data-invite-room="${room}"]`);
+    await hp.waitForSelector('#inviteModal.open', { timeout: 5000 }).catch(() => {});
+    ok('T87 邀請按鈕開啟對話框並帶入會議室名稱', await hp.isVisible('#inviteModal') && (await hp.textContent('#invRoom')) === room && (await hp.inputValue('#invRoomInput')) === room);
+    ok('T87 游標在受邀者 email 欄', await hp.evaluate(() => document.activeElement && document.activeElement.id === 'invEmails'));
+    await hp.keyboard.press('Escape');
+    ok('T87 按 Esc 關閉邀請對話框', !(await hp.isVisible('#inviteModal')));
     // 立即主持（POST 表單）
     await Promise.all([hp.waitForURL(/\/meeting/), hp.click(`.created-panel form[action="/start"] button`)]);
     await hp.waitForFunction(() => document.querySelector('#jaas-container iframe'), null, { timeout: 15000 }).catch(() => {});

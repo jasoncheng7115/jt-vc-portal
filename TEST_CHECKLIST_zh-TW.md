@@ -112,6 +112,7 @@ CodeQL 掃描本 repo 的 Python（`jibri-recordings-api/`）、JavaScript（`te
 - [ ] 無效 Email 被擋並提示。
 - [ ] 同一會議室重寄邀請：`.ics` SEQUENCE 遞增、UID 不變，行事曆以新版取代舊版；中文長標題折行後仍正確顯示。
 - [ ] SMTP 測試信成功；失敗訊息正確顯示。
+- [ ] T87 已建立的會議室補寄邀請：近期會議室清單的「邀請」按鈕（只有擁有者 / 管理員、SMTP 已啟用、會議未結束時顯示）→ 對話框帶入會議室名稱與時段、列出已邀請的人 → 填多個 email（逗號 / 空白 / 換行）→ 每人收到含邀請連結與 `.ics`（METHOD:REQUEST）的信，名單不重複；格式不對或超過 50 位整批不寄；非擁有者、無 CSRF、已結束的會議、SMTP 未啟用都會擋下；刪除會議室時這些受邀者也會收到取消通知（`tests/run-integration.sh`、`tests/unit/test_rooms.php`、`tests/e2e/meeting.cjs`）。
 
 ### 3.4 來賓
 - [ ] 邀請連結 `/room/<名稱>` 與舊式 `/invite?room=` 皆可用。
@@ -458,6 +459,7 @@ CodeQL 掃描本 repo 的 Python（`jibri-recordings-api/`）、JavaScript（`te
 | 稽核記錄不顯示錄影 UUID T83 | `tests/unit/test_ical_audit.php` |
 | 共用畫面每秒格數設定 T84 | `tests/run-integration.sh` |
 | 共用畫面在上傳受限時的畫質 T85 | `tests/prod-screenshare.sh`（維護者，正式環境） |
+| 已建立的會議室補寄邀請 T87 | `tests/run-integration.sh`（測試用 SMTP 收信器 `tests/stub/smtp-sink.php`）、`tests/unit/test_rooms.php`、`tests/e2e/meeting.cjs` |
 | PHP 安全設定 T86 | `tests/run-integration.sh` |
 | 錄影開始 / 停止 / 兩間同時 T70 | `tests/prod-entry-gates.sh`、`tests/prod-meeting-sim.sh`（維護者，正式環境） |
 | 語言選單（收合、點選開啟、Esc） | `tests/run-e2e.sh`（`tests/e2e/meeting.cjs`） |

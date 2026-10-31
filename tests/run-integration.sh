@@ -8,7 +8,8 @@ NAME=jtvc-itest
 IMG=jtvc-itest:latest
 DATA=$(mktemp -d); KEYS=$(mktemp -d); JAR=$(mktemp -d)
 ADMIN_PW='Itest-Admin-Pass-123'
-cleanup() { docker rm -f $NAME >/dev/null 2>&1; rm -rf "$DATA" "$KEYS" "$JAR"; }
+MAILD=$(mktemp -d); chmod 777 "$MAILD"
+cleanup() { docker rm -f $NAME jtvc-itest-smtp >/dev/null 2>&1; rm -rf "$DATA" "$KEYS" "$JAR" "$MAILD"; }
 trap cleanup EXIT
 openssl genrsa -out "$KEYS/private.key" 2048 2>/dev/null; chmod 644 "$KEYS/private.key"
 chown 33:33 "$DATA"
@@ -210,6 +211,52 @@ chk "admin 自己不受影響" "$(code -b $A $B/dashboard)" 200
 # 刪除會議室：非擁有者不可、擁有者可
 chk "hostb 重新登入（刪除測試）" "$(login $HB2 hostb Itest-HostB-Pass-2 10.0.5.3)" "$B/dashboard"
 TB=$(csrf $HB2 /dashboard)
+echo "== T87 已建立的會議室補寄邀請（Email + .ics）"
+mails() { ls "$MAILD" | wc -l | tr -d ' '; }
+# 信件內文與 .ics 是 base64，解開後再比對
+mailtxt() { python3 -c 'import email,glob,sys
+for f in sorted(glob.glob(sys.argv[1]+"/*.eml")):
+    m=email.message_from_bytes(open(f,"rb").read()); print("To:",m["To"])
+    for p in m.walk():
+        b=p.get_payload(decode=True)
+        if b: print(b.decode("utf-8","replace"))' "$MAILD"; }
+inv() { local j=$1; shift; local t; t=$(csrf $j /dashboard); curl -s -o /dev/null -b $j -c $j --data-urlencode "_csrf=$t" "$@" $B/room-invite; }
+hasnt "T87 SMTP 未啟用 → 清單沒有邀請按鈕" "$(curl -s -b $A $B/dashboard)" 'data-invite-room="itest-room"'
+inv $A -d 'room=itest-room' --data-urlencode 'emails=a@example.com'
+has "T87 SMTP 未啟用 → 端點擋下並說明" "$(curl -s -b $A $B/dashboard)" 'SMTP 未啟用，無法寄出邀請信'
+docker run -d --name jtvc-itest-smtp --network container:$NAME -v "$MAILD":/out -v "$ROOT/tests/stub":/stub:ro php:8.4-cli php /stub/smtp-sink.php 2525 /out >/dev/null
+T=$(csrf $A /settings)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'section=smtp&enabled=1&host=127.0.0.1&port=2525&security=none&username=&password_clear=1&from_email=noreply@example.com' $B/save-settings
+sleep 1
+D=$(curl -s -b $A $B/dashboard)
+has "T87 SMTP 啟用 → 擁有者看得到邀請按鈕" "$D" 'data-invite-room="itest-room"'
+has "T87 邀請對話框（填 email、送到 /room-invite）" "$D" 'action="/room-invite"'
+chk "T87 /room-invite 無 CSRF → 403" "$(code -b $A -d 'room=itest-room&emails=a@example.com' $B/room-invite)" 403
+chk "T87 GET /room-invite 不做事（導回儀表板）" "$(loc -b $A $B/room-invite)" "$B/dashboard"
+inv $HB2 -d 'room=itest-room' --data-urlencode 'emails=x@example.com'
+chk "T87 非擁有者（其他主持人）不能寄 → 沒有寄信" "$(mails)" 0
+inv $A -d 'room=itest-room' --data-urlencode 'emails=a@example.com, not-an-email'
+chk "T87 有格式不對的 email → 整批不寄" "$(mails)" 0
+inv $A -d 'room=itest-room' --data-urlencode "emails=$(seq -f 'u%g@example.com' 1 51 | tr '\n' ' ')"
+chk "T87 超過 50 位 → 不寄" "$(mails)" 0
+inv $A -d 'room=itest-room' --data-urlencode $'emails=a@example.com, b@example.com\nB@example.com'
+has "T87 寄出後顯示成功訊息" "$(curl -s -b $A $B/dashboard)" '的邀請給 2 位（含行事曆邀請）'
+chk "T87 兩位各收到一封（大小寫不同視為同一人）" "$(mails)" 2
+M=$(mailtxt)
+has "T87 信件附 .ics 行事曆邀請（METHOD:REQUEST）" "$M" 'METHOD:REQUEST'
+has "T87 信件含會議室邀請連結" "$M" '/room/itest-room'
+has "T87 收件者正確" "$M" 'To: <a@example.com>'
+AA=$(docker exec $NAME cat /var/jaas-data/auto-allow.json)
+has "T87 受邀者寫進會議室名單" "$AA" '"b@example.com"'
+has "T87 寫入稽核 invite_sent" "$(docker exec $NAME cat /var/jaas-data/audit-log.jsonl)" '"action":"invite_sent"'
+inv $A -d 'room=itest-room' --data-urlencode 'emails=a@example.com'
+chk "T87 重寄給已邀請的人 → 照寄" "$(mails)" 3
+chk "T87 受邀名單不重複" "$(docker exec $NAME php -r 'echo count(json_decode(file_get_contents("/var/jaas-data/auto-allow.json"),true)["itest-room"]["attendees"]);')" 2
+docker exec -u www-data $NAME php -r 'require "/var/www/html/config.php"; require_once "/var/www/html/lib/rooms.php"; Store::update(AUTO_ALLOW_FILE, function ($d) { $d["itest-room"]["ends_at"] = time() - 60; return $d; });'
+hasnt "T87 已結束的會議 → 沒有邀請按鈕" "$(curl -s -b $A $B/dashboard)" 'data-invite-room="itest-room"'
+inv $A -d 'room=itest-room' --data-urlencode 'emails=c@example.com'
+chk "T87 已結束的會議 → 端點也擋下" "$(mails)" 3
+docker exec -u www-data $NAME php -r 'require "/var/www/html/config.php"; require_once "/var/www/html/lib/rooms.php"; Store::update(AUTO_ALLOW_FILE, function ($d) { $d["itest-room"]["ends_at"] = null; return $d; });'
 curl -s -o /dev/null -b $HB2 -c $HB2 --data-urlencode "_csrf=$TB" -d 'room=itest-room' $B/room-delete
 has "非擁有者刪除 → 房間仍在" "$(docker exec $NAME cat /var/jaas-data/auto-allow.json)" '"itest-room"'
 chk "room-delete 無 CSRF → 403" "$(code -b $A -d 'room=itest-room' $B/room-delete)" 403
@@ -217,6 +264,9 @@ T=$(csrf $A /dashboard)
 curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-room' $B/room-delete
 hasnt "擁有者刪除 → 房間已移除" "$(docker exec $NAME cat /var/jaas-data/auto-allow.json)" '"itest-room"'
 has "刪除寫入稽核" "$(docker exec $NAME cat /var/jaas-data/audit-log.jsonl)" '"action":"room_delete"'
+chk "T87 刪除會議室 → 兩位受邀者收到取消通知" "$(mailtxt | grep -c '^METHOD:CANCEL')" 2
+T=$(csrf $A /settings)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'section=smtp&host=smtp.example.com&port=587&security=starttls&from_email=a@example.com' $B/save-settings
 echo "== 視訊服務健康檢查與故障頁（v1.16.0）"
 chk "未登入 /health → 404" "$(code $B/health)" 404
 HJ=$(curl -s -b $A $B/health)

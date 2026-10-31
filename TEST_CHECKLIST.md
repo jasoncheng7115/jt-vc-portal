@@ -112,6 +112,7 @@ CodeQL scans the Python (`jibri-recordings-api/`), JavaScript (`tests/`, Pages) 
 - [ ] Invalid emails are rejected with a message.
 - [ ] Re-sending invites for the same room: `.ics` SEQUENCE increases, UID stays, calendars replace the old event; long Chinese titles still display correctly after folding.
 - [ ] SMTP test email succeeds; failure messages are displayed correctly.
+- [ ] T87 Invite people to an existing room: the "Invite" button in the recent rooms list (shown only to the owner / an admin, with SMTP enabled and the meeting not yet ended) → the dialog shows the room name and time slot and lists people already invited → enter several emails (commas / spaces / new lines) → each person receives an email with the invitation link and an `.ics` (METHOD:REQUEST), with no duplicates in the list; an invalid address or more than 50 recipients blocks the whole batch; a non-owner, a missing CSRF token, an ended meeting and disabled SMTP are all rejected; deleting the room also sends these invitees a cancellation (`tests/run-integration.sh`, `tests/unit/test_rooms.php`, `tests/e2e/meeting.cjs`).
 
 ### 3.4 Guests
 - [ ] Both the invite link `/room/<name>` and the legacy `/invite?room=` work.
@@ -458,6 +459,7 @@ Spot-check on every release; test everything for major changes:
 | No recording UUIDs in the audit log T83 | `tests/unit/test_ical_audit.php` |
 | Screen-share frame-rate setting T84 | `tests/run-integration.sh` |
 | Screen-share quality with limited upload T85 | `tests/prod-screenshare.sh` (maintainer, production) |
+| Invite people to an existing room T87 | `tests/run-integration.sh` (test SMTP receiver `tests/stub/smtp-sink.php`), `tests/unit/test_rooms.php`, `tests/e2e/meeting.cjs` |
 | PHP security settings T86 | `tests/run-integration.sh` |
 | Recording start / stop / two at once T70 | `tests/prod-entry-gates.sh`, `tests/prod-meeting-sim.sh` (maintainer, production) |
 | Language menu (collapsed, opens on click, Esc) | `tests/run-e2e.sh` (`tests/e2e/meeting.cjs`) |

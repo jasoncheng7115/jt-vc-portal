@@ -10,7 +10,7 @@ cleanup() { docker rm -f $NAME >/dev/null 2>&1; rm -rf "$DATA" "$KEYS"; }
 trap cleanup EXIT
 openssl genrsa -out "$KEYS/private.key" 2048 2>/dev/null; chmod 644 "$KEYS/private.key"; chown 33:33 "$DATA"
 # 預設 JaaS 模式 + 測試用 app id（iframe 會指向 8x8.vc；JWT 無效無妨，只驗前端載入）
-printf '{"jaas":{"_v":2,"mode":"jaas","app_id":"vpaas-magic-cookie-e2etest","kid":"e2e","domain":"8x8.vc","site_url":"http://127.0.0.1:%s"}}' "$PORT" > "$DATA/settings.json"; chown 33:33 "$DATA/settings.json"
+printf '{"jaas":{"_v":2,"mode":"jaas","app_id":"vpaas-magic-cookie-e2etest","kid":"e2e","domain":"8x8.vc","site_url":"http://127.0.0.1:%s"},"smtp":{"enabled":true,"host":"127.0.0.1","port":2525,"security":"none","from_email":"noreply@example.com"}}' "$PORT" > "$DATA/settings.json"; chown 33:33 "$DATA/settings.json"
 docker build -q -t $IMG "$SRC" >/dev/null || exit 1
 docker run -d --name $NAME -p 127.0.0.1:$PORT:58189 -e JTVC_ADMIN_PASSWORD="$ADMIN_PW" \
   -v "$KEYS":/var/www/html/keys:ro -v "$DATA":/var/jaas-data $IMG >/dev/null

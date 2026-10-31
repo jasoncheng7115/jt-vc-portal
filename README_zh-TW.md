@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.22.1 — 會議管理系統
+# jt-vc-portal v1.23.0 — 會議管理系統
 
 > English: [README.md](README.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -11,7 +11,7 @@
 [^8x8]: **8x8** 自 2018 年起為 Jitsi / Jitsi Meet 的開發與維護公司；**8x8 JaaS（Jitsi as a Service）** 即其官方雲端託管的 Jitsi 服務。
 
 > [!IMPORTANT]
-> **安全更新（2026-10-21）：請儘快升級到 v1.22.1。** PHP 官方發布安全修補（8.4.27 / 8.3.36）。Docker 安裝：改用 v1.22.1 映像或 `docker build --pull` 重建；直接安裝：把 PHP 更新到 8.4.27 / 8.3.36 以上，並在 `php.ini` 設 `session.upload_progress.enabled=Off`。這個設定也能擋下 10/23 新揭露、目前**還沒有修補版**的 CVE-2026-115560，請一定要設。詳見 [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md)。
+> **安全更新（2026-10-21）：請儘快升級到 v1.22.1 以上。** PHP 官方發布安全修補（8.4.27 / 8.3.36）。Docker 安裝：改用 v1.22.1 以上的映像或 `docker build --pull` 重建；直接安裝：把 PHP 更新到 8.4.27 / 8.3.36 以上，並在 `php.ini` 設 `session.upload_progress.enabled=Off`。這個設定也能擋下 10/23 新揭露、目前**還沒有修補版**的 CVE-2026-115560，請一定要設。詳見 [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md)。
 
 **介紹頁 / Demo：** <https://jasoncheng7115.github.io/jt-vc-portal/>
 
@@ -30,7 +30,7 @@
 - **預約時段**：可設定開放時段；時段未到顯示翻頁時鐘倒數，主持人提前進入即自動放行。
 - **來賓流程**：來賓必填顯示名稱才進場；非開放時段顯示等候 / 倒數 / 已結束頁。
 - **大廳模式**：建立會議室時可選；主持人進場自動開啟，來賓需經主持人逐一允許才能進入會議室。
-- **Email 邀請**：填寫與會者 email，寄送含 `.ics`（METHOD:REQUEST）的邀請信，可一鍵加入行事曆。
+- **Email 邀請**：填寫與會者 email，寄送含 `.ics`（METHOD:REQUEST）的邀請信，可一鍵加入行事曆；會議室建立後也能在近期會議室清單按「邀請」補寄給其他人。
 - **多帳號 / 角色 / 2FA**：admin 看全部、host 只看自己建立的會議室；支援 TOTP 雙因素認證。
 - **單一登入（OIDC）**：主持人與管理員可透過 Keycloak / Entra ID 以公司帳號登入（AD 群組對應角色、MFA 由 IdP 負責）；portal 不直接連 AD / LDAP。支援「僅限單一登入」並保留限 IP 的緊急用管理員。設定步驟：[KEYCLOAK-SETUP_zh-TW.md](KEYCLOAK-SETUP_zh-TW.md)。
 - **會議逐字稿與摘要（jt-live-whisper）**：自建 Jibri 錄影完成後，portal 可將錄影交給 [jt-live-whisper](https://github.com/jasoncheng7115/jt-live-whisper)（JTLW）產生標示發言者的逐字稿與會議摘要——重點摘要、決議與待辦、事件、風險、未決問題、議題與發言統計，每一條都附錄影中的時間點。依帳號設定權限（不可使用 / 手動 / 自動）、可單場開關，管理員可對任何場次產生。檢視頁提供波形播放器、點時間跳到該處、發言者改名與發言者對應建議（依 Jitsi 發言時間軸），整份會議記錄可匯出 PDF / DOCX / ODT / HTML（另有 TXT / SRT / JSON / Markdown）。portal 本身不直接連接語言模型。完整設定見 [TRANSCRIPTS-SETUP_zh-TW.md](TRANSCRIPTS-SETUP_zh-TW.md)。
@@ -213,14 +213,14 @@ server {
 
 ```bash
 # 1) 從 Release 頁下載映像與校驗檔（請改用最新版本號）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.22.1/jt-vc-portal-1.22.1-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.22.1/jt-vc-portal-1.22.1-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.23.0/jt-vc-portal-1.23.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.23.0/jt-vc-portal-1.23.0-docker-amd64.tar.gz.sha256
 
 # 2) 驗證完整性（應顯示 OK）
-sha256sum -c jt-vc-portal-1.22.1-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.23.0-docker-amd64.tar.gz.sha256
 
-# 3) 載入映像（會建立 jt-vc-portal:1.22.1 與 :latest 標籤）
-docker load < jt-vc-portal-1.22.1-docker-amd64.tar.gz
+# 3) 載入映像（會建立 jt-vc-portal:1.23.0 與 :latest 標籤）
+docker load < jt-vc-portal-1.23.0-docker-amd64.tar.gz
 
 # 4) 主機端準備持久化目錄（www-data UID 預設 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
