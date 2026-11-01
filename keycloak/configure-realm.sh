@@ -167,6 +167,11 @@ CL_ARGS=(
 if [ -z "$CID" ]; then CID=$($KC create clients -r "$REALM" "${CL_ARGS[@]}" -i); echo "created client $CLIENT_ID";
 else $KC update "clients/$CID" -r "$REALM" "${CL_ARGS[@]}" >/dev/null; echo "updated client $CLIENT_ID"; fi
 
+# realm 內建的 admin-cli 預設允許「帳號密碼直接換 token」（password grant）。token 端點對外開放，
+# 這會繞過瀏覽器登入流程，對還沒綁 OTP 的使用者也能用來試密碼，所以關掉（管理工具用的是 master realm 的 admin-cli，不受影響）。
+ACID=$($KC get clients -r "$REALM" -q clientId=admin-cli --fields id --format csv --noquotes 2>/dev/null | head -1 || true)
+if [ -n "$ACID" ]; then $KC update "clients/$ACID" -r "$REALM" -s directAccessGrantsEnabled=false >/dev/null; echo "admin-cli: password grant off"; fi
+
 MID=$($KC get "clients/$CID/protocol-mappers/models" -r "$REALM" --fields id,name --format csv --noquotes 2>/dev/null | awk -F, '$2=="groups"{print $1}' | head -1 || true)
 MAP_ARGS=(-s name=groups -s protocol=openid-connect -s protocolMapper=oidc-group-membership-mapper
   -s 'config."claim.name"=groups' -s 'config."full.path"=false'

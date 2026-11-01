@@ -6,7 +6,7 @@
 
 本文說明如何在**獨立主機**上部署 **Keycloak**，作為 jt-vc-portal 的 OIDC 身分驗證服務（IdP），並透過 **LDAPS** 聯合地端 **Active Directory**（Windows AD 或 Univention UCS / Samba AD）。部署完成後，主持人與管理員用公司帳號加上強制的一次性密碼（OTP）登入 portal；來賓不受影響，仍經由邀請連結加入。
 
-> 適用版本：Keycloak **26.4**（`quay.io/keycloak/keycloak`）、PostgreSQL 17、Docker Compose v2、具備「單一登入（SSO / OIDC）」設定卡片的 jt-vc-portal。
+> 適用版本：Keycloak **26.7**（2026-11 以 26.7.5 驗證；`quay.io/keycloak/keycloak`）、PostgreSQL 17、Docker Compose v2、具備「單一登入（SSO / OIDC）」設定卡片的 jt-vc-portal。
 > 所有現成檔案都在 repo 的 [`keycloak/`](keycloak/) 資料夾。本文所有主機名稱、IP 與 DN 皆為**範例**（`example.com`、`10.0.0.x`），請換成您自己的值。
 
 ---
@@ -338,7 +338,7 @@ vi .env
 
 | 變數 | 範例 | 說明 |
 |---|---|---|
-| `KC_VERSION` | `26.4` | Keycloak 映像檔 tag（請固定版本，見[升級](#升級)） |
+| `KC_VERSION` | `26.7.5` | Keycloak 映像檔 tag（請固定版本，見[升級](#升級)） |
 | `KC_PUBLIC_URL` | `https://sso.example.com` | 使用者瀏覽器看到的網址（經反向代理），也是 issuer 的前綴 |
 | `KC_ADMIN_URL` | `https://10.0.0.20:8443` | 管理介面網址，只在內網使用。**必須是 `https://…:8443`**（見上方說明）。 |
 | `KC_BIND_ADDR` | `0.0.0.0`（或 `10.0.0.20`） | 8080 / 8443 埠發佈在哪個位址 |
@@ -669,13 +669,26 @@ docker exec -u www-data jt-vc-portal php /var/www/html/sso-cli.php disable      
 
 ### 備份
 
+範本附有 `keycloak/backup-keycloak.sh`：用 `pg_dump` 備份資料庫（先驗證能列出內容才保存）、打包設定檔（`.env`、`realm.env`、`client-secret.txt`、truststore、憑證、compose），只保留最近 30 天。
+
 ```bash
-# 每日（例如 cron 02:30）
-install -d -m 700 /var/backups/keycloak
-cd /opt/keycloak
-docker compose exec -T postgres pg_dump -U keycloak -d keycloak -Fc > /var/backups/keycloak/keycloak-$(date +%F).dump
-tar -C /opt -czf /var/backups/keycloak/keycloak-files-$(date +%F).tar.gz --exclude=keycloak/data keycloak
-find /var/backups/keycloak -mtime +30 -delete
+install -m 700 keycloak/backup-keycloak.sh /opt/keycloak/backup-keycloak.sh
+/opt/keycloak/backup-keycloak.sh            # 先手動跑一次，確認輸出 ok
+cat > /etc/cron.d/keycloak-backup <<'EOF'
+30 2 * * * root /opt/keycloak/backup-keycloak.sh >> /var/log/keycloak-backup.log 2>&1
+EOF
+```
+
+可用環境變數調整：`BACKUP_DIR`（預設 `/var/backups/keycloak`）、`KEEP_DAYS`（預設 30）。
+
+**還原演練**（不影響正式資料庫）：開一個暫時的 PostgreSQL 容器，把最新備份還原進去，比對 realm / 使用者數量：
+
+```bash
+docker run -d --rm --name kc-restore-test --network none -e POSTGRES_USER=keycloak -e POSTGRES_DB=keycloak -e POSTGRES_PASSWORD=test postgres:17-alpine
+sleep 5
+docker exec -i kc-restore-test pg_restore -U keycloak -d keycloak --no-owner < "$(ls /var/backups/keycloak/keycloak-db-*.dump | tail -1)"
+docker exec kc-restore-test psql -U keycloak -d keycloak -tAc "select count(*) from user_entity"
+docker stop kc-restore-test
 ```
 
 檔案備份內含 `.env`、`realm.env`、`client-secret.txt` 與 truststore——備份請加密 / 限制存取，並複製到主機以外的地方。
@@ -725,6 +738,7 @@ PostgreSQL：映像檔固定在主版本 17；小版本更新隨 `docker compose
 
 - 容器日誌：`docker compose logs keycloak`（Docker 預設的 `json-file` driver，位於 `/var/lib/docker/containers/`）。
 - Keycloak 事件（登入、登入失敗、登出、OTP 綁定…）經 **`jboss-logging`** listener 輸出到 stdout。Keycloak 預設以 WARN 記錄**錯誤**事件、以 DEBUG 記錄**成功**事件（不會輸出）；附的 `docker-compose.yml` 已設定 `KC_SPI_EVENTS_LISTENER__JBOSS_LOGGING__SUCCESS_LEVEL: info`（注意是雙底線，Keycloak 26 的選項語法，已在 26.4 驗證），成功登入會以 INFO 記錄。
+- 範本的 `docker-compose.yml` 把 Keycloak 容器日誌送進 **journald**（tag `keycloak`）：主機上的 Wazuh agent 只要收 journald（`<location>journald</location>`）就會收到上述事件，容器重建也不會遺失；`docker compose logs` 照常可用。查詢：`journalctl -t keycloak --since -1h | grep org.keycloak.events`。
 - 用主機上的日誌代理程式送到 SIEM，例如讀取 Docker JSON 日誌檔的 **Wazuh agent**，或把 Docker log driver 改成 `journald` / `syslog`。
 - jt-vc-portal 本身的 `sso_login` / `sso_fail` 稽核事件，已會送到 portal 設定的 SIEM。
 
@@ -753,6 +767,7 @@ curl -sf http://127.0.0.1:9000/health/ready && echo OK     # 只能在 Keycloak 
 - [ ] Keycloak **暴力破解門檻（`LOCKOUT_FAILURES`）< AD 帳號鎖定門檻**；可行的話已啟用 AD 帳號鎖定。
 - [ ] LDAP 聯合為 **READ_ONLY**、走 **LDAPS** 並驗證 CA（truststore），且**使用者篩選只限 `VC-Admins` / `VC-Hosts`**。
 - [ ] `svc-keycloak` 為**唯讀**（不在任何管理群組）、**禁止互動式登入**、使用強密碼。
+- [ ] realm 內建的 `admin-cli` **不允許帳號密碼直接換 token**（`directAccessGrantsEnabled=false`，`configure-realm.sh` 會設定）：token 端點對外開放，開著會繞過瀏覽器登入流程、被拿來試密碼。
 - [ ] client 為 **confidential**、只允許標準流程、強制 **PKCE S256**、**redirect URI 完全相符**（`<PORTAL_URL>/sso-callback`）。
 - [ ] **TLS 只在反向代理終結並啟用 HSTS**；Keycloak 的 HTTP 埠從不對外公開。
 - [ ] `.env`、`realm.env`、`client-secret.txt` 權限 **600**，`/opt/keycloak` 為 700；`realm.env` 已清除 `KC_ADMIN_PASSWORD` / `LDAP_BIND_CREDENTIAL`。

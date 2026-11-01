@@ -6,7 +6,7 @@
 
 This guide deploys **Keycloak on a dedicated host** as the OIDC identity provider (IdP) for jt-vc-portal, federating an on-premises **Active Directory** (Windows AD or Univention UCS / Samba AD) over **LDAPS**. Hosts and administrators then sign in to the portal with their company account plus a mandatory one-time password (OTP); guests are not affected and still join through invitation links.
 
-> Applies to: Keycloak **26.4** (`quay.io/keycloak/keycloak`), PostgreSQL 17, Docker Compose v2, jt-vc-portal with the "Single sign-on (SSO / OIDC)" settings card.
+> Applies to: Keycloak **26.7** (verified with 26.7.5 in Nov 2026; `quay.io/keycloak/keycloak`), PostgreSQL 17, Docker Compose v2, jt-vc-portal with the "Single sign-on (SSO / OIDC)" settings card.
 > All ready-made files are in the repository folder [`keycloak/`](keycloak/). Every hostname, IP address and DN in this guide is an **example** (`example.com`, `10.0.0.x`) — replace them with your own.
 
 ---
@@ -338,7 +338,7 @@ vi .env
 
 | Variable | Example | Meaning |
 |---|---|---|
-| `KC_VERSION` | `26.4` | Keycloak image tag (pin it; see [Upgrades](#upgrades)) |
+| `KC_VERSION` | `26.7.5` | Keycloak image tag (pin it; see [Upgrades](#upgrades)) |
 | `KC_PUBLIC_URL` | `https://sso.example.com` | URL users' browsers see (through the proxy). Becomes the issuer base. |
 | `KC_ADMIN_URL` | `https://10.0.0.20:8443` | Admin console URL, internal network only. **Must be `https://…:8443`** (see above). |
 | `KC_BIND_ADDR` | `0.0.0.0` (or `10.0.0.20`) | Address ports 8080 / 8443 are published on |
@@ -669,13 +669,26 @@ Until step 2 is done, SSO logins fail.
 
 ### Backups
 
+The template includes `keycloak/backup-keycloak.sh`: it backs up the database with `pg_dump` (keeping it only after checking it can be listed), archives the config files (`.env`, `realm.env`, `client-secret.txt`, truststore, certificates, compose) and keeps the last 30 days.
+
 ```bash
-# Daily (e.g. cron at 02:30)
-install -d -m 700 /var/backups/keycloak
-cd /opt/keycloak
-docker compose exec -T postgres pg_dump -U keycloak -d keycloak -Fc > /var/backups/keycloak/keycloak-$(date +%F).dump
-tar -C /opt -czf /var/backups/keycloak/keycloak-files-$(date +%F).tar.gz --exclude=keycloak/data keycloak
-find /var/backups/keycloak -mtime +30 -delete
+install -m 700 keycloak/backup-keycloak.sh /opt/keycloak/backup-keycloak.sh
+/opt/keycloak/backup-keycloak.sh            # run once by hand and check it prints ok
+cat > /etc/cron.d/keycloak-backup <<'EOF'
+30 2 * * * root /opt/keycloak/backup-keycloak.sh >> /var/log/keycloak-backup.log 2>&1
+EOF
+```
+
+Environment variables: `BACKUP_DIR` (default `/var/backups/keycloak`), `KEEP_DAYS` (default 30).
+
+**Restore drill** (does not touch the production database): start a temporary PostgreSQL container, restore the latest backup into it, and compare the realm / user counts:
+
+```bash
+docker run -d --rm --name kc-restore-test --network none -e POSTGRES_USER=keycloak -e POSTGRES_DB=keycloak -e POSTGRES_PASSWORD=test postgres:17-alpine
+sleep 5
+docker exec -i kc-restore-test pg_restore -U keycloak -d keycloak --no-owner < "$(ls /var/backups/keycloak/keycloak-db-*.dump | tail -1)"
+docker exec kc-restore-test psql -U keycloak -d keycloak -tAc "select count(*) from user_entity"
+docker stop kc-restore-test
 ```
 
 The file archive contains `.env`, `realm.env`, `client-secret.txt` and the truststore — keep backups encrypted / access-restricted and copy them off the host.
@@ -725,6 +738,7 @@ PostgreSQL: the image is pinned to major version 17; minor updates come with `do
 
 - Container logs: `docker compose logs keycloak` (Docker's default `json-file` driver under `/var/lib/docker/containers/`).
 - Keycloak events (login, login error, logout, OTP enrolment…) go through the **`jboss-logging`** listener to stdout. By default Keycloak logs **error** events at WARN and **success** events at DEBUG (not shown); the provided `docker-compose.yml` already sets `KC_SPI_EVENTS_LISTENER__JBOSS_LOGGING__SUCCESS_LEVEL: info` (note the double underscores — Keycloak 26 option syntax, verified on 26.4) so successful logins are logged at INFO.
+- The template `docker-compose.yml` sends the Keycloak container log to **journald** (tag `keycloak`): a Wazuh agent on the host that reads journald (`<location>journald</location>`) receives these events, and they survive container rebuilds; `docker compose logs` still works. Query: `journalctl -t keycloak --since -1h | grep org.keycloak.events`.
 - Ship them to your SIEM with the host's log agent, e.g. a **Wazuh agent** reading the Docker JSON log files, or switch the Docker log driver to `journald` / `syslog`.
 - jt-vc-portal already sends its own `sso_login` / `sso_fail` audit events to the SIEM configured in the portal.
 
@@ -753,6 +767,7 @@ Check it from your monitoring agent on the host (port 9000 is bound to localhost
 - [ ] Keycloak **brute-force threshold (`LOCKOUT_FAILURES`) < AD lockout threshold**; AD lockout enabled if possible.
 - [ ] LDAP federation is **READ_ONLY**, over **LDAPS** with a verified CA (truststore), and the **user filter is restricted to `VC-Admins` / `VC-Hosts`**.
 - [ ] `svc-keycloak` is **read-only** (no admin groups), **denied interactive logon**, with a strong password.
+- [ ] The realm's built-in `admin-cli` **does not allow exchanging a username and password directly for a token** (`directAccessGrantsEnabled=false`, set by `configure-realm.sh`): the token endpoint is public, and leaving it on bypasses the browser login flow and can be used to guess passwords.
 - [ ] Client is **confidential**, standard flow only, **PKCE S256** required, **exact redirect URI** (`<PORTAL_URL>/sso-callback`).
 - [ ] **TLS only at the proxy with HSTS**; Keycloak's HTTP port never exposed publicly.
 - [ ] `.env`, `realm.env`, `client-secret.txt` are **chmod 600**, `/opt/keycloak` is 700; `KC_ADMIN_PASSWORD` / `LDAP_BIND_CREDENTIAL` cleared from `realm.env`.

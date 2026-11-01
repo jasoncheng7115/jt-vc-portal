@@ -18,7 +18,7 @@ services:
       retries: 10
 
   keycloak:
-    image: quay.io/keycloak/keycloak:${KC_VERSION:-26.4}
+    image: quay.io/keycloak/keycloak:${KC_VERSION:-26.7.5}
     restart: unless-stopped
     command: ["start"]
     depends_on:
@@ -54,6 +54,11 @@ services:
       - "${KC_BIND_ADDR:-0.0.0.0}:8080:8080"
       - "${KC_BIND_ADDR:-0.0.0.0}:8443:8443"
       - "127.0.0.1:9000:9000"
+    # 日誌送進 journald（tag keycloak），主機上的 Wazuh agent 收 journald 即可收到登入 / 登入失敗等事件；docker compose logs 照常可用
+    logging:
+      driver: journald
+      options:
+        tag: keycloak
     networks: [kc]
 
 networks:

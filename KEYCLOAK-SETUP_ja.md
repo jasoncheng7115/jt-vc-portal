@@ -6,7 +6,7 @@
 
 本ガイドでは、**専用ホスト**に **Keycloak** をデプロイして jt-vc-portal の OIDC アイデンティティプロバイダー（IdP）とし、オンプレミスの **Active Directory**（Windows AD または Univention UCS / Samba AD）を **LDAPS** でフェデレーションする手順を説明します。完了後、ホストと管理者は会社アカウント＋必須のワンタイムパスワード（OTP）で portal にログインします。ゲストには影響せず、これまでどおり招待リンクから参加します。
 
-> 対象バージョン：Keycloak **26.4**（`quay.io/keycloak/keycloak`）、PostgreSQL 17、Docker Compose v2、「シングルサインオン（SSO / OIDC）」設定カードを備えた jt-vc-portal。
+> 対象バージョン：Keycloak **26.7**（2026-11 に 26.7.5 で検証；`quay.io/keycloak/keycloak`）、PostgreSQL 17、Docker Compose v2、「シングルサインオン（SSO / OIDC）」設定カードを備えた jt-vc-portal。
 > 必要なファイルはすべてリポジトリの [`keycloak/`](keycloak/) フォルダーにあります。本ガイドのホスト名・IP アドレス・DN はすべて**例**（`example.com`、`10.0.0.x`）です。ご自身の値に置き換えてください。
 
 ---
@@ -338,7 +338,7 @@ vi .env
 
 | 変数 | 例 | 意味 |
 |---|---|---|
-| `KC_VERSION` | `26.4` | Keycloak イメージのタグ（固定すること。[アップグレード](#アップグレード)参照） |
+| `KC_VERSION` | `26.7.5` | Keycloak イメージのタグ（固定すること。[アップグレード](#アップグレード)参照） |
 | `KC_PUBLIC_URL` | `https://sso.example.com` | 利用者のブラウザーから見える URL（プロキシ経由）。issuer のベースになります。 |
 | `KC_ADMIN_URL` | `https://10.0.0.20:8443` | 管理コンソールの URL（内部ネットワークのみ）。**必ず `https://…:8443`**（上記参照）。 |
 | `KC_BIND_ADDR` | `0.0.0.0`（または `10.0.0.20`） | 8080 / 8443 番を公開するアドレス |
@@ -669,13 +669,26 @@ docker exec -u www-data jt-vc-portal php /var/www/html/sso-cli.php disable      
 
 ### バックアップ
 
+テンプレートには `keycloak/backup-keycloak.sh` が含まれます。`pg_dump` でデータベースをバックアップし（内容を一覧できることを確認してから保存）、設定ファイル（`.env`、`realm.env`、`client-secret.txt`、truststore、証明書、compose）をアーカイブして、直近 30 日分を保持します。
+
 ```bash
-# 毎日（例：cron で 02:30）
-install -d -m 700 /var/backups/keycloak
-cd /opt/keycloak
-docker compose exec -T postgres pg_dump -U keycloak -d keycloak -Fc > /var/backups/keycloak/keycloak-$(date +%F).dump
-tar -C /opt -czf /var/backups/keycloak/keycloak-files-$(date +%F).tar.gz --exclude=keycloak/data keycloak
-find /var/backups/keycloak -mtime +30 -delete
+install -m 700 keycloak/backup-keycloak.sh /opt/keycloak/backup-keycloak.sh
+/opt/keycloak/backup-keycloak.sh            # まず手動で 1 回実行し、ok と表示されることを確認
+cat > /etc/cron.d/keycloak-backup <<'EOF'
+30 2 * * * root /opt/keycloak/backup-keycloak.sh >> /var/log/keycloak-backup.log 2>&1
+EOF
+```
+
+環境変数で調整可能：`BACKUP_DIR`（既定 `/var/backups/keycloak`）、`KEEP_DAYS`（既定 30）。
+
+**リストアの演習**（本番データベースには触れない）：一時的な PostgreSQL コンテナを起動し、最新のバックアップをリストアして realm / ユーザー数を比較します。
+
+```bash
+docker run -d --rm --name kc-restore-test --network none -e POSTGRES_USER=keycloak -e POSTGRES_DB=keycloak -e POSTGRES_PASSWORD=test postgres:17-alpine
+sleep 5
+docker exec -i kc-restore-test pg_restore -U keycloak -d keycloak --no-owner < "$(ls /var/backups/keycloak/keycloak-db-*.dump | tail -1)"
+docker exec kc-restore-test psql -U keycloak -d keycloak -tAc "select count(*) from user_entity"
+docker stop kc-restore-test
 ```
 
 ファイルのアーカイブには `.env`、`realm.env`、`client-secret.txt`、truststore が含まれます。バックアップは暗号化 / アクセス制限し、ホスト外にもコピーしてください。
@@ -725,6 +738,7 @@ PostgreSQL：イメージはメジャーバージョン 17 に固定され、マ
 
 - コンテナーログ：`docker compose logs keycloak`（Docker 既定の `json-file` ドライバー、`/var/lib/docker/containers/` 配下）。
 - Keycloak のイベント（ログイン、ログインエラー、ログアウト、OTP 登録…）は **`jboss-logging`** リスナー経由で stdout に出力されます。既定では**エラー**イベントは WARN、**成功**イベントは DEBUG で記録されます。同梱の `docker-compose.yml` では `KC_SPI_EVENTS_LISTENER__JBOSS_LOGGING__SUCCESS_LEVEL: info`（Keycloak 26 のオプション構文でアンダースコアは 2 つ。26.4 で確認済み）を設定済みのため、成功したログインは INFO で記録されます。
+- テンプレートの `docker-compose.yml` は Keycloak コンテナのログを **journald**（タグ `keycloak`）に送ります。ホストの Wazuh agent が journald を収集（`<location>journald</location>`）していればこれらのイベントを受け取れ、コンテナを再作成しても失われません。`docker compose logs` も従来どおり使えます。確認：`journalctl -t keycloak --since -1h | grep org.keycloak.events`。
 - ホストのログエージェントで SIEM に送ります。例：Docker の JSON ログファイルを読む **Wazuh agent**、または Docker のログドライバーを `journald` / `syslog` に変更。
 - jt-vc-portal 自身の `sso_login` / `sso_fail` 監査イベントは、portal で設定した SIEM に既に送信されます。
 
@@ -753,6 +767,7 @@ curl -sf http://127.0.0.1:9000/health/ready && echo OK     # Keycloak ホスト�
 - [ ] Keycloak の**ブルートフォース閾値（`LOCKOUT_FAILURES`）< AD のロックアウト閾値**。可能なら AD のロックアウトを有効化済み。
 - [ ] LDAP フェデレーションは **READ_ONLY**、**LDAPS** で CA を検証（truststore）、**ユーザーフィルターは `VC-Admins` / `VC-Hosts` に限定**。
 - [ ] `svc-keycloak` は**読み取り専用**（管理グループに属さない）、**対話型ログオン拒否**、強力なパスワード。
+- [ ] realm 組み込みの `admin-cli` で**ユーザー名とパスワードを直接トークンに交換できない**こと（`directAccessGrantsEnabled=false`、`configure-realm.sh` が設定）：トークンエンドポイントは公開されており、有効のままだとブラウザのログインフローを迂回してパスワードの推測に使われる。
 - [ ] クライアントは **confidential**、標準フローのみ、**PKCE S256** 必須、**リダイレクト URI 完全一致**（`<PORTAL_URL>/sso-callback`）。
 - [ ] **TLS はプロキシでのみ終端し HSTS を有効化**。Keycloak の HTTP ポートは決して公開しない。
 - [ ] `.env`、`realm.env`、`client-secret.txt` は **chmod 600**、`/opt/keycloak` は 700。`realm.env` から `KC_ADMIN_PASSWORD` / `LDAP_BIND_CREDENTIAL` を消去済み。

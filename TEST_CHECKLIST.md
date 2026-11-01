@@ -222,6 +222,7 @@ CodeQL scans the Python (`jibri-recordings-api/`), JavaScript (`tests/`, Pages) 
 - [ ] S28 Keycloak UI language: with `LOCALES` / `DEFAULT_LOCALE`, the login page follows the browser language (zh-TW → Traditional Chinese `zh-Hant`, ja → Japanese, en → English, unsupported → default), for the portal realm and the master (admin) realm.
 - [ ] S29 Production SSO smoke test (every release, after deploying): temporary directory accounts in the admin group, the host group and no group sign in through the real IdP with OTP enrolment; roles are correct, SSO accounts have no local password / 2FA, sign-out ends both the portal and IdP sessions, the second sign-in needs only OTP, the no-group account is refused; all temporary accounts are removed from the directory, the IdP and the portal afterwards.
 - [ ] S30 Display name: with the display name claim set to `display_name`, the portal account's display name equals the directory `displayName` (e.g. "Jason Cheng", not just the surname) and is refreshed on every SSO sign-in; an account without it falls back to the username. Covered by `tests/run-sso.sh` and the production smoke test (S29).
+- [ ] S31 The realm's built-in `admin-cli` cannot exchange a username and password directly for a token: a password grant to the token endpoint returns `unauthorized_client` (the password is never checked), and `directAccessGrantsEnabled=false` (set by `configure-realm.sh`; `tests/run-sso.sh`).
 
 ### 3.12 Meeting transcripts and summaries (jt-live-whisper, from v1.12.0)
 
@@ -433,7 +434,7 @@ Spot-check on every release; test everything for major changes:
 | Jibri recordings API auth / Range / path traversal / waveform | `tests/test-jibri-api.sh` |
 | SSO S02–S20 (signature, claims, state, PKCE URL, groups, provisioning, SSO only, logout URL, settings) | `tests/unit/test_oidc.php` |
 | SSO S02 / S05 / S08 / S10 (mini IdP: token exchange, userinfo, fail-closed) | `tests/unit/test_oidc_flow.php` |
-| SSO S01, S05–S07, S11–S21, S23–S25, S27, S28, S30 (real Keycloak + browser, incl. OTP) | `tests/run-sso.sh` (`tests/e2e/sso.cjs`) |
+| SSO S01, S05–S07, S11–S21, S23–S25, S27, S28, S30, S31 (real Keycloak + browser, incl. OTP) | `tests/run-sso.sh` (`tests/e2e/sso.cjs`) |
 | SSO S22 | `tests/zap/run-zap.sh` (scan with SSO enabled) |
 | SSO S26 | Manual: KEYCLOAK-SETUP section 7 verification commands |
 | Transcripts T01–T12, T32–T35, T38, T51–T53 (layers, webhook signature, permissions, per-meeting switch, queueing, hints, events, renaming, settings) | `tests/unit/test_transcripts.php` |

@@ -222,6 +222,7 @@ CodeQL は本リポジトリの Python（`jibri-recordings-api/`）、JavaScript
 - [ ] S28 Keycloak の表示言語：`LOCALES` / `DEFAULT_LOCALE` を設定すると、ログイン画面がブラウザの言語に従うこと（zh-TW → 繁体字中国語 `zh-Hant`、ja → 日本語、en → 英語、未対応 → 既定）。ポータルの realm と master（管理者）realm の両方。
 - [ ] S29 本番環境の SSO スモークテスト（毎リリース、デプロイ後）：ディレクトリに作成した一時アカウント（管理者グループ・ホストグループ・グループなし）が実際の IdP 経由で OTP 登録を伴ってサインインし、ロールが正しいこと、SSO アカウントにローカルパスワード / 2FA がないこと、サインアウトでポータルと IdP の両セッションが終了すること、2 回目は OTP のみでサインインできること、グループなしのアカウントが拒否されること。終了後、一時アカウントはディレクトリ・IdP・ポータルからすべて削除されること。
 - [ ] S30 表示名：表示名クレームを `display_name` にすると、ポータルのアカウントの表示名がディレクトリの `displayName`（例：「Jason Cheng」。姓だけではない）と一致し、SSO サインインのたびに更新されること。displayName のないアカウントはユーザー名になること。`tests/run-sso.sh` と本番スモークテスト（S29）で確認。
+- [ ] S31 realm 組み込みの `admin-cli` ではユーザー名とパスワードを直接トークンに交換できない：トークンエンドポイントへの password grant は `unauthorized_client` を返し（パスワードは検証されない）、`directAccessGrantsEnabled=false`（`configure-realm.sh` が設定。`tests/run-sso.sh`）。
 
 ### 3.12 会議の文字起こしと要約（jt-live-whisper、v1.12.0 以降）
 
@@ -433,7 +434,7 @@ CodeQL は本リポジトリの Python（`jibri-recordings-api/`）、JavaScript
 | Jibri 録画 API の認証 / Range / パストラバーサル / 波形 | `tests/test-jibri-api.sh` |
 | SSO S02–S20（署名、クレーム、state、PKCE URL、グループ、プロビジョニング、SSO のみ、ログアウト URL、設定） | `tests/unit/test_oidc.php` |
 | SSO S02 / S05 / S08 / S10（ミニ IdP：トークン交換、userinfo、fail-closed） | `tests/unit/test_oidc_flow.php` |
-| SSO S01、S05–S07、S11–S21、S23–S25、S27、S28、S30（実 Keycloak + ブラウザ、OTP を含む） | `tests/run-sso.sh`（`tests/e2e/sso.cjs`） |
+| SSO S01、S05–S07、S11–S21、S23–S25、S27、S28、S30、S31（実 Keycloak + ブラウザ、OTP を含む） | `tests/run-sso.sh`（`tests/e2e/sso.cjs`） |
 | SSO S22 | `tests/zap/run-zap.sh`（SSO を有効にしてスキャン） |
 | SSO S26 | 手動：KEYCLOAK-SETUP 第 7 節の確認コマンド |
 | 文字起こし T01〜T12、T32〜T35、T38、T51〜T53（レイヤー、webhook 署名、権限、会議ごとの設定、キュー登録、ヒント、イベント、名前変更、設定） | `tests/unit/test_transcripts.php` |

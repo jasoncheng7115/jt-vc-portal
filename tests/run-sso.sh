@@ -17,7 +17,7 @@ echo "== 啟動 Keycloak（測試用）"
 docker run -d --name $KCN --network $NET --network-alias kc.test -p 127.0.0.1:$KCPORT:$KCPORT \
   -e KC_HTTP_PORT=$KCPORT -e KC_HOSTNAME=http://kc.test:$KCPORT -e KC_HEALTH_ENABLED=true \
   -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=$KC_ADMIN_PW \
-  quay.io/keycloak/keycloak:26.4 start-dev >/dev/null
+  quay.io/keycloak/keycloak:${KC_VERSION:-26.7.5} start-dev >/dev/null
 for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:$KCPORT/realms/master && break; sleep 2; done
 
 echo "== 以 SOP 腳本設定 realm（本地帳號模式）"
@@ -63,6 +63,11 @@ for c in "zh-TW:繁體中文" "en-US:Traditional Chinese (繁體中文)" "ja:繁
 done
 curl -s -H "Accept-Language: zh-TW" "$MAUTH" | grep -qF "繁體中文" && echo "  ok   S28 master 語言選單顯示「繁體中文」" || { echo "  FAIL S28 master 語言選單"; exit 1; }
 got=$(pl "$MAUTH" "zh-TW"); [ "$got" = 'lang="zh-Hant"' ] && echo "  ok   S28 master（管理員登入）zh-TW → zh-Hant" || { echo "  FAIL S28 master zh-TW → $got"; exit 1; }
+echo "== S31 realm 的 admin-cli 不能用帳號密碼直接換 token（password grant）"
+R31=$(curl -s -X POST "http://127.0.0.1:$KCPORT/realms/jtvc/protocol/openid-connect/token" -d 'grant_type=password&client_id=admin-cli&username=nobody&password=x')
+echo "$R31" | grep -q '"unauthorized_client"' && echo "  ok   S31 jtvc admin-cli password grant 被拒（unauthorized_client，不會去驗密碼）" || { echo "  FAIL S31 $R31"; exit 1; }
+DAG=$(docker exec -i $KCN /opt/keycloak/bin/kcadm.sh get clients -r jtvc -q clientId=admin-cli --fields directAccessGrantsEnabled --format csv --noquotes)
+[ "$DAG" = "false" ] && echo "  ok   S31 jtvc admin-cli directAccessGrantsEnabled=false" || { echo "  FAIL S31 directAccessGrantsEnabled=$DAG"; exit 1; }
 KC="docker exec -i $KCN /opt/keycloak/bin/kcadm.sh"
 for u in alice:VC-Admins bob:VC-Hosts carol: dave:VC-Hosts; do
   n=${u%%:*}; g=${u#*:}
