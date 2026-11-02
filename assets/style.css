@@ -338,6 +338,7 @@ body.is-dark .room-list li {
 }
 body.is-dark .room-list .room-name { color: #fff; }
 body.is-dark .room-list .room-meta { color: rgba(255,255,255,0.55); }
+body.is-dark .room-list .room-title { color: rgba(255,255,255,0.92); }
 
 /* Badge */
 body.is-dark .badge {
@@ -1135,6 +1136,7 @@ body.is-dark .lobby-toggle { border-color: rgba(255,255,255,0.10); }
 }
 .room-list li:last-child { border-bottom: 0; }
 .room-list .room-main { min-width: 0; flex: 1; }
+.room-list .room-title { display: block; font-weight: 600; color: var(--text); font-size: 14px; margin-bottom: 1px; overflow-wrap: anywhere; }
 .room-list .room-name {
   font-weight: 500;
   color: var(--text);

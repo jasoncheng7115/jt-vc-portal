@@ -607,10 +607,10 @@ render_topbar($me, $ip);
 
       <div class="section-title"><?= th('郵件範本') ?></div>
       <p class="muted" style="font-size:12px;margin:0 0 10px;">
-        <?= t('可用變數：<span class="kbd">{room}</span> 會議室名、<span class="kbd">{invite_url}</span> 邀請連結、<span class="kbd">{time}</span> 會議時間、<span class="kbd">{site_name}</span> 站台名稱、<span class="kbd">{host}</span> 主持人。') ?>
+        <?= t('可用變數：<span class="kbd">{title}</span> 會議主題（沒填則為會議室名）、<span class="kbd">{topic}</span> 會議主題（沒填則空白）、<span class="kbd">{room}</span> 會議室名、<span class="kbd">{invite_url}</span> 邀請連結、<span class="kbd">{time}</span> 會議時間、<span class="kbd">{site_name}</span> 站台名稱、<span class="kbd">{host}</span> 主持人。') ?>
       </p>
       <div class="field"><label><?= th('郵件主旨範本') ?></label>
-        <input type="text" name="subject_tpl" value="<?= htmlspecialchars($smtp['subject_tpl']) ?>" placeholder="<?= th('會議邀請：{room}') ?>"></div>
+        <input type="text" name="subject_tpl" value="<?= htmlspecialchars($smtp['subject_tpl']) ?>" placeholder="<?= th('會議邀請：{title}') ?>"></div>
       <div class="field"><label><?= th('郵件內文範本') ?></label>
         <textarea name="body_tpl" rows="8" style="min-height:160px;"><?= htmlspecialchars($smtp['body_tpl']) ?></textarea></div>
 

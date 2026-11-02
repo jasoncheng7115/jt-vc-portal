@@ -30,13 +30,17 @@ function watch(page, bag) {
     ok('登入後到儀表板', hp.url().includes('/dashboard'));
     const room = 'e2e-' + locale.toLowerCase() + '-' + Date.now().toString(36);
     await hp.fill('input[name=room]', room);
+    const topic = '第四季產品規劃會議 ' + locale;   // T88：會議主題可中文
+    await hp.fill('#roomTitle', topic);
     if (await hp.$('#txChk') && await hp.isChecked('#txChk')) await hp.uncheck('#txChk');   // 逐字稿預設勾選（v1.16.3）；這裡不測逐字稿
     await Promise.all([hp.waitForURL(/created=/), hp.click('button[name=mode][value=create]')]);
     ok('建立會議室', hp.url().includes('created=' + room));
+    ok('T88 近期會議室清單顯示會議主題', (await hp.locator('li', { has: hp.locator(`[data-invite-room="${room}"]`) }).locator('.room-title').textContent()) === topic);
     // T87：近期會議室的「邀請」按鈕 → 對話框帶入會議室名稱、游標在 email 欄、Esc 關閉（SMTP 已在測試設定啟用；不實際寄出）
     await hp.click(`[data-invite-room="${room}"]`);
     await hp.waitForSelector('#inviteModal.open', { timeout: 5000 }).catch(() => {});
     ok('T87 邀請按鈕開啟對話框並帶入會議室名稱', await hp.isVisible('#inviteModal') && (await hp.textContent('#invRoom')) === room && (await hp.inputValue('#invRoomInput')) === room);
+    ok('T88 邀請對話框帶入目前的會議主題', (await hp.inputValue('#invTitle')) === topic);
     ok('T87 游標在受邀者 email 欄', await hp.evaluate(() => document.activeElement && document.activeElement.id === 'invEmails'));
     await hp.keyboard.press('Escape');
     ok('T87 按 Esc 關閉邀請對話框', !(await hp.isVisible('#inviteModal')));

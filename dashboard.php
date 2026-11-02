@@ -48,6 +48,7 @@ unset($_SESSION['room_error'], $_SESSION['room_msg']);
 $form_values = $_SESSION['form_values'] ?? [];
 unset($_SESSION['form_values']);
 $form_room      = (string)($form_values['room']      ?? ($_GET['room'] ?? ''));
+$form_title     = (string)($form_values['title']     ?? '');
 $form_starts_at = (string)($form_values['starts_at'] ?? '');
 $form_ends_at   = (string)($form_values['ends_at']   ?? '');
 $form_attendees = (string)($form_values['attendees'] ?? '');
@@ -123,6 +124,7 @@ render_topbar($me, $ip);
     <div class="panel-body">
       <div class="panel-title"><?= icon('check') ?> <?= th('會議室連結已建立') ?> <?= htmlspecialchars(mail_flash_text($mail_flash)) ?></div>
       <div class="muted" style="font-size:13px;margin-bottom:6px;">
+        <?php if (($created_data['title'] ?? '') !== ''): ?><strong style="color:var(--text);"><?= htmlspecialchars($created_data['title']) ?></strong> · <?php endif; ?>
         <?= th('會議室') ?> <strong style="font-family:var(--mono);color:var(--text);"><?= htmlspecialchars($created) ?></strong>
         <?php if ($created_data['starts_at']): ?> · <?= th('開放時段 {range}', ['range' => fmt_range($created_data['starts_at'], $created_data['ends_at'])]) ?><?php endif; ?>
         <?php if (!empty($created_data['lobby'])): ?> · <span style="color:var(--text);"><?= icon('lock', 12) ?><?= th('大廳模式') ?></span><?php endif; ?>
@@ -167,6 +169,12 @@ render_topbar($me, $ip);
         </div>
         <div class="help"><?= t('僅限英文、數字、{dash}、{us}；空格自動轉 {dash}，中文等其他字元會自動移除（Jitsi 會議室不支援非 ASCII 名稱）。', ['dash' => '<span class="kbd">-</span>', 'us' => '<span class="kbd">_</span>']) ?></div>
         <div class="help"><?= icon('info', 12) ?> <?= th('會議室名稱就是邀請連結的一部分：容易猜到的名稱（例如 weekly）可能被他人猜中，建議用「亂數」產生，或勾選大廳模式由主持人逐一允許。') ?></div>
+      </div>
+
+      <div class="field">
+        <label for="roomTitle"><?= th('會議主題（選填）') ?></label>
+        <input type="text" id="roomTitle" name="title" maxlength="<?= Rooms::TITLE_MAX ?>" placeholder="<?= th('例如：第四季產品規劃會議') ?>" value="<?= htmlspecialchars($form_title) ?>">
+        <div class="help"><?= th('可以用中文。會寫在邀請信、行事曆、來賓等候頁與會議畫面標題；沒填就用會議室名稱。') ?></div>
       </div>
 
       <div class="schedule-block">
@@ -255,6 +263,7 @@ render_topbar($me, $ip);
         ?>
           <li>
             <div class="room-main">
+              <?php if (($r['title'] ?? '') !== ''): ?><span class="room-title"><?= htmlspecialchars($r['title']) ?></span><?php endif; ?>
               <span class="room-name"><?= htmlspecialchars($name) ?></span>
               <div class="room-meta">
                 <?= $badge ?>
@@ -284,7 +293,7 @@ render_topbar($me, $ip);
               <?= enter_room_form($name, icon('arrow-right', 14) . th('進入'), 'btn btn-secondary btn-sm') ?>
               <?php if ($is_admin || ($r['owner'] ?? '') === $me['id']): ?>
               <?php if ($smtp_on && !($e && $e < $now)): ?>
-              <button type="button" class="btn btn-secondary btn-sm" data-invite-room="<?= htmlspecialchars($name) ?>" data-invite-time="<?= $s !== null ? htmlspecialchars(fmt_range($s, $e)) : '' ?>" data-invited="<?= htmlspecialchars(json_encode(array_values($r['attendees'] ?? []), JSON_UNESCAPED_UNICODE)) ?>" title="<?= th('寄出會議邀請（含行事曆）') ?>"><?= icon('mail', 14) ?><?= th('邀請') ?></button>
+              <button type="button" class="btn btn-secondary btn-sm" data-invite-room="<?= htmlspecialchars($name) ?>" data-invite-title="<?= htmlspecialchars((string)($r['title'] ?? '')) ?>" data-invite-time="<?= $s !== null ? htmlspecialchars(fmt_range($s, $e)) : '' ?>" data-invited="<?= htmlspecialchars(json_encode(array_values($r['attendees'] ?? []), JSON_UNESCAPED_UNICODE)) ?>" title="<?= th('寄出會議邀請（含行事曆）') ?>"><?= icon('mail', 14) ?><?= th('邀請') ?></button>
               <?php endif; ?>
               <form method="POST" action="/room-delete" style="display:inline;" data-confirm="<?= !empty($r['attendees']) ? th('確定刪除會議室「{room}」？受邀者會收到取消通知。', ['room' => $name]) : th('確定刪除會議室「{room}」？', ['room' => $name]) ?>">
                 <?= Auth::csrfField() ?>
@@ -308,6 +317,11 @@ render_topbar($me, $ip);
     <form method="POST" action="/room-invite" id="inviteForm">
       <?= Auth::csrfField() ?>
       <input type="hidden" name="room" id="invRoomInput" value="">
+      <div class="field">
+      <label for="invTitle"><?= th('會議主題（選填）') ?></label>
+      <input type="text" id="invTitle" name="title" maxlength="<?= Rooms::TITLE_MAX ?>" placeholder="<?= th('例如：第四季產品規劃會議') ?>">
+      <p class="help"><?= th('寫在邀請信主旨、內文與行事曆標題；修改後也會更新這間會議室的主題。') ?></p>
+      </div>
       <div class="field">
       <label for="invEmails"><?= th('受邀者 email') ?></label>
       <textarea id="invEmails" name="emails" rows="4" required placeholder="alice@example.com, bob@example.com"></textarea>
@@ -418,6 +432,7 @@ document.addEventListener('click', async (e) => {
     try { done = JSON.parse(b.getAttribute('data-invited') || '[]'); } catch (e) {}
     document.getElementById('invRoom').textContent = room;
     document.getElementById('invRoomInput').value = room;
+    document.getElementById('invTitle').value = b.getAttribute('data-invite-title') || '';
     document.getElementById('invTime').textContent = time;
     document.getElementById('invNoTime').hidden = time !== '';
     document.getElementById('invDone').textContent = done.join(', ');

@@ -34,11 +34,19 @@ class Mailer {
   const DEFAULT_SUBJECT_TPL = '會議邀請：{room}';  // i18n-ignore（舊版相容；翻譯同 defaultSubject() 鍵）
   const DEFAULT_BODY_TPL = "您好，\n\n您受邀參加線上視訊會議「{room}」。\n{time}\n加入連結：{invite_url}\n\n（附件為行事曆邀請，開啟後可自動加入您的行事曆。）\n\n— {site_name}";  // i18n-ignore（舊版相容）
 
+  /** v1.24.0 起的預設範本（{title}＝會議主題，沒填則為會議室名稱）。 */
+  const DEFAULT_SUBJECT_TPL_V2 = '會議邀請：{title}';  // i18n-ignore（翻譯同 defaultSubject() 鍵）
+  const DEFAULT_BODY_TPL_V2 = "您好，\n\n您受邀參加線上視訊會議「{title}」。\n{time}\n加入連結：{invite_url}\n\n（附件為行事曆邀請，開啟後可自動加入您的行事曆。）\n\n— {site_name}";  // i18n-ignore
+  /** 舊版預設範本的翻譯鍵（isDefaultTpl 判斷舊站存下的預設用；列在這裡讓字典檢查知道仍在使用）。 */
+  public static function legacyDefaultKeys(): array {
+    return [t('會議邀請：{room}'), t("您好，\n\n您受邀參加線上視訊會議「{room}」。\n{time}\n加入連結：{invite_url}\n\n（附件為行事曆邀請，開啟後可自動加入您的行事曆。）\n\n— {site_name}")];
+  }
+
   /** 目前語言的預設主旨範本。 */
-  public static function defaultSubject(): string { return t('會議邀請：{room}'); }
+  public static function defaultSubject(): string { return t('會議邀請：{title}'); }
   /** 目前語言的預設內文範本。 */
   public static function defaultBody(): string {
-    return t("您好，\n\n您受邀參加線上視訊會議「{room}」。\n{time}\n加入連結：{invite_url}\n\n（附件為行事曆邀請，開啟後可自動加入您的行事曆。）\n\n— {site_name}");
+    return t("您好，\n\n您受邀參加線上視訊會議「{title}」。\n{time}\n加入連結：{invite_url}\n\n（附件為行事曆邀請，開啟後可自動加入您的行事曆。）\n\n— {site_name}");
   }
   /** 是否為（任一語言的）預設範本或空白。 */
   public static function isDefaultTpl(string $v, string $kind): bool {
@@ -46,6 +54,9 @@ class Mailer {
     foreach (I18n::SUPPORTED as $l) {
       $d = $kind === 'subject' ? I18n::t(self::DEFAULT_SUBJECT_TPL, [], $l) : I18n::t(self::DEFAULT_BODY_TPL, [], $l);
       if (str_replace("\r", '', $v) === $d) return true;
+      // v1.24.0 起預設範本改用 {title}（會議主題）；新舊兩版預設都視為「未自訂」
+      $d2 = $kind === 'subject' ? I18n::t(self::DEFAULT_SUBJECT_TPL_V2, [], $l) : I18n::t(self::DEFAULT_BODY_TPL_V2, [], $l);
+      if (str_replace("\r", '', $v) === $d2) return true;
     }
     return false;
   }

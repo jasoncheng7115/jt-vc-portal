@@ -17,6 +17,7 @@ if (!isset($_SESSION['jwt']) || !is_string($_SESSION['jwt']) || empty($_SESSION[
 $jwt = $_SESSION['jwt'];
 $room = $_SESSION['room'];
 if (Health::jitsiDown()) { render_service_down($room, true); exit; }   // Jitsi Meet 故障：友善說明，不載入打不開的會議畫面
+$room_title = (string)(Rooms::get($room)['title'] ?? '');   // 會議主題（顯示在 Jitsi 會議標題）
 $lobby_on = !empty(Rooms::get($room)['lobby'] ?? false);   // 大廳模式：主持人進場後自動開啟
 $mui = Settings::resolveMeetingUi();               // 會議室自訂（logo / 進入預設 / 工具列）
 $invite_url = SITE_URL . '/room/' . rawurlencode($room);
@@ -29,7 +30,7 @@ send_meeting_csp();   // 會議頁 CSP（iframe 只允許 Jitsi 網域）
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?= th('{room} · 主持會議', ['room' => $room]) ?></title>
+  <title><?= th('{room} · 主持會議', ['room' => $room_title !== '' ? $room_title : $room]) ?></title>
   <link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon-192.png">
@@ -81,7 +82,8 @@ window.addEventListener('load', () => {
     configOverwrite: {
       defaultLanguage: <?= json_encode(Settings::getMeetingLang()) ?>,
       disableDeepLinking: true,
-<?php if (Settings::getJaas()['mode'] === 'selfhosted'): ?>      hiddenDomain: 'hidden.meet.jitsi',   // hide the Jibri recorder (its login domain) from the participant list
+<?php if ($room_title !== ''): ?>      subject: <?= json_encode($room_title, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>,   // meeting title shown in Jitsi (room names cannot be Chinese)
+<?php endif; ?><?php if (Settings::getJaas()['mode'] === 'selfhosted'): ?>      hiddenDomain: 'hidden.meet.jitsi',   // hide the Jibri recorder (its login domain) from the participant list
 <?php endif; ?>
       videoQuality: {
         codecPreferenceOrder: ['VP9', 'H264', 'VP8', 'AV1'],

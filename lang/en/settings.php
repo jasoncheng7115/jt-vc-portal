@@ -149,7 +149,7 @@ return [
   '清除已儲存的密碼' => 'Clear the saved password',
   '寄件人 Email' => 'Sender email',
   '郵件範本' => 'Email templates',
-  '可用變數：<span class="kbd">{room}</span> 會議室名、<span class="kbd">{invite_url}</span> 邀請連結、<span class="kbd">{time}</span> 會議時間、<span class="kbd">{site_name}</span> 站台名稱、<span class="kbd">{host}</span> 主持人。' => 'Available variables: <span class="kbd">{room}</span> room name, <span class="kbd">{invite_url}</span> invite link, <span class="kbd">{time}</span> meeting time, <span class="kbd">{site_name}</span> site name, <span class="kbd">{host}</span> host.',
+  '可用變數：<span class="kbd">{title}</span> 會議主題（沒填則為會議室名）、<span class="kbd">{topic}</span> 會議主題（沒填則空白）、<span class="kbd">{room}</span> 會議室名、<span class="kbd">{invite_url}</span> 邀請連結、<span class="kbd">{time}</span> 會議時間、<span class="kbd">{site_name}</span> 站台名稱、<span class="kbd">{host}</span> 主持人。' => 'Available variables: <span class="kbd">{title}</span> meeting topic (room name if empty), <span class="kbd">{topic}</span> meeting topic (blank if empty), <span class="kbd">{room}</span> room name, <span class="kbd">{invite_url}</span> invite link, <span class="kbd">{time}</span> meeting time, <span class="kbd">{site_name}</span> site name, <span class="kbd">{host}</span> host.',
   '郵件主旨範本' => 'Subject template',
   '郵件內文範本' => 'Body template',
   '測試收件人（按「測試寄信」時使用）' => 'Test recipient (used for "Save and send test email")',
@@ -291,7 +291,9 @@ return [
 
   // ---- lib/mailer.php：預設邀請信範本（亦對應 Mailer::DEFAULT_SUBJECT_TPL / DEFAULT_BODY_TPL）----
   '會議邀請：{room}' => 'Meeting invitation: {room}',
+  '會議邀請：{title}' => 'Meeting invitation: {title}',
   "您好，\n\n您受邀參加線上視訊會議「{room}」。\n{time}\n加入連結：{invite_url}\n\n（附件為行事曆邀請，開啟後可自動加入您的行事曆。）\n\n— {site_name}" => "Hello,\n\nYou are invited to the online video meeting \"{room}\".\n{time}\nJoin link: {invite_url}\n\n(The attached calendar invitation can be added to your calendar automatically.)\n\n— {site_name}",
+  "您好，\n\n您受邀參加線上視訊會議「{title}」。\n{time}\n加入連結：{invite_url}\n\n（附件為行事曆邀請，開啟後可自動加入您的行事曆。）\n\n— {site_name}" => "Hello,\n\nYou are invited to the online video meeting \"{title}\".\n{time}\nJoin link: {invite_url}\n\n(The attached calendar invitation can be added to your calendar automatically.)\n\n— {site_name}",
   '稽核記錄保留天數' => 'Audit log retention (days)',
   '目前未啟用 JWT：任何知道會議室名稱的人都能直接連到 Jitsi 網域進入會議，繞過本系統的等候、具名與排程控管。建議改為「需要 JWT」。' => 'JWT is not enabled: anyone who knows a room name can join directly on the Jitsi domain, bypassing this portal\'s waiting room, name requirement and schedule. Switching to "JWT required" is recommended.',
   '設定目錄' => 'Settings sections',

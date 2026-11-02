@@ -46,16 +46,19 @@ class Invites {
     $time_str = $starts_at
       ? t('會議時間：{start} ～ {end}', ['start' => date('Y-m-d H:i', $start), 'end' => date('H:i', $end)])
       : '';
+    $topic = (string)($room['title'] ?? '');
     $vars = [
       'room'       => $roomName,
+      'topic'      => $topic,                                  // 會議主題（可能空白）
+      'title'      => $topic !== '' ? $topic : $roomName,      // 主題；沒填用會議室名稱（預設範本用這個）
       'invite_url' => $invite_url,
       'time'       => $time_str,
       'site_name'  => Settings::getSite()['brand_name'],
       'host'       => ($me['display_name'] ?? '') ?: ($me['username'] ?? ''),
     ];
-    $subject = $cancel ? t('會議已取消：{room}', $vars) : Mailer::renderTemplate($cfg['subject_tpl'], $vars);
+    $subject = $cancel ? t('會議已取消：{title}', $vars) : Mailer::renderTemplate($cfg['subject_tpl'], $vars);
     $body    = $cancel
-      ? t("您好，\n\n線上視訊會議「{room}」已取消。\n{time}\n\n（附件為行事曆取消通知，開啟後可自動從行事曆移除。）\n\n— {site_name}", $vars)
+      ? t("您好，\n\n線上視訊會議「{title}」已取消。\n{time}\n\n（附件為行事曆取消通知，開啟後可自動從行事曆移除。）\n\n— {site_name}", $vars)
       : Mailer::renderTemplate($cfg['body_tpl'], $vars);
     $created = (int)($room['created_at'] ?? 0);
     $sent = 0; $failed = 0;

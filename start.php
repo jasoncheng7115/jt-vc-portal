@@ -26,6 +26,7 @@ $room = Rooms::sanitize($raw_room);
 // 保留輸入，validation 失敗時帶回
 $form_input = [
   'room'      => (string)($_POST['room']      ?? ''),
+  'title'     => (string)($_POST['title']     ?? ''),
   'starts_at' => (string)($_POST['starts_at'] ?? ''),
   'ends_at'   => (string)($_POST['ends_at']   ?? ''),
   'attendees' => (string)($_POST['attendees'] ?? ''),
@@ -99,6 +100,7 @@ $opts = [
 ];
 // 只有「建立表單」才更新 lobby / 與會者；從清單「進入」須保留原值，否則會把先前的設定清掉。
 if (!$entering) {
+  $opts['title'] = Rooms::cleanTitle((string)($_POST['title'] ?? ''));
   $opts['lobby'] = !empty($_POST['lobby']);
   // 逐字稿單場開關：表單有顯示（使用者可使用逐字稿）才寫入；否則維持 null（依帳號預設）
   if (!empty($_POST['transcribe_field']) && Settings::transcribeReady() && Transcripts::canUse($me)) {

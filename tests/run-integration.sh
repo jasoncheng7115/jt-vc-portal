@@ -257,6 +257,35 @@ hasnt "T87 已結束的會議 → 沒有邀請按鈕" "$(curl -s -b $A $B/dashbo
 inv $A -d 'room=itest-room' --data-urlencode 'emails=c@example.com'
 chk "T87 已結束的會議 → 端點也擋下" "$(mails)" 3
 docker exec -u www-data $NAME php -r 'require "/var/www/html/config.php"; require_once "/var/www/html/lib/rooms.php"; Store::update(AUTO_ALLOW_FILE, function ($d) { $d["itest-room"]["ends_at"] = null; return $d; });'
+echo "== T88 會議主題（可中文；邀請信 / 行事曆 / 來賓頁 / Jitsi 標題）"
+# 只解開最新一封信（含解碼後的主旨）
+lastmail() { python3 -c 'import email,glob,sys
+from email.header import decode_header, make_header
+f=sorted(glob.glob(sys.argv[1]+"/*.eml"))[-1]; m=email.message_from_bytes(open(f,"rb").read())
+print("To:",m["To"]); print("Subject:",str(make_header(decode_header(m["Subject"]))))
+for p in m.walk():
+    b=p.get_payload(decode=True)
+    if b: print(b.decode("utf-8","replace"))' "$MAILD"; }
+T=$(csrf $A /dashboard)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-topic&mode=create' --data-urlencode $'title=  第四季產品規劃\t<b>會議</b> ' $B/start
+chk "T88 主題存入（整理空白與控制字元）" "$(docker exec $NAME php -r 'echo json_decode(file_get_contents("/var/jaas-data/auto-allow.json"),true)["itest-topic"]["title"];')" '第四季產品規劃 <b>會議</b>'
+D=$(curl -s -b $A $B/dashboard)
+has "T88 近期清單顯示主題（HTML 跳脫）" "$D" 'class="room-title">第四季產品規劃 &lt;b&gt;會議&lt;/b&gt;'
+hasnt "T88 主題不會變成 HTML 標籤" "$D" '<b>會議</b>'
+has "T88 邀請按鈕帶主題給對話框" "$D" 'data-invite-title="第四季產品規劃 &lt;b&gt;會議&lt;/b&gt;"'
+G=$(curl -s -L -c "$JAR/g88" -b "$JAR/g88" $B/room/itest-topic)
+has "T88 來賓頁顯示主題" "$G" '第四季產品規劃 &lt;b&gt;會議&lt;/b&gt;'
+T=$(csrf $A /dashboard)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-topic&mode=host&enter=1' $B/start
+MP=$(curl -s -b $A $B/meeting)
+has "T88 主持人會議頁把主題設成 Jitsi 會議標題（< > 以 u003C 編碼，不會跳出 script）" "$MP" 'subject: "第四季產品規劃 .u003Cb.u003E會議.u003C..b.u003E"'
+inv $A -d 'room=itest-topic' --data-urlencode 'emails=t88@example.com' --data-urlencode 'title=第四季產品規劃會議'
+LM=$(lastmail)
+has "T88 主持人會議頁的分頁標題用主題" "$MP" '<title>第四季產品規劃 &lt;b&gt;會議&lt;/b&gt; · 主持會議</title>'
+has "T88 邀請信主旨用主題" "$LM" 'Subject: 會議邀請：第四季產品規劃會議'
+has "T88 邀請信內文用主題" "$LM" '線上視訊會議「第四季產品規劃會議」'
+has "T88 行事曆標題（SUMMARY）用主題" "$LM" 'SUMMARY:會議邀請：第四季產品規劃會議'
+has "T88 對話框修改的主題寫回會議室" "$(docker exec $NAME php -r 'echo json_decode(file_get_contents("/var/jaas-data/auto-allow.json"),true)["itest-topic"]["title"];')" '第四季產品規劃會議'
 curl -s -o /dev/null -b $HB2 -c $HB2 --data-urlencode "_csrf=$TB" -d 'room=itest-room' $B/room-delete
 has "非擁有者刪除 → 房間仍在" "$(docker exec $NAME cat /var/jaas-data/auto-allow.json)" '"itest-room"'
 chk "room-delete 無 CSRF → 403" "$(code -b $A -d 'room=itest-room' $B/room-delete)" 403
@@ -265,6 +294,9 @@ curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-room
 hasnt "擁有者刪除 → 房間已移除" "$(docker exec $NAME cat /var/jaas-data/auto-allow.json)" '"itest-room"'
 has "刪除寫入稽核" "$(docker exec $NAME cat /var/jaas-data/audit-log.jsonl)" '"action":"room_delete"'
 chk "T87 刪除會議室 → 兩位受邀者收到取消通知" "$(mailtxt | grep -c '^METHOD:CANCEL')" 2
+T=$(csrf $A /dashboard)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-topic' $B/room-delete
+has "T88 取消通知主旨也用主題" "$(lastmail)" 'Subject: 會議已取消：第四季產品規劃會議'
 T=$(csrf $A /settings)
 curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'section=smtp&host=smtp.example.com&port=587&security=starttls&from_email=a@example.com' $B/save-settings
 echo "== 視訊服務健康檢查與故障頁（v1.16.0）"

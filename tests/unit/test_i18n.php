@@ -70,9 +70,9 @@ test('Mailer 預設範本：空白 / 任一語言預設 → 依語言套用；�
   ok(Mailer::isDefaultTpl(I18n::t(Mailer::DEFAULT_BODY_TPL, [], 'en'), 'body'));
   ok(!Mailer::isDefaultTpl('My custom {room}', 'subject'));
   I18n::set('en');
-  ok(strpos(Mailer::defaultSubject(), '{room}') !== false && !preg_match('/[\x{4e00}-\x{9fff}]/u', Mailer::defaultSubject()));
+  ok(strpos(Mailer::defaultSubject(), '{title}') !== false && !preg_match('/[\x{4e00}-\x{9fff}]/u', Mailer::defaultSubject()));
   I18n::set('zh-TW');
-  eq(Mailer::defaultSubject(), Mailer::DEFAULT_SUBJECT_TPL);
+  eq(Mailer::defaultSubject(), Mailer::DEFAULT_SUBJECT_TPL_V2);   // v1.24.0 起預設用 {title}（會議主題）
 });
 
 test('會議語言：ui 依介面語言；指定碼原樣', function () {

@@ -118,4 +118,24 @@ test('T87 已建立的會議室補寄邀請：email 解析與受邀名單合併'
   ok(Rooms::addAttendees('no-such-room', ['x@example.com']) === null, '房間不存在回 null');
 });
 
+test('T88 會議主題：整理、儲存、顯示名稱、邀請信預設範本', function () {
+  eq(Rooms::cleanTitle("  第四季\t產品\n規劃  會議 "), '第四季 產品 規劃 會議', '控制字元與多餘空白收成一個空白');
+  eq(mb_strlen(Rooms::cleanTitle(str_repeat('會', 150))), Rooms::TITLE_MAX, '最多 100 字');
+  Rooms::upsert('r88', ['owner' => 'u_a', 'owner_name' => 'a', 'title' => "  週會\x07 "]);
+  eq(Rooms::get('r88')['title'], '週會', '建立時存入整理過的主題');
+  Rooms::upsert('r88', ['host_joined' => true]);
+  eq(Rooms::get('r88')['title'], '週會', '進入會議（沒帶主題）不會清掉主題');
+  ok(Rooms::setTitle('r88', '第四季規劃') && Rooms::get('r88')['title'] === '第四季規劃', 'setTitle 修改主題');
+  ok(!Rooms::setTitle('no-such-room', 'x'), '房間不存在回 false');
+  eq(Rooms::label('r88', Rooms::get('r88')), '第四季規劃', '有主題用主題');
+  Rooms::upsert('r88b', ['owner' => 'u_a']);
+  eq(Rooms::label('r88b', Rooms::get('r88b')), 'r88b', '沒有主題用會議室名稱');
+  require_once '/app/lib/mailer.php';
+  I18n::set('zh-TW');
+  eq(Mailer::renderTemplate(Mailer::defaultSubject(), ['title' => '第四季規劃', 'room' => 'q4']), '會議邀請：第四季規劃', '預設主旨用 {title}');
+  ok(Mailer::isDefaultTpl('會議邀請：{room}', 'subject') && Mailer::isDefaultTpl('會議邀請：{title}', 'subject'), '舊版（{room}）與新版（{title}）預設主旨都視為未自訂');
+  ok(Mailer::isDefaultTpl('Meeting invitation: {room}', 'subject') && Mailer::isDefaultTpl('Meeting invitation: {title}', 'subject'), '英文的新舊預設也一樣');
+  ok(!Mailer::isDefaultTpl('【公司】{room} 開會', 'subject'), '自訂範本照原樣使用');
+});
+
 summary();

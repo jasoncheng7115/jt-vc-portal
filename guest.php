@@ -42,6 +42,8 @@ function build_guest_jwt(string $room, string $name, string $gid): string {
 }
 
 $data = Rooms::get($room);
+$room_title = (string)($data['title'] ?? '');   // 會議主題
+$room_label = $room_title !== '' ? $room_title : $room;
 if ($data === null) {
   // 房間沒被建立過 → 視為 wait_host
   $eval = ['allow' => false, 'status' => 'wait_host', 'starts_at' => null, 'ends_at' => null, 'host_joined' => false];
@@ -80,7 +82,7 @@ if ($eval['allow']) {
       </header>
       <main class="center-stage">
         <div class="stage-card" style="max-width:420px;">
-          <div class="room-tag"><?= icon('door-out', 12) ?><?= htmlspecialchars($room) ?></div>
+          <div class="room-tag" title="<?= htmlspecialchars($room) ?>"><?= icon('door-out', 12) ?><?= htmlspecialchars($room_label) ?></div>
           <h1><?= th('請輸入您的名稱') ?></h1>
           <p class="muted" style="margin:6px 0 18px;"><?= th('這個名稱會顯示給會議室裡的其他人。') ?></p>
           <?php if ($name_err): ?>
@@ -113,7 +115,7 @@ if ($eval['allow']) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?= th('{room} · 來賓加入', ['room' => $room]) ?></title>
+  <title><?= th('{room} · 來賓加入', ['room' => $room_label]) ?></title>
   <link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
@@ -139,7 +141,8 @@ window.addEventListener('load', () => {
     configOverwrite: {
       defaultLanguage: <?= json_encode(Settings::getMeetingLang()) ?>,
       disableDeepLinking: true,
-<?php if (Settings::getJaas()['mode'] === 'selfhosted'): ?>      hiddenDomain: 'hidden.meet.jitsi',   // hide the Jibri recorder (its login domain) from the participant list
+<?php if ($room_title !== ''): ?>      subject: <?= json_encode($room_title, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>,
+<?php endif; ?><?php if (Settings::getJaas()['mode'] === 'selfhosted'): ?>      hiddenDomain: 'hidden.meet.jitsi',   // hide the Jibri recorder (its login domain) from the participant list
 <?php endif; ?>
       videoQuality: {
         codecPreferenceOrder: ['VP9', 'H264', 'VP8', 'AV1'],
@@ -210,7 +213,7 @@ render_head($status === 'countdown' ? t('會議即將開始') : ($status === 'ex
   </header>
   <main class="center-stage">
     <div class="stage-card">
-      <div class="room-tag"><?= icon('door-out', 12) ?><?= htmlspecialchars($room) ?></div>
+      <div class="room-tag" title="<?= htmlspecialchars($room) ?>"><?= icon('door-out', 12) ?><?= htmlspecialchars($room_label) ?></div>
 
       <?php if ($status === 'expired'): ?>
         <div class="icon-circle icon-circle-muted" style="margin-bottom:18px;">

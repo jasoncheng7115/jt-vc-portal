@@ -2,6 +2,14 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.24.0 — Meeting topic (any language) in invitations and calendars
+
+- When creating a room you can enter a "Meeting topic" (optional, any language including Chinese, up to 100 characters). Room names can only use English letters because of Jitsi, so invitations used to show only an English abbreviation; now the invitation subject and body, the calendar title and the cancellation notice use the topic, falling back to the room name only when it is empty.
+- The topic is also shown in the recent rooms list (above the name), the creation result, the guest waiting page, the host meeting page's tab title and the Jitsi meeting title.
+- Existing rooms: the "Invite" dialog lets you add or change the topic; it is saved when the invitation is sent.
+- New invitation template variables `{title}` (topic, or the room name if empty) and `{topic}` (topic, or blank); the default templates now use `{title}`. Sites that never customized the templates get this automatically; customized templates are left as they are — replace `{room}` with `{title}` to show the topic.
+- Test T88.
+
 ## v1.23.0 — Send invitations for rooms that already exist
 
 - New "Invite" button in the recent rooms list: enter one or more emails (separated by commas, spaces or new lines) and each person receives an email with the invitation link and a calendar invite (.ics) that Google / Outlook / Apple calendars can add directly. A booked time slot is used if the room has one; otherwise the entry is one hour from when the invitation is sent. The dialog lists people already invited; sending again to the same person replaces the earlier calendar entry.

@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.23.0 — 会議管理システム
+# jt-vc-portal v1.24.0 — 会議管理システム
 
 > English: [README.md](README.md) · 繁體中文: [README_zh-TW.md](README_zh-TW.md)
 
@@ -30,7 +30,7 @@
 - **予約時間帯**：開放する時間帯を設定できます。開始前はゲストにフリップ時計のカウントダウンが表示され、ホストが早めに入室すると自動的に開放されます。
 - **ゲストの流れ**：ゲストは参加前に表示名の入力が必須です。開放時間外は待機 / カウントダウン / 終了のページが表示されます。
 - **ロビーモード**：会議室の作成時に選択できます。ホストの入室時に自動で有効になり、ゲストはホストが 1 人ずつ許可して入室させます。
-- **メール招待**：参加者のメールアドレスを入力すると、ワンクリックでカレンダーに追加できる `.ics` 添付（METHOD:REQUEST）付きの招待を送信します。会議室の作成後も、最近の会議室一覧の「招待」から追加で招待できます。
+- **メール招待**：参加者のメールアドレスを入力すると、ワンクリックでカレンダーに追加できる `.ics` 添付（METHOD:REQUEST）付きの招待を送信します。会議室の作成後も、最近の会議室一覧の「招待」から追加で招待できます。任意の「会議のテーマ」（日本語・中国語可）はメールの件名とカレンダーのタイトルに使われます。
 - **複数アカウント / ロール / 2FA**：管理者はすべての会議室を、ホストは自分が作成した会議室のみを参照できます。TOTP による二要素認証に対応しています。
 - **シングルサインオン（OIDC）**：ホストと管理者は Keycloak / Entra ID 経由で会社アカウントでログイン可能（AD グループ → ロール、MFA は IdP 側）。ポータルは AD / LDAP に直接接続しません。IP 制限付きの緊急用管理者を残した「SSO のみ」モードに対応。構築手順：[KEYCLOAK-SETUP_ja.md](KEYCLOAK-SETUP_ja.md)。
 - **会議の文字起こしと要約（jt-live-whisper）**：自前ホストの Jibri での録画が完了すると、ポータルはそれを [jt-live-whisper](https://github.com/jasoncheng7115/jt-live-whisper)（JTLW）に渡し、発言者付きの文字起こしと会議要約を生成できます。要点、決定事項とアクション項目、出来事、リスク、未解決の課題、議題、発言統計を含み、各項目に録画内の時刻が付きます。アカウントごとの権限（利用不可 / 手動 / 自動）と会議ごとの設定に対応し、管理者はどの会議でも生成できます。ビューアーには波形プレーヤー、クリックでその位置から再生、発言者の名前変更、発言者の対応候補（Jitsi の発言者タイムラインに基づく）を備え、議事録一式を PDF / DOCX / ODT / HTML（ほかに TXT / SRT / JSON / Markdown）でエクスポートできます。ポータル自体が言語モデルに接続することはありません。設定の詳細は [TRANSCRIPTS-SETUP_ja.md](TRANSCRIPTS-SETUP_ja.md) を参照してください。
@@ -213,14 +213,14 @@ server {
 
 ```bash
 # 1) Release ページからイメージとチェックサムファイルをダウンロード（最新のバージョン番号を使用）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.23.0/jt-vc-portal-1.23.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.23.0/jt-vc-portal-1.23.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.24.0/jt-vc-portal-1.24.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.24.0/jt-vc-portal-1.24.0-docker-amd64.tar.gz.sha256
 
 # 2) 完全性を検証（OK と表示されるはず）
-sha256sum -c jt-vc-portal-1.23.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.24.0-docker-amd64.tar.gz.sha256
 
-# 3) イメージを読み込む（jt-vc-portal:1.23.0 と :latest のタグが作成される）
-docker load < jt-vc-portal-1.23.0-docker-amd64.tar.gz
+# 3) イメージを読み込む（jt-vc-portal:1.24.0 と :latest のタグが作成される）
+docker load < jt-vc-portal-1.24.0-docker-amd64.tar.gz
 
 # 4) ホスト側で永続ディレクトリを準備（www-data の UID は既定で 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -268,6 +268,7 @@ Docker イメージと Release イメージにはすべて含まれているた�
 | v1.16.2 より前 | セルフホストの Jibri が `stable-11031` 以降の場合：jibri サービスの `environment` に `SE_AVOID_STATS=true`、`SE_OFFLINE=true` を追加してコンテナーを作り直してください。そうしないと Jibri ホストの外部接続が遅いとき、録画開始を押してしばらく待った後に「すべての録画が現在使用中」と表示されます。[JIBRI-SETUP_ja.md](JIBRI-SETUP_ja.md) の 7 節を参照。 |
 | v1.14.0 より前 | 議事録の PDF / DOCX / ODT エクスポートには PHP の `zlib` 拡張（Debian / Ubuntu の PHP パッケージには組み込み済み）と、同梱フォント `lib/fonts/NotoSansTC-Regular.ttf`（`git pull` で取得されます）が必要です。 |
 | v1.19.0 より前 | 直接インストールしたサイト：PHP の最低バージョンは **8.3** になりました（PHP 8.2 のセキュリティ修正は 2026-12-31 で終了）。Docker イメージと Release イメージはすでに 8.4 のため対応不要です。 |
+| v1.24.0 より前 | 招待メールのテンプレートに `{title}`（会議のテーマ。未入力なら会議室名）を追加。既定テンプレートのサイトは自動で適用されます。**カスタマイズ済みの場合はテンプレートの `{room}` を `{title}` に変更**すると、招待メールにテーマが表示されます。 |
 | v1.22.1 より前 | 直接インストールしたサイト：PHP を 8.4.27 / 8.3.36 以降に更新（2026-10-21 のセキュリティ更新）し、`php.ini` で `session.upload_progress.enabled=Off` を設定してください。Docker の場合はイメージを再ビルド（`docker build --pull`）するだけです。 |
 | v1.20.0 より前 | セルフホストの Jibri では、Jibri ホストの `jibri-recordings-api/server.py` を更新して `systemctl restart jibri-recordings-api` を実行すると、長い録画の文字起こしページにも波形が表示されます（更新しなくても使えますが、60 MB を超える録画には波形が出ません）。デコードはホストの ffmpeg、なければ Jibri コンテナー内のものを自動で使うため、追加のインストールは不要です。 |
 

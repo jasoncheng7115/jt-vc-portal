@@ -149,7 +149,7 @@ return [
   '清除已儲存的密碼' => '保存済みのパスワードを消去',
   '寄件人 Email' => '送信者メールアドレス',
   '郵件範本' => 'メールテンプレート',
-  '可用變數：<span class="kbd">{room}</span> 會議室名、<span class="kbd">{invite_url}</span> 邀請連結、<span class="kbd">{time}</span> 會議時間、<span class="kbd">{site_name}</span> 站台名稱、<span class="kbd">{host}</span> 主持人。' => '使用できる変数：<span class="kbd">{room}</span> 会議室名、<span class="kbd">{invite_url}</span> 招待リンク、<span class="kbd">{time}</span> 会議日時、<span class="kbd">{site_name}</span> サイト名、<span class="kbd">{host}</span> ホスト。',
+  '可用變數：<span class="kbd">{title}</span> 會議主題（沒填則為會議室名）、<span class="kbd">{topic}</span> 會議主題（沒填則空白）、<span class="kbd">{room}</span> 會議室名、<span class="kbd">{invite_url}</span> 邀請連結、<span class="kbd">{time}</span> 會議時間、<span class="kbd">{site_name}</span> 站台名稱、<span class="kbd">{host}</span> 主持人。' => '使用できる変数：<span class="kbd">{title}</span> 会議のテーマ（未入力なら会議室名）、<span class="kbd">{topic}</span> 会議のテーマ（未入力なら空欄）、<span class="kbd">{room}</span> 会議室名、<span class="kbd">{invite_url}</span> 招待リンク、<span class="kbd">{time}</span> 会議日時、<span class="kbd">{site_name}</span> サイト名、<span class="kbd">{host}</span> ホスト。',
   '郵件主旨範本' => '件名テンプレート',
   '郵件內文範本' => '本文テンプレート',
   '測試收件人（按「測試寄信」時使用）' => 'テスト送信先（「テストメール送信」時に使用）',
@@ -291,7 +291,9 @@ return [
 
   // ---- lib/mailer.php：預設邀請信範本（亦對應 Mailer::DEFAULT_SUBJECT_TPL / DEFAULT_BODY_TPL）----
   '會議邀請：{room}' => '会議のご案内：{room}',
+  '會議邀請：{title}' => '会議のご案内：{title}',
   "您好，\n\n您受邀參加線上視訊會議「{room}」。\n{time}\n加入連結：{invite_url}\n\n（附件為行事曆邀請，開啟後可自動加入您的行事曆。）\n\n— {site_name}" => "お世話になっております。\n\nオンラインビデオ会議「{room}」にご招待いたします。\n{time}\n参加リンク：{invite_url}\n\n（添付のカレンダー招待を開くと、ご利用のカレンダーに自動的に追加されます。）\n\nご参加をお待ちしております。\n\n— {site_name}",
+  "您好，\n\n您受邀參加線上視訊會議「{title}」。\n{time}\n加入連結：{invite_url}\n\n（附件為行事曆邀請，開啟後可自動加入您的行事曆。）\n\n— {site_name}" => "お世話になっております。\n\nオンラインビデオ会議「{title}」にご招待いたします。\n{time}\n参加リンク：{invite_url}\n\n（添付のカレンダー招待を開くと、ご利用のカレンダーに自動的に追加されます。）\n\nご参加をお待ちしております。\n\n— {site_name}",
   '稽核記錄保留天數' => '監査ログの保持日数',
   '目前未啟用 JWT：任何知道會議室名稱的人都能直接連到 Jitsi 網域進入會議，繞過本系統的等候、具名與排程控管。建議改為「需要 JWT」。' => '現在 JWT が有効になっていません。会議室名を知っている人は誰でも Jitsi のドメインから直接会議に入室でき、本システムの待機・名前入力・スケジュールの制御を回避できてしまいます。「JWT 必須」に変更することをお勧めします。',
   '設定目錄' => '設定の目次',

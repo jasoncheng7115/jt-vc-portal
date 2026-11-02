@@ -39,6 +39,7 @@ class Rooms {
           'lobby'        => !empty($v['lobby']),          // 大廳模式：主持人進場自動開啟
           'ics_seq'      => (int)($v['ics_seq'] ?? 0),     // .ics SEQUENCE（每次寄邀請 / 取消遞增）
           'transcribe'   => array_key_exists('transcribe', $v) && $v['transcribe'] !== null ? (bool)$v['transcribe'] : null, // 逐字稿單場開關（null＝依帳號預設）
+          'title'        => isset($v['title']) && is_string($v['title']) ? $v['title'] : '',   // 會議主題（可中文，寄邀請 / 來賓頁 / Jitsi 標題用，v1.24.0）
           'tx_lang'      => isset($v['tx_lang']) && is_string($v['tx_lang']) && $v['tx_lang'] !== '' ? $v['tx_lang'] : null, // 會議主要語言（逐字稿用，v1.16.0）
         ];
         if (isset($v['roster']) && is_array($v['roster'])) $out[$name]['roster'] = $v['roster']; // 本次 session 與會者名冊快照
@@ -292,6 +293,9 @@ class Rooms {
       if (array_key_exists('attendees', $opts)) {
         $existing['attendees'] = $opts['attendees'];
       }
+      if (array_key_exists('title', $opts)) {
+        $existing['title'] = self::cleanTitle((string)$opts['title']);
+      }
       if (array_key_exists('lobby', $opts)) {
         $existing['lobby'] = !empty($opts['lobby']);
       }
@@ -306,6 +310,33 @@ class Rooms {
       return true;
     });
     return $out;
+  }
+
+  /** 會議主題上限（字元） */
+  public const TITLE_MAX = 100;
+
+  /** 整理會議主題：去掉控制字元與前後空白、連續空白收成一個、最多 TITLE_MAX 字。 */
+  public static function cleanTitle(string $t): string {
+    $t = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $t) ?? '';
+    $t = trim(preg_replace('/\s+/u', ' ', $t) ?? '');
+    return mb_substr($t, 0, self::TITLE_MAX);
+  }
+
+  /** 設定會議主題（房間不存在回 false）。 */
+  public static function setTitle(string $room, string $title): bool {
+    $ok = false;
+    self::mutate(function (array &$rooms) use ($room, $title, &$ok) {
+      if (!isset($rooms[$room])) return false;
+      $rooms[$room]['title'] = self::cleanTitle($title);
+      return $ok = true;
+    });
+    return $ok;
+  }
+
+  /** 顯示用名稱：有主題用主題，沒有用會議室名稱。 */
+  public static function label(string $room, ?array $r): string {
+    $t = (string)($r['title'] ?? '');
+    return $t !== '' ? $t : $room;
   }
 
   /** 把 email 併入會議室受邀名單（不重複、保留原順序）。回傳更新後的名單；房間不存在回 null。 */

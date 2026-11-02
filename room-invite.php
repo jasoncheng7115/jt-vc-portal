@@ -34,6 +34,7 @@ if ($bad) $back('room_error', t('以下 email 格式不正確：{emails}', ['ema
 if (!$emails) $back('room_error', t('請填入至少一個 email。'));
 if (count($emails) > Invites::MAX_PER_SEND) $back('room_error', t('一次最多寄給 {n} 位。', ['n' => Invites::MAX_PER_SEND]));
 
+if (isset($_POST['title'])) Rooms::setTitle($name, (string)$_POST['title']);   // 對話框可補填 / 修改會議主題
 Rooms::addAttendees($name, $emails);
 $result = Invites::send($name, Rooms::get($name) ?? $room, $emails, $me);
 if (!preg_match('/sent_(\d+)_fail_(\d+)/', $result, $x)) $back('room_error', t('邀請信寄送失敗，請稍後再試。'));

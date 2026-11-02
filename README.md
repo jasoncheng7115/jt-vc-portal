@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.23.0 — Meeting Management System
+# jt-vc-portal v1.24.0 — Meeting Management System
 
 > 繁體中文: [README_zh-TW.md](README_zh-TW.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -30,7 +30,7 @@
 - **Scheduled time slots**: set an open time window; before it starts, guests see a flip-clock countdown, and the room opens automatically if the host joins early.
 - **Guest flow**: guests must enter a display name before joining; outside the open window they see a waiting / countdown / ended page.
 - **Lobby mode**: optional when creating a room; it is enabled automatically when the host joins, and guests must be admitted one by one by the host.
-- **Email invitations**: enter attendee email addresses to send invitations with an `.ics` attachment (METHOD:REQUEST) that can be added to a calendar in one click; after a room is created, use "Invite" in the recent rooms list to invite more people.
+- **Email invitations**: enter attendee email addresses to send invitations with an `.ics` attachment (METHOD:REQUEST) that can be added to a calendar in one click; after a room is created, use "Invite" in the recent rooms list to invite more people; an optional "Meeting topic" (any language) is used in the email subject and calendar title.
 - **Multiple accounts / roles / 2FA**: admins see all rooms, hosts see only the rooms they created; TOTP two-factor authentication supported.
 - **Single sign-on (OIDC)**: hosts and admins can sign in with their company account through Keycloak / Entra ID (AD groups → roles, MFA at the IdP); the portal never connects to AD / LDAP directly. SSO-only mode with an IP-restricted emergency admin. Setup: [KEYCLOAK-SETUP.md](KEYCLOAK-SETUP.md).
 - **Meeting transcripts and summaries (jt-live-whisper)**: after a self-hosted Jibri recording finishes, the portal can send it to [jt-live-whisper](https://github.com/jasoncheng7115/jt-live-whisper) (JTLW) to produce a speaker-labelled transcript and a meeting summary — key points, decisions and action items, events, risks, open questions, topics and speaker statistics, every item citing the time in the recording. Per-account permission (off / manual / automatic), a per-meeting switch, and admins can generate for any meeting. Viewer with a waveform player, click-to-seek, speaker renaming and speaker suggestions (from Jitsi's speaker timeline); the whole record exports as PDF / DOCX / ODT / HTML (plus TXT / SRT / JSON / Markdown). The portal itself never connects to a language model. Full setup: [TRANSCRIPTS-SETUP.md](TRANSCRIPTS-SETUP.md).
@@ -213,14 +213,14 @@ Don't want to build it yourself? Download the packaged image (`linux/amd64`) att
 
 ```bash
 # 1) Download the image and checksum file from the Release page (use the latest version number)
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.23.0/jt-vc-portal-1.23.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.23.0/jt-vc-portal-1.23.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.24.0/jt-vc-portal-1.24.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.24.0/jt-vc-portal-1.24.0-docker-amd64.tar.gz.sha256
 
 # 2) Verify integrity (should print OK)
-sha256sum -c jt-vc-portal-1.23.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.24.0-docker-amd64.tar.gz.sha256
 
-# 3) Load the image (creates the jt-vc-portal:1.23.0 and :latest tags)
-docker load < jt-vc-portal-1.23.0-docker-amd64.tar.gz
+# 3) Load the image (creates the jt-vc-portal:1.24.0 and :latest tags)
+docker load < jt-vc-portal-1.24.0-docker-amd64.tar.gz
 
 # 4) Prepare persistent directories on the host (www-data UID defaults to 33)
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -268,6 +268,7 @@ The Docker image and the Release image already contain everything — nothing to
 | before v1.16.2 | Self-hosted Jibri on `stable-11031` or later: add `SE_AVOID_STATS=true` and `SE_OFFLINE=true` to the jibri service `environment` and recreate the containers; otherwise, when the Jibri host's outbound connection is slow, starting a recording waits a long time and then says "All recorders are currently busy". See section 7 of [JIBRI-SETUP.md](JIBRI-SETUP.md). |
 | before v1.14.0 | Exporting meeting minutes as PDF / DOCX / ODT needs the PHP `zlib` extension (built into the Debian / Ubuntu PHP packages) and the bundled font `lib/fonts/NotoSansTC-Regular.ttf`, which comes with `git pull`. |
 | before v1.19.0 | Direct installs: the minimum PHP version is now **8.3** (PHP 8.2 only gets security fixes until 2026-12-31). The Docker and Release images already use 8.4; nothing to do there. |
+| before v1.24.0 | Invitation templates gain `{title}` (meeting topic, or the room name if empty). Sites with default templates get it automatically; **if you customized the templates, replace `{room}` with `{title}`** so invitations show the topic. |
 | before v1.22.1 | Direct installs: update PHP to 8.4.27 / 8.3.36 or later (security update of 2026-10-21) and set `session.upload_progress.enabled=Off` in `php.ini`. Docker installs: just rebuild the image (`docker build --pull`). |
 | before v1.20.0 | With a self-hosted Jibri, update `jibri-recordings-api/server.py` on the Jibri host and run `systemctl restart jibri-recordings-api` so long recordings get a waveform on the transcript page (it works without the update; recordings over 60 MB just have no waveform). Decoding uses the host's ffmpeg or, if missing, the one inside the Jibri containers — nothing to install. |
 
