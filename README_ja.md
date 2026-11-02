@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.24.0 — 会議管理システム
+# jt-vc-portal v1.25.0 — 会議管理システム
 
 > English: [README.md](README.md) · 繁體中文: [README_zh-TW.md](README_zh-TW.md)
 
@@ -35,7 +35,7 @@
 - **シングルサインオン（OIDC）**：ホストと管理者は Keycloak / Entra ID 経由で会社アカウントでログイン可能（AD グループ → ロール、MFA は IdP 側）。ポータルは AD / LDAP に直接接続しません。IP 制限付きの緊急用管理者を残した「SSO のみ」モードに対応。構築手順：[KEYCLOAK-SETUP_ja.md](KEYCLOAK-SETUP_ja.md)。
 - **会議の文字起こしと要約（jt-live-whisper）**：自前ホストの Jibri での録画が完了すると、ポータルはそれを [jt-live-whisper](https://github.com/jasoncheng7115/jt-live-whisper)（JTLW）に渡し、発言者付きの文字起こしと会議要約を生成できます。要点、決定事項とアクション項目、出来事、リスク、未解決の課題、議題、発言統計を含み、各項目に録画内の時刻が付きます。アカウントごとの権限（利用不可 / 手動 / 自動）と会議ごとの設定に対応し、管理者はどの会議でも生成できます。ビューアーには波形プレーヤー、クリックでその位置から再生、発言者の名前変更、発言者の対応候補（Jitsi の発言者タイムラインに基づく）を備え、議事録一式を PDF / DOCX / ODT / HTML（ほかに TXT / SRT / JSON / Markdown）でエクスポートできます。ポータル自体が言語モデルに接続することはありません。設定の詳細は [TRANSCRIPTS-SETUP_ja.md](TRANSCRIPTS-SETUP_ja.md) を参照してください。
 - **監査とセキュリティ**：利用者の操作（サインイン、会議室の作成、招待、設定変更など）の完全な監査ログ + syslog / CEF / GELF によるリアルタイム転送、fail2ban 方式のログインロックアウト、CSRF 対策。OWASP Top 10:2025 に準拠しています。
-- **録画の閲覧**（自前ホストの Jibri）：Jibri ホスト上の録画サービスと連携し、オンラインでの一覧 / 再生 / ダウンロード / 削除、ホストのストレージ容量の表示、保持ポリシー（経過日数 / 容量 / 残骸。既定はすべて無効）を提供します。ホストは自分が主催した会議の録画を閲覧できます。
+- **録画の閲覧**（自前ホストの Jibri）：Jibri ホスト上の録画サービスと連携し、オンラインでの一覧 / 再生 / ダウンロード / 削除、ホストのストレージ容量の表示、保持ポリシー（経過日数 / 容量 / 残骸。既定はすべて無効）を提供します。ホストは自分が主催した会議の録画を閲覧できます。会議室の作成時に「2 人以上になったら自動で録画を開始」を選べます。
 - **多言語インターフェース**：ポータルの UI は繁體中文（繁体字中国語）、English、日本語に対応しています。ブラウザから自動判定され、アカウントメニューまたはプロフィールで利用者ごとに切り替えられます。Jitsi の会議画面の言語をインターフェース言語に合わせることもできます。
 - **外観のカスタマイズ**：Jitsi UI の 60 言語、22 種類のテーマ、サイト名とロゴの変更、ログインページのパスの偽装。
 - **会議の統計**：会議時間のランキング、同時参加者数のピーク、参加者の入退室タイムライン。JaaS モードでは USAGE webhook による MAU の集計も可能です。
@@ -213,14 +213,14 @@ server {
 
 ```bash
 # 1) Release ページからイメージとチェックサムファイルをダウンロード（最新のバージョン番号を使用）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.24.0/jt-vc-portal-1.24.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.24.0/jt-vc-portal-1.24.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.0/jt-vc-portal-1.25.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.0/jt-vc-portal-1.25.0-docker-amd64.tar.gz.sha256
 
 # 2) 完全性を検証（OK と表示されるはず）
-sha256sum -c jt-vc-portal-1.24.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.25.0-docker-amd64.tar.gz.sha256
 
-# 3) イメージを読み込む（jt-vc-portal:1.24.0 と :latest のタグが作成される）
-docker load < jt-vc-portal-1.24.0-docker-amd64.tar.gz
+# 3) イメージを読み込む（jt-vc-portal:1.25.0 と :latest のタグが作成される）
+docker load < jt-vc-portal-1.25.0-docker-amd64.tar.gz
 
 # 4) ホスト側で永続ディレクトリを準備（www-data の UID は既定で 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data

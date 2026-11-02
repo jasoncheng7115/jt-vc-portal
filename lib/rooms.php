@@ -39,6 +39,7 @@ class Rooms {
           'lobby'        => !empty($v['lobby']),          // 大廳模式：主持人進場自動開啟
           'ics_seq'      => (int)($v['ics_seq'] ?? 0),     // .ics SEQUENCE（每次寄邀請 / 取消遞增）
           'transcribe'   => array_key_exists('transcribe', $v) && $v['transcribe'] !== null ? (bool)$v['transcribe'] : null, // 逐字稿單場開關（null＝依帳號預設）
+          'auto_record'  => !empty($v['auto_record']),   // 兩人以上自動開始錄影（v1.25.0）
           'title'        => isset($v['title']) && is_string($v['title']) ? $v['title'] : '',   // 會議主題（可中文，寄邀請 / 來賓頁 / Jitsi 標題用，v1.24.0）
           'tx_lang'      => isset($v['tx_lang']) && is_string($v['tx_lang']) && $v['tx_lang'] !== '' ? $v['tx_lang'] : null, // 會議主要語言（逐字稿用，v1.16.0）
         ];
@@ -292,6 +293,9 @@ class Rooms {
       }
       if (array_key_exists('attendees', $opts)) {
         $existing['attendees'] = $opts['attendees'];
+      }
+      if (array_key_exists('auto_record', $opts)) {
+        $existing['auto_record'] = !empty($opts['auto_record']);
       }
       if (array_key_exists('title', $opts)) {
         $existing['title'] = self::cleanTitle((string)$opts['title']);

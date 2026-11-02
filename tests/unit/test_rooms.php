@@ -138,4 +138,13 @@ test('T88 會議主題：整理、儲存、顯示名稱、邀請信預設範本'
   ok(!Mailer::isDefaultTpl('【公司】{room} 開會', 'subject'), '自訂範本照原樣使用');
 });
 
+test('T89 自動錄影旗標：建立時存、進入會議不清掉、舊資料預設關閉', function () {
+  Rooms::upsert('r89', ['owner' => 'u_a', 'auto_record' => true]);
+  ok(Rooms::get('r89')['auto_record'] === true, '存成開啟');
+  Rooms::upsert('r89', ['host_joined' => true]);
+  ok(Rooms::get('r89')['auto_record'] === true, '進入會議（沒帶旗標）不會清掉');
+  Rooms::upsert('r89b', ['owner' => 'u_a']);
+  ok(Rooms::get('r89b')['auto_record'] === false, '沒指定時預設關閉');
+});
+
 summary();

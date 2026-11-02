@@ -98,7 +98,7 @@ Jibri needs the host kernel to **load the `snd-aloop` module** and needs access 
 
 **Other notes**:
 - **Network**: Jibri "downloads" the whole meeting in order to record it, so it needs stable bandwidth to Jitsi / JVB, ideally on the same subnet.
-- **CPU type (Proxmox)**: Jibri is tied to the `snd-aloop` kernel module, so live migration is of little value; either `host` or `x86-64-v2-AES` works, and offline migration is fine.
+- **CPU type (Proxmox)**: **use `x86-64-v3` (or `host`), not the default `x86-64-v2-AES`**. v2 has no AVX / AVX2, which makes Jibri's Chrome and ffmpeg encoding much slower: measured, starting two recordings at once took about 11.5 s on v2 (close to jicofo's 15 s limit, beyond which users see "all recorders are busy") and about 8 s on v3 (a single recording takes about 5–7 s on either). v3 needs AVX2 on every PVE node (almost every Intel / AMD CPU since 2015); `host` is faster but blocks migration between different CPUs in a cluster. A CPU type change only takes effect after a full VM power-off and start. Jibri is tied to the `snd-aloop` kernel module, so live migration is of little value.
 - **More streams**: scale vCPU / RAM, the number of `snd-aloop` devices (Section 2), and `--scale jibri=N` (Section 4) proportionally together (e.g. 3 streams ≈ 6 vCPU / 12 GB).
 - **Minimum viable** (occasionally 1 stream): 2 vCPU / 4 GB / 20 GB system disk + recording storage.
 

@@ -179,7 +179,10 @@ class Audit {
   /** 顯示用詳細內容：有延後翻譯的鍵就依目前（看的人）語言翻譯，否則用寫入時的文字。 */
   public static function detailText(array $e): string {
     if (!empty($e['dk']) && is_string($e['dk'])) return self::render($e['dk'], array_map('strval', (array)($e['dv'] ?? [])));
-    return (string)($e['detail'] ?? '');
+    $d = (string)($e['detail'] ?? '');
+    // v1.16.2–v1.24.0 的建立會議室記錄把 tk() 陣列直接接字串，存成「Array（大廳模式）」，會議室名稱沒存到（v1.25.0 修正）
+    if (($e['action'] ?? '') === 'room_create' && str_starts_with($d, 'Array')) $d = t('會議室（舊版記錄未存名稱）') . substr($d, 5);
+    return $d;
   }
 
   /**
@@ -206,6 +209,10 @@ class Audit {
 
   private static function render(string $dk, array $dv): string {
     $dk = self::REC_KEYS[$dk] ?? $dk;
+    if (str_contains($dk, '{opts}')) {   // 建立會議室的附註（v1.25.0）：存代碼、顯示時依看的人的語言翻譯
+      $tags = ['sched' => t('（已設排程）'), 'lobby' => t('（大廳模式）'), 'arec' => t('（自動錄影）')];
+      $dv['opts'] = implode('', array_map(fn($c) => $tags[$c] ?? '', array_filter(explode(',', (string)($dv['opts'] ?? '')))));
+    }
     if (str_contains($dk, '{rec}')) {
       if (($dv['when'] ?? '') === '' || ($dv['room'] ?? null) === null) {   // 舊記錄：到錄影清單補時間與會議室
         $r = self::recFind((string)($dv['id'] ?? ''));

@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.24.0 — 會議管理系統
+# jt-vc-portal v1.25.0 — 會議管理系統
 
 > English: [README.md](README.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -35,7 +35,7 @@
 - **單一登入（OIDC）**：主持人與管理員可透過 Keycloak / Entra ID 以公司帳號登入（AD 群組對應角色、MFA 由 IdP 負責）；portal 不直接連 AD / LDAP。支援「僅限單一登入」並保留限 IP 的緊急用管理員。設定步驟：[KEYCLOAK-SETUP_zh-TW.md](KEYCLOAK-SETUP_zh-TW.md)。
 - **會議逐字稿與摘要（jt-live-whisper）**：自建 Jibri 錄影完成後，portal 可將錄影交給 [jt-live-whisper](https://github.com/jasoncheng7115/jt-live-whisper)（JTLW）產生標示發言者的逐字稿與會議摘要——重點摘要、決議與待辦、事件、風險、未決問題、議題與發言統計，每一條都附錄影中的時間點。依帳號設定權限（不可使用 / 手動 / 自動）、可單場開關，管理員可對任何場次產生。檢視頁提供波形播放器、點時間跳到該處、發言者改名與發言者對應建議（依 Jitsi 發言時間軸），整份會議記錄可匯出 PDF / DOCX / ODT / HTML（另有 TXT / SRT / JSON / Markdown）。portal 本身不直接連接語言模型。完整設定見 [TRANSCRIPTS-SETUP_zh-TW.md](TRANSCRIPTS-SETUP_zh-TW.md)。
 - **稽核與安全**：完整行為稽核記錄（登入、建室、邀請、設定變更…）+ 即時外拋 syslog / CEF / GELF；fail2ban 登入鎖定；CSRF；遵循 OWASP Top 10:2025。
-- **錄影調閱**（自建 Jibri）：串接 Jibri 主機的錄影服務，線上列表 / 播放 / 下載 / 刪除、主機容量、保留政策（時間 / 容量 / 殘留，預設停用）；主持人可調閱自己主持會議的錄影。
+- **錄影調閱**（自建 Jibri）：串接 Jibri 主機的錄影服務，線上列表 / 播放 / 下載 / 刪除、主機容量、保留政策（時間 / 容量 / 殘留，預設停用）；主持人可調閱自己主持會議的錄影；建立會議室時可勾「兩人以上自動開始錄影」。
 - **多語系介面**：portal 介面支援繁體中文、English 與日本語，依瀏覽器語言自動判斷，可從右上帳號選單或個人設定切換；Jitsi 會議語言可設為跟隨介面語言。
 - **可自訂外觀**：60 種 Jitsi 介面語言、22 種主題、可換站台名稱與 logo、登入頁路徑偽裝。
 - **會議統計**：會議時長排行、尖峰同時人數與參與者進出時間軸；JaaS 模式另可接 USAGE webhook 統計 MAU。
@@ -213,14 +213,14 @@ server {
 
 ```bash
 # 1) 從 Release 頁下載映像與校驗檔（請改用最新版本號）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.24.0/jt-vc-portal-1.24.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.24.0/jt-vc-portal-1.24.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.0/jt-vc-portal-1.25.0-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.0/jt-vc-portal-1.25.0-docker-amd64.tar.gz.sha256
 
 # 2) 驗證完整性（應顯示 OK）
-sha256sum -c jt-vc-portal-1.24.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.25.0-docker-amd64.tar.gz.sha256
 
-# 3) 載入映像（會建立 jt-vc-portal:1.24.0 與 :latest 標籤）
-docker load < jt-vc-portal-1.24.0-docker-amd64.tar.gz
+# 3) 載入映像（會建立 jt-vc-portal:1.25.0 與 :latest 標籤）
+docker load < jt-vc-portal-1.25.0-docker-amd64.tar.gz
 
 # 4) 主機端準備持久化目錄（www-data UID 預設 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data

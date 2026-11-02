@@ -18,7 +18,8 @@ $jwt = $_SESSION['jwt'];
 $room = $_SESSION['room'];
 if (Health::jitsiDown()) { render_service_down($room, true); exit; }   // Jitsi Meet 故障：友善說明，不載入打不開的會議畫面
 $room_title = (string)(Rooms::get($room)['title'] ?? '');   // 會議主題（顯示在 Jitsi 會議標題）
-$lobby_on = !empty(Rooms::get($room)['lobby'] ?? false);   // 大廳模式：主持人進場後自動開啟
+$lobby_on = !empty(Rooms::get($room)['lobby'] ?? false);
+$auto_rec = Settings::hasJibri() && !empty(Rooms::get($room)['auto_record'] ?? false);   // 兩人以上自動開始錄影（v1.25.0）   // 大廳模式：主持人進場後自動開啟
 $mui = Settings::resolveMeetingUi();               // 會議室自訂（logo / 進入預設 / 工具列）
 $invite_url = SITE_URL . '/room/' . rawurlencode($room);
 $theme = Settings::getTheme();
@@ -201,6 +202,37 @@ window.addEventListener('load', () => {
   });
   const talkArr = () => talk.map((x) => ({ n: (roster[x.id] && roster[x.id].name) || '', s: x.s, e: x.e })).filter((x) => x.n);
 
+<?php if ($auto_rec): ?>
+  // === Auto-record (v1.25.0): once at least 2 people are in the meeting (the host counts; the hidden recorder does not),
+  // start file recording — once per page load. A host who stops it manually is not overridden. startRecording needs the
+  // moderator role (granted a few seconds after joining) and jicofo may reject it when every Jibri is busy, so if recording
+  // has not turned on 20 s after a request, try again (at most 3 requests).
+  let _arDone = false, _arReq = 0, _arTimer = null, _isMod = false, _arLocal = null;
+  const presentCount = () => rosterArr().filter((p) => p.out === null).length;
+  const tryAutoRec = () => {
+    if (_arDone || _recOn || !_isMod || presentCount() < 2 || _arReq >= 3) return;
+    _arReq++;
+    try { api.executeCommand('startRecording', { mode: 'file' }); } catch (e) {}
+    clearTimeout(_arTimer);
+    _arTimer = setTimeout(() => { if (!_recOn && !_arDone) tryAutoRec(); }, 20000);
+  };
+  // Am I a moderator? participantRoleChanged covers a role granted after joining; getRoomsInfo() covers one granted before.
+  const checkMod = async () => {
+    try {
+      const info = await api.getRoomsInfo();
+      const main = (info && info.rooms || []).find((r) => r.isMainRoom) || (info && info.rooms || [])[0];
+      const me = main && (main.participants || []).find((p) => p.id === _arLocal);
+      if (me && me.role === 'moderator') _isMod = true;
+    } catch (e) {}
+    tryAutoRec();
+  };
+  api.addEventListener('recordingStatusChanged', (e) => {
+    if (e && (!e.mode || e.mode === 'file') && e.on) { _arDone = true; clearTimeout(_arTimer); }   // started (auto or manual): never auto-start again
+  });
+  api.addEventListener('participantRoleChanged', (e) => { if (e && e.id === _arLocal && e.role === 'moderator') { _isMod = true; tryAutoRec(); } });
+  api.addEventListener('videoConferenceJoined', (e) => { _arLocal = e && e.id; setTimeout(checkMod, 2000); setTimeout(checkMod, 8000); });
+  ['participantJoined', 'participantLeft'].forEach((ev) => api.addEventListener(ev, () => setTimeout(tryAutoRec, 500)));
+<?php endif; ?>
   // === Host heartbeat: report every 15 s so the server knows the host is present (with a roster snapshot) ===
   const csrf = <?= json_encode(Auth::csrfToken()) ?>;
   const heartbeatUrl = '/host-heartbeat?room=' + encodeURIComponent(room);

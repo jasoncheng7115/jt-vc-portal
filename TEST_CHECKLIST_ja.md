@@ -60,6 +60,7 @@
   - [ ] シングルサインオン：`tests/prod-sso-smoke.sh`——一時的な AD アカウントで実際の Keycloak を通し、3 か所とも残留 0。
   - [ ] 映像品質（T75）：`tests/prod-video-quality.sh`。
   - [ ] 画面共有の画質（T85）：`tests/prod-screenshare.sh`（tc で Jitsi のメディアポートへのアップロードを一時的に制限し、終了後に解除）。
+  - [ ] 2 人以上で自動録画（T89）：`tests/prod-auto-record.sh`（実際に録画し、終了後に削除）。
 - [ ] 機能や画面を変更した場合：Pages のスクリーンショットを 3 言語で撮り直し（メンテナー）、1 枚ずつ実データがないことを確認。
 
 ## 2. ZAP 脆弱性スキャン（リリースゲート）
@@ -114,6 +115,8 @@ CodeQL は本リポジトリの Python（`jibri-recordings-api/`）、JavaScript
 - [ ] SMTP テストメールの送信が成功し、失敗時のメッセージも正しく表示される。
 - [ ] T87 作成済みの会議室への追加招待：最近の会議室一覧の「招待」ボタン（所有者 / 管理者のみ、SMTP が有効で会議が終了していない場合に表示）→ ダイアログに会議室名と時間帯、招待済みの人が表示される → 複数のメールアドレスを入力（カンマ / スペース / 改行）→ 各自に招待リンクと `.ics`（METHOD:REQUEST）付きのメールが届き、名簿は重複しない。形式が不正なアドレスがある場合や 50 人を超える場合は全件送信しない。所有者以外、CSRF なし、終了した会議、SMTP 無効はすべて拒否される。会議室を削除するとこれらの招待者にも取消通知が届く（`tests/run-integration.sh`、`tests/unit/test_rooms.php`、`tests/e2e/meeting.cjs`）。
 - [ ] T88 会議のテーマ：作成フォームでテーマを入力できる（日本語・中国語可、最大 100 文字。制御文字や余分な空白は整理される）。最近の会議室一覧、作成結果、ゲストの待機ページ、ホストの会議ページのタブタイトル、Jitsi の会議タイトルにテーマが表示される（HTML エスケープ済み、script から抜け出せない）。招待メールの件名 / 本文、カレンダーの SUMMARY、取消通知にテーマを使い、未入力なら会議室名を使う。招待ダイアログでテーマを追加 / 変更でき保存される。既定テンプレートは `{title}` を使い、旧既定もカスタマイズなしと判定され、カスタマイズ済みテンプレートは変わらない（`tests/run-integration.sh`、`tests/unit/test_rooms.php`、`tests/unit/test_i18n.php`、`tests/e2e/meeting.cjs`）。
+- [ ] T89 2 人以上で自動録画：セルフホストの Jibri がない場合はオプションが表示されず、強制送信しても保存されない。Jibri がある場合は既定でオフ、オンにすると保存され一覧に「自動録画」バッジが表示される。オンの会議室だけホストの会議ページに自動録画のロジックが入り、ゲストページには入らない（`tests/run-integration.sh`、`tests/unit/test_rooms.php`）。本番（メンテナー）：`tests/prod-auto-record.sh`——ホスト 1 人では録画しない、2 人目の参加から 40 秒以内に自動録画、ホストが停止した後は参加者が来ても自動再開しない、完了した録画が 1 本だけ。終了後にテスト録画と会議室を削除。
+- [ ] T90 会議室作成の監査ログ：スケジュール / ロビーモード / 自動録画があっても説明に「Array」が出ない。注記はコードで保存し閲覧者の言語で表示する。旧バージョンの壊れた記録は「会議室（旧バージョンでは名前を記録していません）」と表示（`tests/unit/test_ical_audit.php`、`tests/run-integration.sh`）。
 
 ### 3.4 ゲスト
 - [ ] 招待リンク `/room/<name>` と旧形式の `/invite?room=` のどちらも機能する。
@@ -462,6 +465,8 @@ CodeQL は本リポジトリの Python（`jibri-recordings-api/`）、JavaScript
 | 画面共有のフレーム数の設定 T84 | `tests/run-integration.sh` |
 | アップロード制限時の画面共有の画質 T85 | `tests/prod-screenshare.sh`（メンテナー、本番環境） |
 | 会議のテーマ T88 | `tests/run-integration.sh`、`tests/unit/test_rooms.php`、`tests/e2e/meeting.cjs` |
+| 2 人以上で自動録画 T89 | `tests/run-integration.sh`、`tests/unit/test_rooms.php`、`tests/prod-auto-record.sh`（メンテナー、本番環境） |
+| 会議室作成の監査注記 T90 | `tests/unit/test_ical_audit.php`、`tests/run-integration.sh` |
 | 作成済みの会議室への追加招待 T87 | `tests/run-integration.sh`（テスト用 SMTP 受信 `tests/stub/smtp-sink.php`）、`tests/unit/test_rooms.php`、`tests/e2e/meeting.cjs` |
 | PHP のセキュリティ設定 T86 | `tests/run-integration.sh` |
 | 録画の開始 / 停止 / 2 部屋同時 T70 | `tests/prod-entry-gates.sh`、`tests/prod-meeting-sim.sh`（メンテナー、本番環境） |

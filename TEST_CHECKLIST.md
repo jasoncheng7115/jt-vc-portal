@@ -60,6 +60,7 @@
   - [ ] Single sign-on: `tests/prod-sso-smoke.sh` — temporary AD accounts through the real Keycloak, zero leftovers on all three sides.
   - [ ] Video quality (T75): `tests/prod-video-quality.sh`.
   - [ ] Screen-share quality (T85): `tests/prod-screenshare.sh` (temporarily throttles upload to the Jitsi media port with tc; removed afterwards).
+  - [ ] Auto-record with 2+ people (T89): `tests/prod-auto-record.sh` (makes a real recording and deletes it afterwards).
 - [ ] If features or screens changed: retake the Pages screenshots in three languages (maintainer) and check each one has no real data.
 
 ## 2. ZAP vulnerability scan (release gate)
@@ -114,6 +115,8 @@ CodeQL scans the Python (`jibri-recordings-api/`), JavaScript (`tests/`, Pages) 
 - [ ] SMTP test email succeeds; failure messages are displayed correctly.
 - [ ] T87 Invite people to an existing room: the "Invite" button in the recent rooms list (shown only to the owner / an admin, with SMTP enabled and the meeting not yet ended) → the dialog shows the room name and time slot and lists people already invited → enter several emails (commas / spaces / new lines) → each person receives an email with the invitation link and an `.ics` (METHOD:REQUEST), with no duplicates in the list; an invalid address or more than 50 recipients blocks the whole batch; a non-owner, a missing CSRF token, an ended meeting and disabled SMTP are all rejected; deleting the room also sends these invitees a cancellation (`tests/run-integration.sh`, `tests/unit/test_rooms.php`, `tests/e2e/meeting.cjs`).
 - [ ] T88 Meeting topic: the create form accepts a topic (any language, up to 100 characters; control characters and extra spaces are cleaned up); the recent rooms list, creation result, guest waiting page, host meeting page tab title and Jitsi meeting title show it (HTML-escaped, cannot break out of the script); the invitation subject / body, calendar SUMMARY and cancellation notice use it, falling back to the room name; the invite dialog can add / change it and saves it; default templates use `{title}`, the old defaults still count as not customized, and customized templates are unchanged (`tests/run-integration.sh`, `tests/unit/test_rooms.php`, `tests/unit/test_i18n.php`, `tests/e2e/meeting.cjs`).
+- [ ] T89 Auto-record with 2+ people: without a self-hosted Jibri the option is hidden and a forged value is not saved; with Jibri it is unchecked by default, saved when checked, and the list shows an "Auto-record" badge; only rooms with it enabled get the auto-record logic on the host meeting page, never on the guest page (`tests/run-integration.sh`, `tests/unit/test_rooms.php`). Production (maintainer): `tests/prod-auto-record.sh` — no recording with the host alone, automatic recording within 40 s after a second person joins, no automatic restart after the host stops it, exactly one completed recording; the test recording and room are deleted afterwards.
+- [ ] T90 Room-creation audit entry: with a schedule / lobby mode / auto-record the description never contains "Array"; the notes are stored as codes and shown in the viewer's language; old broken entries show as "Room (name not recorded by the old version)" (`tests/unit/test_ical_audit.php`, `tests/run-integration.sh`).
 
 ### 3.4 Guests
 - [ ] Both the invite link `/room/<name>` and the legacy `/invite?room=` work.
@@ -462,6 +465,8 @@ Spot-check on every release; test everything for major changes:
 | Screen-share frame-rate setting T84 | `tests/run-integration.sh` |
 | Screen-share quality with limited upload T85 | `tests/prod-screenshare.sh` (maintainer, production) |
 | Meeting topic T88 | `tests/run-integration.sh`, `tests/unit/test_rooms.php`, `tests/e2e/meeting.cjs` |
+| Auto-record with 2+ people T89 | `tests/run-integration.sh`, `tests/unit/test_rooms.php`, `tests/prod-auto-record.sh` (maintainer, production) |
+| Room-creation audit notes T90 | `tests/unit/test_ical_audit.php`, `tests/run-integration.sh` |
 | Invite people to an existing room T87 | `tests/run-integration.sh` (test SMTP receiver `tests/stub/smtp-sink.php`), `tests/unit/test_rooms.php`, `tests/e2e/meeting.cjs` |
 | PHP security settings T86 | `tests/run-integration.sh` |
 | Recording start / stop / two at once T70 | `tests/prod-entry-gates.sh`, `tests/prod-meeting-sim.sh` (maintainer, production) |

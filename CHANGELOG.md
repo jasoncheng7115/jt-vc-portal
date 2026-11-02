@@ -2,6 +2,15 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.25.0 — Start recording automatically when two people are present
+
+- New room option "Start recording automatically when 2 or more people are present" (off by default, above "Generate transcript and summary after recording"; shown only with a self-hosted Jibri). When on, recording starts as soon as the host is in the meeting and a second person joins — together with the transcript option, nobody has to remember to press record.
+- Auto-start happens once per meeting: if the host stops the recording, people joining or leaving later will not restart it; if every recorder is busy it retries (up to 3 times, 20 s apart). Only people actually in the meeting count (not those waiting in the lobby, nor the hidden recorder). The request comes from the host's page, and everyone sees the recording indicator.
+- The recent rooms list and the creation result show an "Auto-record" badge.
+- Docs: JIBRI-SETUP now recommends Proxmox CPU type `x86-64-v3` (or `host`); the default `x86-64-v2-AES` lacks AVX2 and makes Jibri encoding much slower (two simultaneous recordings started in about 11.5 s → about 8 s).
+- Fix: when a room was created with a schedule or lobby mode, the audit entry was stored as "Array (lobby mode)" without the room name (since v1.16.2). The notes are now stored as codes and translated into the viewer's language; existing broken entries are shown as "Room (name not recorded by the old version)". Test T90.
+- Test T89 (including a production check: no recording with the host alone, automatic recording when a second person joins, no automatic restart after a manual stop).
+
 ## v1.24.0 — Meeting topic (any language) in invitations and calendars
 
 - When creating a room you can enter a "Meeting topic" (optional, any language including Chinese, up to 100 characters). Room names can only use English letters because of Jitsi, so invitations used to show only an English abbreviation; now the invitation subject and body, the calendar title and the cancellation notice use the topic, falling back to the room name only when it is empty.

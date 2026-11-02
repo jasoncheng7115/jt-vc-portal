@@ -353,6 +353,42 @@ hasnt "T74 不認得的值 → 回到預設（不帶門檻）" "$(curl -s -b $A 
 T=$(csrf $A /dashboard)
 curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-down' $B/room-delete
 
+echo "== T90 建立會議室的稽核記錄不會出現 Array"
+T=$(csrf $A /dashboard)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-t90&mode=create&lobby=1' $B/start
+L90=$(docker exec $NAME sh -c 'grep "\"room_create\"" /var/jaas-data/audit-log.jsonl | grep itest-t90 | tail -1')
+hasnt "T90 room_create 說明沒有 Array" "$L90" 'Array'
+has "T90 附註存成代碼（顯示時才翻譯）" "$L90" '"opts":"lobby"'
+has "T90 稽核記錄頁顯示「（大廳模式）」" "$(curl -s -b $A "$B/audit-log?q=itest-t90")" '（大廳模式）'
+T=$(csrf $A /dashboard); curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-t90' $B/room-delete
+echo "== T89 兩人以上自動開始錄影（需自建 Jibri）"
+roomv() { docker exec $NAME php -r 'echo json_encode(json_decode(file_get_contents("/var/jaas-data/auto-allow.json"),true)[$argv[1]][$argv[2]] ?? null);' "$1" "$2"; }
+hasnt "T89 沒設定 Jibri → 建立表單沒有自動錄影選項" "$(curl -s -b $A $B/dashboard)" 'name="auto_record"'
+T=$(csrf $A /dashboard)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-ar0&mode=create&auto_record=1' $B/start
+chk "T89 沒有 Jibri 時硬送 auto_record=1 也不會存成開啟" "$(roomv itest-ar0 auto_record)" false
+docker exec -u www-data $NAME php -r 'require "/var/www/html/config.php"; require_once "/var/www/html/lib/settings.php"; Settings::setJibri("http://127.0.0.1:9", "itest-token");'
+D=$(curl -s -b $A $B/dashboard)
+has "T89 有 Jibri → 建立表單出現自動錄影選項" "$D" 'name="auto_record" id="autoRecChk" value="1">'
+hasnt "T89 自動錄影預設不勾" "$D" 'id="autoRecChk" value="1" checked'
+T=$(csrf $A /dashboard)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-ar&mode=create&auto_record=1' $B/start
+chk "T89 勾選後存成開啟" "$(roomv itest-ar auto_record)" true
+has "T89 近期清單顯示「自動錄影」標籤" "$(curl -s -b $A $B/dashboard)" '自動錄影</span>'
+T=$(csrf $A /dashboard)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-ar&mode=host&enter=1' $B/start
+has "T89 主持人會議頁帶自動錄影邏輯（兩人以上、只請求一次）" "$(curl -s -b $A $B/meeting)" 'presentCount() < 2'
+T=$(csrf $A /dashboard)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-ar2&mode=create' $B/start
+chk "T89 沒勾 → 存成關閉" "$(roomv itest-ar2 auto_record)" false
+T=$(csrf $A /dashboard)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-ar2&mode=host&enter=1' $B/start
+hasnt "T89 沒勾的會議室不帶自動錄影邏輯" "$(curl -s -b $A $B/meeting)" 'presentCount() < 2'
+G=$(curl -s -L -c "$JAR/g89" -b "$JAR/g89" $B/room/itest-ar)
+hasnt "T89 來賓頁不帶自動錄影（只有主持人端會發出錄影請求）" "$G" 'startRecording'
+docker exec -u www-data $NAME php -r 'require "/var/www/html/config.php"; require_once "/var/www/html/lib/settings.php"; Settings::setJibri("", "");'
+for r in itest-ar0 itest-ar itest-ar2; do T=$(csrf $A /dashboard); curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d "room=$r" $B/room-delete; done
+
 T=$(csrf $A /dashboard)
 chk "POST /logout 帶 CSRF → 登出" "$(loc -b $A -c $A --data-urlencode "_csrf=$T" $B/logout)" "$B/jt-login"
 chk "登出後 /dashboard → 404" "$(code -b $A $B/dashboard)" 404

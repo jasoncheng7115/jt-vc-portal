@@ -98,7 +98,7 @@ Jibri 需要在主機核心 **載入 `snd-aloop` 模組** 並存取 **`/dev/snd`
 
 **其他**：
 - **網路**：Jibri 要把整場會議「下載」進來再錄，需穩定頻寬到 Jitsi / JVB，最好同網段。
-- **CPU 類型（Proxmox）**：Jibri 綁 `snd-aloop` 核心模組，live migration 意義不大；用 `host` 或 `x86-64-v2-AES` 皆可，離線搬移沒問題。
+- **CPU 類型（Proxmox）**：**請用 `x86-64-v3`（或 `host`），不要用預設的 `x86-64-v2-AES`**。v2 沒有 AVX / AVX2 指令，Jibri 的 Chrome 與 ffmpeg 編碼會慢很多：實測同時開始兩路錄影，v2 約 11.5 秒（接近 jicofo 等待上限 15 秒，超過就出現「錄製忙碌」），改 v3 後約 8 秒（單路兩者都約 5～7 秒）。v3 需要每台 PVE 節點都支援 AVX2（2015 年後的 Intel / AMD 幾乎都有）；`host` 更快但叢集 CPU 不同時不能遷移。改 CPU 類型後 VM 要完整關機再開機才生效。Jibri 綁 `snd-aloop` 核心模組，live migration 意義不大。
 - **要更多路**：vCPU / RAM、`snd-aloop` 裝置數（第二節）、`--scale jibri=N`（第四節）一起等比放大（例：3 路 ≈ 6 vCPU / 12 GB）。
 - **最小可跑**（偶爾 1 路）：2 vCPU / 4 GB / 系統 20 GB + 錄影空間。
 

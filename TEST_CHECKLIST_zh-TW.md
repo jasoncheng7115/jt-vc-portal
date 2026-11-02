@@ -60,6 +60,7 @@
   - [ ] 單一登入：`tests/prod-sso-smoke.sh`——臨時 AD 帳號走真的 Keycloak，結束後三邊殘留 0。
   - [ ] 視訊畫質（T75）：`tests/prod-video-quality.sh`。
   - [ ] 共用畫面畫質（T85）：`tests/prod-screenshare.sh`（暫時用 tc 限制 dev1 往 Jitsi 媒體埠的上傳，測完移除）。
+  - [ ] 兩人以上自動開始錄影（T89）：`tests/prod-auto-record.sh`（會實際錄一段，測完刪除）。
 - [ ] 功能或畫面有改：重拍 Pages 中英日截圖（維護者）並逐張檢查沒有真實資料。
 
 ## 2. ZAP 弱點掃描（發版閘門）
@@ -114,6 +115,8 @@ CodeQL 掃描本 repo 的 Python（`jibri-recordings-api/`）、JavaScript（`te
 - [ ] SMTP 測試信成功；失敗訊息正確顯示。
 - [ ] T87 已建立的會議室補寄邀請：近期會議室清單的「邀請」按鈕（只有擁有者 / 管理員、SMTP 已啟用、會議未結束時顯示）→ 對話框帶入會議室名稱與時段、列出已邀請的人 → 填多個 email（逗號 / 空白 / 換行）→ 每人收到含邀請連結與 `.ics`（METHOD:REQUEST）的信，名單不重複；格式不對或超過 50 位整批不寄；非擁有者、無 CSRF、已結束的會議、SMTP 未啟用都會擋下；刪除會議室時這些受邀者也會收到取消通知（`tests/run-integration.sh`、`tests/unit/test_rooms.php`、`tests/e2e/meeting.cjs`）。
 - [ ] T88 會議主題：建立表單可填主題（可中文、最多 100 字，控制字元與多餘空白會整理掉）；近期清單、建立結果、來賓等候頁、主持人會議頁分頁標題與 Jitsi 會議標題顯示主題（HTML 跳脫、不會跳出 script）；邀請信主旨 / 內文、行事曆 SUMMARY、取消通知用主題，沒填用會議室名稱；邀請對話框可補填 / 修改主題並寫回；預設範本改 `{title}`，舊版預設也視為未自訂，自訂範本照舊（`tests/run-integration.sh`、`tests/unit/test_rooms.php`、`tests/unit/test_i18n.php`、`tests/e2e/meeting.cjs`）。
+- [ ] T89 兩人以上自動開始錄影：沒有自建 Jibri 時不顯示、硬送也不會存；有 Jibri 時預設不勾、勾選後存成開啟且清單顯示「自動錄影」；只有勾選的會議室在主持人會議頁帶自動錄影邏輯，來賓頁沒有（`tests/run-integration.sh`、`tests/unit/test_rooms.php`）。正式機（維護者）：`tests/prod-auto-record.sh`——主持人獨自不錄、第二人進來 40 秒內自動錄影、主持人停止後再有人進來不會再自動開始、只產生一段完成的錄影，結束後刪除測試錄影與會議室。
+- [ ] T90 建立會議室的稽核記錄：有排程 / 大廳模式 / 自動錄影時，說明不會出現「Array」，附註存代碼、依看的人語言顯示；舊版壞掉的記錄顯示成「會議室（舊版記錄未存名稱）」（`tests/unit/test_ical_audit.php`、`tests/run-integration.sh`）。
 
 ### 3.4 來賓
 - [ ] 邀請連結 `/room/<名稱>` 與舊式 `/invite?room=` 皆可用。
@@ -462,6 +465,8 @@ CodeQL 掃描本 repo 的 Python（`jibri-recordings-api/`）、JavaScript（`te
 | 共用畫面每秒格數設定 T84 | `tests/run-integration.sh` |
 | 共用畫面在上傳受限時的畫質 T85 | `tests/prod-screenshare.sh`（維護者，正式環境） |
 | 會議主題 T88 | `tests/run-integration.sh`、`tests/unit/test_rooms.php`、`tests/e2e/meeting.cjs` |
+| 兩人以上自動開始錄影 T89 | `tests/run-integration.sh`、`tests/unit/test_rooms.php`、`tests/prod-auto-record.sh`（維護者，正式環境） |
+| 建立會議室稽核附註 T90 | `tests/unit/test_ical_audit.php`、`tests/run-integration.sh` |
 | 已建立的會議室補寄邀請 T87 | `tests/run-integration.sh`（測試用 SMTP 收信器 `tests/stub/smtp-sink.php`）、`tests/unit/test_rooms.php`、`tests/e2e/meeting.cjs` |
 | PHP 安全設定 T86 | `tests/run-integration.sh` |
 | 錄影開始 / 停止 / 兩間同時 T70 | `tests/prod-entry-gates.sh`、`tests/prod-meeting-sim.sh`（維護者，正式環境） |

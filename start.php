@@ -31,6 +31,7 @@ $form_input = [
   'ends_at'   => (string)($_POST['ends_at']   ?? ''),
   'attendees' => (string)($_POST['attendees'] ?? ''),
   'lobby'     => !empty($_POST['lobby']) ? '1' : '',
+  'auto_record' => !empty($_POST['auto_record']) ? '1' : '',
   'transcribe' => !empty($_POST['transcribe']) ? '1' : '',
   'tx_lang'   => (string)($_POST['tx_lang'] ?? ''),
 ];
@@ -102,6 +103,8 @@ $opts = [
 if (!$entering) {
   $opts['title'] = Rooms::cleanTitle((string)($_POST['title'] ?? ''));
   $opts['lobby'] = !empty($_POST['lobby']);
+  // 自動錄影：有自建 Jibri 時才提供（JaaS 錄影另計費，不做自動）
+  $opts['auto_record'] = Settings::hasJibri() && !empty($_POST['auto_record']);
   // 逐字稿單場開關：表單有顯示（使用者可使用逐字稿）才寫入；否則維持 null（依帳號預設）
   if (!empty($_POST['transcribe_field']) && Settings::transcribeReady() && Transcripts::canUse($me)) {
     $opts['transcribe'] = !empty($_POST['transcribe']);
@@ -125,7 +128,9 @@ if (!empty($attendees)) {
 }
 
 if ($mode === 'create') {
-  Audit::log('room_create', tk('會議室「{room}」', ['room' => $room]) . ($starts_at ? t('（已設排程）') : '') . (!empty($_POST['lobby']) ? t('（大廳模式）') : ''));
+  // 附註存代碼（sched / lobby / arec），顯示時才翻譯（舊寫法把 tk() 陣列直接接字串，記錄會變成「Array（大廳模式）」）
+  $opts_codes = array_keys(array_filter(['sched' => (bool)$starts_at, 'lobby' => !empty($opts['lobby']), 'arec' => !empty($opts['auto_record'])]));
+  Audit::log('room_create', tk('會議室「{room}」{opts}', ['room' => $room, 'opts' => implode(',', $opts_codes)]));
   $q = '/dashboard?created=' . rawurlencode($room);
   if ($mail_result !== null) $q .= '&mail=' . rawurlencode($mail_result);
   header('Location: ' . $q);

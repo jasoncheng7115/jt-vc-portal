@@ -52,7 +52,8 @@ $form_title     = (string)($form_values['title']     ?? '');
 $form_starts_at = (string)($form_values['starts_at'] ?? '');
 $form_ends_at   = (string)($form_values['ends_at']   ?? '');
 $form_attendees = (string)($form_values['attendees'] ?? '');
-$form_lobby     = !empty($form_values) ? !empty($form_values['lobby']) : true;  // 新表單預設啟用大廳模式
+$form_lobby     = !empty($form_values) ? !empty($form_values['lobby']) : true;
+$form_autorec   = !empty($form_values['auto_record']);   // 自動錄影預設不勾（v1.25.0）  // 新表單預設啟用大廳模式
 $tx_can         = Settings::transcribeReady() && Transcripts::canUse($me);
 $form_tx        = !empty($form_values) ? !empty($form_values['transcribe']) : true;  // 可用逐字稿的帳號預設勾選（v1.16.3）；主要語言仍須自己選
 $schedule_open  = ($form_starts_at !== '' || $form_ends_at !== '' || $form_attendees !== '');
@@ -128,6 +129,7 @@ render_topbar($me, $ip);
         <?= th('會議室') ?> <strong style="font-family:var(--mono);color:var(--text);"><?= htmlspecialchars($created) ?></strong>
         <?php if ($created_data['starts_at']): ?> · <?= th('開放時段 {range}', ['range' => fmt_range($created_data['starts_at'], $created_data['ends_at'])]) ?><?php endif; ?>
         <?php if (!empty($created_data['lobby'])): ?> · <span style="color:var(--text);"><?= icon('lock', 12) ?><?= th('大廳模式') ?></span><?php endif; ?>
+        <?php if (!empty($created_data['auto_record'])): ?> · <span style="color:var(--text);"><?= icon('video', 12) ?><?= th('自動錄影') ?></span><?php endif; ?>
         <?php $crb = tx_room_badge($created_data); if ($crb !== ''): ?> · <?= $crb ?><?php endif; ?>
       </div>
       <div class="panel-link"><?= htmlspecialchars($invite_url) ?></div>
@@ -212,6 +214,16 @@ render_topbar($me, $ip);
         </span>
       </label>
 
+      <?php if (Settings::hasJibri()): ?>
+      <label class="lobby-toggle">
+        <input type="checkbox" name="auto_record" id="autoRecChk" value="1"<?= $form_autorec ? ' checked' : '' ?>>
+        <span class="lobby-text">
+          <span class="lobby-title"><?= icon('video', 14) ?><?= th('兩人以上自動開始錄影') ?></span>
+          <span class="help" style="margin:0;"><?= th('主持人在會議中、且有第二個人進來時自動開始錄影（每場一次；主持人手動停止後不會再自動開始）。所有與會者都會看到錄影中的提示。') ?></span>
+        </span>
+      </label>
+      <?php endif; ?>
+
       <?php if ($tx_can): ?>
       <input type="hidden" name="transcribe_field" value="1">
       <div class="tx-box">
@@ -268,6 +280,7 @@ render_topbar($me, $ip);
               <div class="room-meta">
                 <?= $badge ?>
                 <?php if (!empty($r['lobby'])): ?><span class="badge badge-accent"><?= icon('lock',11) ?><?= th('大廳模式') ?></span><?php endif; ?>
+                <?php if (!empty($r['auto_record'])): ?><span class="badge badge-accent"><?= icon('video',11) ?><?= th('自動錄影') ?></span><?php endif; ?>
                 <?= tx_room_badge($r) ?>
                 <span><?= th('建立於 {when}', ['when' => fmt_when($r['created_at'])]) ?></span>
                 <?php if ($is_admin && !empty($r['owner_name'])): ?><span><?= icon('user',11) ?> <?= htmlspecialchars($r['owner_name']) ?></span><?php endif; ?>

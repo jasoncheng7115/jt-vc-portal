@@ -212,4 +212,10 @@ return [
   '可以用中文。會寫在邀請信、行事曆、來賓等候頁與會議畫面標題；沒填就用會議室名稱。' => 'Any language is fine (e.g. Chinese). Used in invitation emails, the calendar entry, the guest waiting page and the meeting title; if left empty, the room name is used.',
   '寫在邀請信主旨、內文與行事曆標題；修改後也會更新這間會議室的主題。' => 'Used in the invitation subject, body and calendar title; changing it here also updates this room\'s topic.',
   '會議主題（選填）' => 'Meeting topic (optional)',
+  '主持人在會議中、且有第二個人進來時自動開始錄影（每場一次；主持人手動停止後不會再自動開始）。所有與會者都會看到錄影中的提示。' => 'Recording starts automatically when the host is in the meeting and a second person joins (once per meeting; if the host stops it manually, it will not start again automatically). Everyone sees the recording indicator.',
+  '兩人以上自動開始錄影' => 'Start recording automatically when 2 or more people are present',
+  '自動錄影' => 'Auto-record',
+  '會議室「{room}」{opts}' => 'Room "{room}"{opts}',
+  '（自動錄影）' => ' (auto-record)',
+  '會議室（舊版記錄未存名稱）' => 'Room (name not recorded by the old version)',
 ];

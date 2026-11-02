@@ -96,4 +96,21 @@ test('Audit（T83）：錄影類訊息不顯示 UUID，改成會議室＋錄影�
   eq(Audit::detailText(['detail' => '下載錄影 abc（舊版純文字）']), '下載錄影 abc（舊版純文字）', '更早的純文字記錄照原樣');
 });
 
+test('T90 建立會議室的稽核附註：存代碼、依看的人語言顯示，不會出現「Array」', function () {
+  require_once '/app/lib/audit.php';
+  I18n::set('zh-TW');
+  Audit::log('room_create', tk('會議室「{room}」{opts}', ['room' => 'r90', 'opts' => 'sched,lobby,arec']));
+  $all = Audit::query(1000); $e = null;
+  foreach ($all as $x) if (($x['dv']['room'] ?? '') === 'r90') $e = $x;
+  ok(!str_contains((string)$e['detail'], 'Array'), '存下的說明沒有 Array');
+  eq(Audit::detailText($e), '會議室「r90」（已設排程）（大廳模式）（自動錄影）', '中文顯示');
+  I18n::set('en');
+  eq(Audit::detailText($e), 'Room "r90" (scheduled) (lobby mode) (auto-record)', '英文介面看同一筆，附註也是英文');
+  I18n::set('zh-TW');
+  Audit::log('room_create', tk('會議室「{room}」{opts}', ['room' => 'r90b', 'opts' => '']));
+  foreach (Audit::query(1000) as $x) if (($x['dv']['room'] ?? '') === 'r90b') $e2 = $x;
+  eq(Audit::detailText($e2), '會議室「r90b」', '沒有附註時只有會議室');
+  eq(Audit::detailText(['action' => 'room_create', 'detail' => 'Array（大廳模式）']), '會議室（舊版記錄未存名稱）（大廳模式）', '舊版壞掉的記錄顯示成看得懂的文字');
+});
+
 summary();
