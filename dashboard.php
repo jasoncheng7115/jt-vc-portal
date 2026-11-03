@@ -87,11 +87,12 @@ function fmt_dur_s(int $s): string {
   $h = intdiv($m, 60); $mm = $m % 60;
   return $mm ? t('{h} 時 {m} 分', ['h' => $h, 'm' => $mm]) : t('{h} 時', ['h' => $h]);
 }
+$mail_err = (string)($_SESSION['mail_err'] ?? ''); unset($_SESSION['mail_err']);   // 建立時寄信失敗的第一個原因（v1.25.1）
 function mail_flash_text(string $m): string {
   if ($m === 'smtp_off') return t('（SMTP 未啟用，邀請信未寄出，僅建立連結）');
   if (preg_match('/sent_(\d+)_fail_(\d+)/', $m, $x)) {
     return $x[2] > 0
-      ? t('（邀請信：成功 {ok} 封、失敗 {fail} 封）', ['ok' => $x[1], 'fail' => $x[2]])
+      ? t('（邀請信：成功 {ok} 封、失敗 {fail} 封）', ['ok' => $x[1], 'fail' => $x[2]]) . ($GLOBALS['mail_err'] !== '' ? t('原因：{reason}（詳細內容見稽核記錄「邀請郵件寄送失敗」）', ['reason' => $GLOBALS['mail_err']]) : '')
       : t('（邀請信：成功 {ok} 封）', ['ok' => $x[1]]);
   }
   return '';

@@ -34,4 +34,5 @@ Rooms::delete($name);
 $detail = t('會議室「{room}」', ['room' => $name]);
 if (preg_match('/sent_(\d+)_fail_(\d+)/', $mail, $x)) $detail .= t('（取消通知：成功 {ok} 封、失敗 {fail} 封）', ['ok' => $x[1], 'fail' => $x[2]]);
 Audit::log('room_delete', $detail);
-$back('room_msg', t('已刪除會議室「{room}」。', ['room' => $name]) . ($mail === 'smtp_off' ? t('（SMTP 未啟用，未寄出取消通知）') : ''));
+$cancelFail = preg_match('/sent_\d+_fail_([1-9]\d*)/', $mail, $cf) ? t('（取消通知有 {n} 封寄送失敗：{reason}；詳細內容見稽核記錄）', ['n' => $cf[1], 'reason' => Invites::firstErrorText()]) : '';
+$back('room_msg', t('已刪除會議室「{room}」。', ['room' => $name]) . ($mail === 'smtp_off' ? t('（SMTP 未啟用，未寄出取消通知）') : '') . $cancelFail);

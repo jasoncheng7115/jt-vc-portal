@@ -297,6 +297,30 @@ chk "T87 刪除會議室 → 兩位受邀者收到取消通知" "$(mailtxt | gre
 T=$(csrf $A /dashboard)
 curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-topic' $B/room-delete
 has "T88 取消通知主旨也用主題" "$(lastmail)" 'Subject: 會議已取消：第四季產品規劃會議'
+echo "== T91 寄信失敗看得到原因（畫面、稽核記錄、容器 log）"
+T=$(csrf $A /dashboard)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-fail&mode=create' $B/start
+inv $A -d 'room=itest-fail' --data-urlencode 'emails=ok91@example.com, reject@example.com'
+has "T91 畫面顯示失敗原因（收件伺服器拒收）" "$(curl -s -b $A $B/dashboard)" '成功 1 封、失敗 1 封。原因：收件伺服器拒收這個地址'
+AL=$(docker exec $NAME sh -c 'grep "\"invite_fail\"" /var/jaas-data/audit-log.jsonl | tail -1')
+has "T91 稽核記下失敗的收件者" "$AL" '"to":"reject@example.com"'
+has "T91 稽核記下錯誤代碼與伺服器原始回應" "$AL" '"reason":"rejected"'
+has "T91 原始回應（550 user unknown）" "$AL" '550 5.1.1'
+has "T91 稽核記錄頁以白話顯示原因並附原始回應" "$(curl -s -b $A "$B/audit-log?q=reject@example.com")" '收件伺服器拒收這個地址（rcpt: 550 5.1.1'
+SL=$(docker exec $NAME sh -c 'grep "\"invite_sent\"" /var/jaas-data/audit-log.jsonl | tail -1')
+has "T91 寄出成功的記錄只列成功的人" "$SL" 'ok91@example.com'
+hasnt "T91 寄出成功的記錄不含失敗的人" "$SL" 'reject@example.com'
+has "T91 容器 log 也有一行（docker logs）" "$(docker logs $NAME 2>&1 | grep 'invite mail failed' | tail -1)" 'to=reject@example.com code=rejected'
+T=$(csrf $A /settings)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'section=smtp&enabled=1&host=127.0.0.1&port=2599&security=none&username=&from_email=noreply@example.com' $B/save-settings
+inv $A -d 'room=itest-fail' --data-urlencode 'emails=ok91b@example.com'
+has "T91 連不上 SMTP 主機 → 畫面說明原因" "$(curl -s -b $A $B/dashboard)" '原因：連不上 SMTP 主機'
+has "T91 連線失敗也記到稽核" "$(docker exec $NAME sh -c 'grep "\"invite_fail\"" /var/jaas-data/audit-log.jsonl | tail -1')" '"reason":"connect"'
+T=$(csrf $A /settings)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'section=smtp&enabled=1&host=127.0.0.1&port=2525&security=none&username=&from_email=noreply@example.com' $B/save-settings
+T=$(csrf $A /dashboard)
+curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-fail' $B/room-delete
+has "T91 刪除會議室：取消通知寄送失敗也說明原因" "$(curl -s -b $A $B/dashboard)" '取消通知有 1 封寄送失敗：收件伺服器拒收這個地址'
 T=$(csrf $A /settings)
 curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'section=smtp&host=smtp.example.com&port=587&security=starttls&from_email=a@example.com' $B/save-settings
 echo "== 視訊服務健康檢查與故障頁（v1.16.0）"

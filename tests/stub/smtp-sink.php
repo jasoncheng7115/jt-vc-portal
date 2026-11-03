@@ -16,6 +16,7 @@ while ($c = @stream_socket_accept($srv, -1)) {
     $cmd = strtoupper(substr(trim($line), 0, 4));
     if ($cmd === 'EHLO' || $cmd === 'HELO') fwrite($c, "250 sink\r\n");
     elseif ($cmd === 'DATA') { $data = ''; fwrite($c, "354 go\r\n"); }
+    elseif ($cmd === 'RCPT' && stripos($line, 'reject@') !== false) fwrite($c, "550 5.1.1 <reject@example.com>: user unknown\r\n");   // 模擬收件伺服器拒收（T91）
     elseif ($cmd === 'QUIT') { fwrite($c, "221 bye\r\n"); break; }
     else fwrite($c, "250 ok\r\n");
   }

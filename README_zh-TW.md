@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.25.0 — 會議管理系統
+# jt-vc-portal v1.25.1 — 會議管理系統
 
 > English: [README.md](README.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -213,14 +213,14 @@ server {
 
 ```bash
 # 1) 從 Release 頁下載映像與校驗檔（請改用最新版本號）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.0/jt-vc-portal-1.25.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.0/jt-vc-portal-1.25.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.1/jt-vc-portal-1.25.1-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.1/jt-vc-portal-1.25.1-docker-amd64.tar.gz.sha256
 
 # 2) 驗證完整性（應顯示 OK）
-sha256sum -c jt-vc-portal-1.25.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.25.1-docker-amd64.tar.gz.sha256
 
-# 3) 載入映像（會建立 jt-vc-portal:1.25.0 與 :latest 標籤）
-docker load < jt-vc-portal-1.25.0-docker-amd64.tar.gz
+# 3) 載入映像（會建立 jt-vc-portal:1.25.1 與 :latest 標籤）
+docker load < jt-vc-portal-1.25.1-docker-amd64.tar.gz
 
 # 4) 主機端準備持久化目錄（www-data UID 預設 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -362,7 +362,7 @@ docker run -d --restart unless-stopped \
    - **登入頁路徑**（選填）：把登入入口改成祕密路徑（見下方）。
    - **會議室介面**：預設 UI 語言（預設繁體中文）。
    - **錄製設定**（選填）：錄製者顯示名稱、串接自建 Jibri 錄影調閱服務與保留政策。
-   - **SMTP**（選填）：寄送 `.ics` 邀請信。
+   - **SMTP**（選填）：寄送 `.ics` 邀請信。可用「寄送測試信」檢查設定；寄信失敗時，畫面會說明原因，詳細內容（收件者、白話原因與伺服器原始回應）記在稽核記錄「邀請郵件寄送失敗」（也會外拋 SIEM），容器 log 也有一行（`docker logs <容器> | grep 'mail failed'`）。
    - **登入記錄外拋**（選填）：syslog / CEF / GELF。
 3. 到 **個人設定** 變更密碼並啟用 2FA。
 4. 回儀表板即可建立會議室。

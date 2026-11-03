@@ -2,6 +2,12 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.25.1 — See why an email failed
+
+- When an invitation or cancellation email fails, the page now explains why (e.g. "The SMTP username or password was rejected", "Cannot reach the SMTP host", "The recipient's server rejected this address") instead of only showing how many failed.
+- New audit entry "Invitation email failed": each failed email records the recipient, a plain-language reason and the SMTP server's raw reply (never the password), shown in the viewer's language and forwarded to the SIEM; one line also goes to the container log (`docker logs <container> | grep 'mail failed'`). The "Sent invitation email" entry now lists only the recipients that actually succeeded.
+- Test T91 (the integration test's SMTP receiver simulates a 550 rejection and an unreachable host).
+
 ## v1.25.0 — Start recording automatically when two people are present
 
 - New room option "Start recording automatically when 2 or more people are present" (off by default, above "Generate transcript and summary after recording"; shown only with a self-hosted Jibri). When on, recording starts as soon as the host is in the meeting and a second person joins — together with the transcript option, nobody has to remember to press record.

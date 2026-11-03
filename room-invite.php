@@ -38,8 +38,9 @@ if (isset($_POST['title'])) Rooms::setTitle($name, (string)$_POST['title']);   /
 Rooms::addAttendees($name, $emails);
 $result = Invites::send($name, Rooms::get($name) ?? $room, $emails, $me);
 if (!preg_match('/sent_(\d+)_fail_(\d+)/', $result, $x)) $back('room_error', t('邀請信寄送失敗，請稍後再試。'));
-Audit::log('invite_sent', tk('會議室「{room}」寄給 {n} 位：{emails}', ['room' => $name, 'n' => count($emails), 'emails' => implode(', ', $emails)]));
+$okList = array_values(array_diff($emails, array_column(Invites::$lastErrors, 'to')));   // 只記成功寄出的（失敗的另有 invite_fail）
+if ($okList) Audit::log('invite_sent', tk('會議室「{room}」寄給 {n} 位：{emails}', ['room' => $name, 'n' => count($okList), 'emails' => implode(', ', $okList)]));
 if ((int)$x[2] > 0) {
-  $back('room_error', t('邀請信：成功 {ok} 封、失敗 {fail} 封。請檢查 SMTP 設定或收件地址。', ['ok' => $x[1], 'fail' => $x[2]]));
+  $back('room_error', t('邀請信：成功 {ok} 封、失敗 {fail} 封。原因：{reason}（詳細內容見稽核記錄「邀請郵件寄送失敗」）', ['ok' => $x[1], 'fail' => $x[2], 'reason' => Invites::firstErrorText()]));
 }
 $back('room_msg', t('已寄出會議「{room}」的邀請給 {n} 位（含行事曆邀請）。', ['room' => $name, 'n' => (int)$x[1]]));

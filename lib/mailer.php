@@ -61,6 +61,40 @@ class Mailer {
     return false;
   }
 
+  /** 把寄信錯誤（sendInvite 回傳的原始訊息）歸類成代碼，供稽核 / 畫面顯示白話原因（v1.25.1）。 */
+  public static function errorCode(string $raw): string {
+    $r = strtolower($raw);
+    if ($r === 'smtp disabled' || str_starts_with($r, 'missing smtp')) return 'config';
+    if (str_starts_with($r, 'connect:')) return 'connect';
+    if (str_starts_with($r, 'starttls') || str_contains($r, 'tls handshake')) return 'tls';
+    if (str_starts_with($r, 'auth')) return 'auth';
+    if ($r === 'invalid recipient') return 'recipient';
+    if (str_starts_with($r, 'rcpt:')) return 'rejected';
+    if (str_starts_with($r, 'mail from:')) return 'sender';
+    if (str_starts_with($r, 'greeting:') || str_starts_with($r, 'ehlo')) return 'server';
+    return 'other';
+  }
+
+  /** 錯誤代碼的白話說明（依目前介面語言）。 */
+  public static function reasonText(string $code): string {
+    return match ($code) {
+      'config'    => t('SMTP 設定不完整或未啟用'),
+      'connect'   => t('連不上 SMTP 主機（主機、連接埠或防火牆）'),
+      'tls'       => t('TLS 加密連線失敗（加密方式或憑證）'),
+      'auth'      => t('SMTP 帳號或密碼被拒'),
+      'recipient' => t('收件地址格式不正確'),
+      'rejected'  => t('收件伺服器拒收這個地址'),
+      'sender'    => t('寄件地址被 SMTP 伺服器拒絕'),
+      'server'    => t('SMTP 伺服器回應異常'),
+      default     => t('寄送失敗'),
+    };
+  }
+
+  /** 原始錯誤訊息整理成單行、去控制字元、最多 200 字（寫稽核 / log 用；不含密碼）。 */
+  public static function cleanError(string $raw): string {
+    return mb_substr(trim(preg_replace('/[\x00-\x1F\x7F]+/', ' ', $raw) ?? ''), 0, 200);
+  }
+
   /** 套用範本：以 {key} 取代 $vars 對應值。 */
   public static function renderTemplate(string $tpl, array $vars): string {
     foreach ($vars as $k => $v) {

@@ -113,4 +113,18 @@ test('T90 建立會議室的稽核附註：存代碼、依看的人語言顯示�
   eq(Audit::detailText(['action' => 'room_create', 'detail' => 'Array（大廳模式）']), '會議室（舊版記錄未存名稱）（大廳模式）', '舊版壞掉的記錄顯示成看得懂的文字');
 });
 
+test('T91 寄信失敗：錯誤歸類、依語言顯示白話原因並附原始訊息', function () {
+  require_once '/app/lib/mailer.php'; require_once '/app/lib/audit.php';
+  $cases = ['connect: Connection refused (111)' => 'connect', 'auth pass rejected' => 'auth', 'starttls: 454 TLS not available' => 'tls', 'tls handshake failed' => 'tls',
+            'rcpt: 550 5.1.1 user unknown' => 'rejected', 'mail from: 553 sender rejected' => 'sender', 'invalid recipient' => 'recipient', 'missing smtp host' => 'config', 'send: 451 try later' => 'other'];
+  foreach ($cases as $raw => $code) eq(Mailer::errorCode($raw), $code, $raw);
+  eq(Mailer::cleanError("rcpt: 550\r\nX-Injected: 1"), 'rcpt: 550 X-Injected: 1', '換行等控制字元收成空白（不會在稽核 / log 裡造成假的一行）');
+  I18n::set('zh-TW');
+  $e = ['action' => 'invite_fail', 'dk' => '邀請信寄給 {to} 失敗（會議室「{room}」）：{reason}', 'dv' => ['to' => 'x@example.com', 'room' => 'r91', 'reason' => 'auth', 'raw' => 'auth pass rejected']];
+  eq(Audit::detailText($e), '邀請信寄給 x@example.com 失敗（會議室「r91」）：SMTP 帳號或密碼被拒（auth pass rejected）');
+  I18n::set('en');
+  eq(Audit::detailText($e), 'Invitation to x@example.com failed (room "r91"): The SMTP username or password was rejected (auth pass rejected)');
+  I18n::set('zh-TW');
+});
+
 summary();

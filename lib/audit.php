@@ -35,6 +35,7 @@ class Audit {
       'room_enter'     => t('進入會議室（主持）'),
       'guest_join'     => t('來賓進入會議'),
       'invite_sent'    => t('寄送邀請郵件'),
+      'invite_fail'    => t('邀請郵件寄送失敗'),
       'account_create' => t('建立帳號'),
       'account_update' => t('修改帳號'),
       'account_delete' => t('刪除帳號'),
@@ -209,6 +210,11 @@ class Audit {
 
   private static function render(string $dk, array $dv): string {
     $dk = self::REC_KEYS[$dk] ?? $dk;
+    if (str_contains($dk, '{reason}')) {   // 寄信失敗原因（v1.25.1）：存代碼與原始訊息，顯示時翻成白話並附原始訊息
+      require_once __DIR__ . '/mailer.php';
+      $raw = (string)($dv['raw'] ?? '');
+      $dv['reason'] = Mailer::reasonText((string)($dv['reason'] ?? '')) . ($raw !== '' ? t('（{raw}）', ['raw' => $raw]) : '');
+    }
     if (str_contains($dk, '{opts}')) {   // 建立會議室的附註（v1.25.0）：存代碼、顯示時依看的人的語言翻譯
       $tags = ['sched' => t('（已設排程）'), 'lobby' => t('（大廳模式）'), 'arec' => t('（自動錄影）')];
       $dv['opts'] = implode('', array_map(fn($c) => $tags[$c] ?? '', array_filter(explode(',', (string)($dv['opts'] ?? '')))));

@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.25.0 — 会議管理システム
+# jt-vc-portal v1.25.1 — 会議管理システム
 
 > English: [README.md](README.md) · 繁體中文: [README_zh-TW.md](README_zh-TW.md)
 
@@ -213,14 +213,14 @@ server {
 
 ```bash
 # 1) Release ページからイメージとチェックサムファイルをダウンロード（最新のバージョン番号を使用）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.0/jt-vc-portal-1.25.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.0/jt-vc-portal-1.25.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.1/jt-vc-portal-1.25.1-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.1/jt-vc-portal-1.25.1-docker-amd64.tar.gz.sha256
 
 # 2) 完全性を検証（OK と表示されるはず）
-sha256sum -c jt-vc-portal-1.25.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.25.1-docker-amd64.tar.gz.sha256
 
-# 3) イメージを読み込む（jt-vc-portal:1.25.0 と :latest のタグが作成される）
-docker load < jt-vc-portal-1.25.0-docker-amd64.tar.gz
+# 3) イメージを読み込む（jt-vc-portal:1.25.1 と :latest のタグが作成される）
+docker load < jt-vc-portal-1.25.1-docker-amd64.tar.gz
 
 # 4) ホスト側で永続ディレクトリを準備（www-data の UID は既定で 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -362,7 +362,7 @@ docker run -d --restart unless-stopped \
    - **ログインページのパス**（任意）：ログインの入口を秘密のパスに変更します（後述）。
    - **会議室のインターフェース**：既定の UI 言語（既定は繁体字中国語）。
    - **録画設定**（任意）：録画者の表示名、自前ホストの Jibri 録画閲覧サービスへの接続、保持ポリシー。
-   - **SMTP**（任意）：`.ics` 招待メールの送信。
+   - **SMTP**（任意）：`.ics` 招待メールの送信。「テストメールを送信」で設定を確認できます。送信に失敗すると画面に原因が表示され、詳細（宛先、わかりやすい原因、サーバーの生の応答）は監査ログの「招待メール送信失敗」に記録され（SIEM にも転送）、コンテナのログにも 1 行出力されます（`docker logs <コンテナ> | grep 'mail failed'`）。
    - **ログイン記録の転送**（任意）：syslog / CEF / GELF。
 3. **プロフィール**でパスワードを変更し、2FA を有効にします。
 4. ダッシュボードに戻って会議室を作成します。

@@ -9,8 +9,12 @@ require_once __DIR__ . '/mailer.php';
 require_once __DIR__ . '/ical.php';
 require_once __DIR__ . '/settings.php';
 require_once __DIR__ . '/rooms.php';
+require_once __DIR__ . '/audit.php';
 
 class Invites {
+  /** 最近一次 send() 的失敗清單：[['to' => email, 'code' => 錯誤代碼, 'raw' => 原始訊息], …]（v1.25.1） */
+  public static array $lastErrors = [];
+
   /** 單次最多寄送幾位（防止被拿來大量寄信） */
   public const MAX_PER_SEND = 50;
 
@@ -32,6 +36,7 @@ class Invites {
    * $room 為房間資料（需含 created_at；starts_at / ends_at 可為 null）。
    */
   public static function send(string $roomName, array $room, array $attendees, array $me, string $method = 'REQUEST'): string {
+    self::$lastErrors = [];
     $cfg = Mailer::config();
     if (empty($cfg['enabled'])) return 'smtp_off';
     if (!$attendees) return 'sent_0_fail_0';
@@ -77,7 +82,7 @@ class Invites {
         'start'          => $start,
         'end'            => $end,
       ]);
-      [$ok] = Mailer::sendInvite([
+      [$ok, $err] = Mailer::sendInvite([
         'to' => $to,
         'subject' => $subject,
         'bodyText' => $body,
@@ -85,8 +90,24 @@ class Invites {
         'icsMethod' => $cancel ? 'CANCEL' : 'REQUEST',
         'icsFilename' => $cancel ? 'cancel.ics' : 'invite.ics',
       ], $cfg);
-      $ok ? $sent++ : $failed++;
+      if ($ok) { $sent++; continue; }
+      $failed++;
+      $raw = Mailer::cleanError((string)$err);
+      $code = Mailer::errorCode($raw);
+      self::$lastErrors[] = ['to' => $to, 'code' => $code, 'raw' => $raw];
+      // 失敗原因記到稽核（依看的人語言顯示、外拋 SIEM）與容器 log（docker logs）
+      Audit::log('invite_fail', $cancel
+        ? tk('取消通知寄給 {to} 失敗（會議室「{room}」）：{reason}', ['to' => $to, 'room' => $roomName, 'reason' => $code, 'raw' => $raw])
+        : tk('邀請信寄給 {to} 失敗（會議室「{room}」）：{reason}', ['to' => $to, 'room' => $roomName, 'reason' => $code, 'raw' => $raw]),
+        ['result' => 'fail']);
+      error_log('jt-vc-portal: ' . ($cancel ? 'cancel' : 'invite') . " mail failed room={$roomName} to={$to} code={$code} error={$raw}");
     }
     return "sent_{$sent}_fail_{$failed}";
+  }
+
+  /** 給畫面用：第一個失敗原因的白話說明（沒有失敗回空字串）。 */
+  public static function firstErrorText(): string {
+    $e = self::$lastErrors[0] ?? null;
+    return $e ? Mailer::reasonText($e['code']) : '';
   }
 }

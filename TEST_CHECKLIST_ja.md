@@ -117,6 +117,7 @@ CodeQL は本リポジトリの Python（`jibri-recordings-api/`）、JavaScript
 - [ ] T88 会議のテーマ：作成フォームでテーマを入力できる（日本語・中国語可、最大 100 文字。制御文字や余分な空白は整理される）。最近の会議室一覧、作成結果、ゲストの待機ページ、ホストの会議ページのタブタイトル、Jitsi の会議タイトルにテーマが表示される（HTML エスケープ済み、script から抜け出せない）。招待メールの件名 / 本文、カレンダーの SUMMARY、取消通知にテーマを使い、未入力なら会議室名を使う。招待ダイアログでテーマを追加 / 変更でき保存される。既定テンプレートは `{title}` を使い、旧既定もカスタマイズなしと判定され、カスタマイズ済みテンプレートは変わらない（`tests/run-integration.sh`、`tests/unit/test_rooms.php`、`tests/unit/test_i18n.php`、`tests/e2e/meeting.cjs`）。
 - [ ] T89 2 人以上で自動録画：セルフホストの Jibri がない場合はオプションが表示されず、強制送信しても保存されない。Jibri がある場合は既定でオフ、オンにすると保存され一覧に「自動録画」バッジが表示される。オンの会議室だけホストの会議ページに自動録画のロジックが入り、ゲストページには入らない（`tests/run-integration.sh`、`tests/unit/test_rooms.php`）。本番（メンテナー）：`tests/prod-auto-record.sh`——ホスト 1 人では録画しない、2 人目の参加から 40 秒以内に自動録画、ホストが停止した後は参加者が来ても自動再開しない、完了した録画が 1 本だけ。終了後にテスト録画と会議室を削除。
 - [ ] T90 会議室作成の監査ログ：スケジュール / ロビーモード / 自動録画があっても説明に「Array」が出ない。注記はコードで保存し閲覧者の言語で表示する。旧バージョンの壊れた記録は「会議室（旧バージョンでは名前を記録していません）」と表示（`tests/unit/test_ical_audit.php`、`tests/run-integration.sh`）。
+- [ ] T91 メール送信失敗の原因が見える：受信サーバーの 550 拒否 / SMTP ホスト接続不可のとき、招待ボタン、会議室作成、会議室削除（取消通知）の画面に原因が表示される。監査ログ「招待メール送信失敗」に宛先、コード、生の応答が記録され、閲覧者の言語でわかりやすい原因を表示。「招待メール送信」は成功した宛先のみ。コンテナログに `invite mail failed` の行がある。生の応答は改行が除去されパスワードを含まない（`tests/run-integration.sh`、`tests/unit/test_ical_audit.php`）。
 
 ### 3.4 ゲスト
 - [ ] 招待リンク `/room/<name>` と旧形式の `/invite?room=` のどちらも機能する。
@@ -467,6 +468,7 @@ CodeQL は本リポジトリの Python（`jibri-recordings-api/`）、JavaScript
 | 会議のテーマ T88 | `tests/run-integration.sh`、`tests/unit/test_rooms.php`、`tests/e2e/meeting.cjs` |
 | 2 人以上で自動録画 T89 | `tests/run-integration.sh`、`tests/unit/test_rooms.php`、`tests/prod-auto-record.sh`（メンテナー、本番環境） |
 | 会議室作成の監査注記 T90 | `tests/unit/test_ical_audit.php`、`tests/run-integration.sh` |
+| メール送信失敗の原因 T91 | `tests/run-integration.sh`（`tests/stub/smtp-sink.php` で 550 拒否を再現）、`tests/unit/test_ical_audit.php` |
 | 作成済みの会議室への追加招待 T87 | `tests/run-integration.sh`（テスト用 SMTP 受信 `tests/stub/smtp-sink.php`）、`tests/unit/test_rooms.php`、`tests/e2e/meeting.cjs` |
 | PHP のセキュリティ設定 T86 | `tests/run-integration.sh` |
 | 録画の開始 / 停止 / 2 部屋同時 T70 | `tests/prod-entry-gates.sh`、`tests/prod-meeting-sim.sh`（メンテナー、本番環境） |

@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.25.0 — Meeting Management System
+# jt-vc-portal v1.25.1 — Meeting Management System
 
 > 繁體中文: [README_zh-TW.md](README_zh-TW.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -213,14 +213,14 @@ Don't want to build it yourself? Download the packaged image (`linux/amd64`) att
 
 ```bash
 # 1) Download the image and checksum file from the Release page (use the latest version number)
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.0/jt-vc-portal-1.25.0-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.0/jt-vc-portal-1.25.0-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.1/jt-vc-portal-1.25.1-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.1/jt-vc-portal-1.25.1-docker-amd64.tar.gz.sha256
 
 # 2) Verify integrity (should print OK)
-sha256sum -c jt-vc-portal-1.25.0-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.25.1-docker-amd64.tar.gz.sha256
 
-# 3) Load the image (creates the jt-vc-portal:1.25.0 and :latest tags)
-docker load < jt-vc-portal-1.25.0-docker-amd64.tar.gz
+# 3) Load the image (creates the jt-vc-portal:1.25.1 and :latest tags)
+docker load < jt-vc-portal-1.25.1-docker-amd64.tar.gz
 
 # 4) Prepare persistent directories on the host (www-data UID defaults to 33)
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -362,7 +362,7 @@ docker run -d --restart unless-stopped \
    - **Login page path** (optional): change the login entry point to a secret path (see below).
    - **Meeting room interface**: default UI language (Traditional Chinese by default).
    - **Recording settings** (optional): recorder display name, connection to the self-hosted Jibri recording retrieval service, and retention policies.
-   - **SMTP** (optional): send `.ics` invitation emails.
+   - **SMTP** (optional): send `.ics` invitation emails. Use "Send test email" to check the settings; when sending fails, the page shows the reason, and the details (recipient, plain-language reason and the server's raw reply) are recorded in the audit log as "Invitation email failed" (also forwarded to the SIEM), plus one line in the container log (`docker logs <container> | grep 'mail failed'`).
    - **Login log forwarding** (optional): syslog / CEF / GELF.
 3. Go to **Profile** to change your password and enable 2FA.
 4. Return to the dashboard to create meeting rooms.

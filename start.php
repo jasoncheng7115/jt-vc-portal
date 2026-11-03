@@ -122,8 +122,10 @@ Rooms::upsert($room, $opts);
 $mail_result = null;
 if (!empty($attendees)) {
   $mail_result = Invites::send($room, Rooms::get($room) ?? ['created_at' => time(), 'starts_at' => $starts_at, 'ends_at' => $ends_at], $attendees, $me);
-  if (strpos((string)$mail_result, 'sent_') === 0) {
-    Audit::log('invite_sent', tk('會議室「{room}」寄給 {n} 位：{emails}', ['room' => $room, 'n' => count($attendees), 'emails' => implode(', ', $attendees)]));
+  if (Invites::$lastErrors) $_SESSION['mail_err'] = Invites::firstErrorText();   // 建立結果旁顯示第一個失敗原因
+  $okList = array_values(array_diff($attendees, array_column(Invites::$lastErrors, 'to')));   // 只記成功寄出的（失敗的另有 invite_fail）
+  if (strpos((string)$mail_result, 'sent_') === 0 && $okList) {
+    Audit::log('invite_sent', tk('會議室「{room}」寄給 {n} 位：{emails}', ['room' => $room, 'n' => count($okList), 'emails' => implode(', ', $okList)]));
   }
 }
 
