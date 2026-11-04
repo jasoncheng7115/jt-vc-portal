@@ -238,3 +238,5 @@ footer .ftlinks{display:flex;gap:18px;flex-wrap:wrap}
 .sec-notice code{background:#fef3c7;padding:0 4px;border-radius:4px;font-size:13px;white-space:nowrap}
 .sec-notice code.long{white-space:normal;overflow-wrap:anywhere}
 .sec-notice a{color:#b45309;font-weight:600;margin-left:4px}
+.sec-report{margin:16px 0 0;font-size:14px;line-height:1.7;color:var(--muted)}
+.sec-report a{font-weight:600}

@@ -509,6 +509,10 @@ sudo -u www-data php login-path.php reset
 <br>
 <br>
 
+## 資安通報
+
+資安問題請依 [SECURITY.md](SECURITY.md) 通報（請勿開公開 issue）。已發布的安全公告：[Security advisories](https://github.com/jasoncheng7115/jt-vc-portal/security/advisories)。
+
 ## 授權
 
 本專案以 [GNU 通用公共授權條款第 3 版（GPL-3.0）](LICENSE) 釋出（GPL-3.0-only）。

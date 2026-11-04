@@ -509,6 +509,10 @@ Follows OWASP Top 10:2025, item by item:
 <br>
 <br>
 
+## Security
+
+To report a security issue, please follow [SECURITY.md](SECURITY.md) (do not open a public issue). Published advisories: [Security advisories](https://github.com/jasoncheng7115/jt-vc-portal/security/advisories).
+
 ## License
 
 This project is released under the [GNU General Public License v3.0](LICENSE) (GPL-3.0-only).

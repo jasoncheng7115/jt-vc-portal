@@ -509,6 +509,10 @@ OWASP Top 10:2025 に項目ごとに準拠しています。
 <br>
 <br>
 
+## セキュリティ報告
+
+セキュリティ上の問題は [SECURITY.md](SECURITY.md) に従って報告してください（公開 issue は作成しないでください）。公開済みのセキュリティアドバイザリ：[Security advisories](https://github.com/jasoncheng7115/jt-vc-portal/security/advisories)。
+
 ## ライセンス
 
 本プロジェクトは [GNU General Public License v3.0](LICENSE)（GPL-3.0-only）の下で公開されています。
