@@ -77,6 +77,20 @@ class Auth {
   }
 
   /** 真實來源 IP：可信反向代理才採信 X-Real-IP / X-Forwarded-For 首段，否則用 REMOTE_ADDR。 */
+  /**
+   * JTVC_TRUSTED_PROXIES 未設定時給管理員的建議（v1.25.2）；已設定回 null。
+   * 留空＝沿用舊行為（一律採信 X-Real-IP / X-Forwarded-For），登入鎖定與稽核來源 IP 可被偽造。
+   * 有轉送標頭＝看起來經過反向代理 → 建議填這次連線的來源（反代位址）；沒有＝建議 127.0.0.1（不採信任何轉送標頭）。
+   */
+  public static function proxyAdvice(?string $trusted = null, ?array $srv = null): ?array {
+    $trusted = trim((string)($trusted ?? (defined('TRUSTED_PROXIES') ? TRUSTED_PROXIES : '')));
+    if ($trusted !== '') return null;
+    $srv ??= $_SERVER;
+    $via = !empty($srv['HTTP_X_REAL_IP']) || !empty($srv['HTTP_X_FORWARDED_FOR']) || !empty($srv['HTTP_X_FORWARDED_PROTO']);
+    $remote = (string)($srv['REMOTE_ADDR'] ?? '');
+    return ['via_proxy' => $via, 'remote' => $remote, 'suggest' => $via && filter_var($remote, FILTER_VALIDATE_IP) ? $remote : '127.0.0.1'];
+  }
+
   public static function clientIp(): string {
     if (self::trustProxyHeaders()) {
       if (!empty($_SERVER['HTTP_X_REAL_IP'])) {

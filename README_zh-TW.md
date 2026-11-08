@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.25.1 — 會議管理系統
+# jt-vc-portal v1.25.2 — 會議管理系統
 
 > English: [README.md](README.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -133,7 +133,7 @@ systemctl reload apache2
 - `DATA_DIR`：持久化資料目錄（預設 `/var/jaas-data`）。
 - `JWT_PRIVATE_KEY_PATH`：JaaS RS256 私鑰路徑（預設 `keys/private.key` 對應 docroot）。
 - 初始管理員：可用環境變數 `JTVC_ADMIN_USERNAME` / `JTVC_ADMIN_EMAIL` / `JTVC_ADMIN_PASSWORD`；未提供則首次啟動自動產生隨機密碼，寫入 `DATA_DIR/INITIAL_ADMIN_PASSWORD.txt`（登入後請刪除）。
-- 反向代理信任：`JTVC_TRUSTED_PROXIES`（逗號分隔 IP/CIDR）。設定後只採信來自這些來源的 `X-Real-IP` / `X-Forwarded-*`，避免來源 IP 偽造繞過 fail2ban；留空＝相容模式（盲信標頭，須搭配容器埠隔離）。詳見「公開上線資安重點」。
+- 反向代理信任：`JTVC_TRUSTED_PROXIES`（逗號分隔 IP/CIDR）。設定後只採信來自這些來源的 `X-Real-IP` / `X-Forwarded-*`，避免來源 IP 偽造繞過 fail2ban；留空＝相容模式（盲信標頭，須搭配容器埠隔離；v1.25.2 起系統設定頁會顯示警告並建議設定值）。詳見「公開上線資安重點」。
 - Session 逾時：`JTVC_SESSION_IDLE`（閒置秒數，預設 1800）、`JTVC_SESSION_ABSOLUTE`（絕對秒數，預設 43200）。
 
 PHP 安全強化（建議於 `php.ini` 或 conf.d）：`display_errors=Off`、`expose_php=Off`、`session.cookie_httponly=1`、`session.cookie_samesite=Lax`、`session.use_strict_mode=1`、`session.upload_progress.enabled=Off`（本系統用不到；也是 PHP 2026-10 安全公告的緩解措施）。PHP 請保持在最新修補版（8.4.27 / 8.3.36 以上）。
@@ -213,14 +213,14 @@ server {
 
 ```bash
 # 1) 從 Release 頁下載映像與校驗檔（請改用最新版本號）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.1/jt-vc-portal-1.25.1-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.1/jt-vc-portal-1.25.1-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.2/jt-vc-portal-1.25.2-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.2/jt-vc-portal-1.25.2-docker-amd64.tar.gz.sha256
 
 # 2) 驗證完整性（應顯示 OK）
-sha256sum -c jt-vc-portal-1.25.1-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.25.2-docker-amd64.tar.gz.sha256
 
-# 3) 載入映像（會建立 jt-vc-portal:1.25.1 與 :latest 標籤）
-docker load < jt-vc-portal-1.25.1-docker-amd64.tar.gz
+# 3) 載入映像（會建立 jt-vc-portal:1.25.2 與 :latest 標籤）
+docker load < jt-vc-portal-1.25.2-docker-amd64.tar.gz
 
 # 4) 主機端準備持久化目錄（www-data UID 預設 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data

@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.25.1 — 会議管理システム
+# jt-vc-portal v1.25.2 — 会議管理システム
 
 > English: [README.md](README.md) · 繁體中文: [README_zh-TW.md](README_zh-TW.md)
 
@@ -133,7 +133,7 @@ systemctl reload apache2
 - `DATA_DIR`：永続データ用ディレクトリ（既定は `/var/jaas-data`）。
 - `JWT_PRIVATE_KEY_PATH`：JaaS の RS256 秘密鍵のパス（既定は `keys/private.key`、ドキュメントルートからの相対パス）。
 - 初期管理者：環境変数 `JTVC_ADMIN_USERNAME` / `JTVC_ADMIN_EMAIL` / `JTVC_ADMIN_PASSWORD` で設定できます。指定しない場合は初回起動時にランダムなパスワードが生成され、`DATA_DIR/INITIAL_ADMIN_PASSWORD.txt` に書き込まれます（サインイン後に削除してください）。
-- リバースプロキシの信頼：`JTVC_TRUSTED_PROXIES`（カンマ区切りの IP / CIDR）。設定すると、`X-Real-IP` / `X-Forwarded-*` はこれらの送信元から来た場合にのみ信頼され、送信元 IP の偽装による fail2ban 方式のロックアウトの回避を防ぎます。空のままにすると互換モード（ヘッダーを無条件に信頼。コンテナのポート分離との併用が必須）になります。「公開環境へのデプロイにおけるセキュリティ上の要点」を参照してください。
+- リバースプロキシの信頼：`JTVC_TRUSTED_PROXIES`（カンマ区切りの IP / CIDR）。設定すると、`X-Real-IP` / `X-Forwarded-*` はこれらの送信元から来た場合にのみ信頼され、送信元 IP の偽装による fail2ban 方式のロックアウトの回避を防ぎます。空のままにすると互換モード（ヘッダーを無条件に信頼。コンテナのポート分離との併用が必須。v1.25.2 以降はシステム設定ページに警告と推奨値が表示されます）になります。「公開環境へのデプロイにおけるセキュリティ上の要点」を参照してください。
 - セッションのタイムアウト：`JTVC_SESSION_IDLE`（無操作の秒数、既定 1800）、`JTVC_SESSION_ABSOLUTE`（絶対的な秒数、既定 43200）。
 
 PHP のハードニング（`php.ini` または conf.d での設定を推奨）：`display_errors=Off`、`expose_php=Off`、`session.cookie_httponly=1`、`session.cookie_samesite=Lax`、`session.use_strict_mode=1`、`session.upload_progress.enabled=Off`（本システムでは使用しない。PHP の 2026 年 10 月のセキュリティ勧告の緩和策でもある）。PHP は最新のパッチ版（8.4.27 / 8.3.36 以降）を維持すること。
@@ -213,14 +213,14 @@ server {
 
 ```bash
 # 1) Release ページからイメージとチェックサムファイルをダウンロード（最新のバージョン番号を使用）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.1/jt-vc-portal-1.25.1-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.1/jt-vc-portal-1.25.1-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.2/jt-vc-portal-1.25.2-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.2/jt-vc-portal-1.25.2-docker-amd64.tar.gz.sha256
 
 # 2) 完全性を検証（OK と表示されるはず）
-sha256sum -c jt-vc-portal-1.25.1-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.25.2-docker-amd64.tar.gz.sha256
 
-# 3) イメージを読み込む（jt-vc-portal:1.25.1 と :latest のタグが作成される）
-docker load < jt-vc-portal-1.25.1-docker-amd64.tar.gz
+# 3) イメージを読み込む（jt-vc-portal:1.25.2 と :latest のタグが作成される）
+docker load < jt-vc-portal-1.25.2-docker-amd64.tar.gz
 
 # 4) ホスト側で永続ディレクトリを準備（www-data の UID は既定で 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data

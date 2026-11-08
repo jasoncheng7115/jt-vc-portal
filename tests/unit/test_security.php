@@ -103,4 +103,17 @@ test('Settings：並發設定不互相覆蓋；webhook secret 穩定', function 
   eq(Settings::getWebhookSecret(), $s1);
 });
 
+test('T92 JTVC_TRUSTED_PROXIES 未設定時給管理員建議', function () {
+  require_once '/app/lib/auth.php';
+  ok(Auth::proxyAdvice('10.0.0.105', ['REMOTE_ADDR' => '10.0.0.105', 'HTTP_X_REAL_IP' => '1.2.3.4']) === null, '已設定 → 不警告');
+  $a = Auth::proxyAdvice('', ['REMOTE_ADDR' => '10.0.0.5', 'HTTP_X_REAL_IP' => '203.0.113.9']);
+  ok($a['via_proxy'] === true && $a['suggest'] === '10.0.0.5', '有轉送標頭 → 視為經過反代，建議填這次連線來源');
+  $a = Auth::proxyAdvice('', ['REMOTE_ADDR' => '10.0.0.6', 'HTTP_X_FORWARDED_FOR' => '203.0.113.9']);
+  ok($a['via_proxy'] === true && $a['suggest'] === '10.0.0.6', 'X-Forwarded-For 也算');
+  $a = Auth::proxyAdvice('', ['REMOTE_ADDR' => '203.0.113.20']);
+  ok($a['via_proxy'] === false && $a['suggest'] === '127.0.0.1', '沒有轉送標頭 → 建議 127.0.0.1');
+  $a = Auth::proxyAdvice('  ', ['REMOTE_ADDR' => 'not-an-ip', 'HTTP_X_REAL_IP' => 'x']);
+  ok($a !== null && $a['suggest'] === '127.0.0.1', '空白視為未設定；來源不是合法 IP 時不拿來當建議值');
+});
+
 summary();

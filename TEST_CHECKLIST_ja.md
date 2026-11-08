@@ -118,6 +118,7 @@ CodeQL は本リポジトリの Python（`jibri-recordings-api/`）、JavaScript
 - [ ] T89 2 人以上で自動録画：セルフホストの Jibri がない場合はオプションが表示されず、強制送信しても保存されない。Jibri がある場合は既定でオフ、オンにすると保存され一覧に「自動録画」バッジが表示される。オンの会議室だけホストの会議ページに自動録画のロジックが入り、ゲストページには入らない（`tests/run-integration.sh`、`tests/unit/test_rooms.php`）。本番（メンテナー）：`tests/prod-auto-record.sh`——ホスト 1 人では録画しない、2 人目の参加から 40 秒以内に自動録画、ホストが停止した後は参加者が来ても自動再開しない、完了した録画が 1 本だけ。終了後にテスト録画と会議室を削除。
 - [ ] T90 会議室作成の監査ログ：スケジュール / ロビーモード / 自動録画があっても説明に「Array」が出ない。注記はコードで保存し閲覧者の言語で表示する。旧バージョンの壊れた記録は「会議室（旧バージョンでは名前を記録していません）」と表示（`tests/unit/test_ical_audit.php`、`tests/run-integration.sh`）。
 - [ ] T91 メール送信失敗の原因が見える：受信サーバーの 550 拒否 / SMTP ホスト接続不可のとき、招待ボタン、会議室作成、会議室削除（取消通知）の画面に原因が表示される。監査ログ「招待メール送信失敗」に宛先、コード、生の応答が記録され、閲覧者の言語でわかりやすい原因を表示。「招待メール送信」は成功した宛先のみ。コンテナログに `invite mail failed` の行がある。生の応答は改行が除去されパスワードを含まない（`tests/run-integration.sh`、`tests/unit/test_ical_audit.php`）。
+- [ ] T92 `JTVC_TRUSTED_PROXIES` が未設定のとき、システム設定ページに警告と推奨値を表示する（転送ヘッダーあり → プロキシのアドレス、なし → 127.0.0.1。推奨値にクライアントが送った IP は使わない）。設定済みなら表示しない（`tests/unit/test_security.php`、`tests/run-integration.sh`）。
 
 ### 3.4 ゲスト
 - [ ] 招待リンク `/room/<name>` と旧形式の `/invite?room=` のどちらも機能する。
@@ -469,6 +470,7 @@ CodeQL は本リポジトリの Python（`jibri-recordings-api/`）、JavaScript
 | 2 人以上で自動録画 T89 | `tests/run-integration.sh`、`tests/unit/test_rooms.php`、`tests/prod-auto-record.sh`（メンテナー、本番環境） |
 | 会議室作成の監査注記 T90 | `tests/unit/test_ical_audit.php`、`tests/run-integration.sh` |
 | メール送信失敗の原因 T91 | `tests/run-integration.sh`（`tests/stub/smtp-sink.php` で 550 拒否を再現）、`tests/unit/test_ical_audit.php` |
+| 信頼するプロキシ未設定の警告 T92 | `tests/unit/test_security.php`、`tests/run-integration.sh` |
 | 作成済みの会議室への追加招待 T87 | `tests/run-integration.sh`（テスト用 SMTP 受信 `tests/stub/smtp-sink.php`）、`tests/unit/test_rooms.php`、`tests/e2e/meeting.cjs` |
 | PHP のセキュリティ設定 T86 | `tests/run-integration.sh` |
 | 録画の開始 / 停止 / 2 部屋同時 T70 | `tests/prod-entry-gates.sh`、`tests/prod-meeting-sim.sh`（メンテナー、本番環境） |

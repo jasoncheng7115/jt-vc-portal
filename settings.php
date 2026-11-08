@@ -38,6 +38,15 @@ render_topbar($me, $ip);
       <?php foreach ($req_miss as $n => $use): ?><br><strong class="mono"><?= htmlspecialchars($n) ?></strong> — <?= htmlspecialchars($use) ?><?php endforeach; ?></span></div>
   <?php endif; ?>
 
+  <?php if ($pa = Auth::proxyAdvice()): ?>
+    <div class="alert alert-error" id="proxyWarn"><?= icon('warning') ?><span><?= th('尚未設定可信任的反向代理（環境變數 JTVC_TRUSTED_PROXIES）。目前會直接採信請求帶來的來源 IP 標頭，登入失敗鎖定可能被繞過，稽核記錄的來源 IP 也可能不正確。') ?>
+      <br><?= $pa['via_proxy']
+        ? th('偵測到請求經過反向代理（這次連線來自 {ip}）。請把反向代理的位址設進去，例如：', ['ip' => $pa['remote']])
+        : th('沒有偵測到反向代理。若沒有使用反向代理，請設為 127.0.0.1（不採信任何轉送標頭）：') ?>
+      <br><code class="mono">-e JTVC_TRUSTED_PROXIES=<?= htmlspecialchars($pa['suggest']) ?></code>
+      <br><?= th('Docker 請加在 docker run 的參數後重新建立容器；直接安裝請設在 Apache 的環境變數（SetEnv）。可填多個，用逗號分隔，也可填網段（例如 10.0.0.0/8）。詳見 README。') ?></span></div>
+  <?php endif; ?>
+
   <?php
   /* 設定目錄：點選只顯示該卡片（#id），「全部」顯示全部；依連線模式隱藏的卡片，目錄項目一併隱藏 */
   $toc = [

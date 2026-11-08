@@ -2,6 +2,12 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.25.2 — Warning when no trusted reverse proxy is configured
+
+- The System settings page now shows a warning when the `JTVC_TRUSTED_PROXIES` environment variable is not set: leaving it empty trusts client IP headers as-is, so the login lockout may be bypassed and the audit log may record incorrect client IPs. The warning suggests a value: the reverse proxy's address when requests appear to come through one, otherwise `127.0.0.1`.
+- Sites that already set it see no change. The default is unchanged (switching it to "trust nothing" would make every user behind a reverse proxy share the proxy's IP and trigger each other's lockouts).
+- Test T92.
+
 ## v1.25.1 — See why an email failed
 
 - When an invitation or cancellation email fails, the page now explains why (e.g. "The SMTP username or password was rejected", "Cannot reach the SMTP host", "The recipient's server rejected this address") instead of only showing how many failed.

@@ -377,6 +377,14 @@ hasnt "T74 不認得的值 → 回到預設（不帶門檻）" "$(curl -s -b $A 
 T=$(csrf $A /dashboard)
 curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-down' $B/room-delete
 
+echo "== T92 JTVC_TRUSTED_PROXIES 未設定的警告（測試容器沒有設定）"
+SP=$(curl -s -b $A $B/settings)
+has "T92 系統設定頁顯示未設定可信任反代的警告" "$SP" 'id="proxyWarn"'
+has "T92 沒有轉送標頭 → 建議 127.0.0.1" "$SP" 'JTVC_TRUSTED_PROXIES=127.0.0.1'
+SP2=$(curl -s -b $A -H 'X-Real-IP: 203.0.113.77' $B/settings)
+has "T92 有轉送標頭 → 視為經過反代並說明" "$SP2" '偵測到請求經過反向代理'
+hasnt "T92 建議值不會拿用戶端送來的 IP" "$SP2" 'JTVC_TRUSTED_PROXIES=203.0.113.77'
+has "T92 Docker 內設定後就不會警告" "$(docker exec -e JTVC_TRUSTED_PROXIES=10.0.0.1 $NAME php -r 'require "/var/www/html/config.php"; require_once "/var/www/html/lib/auth.php"; var_export(Auth::proxyAdvice());')" 'NULL'
 echo "== T90 建立會議室的稽核記錄不會出現 Array"
 T=$(csrf $A /dashboard)
 curl -s -o /dev/null -b $A -c $A --data-urlencode "_csrf=$T" -d 'room=itest-t90&mode=create&lobby=1' $B/start

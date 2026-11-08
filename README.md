@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.25.1 — Meeting Management System
+# jt-vc-portal v1.25.2 — Meeting Management System
 
 > 繁體中文: [README_zh-TW.md](README_zh-TW.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -133,7 +133,7 @@ Key settings (`config.php`):
 - `DATA_DIR`: persistent data directory (default `/var/jaas-data`).
 - `JWT_PRIVATE_KEY_PATH`: path to the JaaS RS256 private key (default `keys/private.key`, relative to the docroot).
 - Initial administrator: can be set via the environment variables `JTVC_ADMIN_USERNAME` / `JTVC_ADMIN_EMAIL` / `JTVC_ADMIN_PASSWORD`; if not provided, a random password is generated on first start and written to `DATA_DIR/INITIAL_ADMIN_PASSWORD.txt` (delete it after signing in).
-- Reverse proxy trust: `JTVC_TRUSTED_PROXIES` (comma-separated IPs/CIDRs). Once set, `X-Real-IP` / `X-Forwarded-*` are trusted only when coming from these sources, preventing source-IP spoofing to bypass the fail2ban-style lockout; leaving it empty = compatibility mode (headers are trusted blindly, must be combined with container port isolation). See "Security essentials for public deployment".
+- Reverse proxy trust: `JTVC_TRUSTED_PROXIES` (comma-separated IPs/CIDRs). Once set, `X-Real-IP` / `X-Forwarded-*` are trusted only when coming from these sources, preventing source-IP spoofing to bypass the fail2ban-style lockout; leaving it empty = compatibility mode (headers are trusted blindly, must be combined with container port isolation; since v1.25.2 the System settings page shows a warning with a suggested value). See "Security essentials for public deployment".
 - Session timeouts: `JTVC_SESSION_IDLE` (idle seconds, default 1800), `JTVC_SESSION_ABSOLUTE` (absolute seconds, default 43200).
 
 PHP hardening (recommended in `php.ini` or conf.d): `display_errors=Off`, `expose_php=Off`, `session.cookie_httponly=1`, `session.cookie_samesite=Lax`, `session.use_strict_mode=1`, `session.upload_progress.enabled=Off` (not used by this app; also a mitigation for the October 2026 PHP security advisory). Keep PHP on the latest patch release (8.4.27 / 8.3.36 or later).
@@ -213,14 +213,14 @@ Don't want to build it yourself? Download the packaged image (`linux/amd64`) att
 
 ```bash
 # 1) Download the image and checksum file from the Release page (use the latest version number)
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.1/jt-vc-portal-1.25.1-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.1/jt-vc-portal-1.25.1-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.2/jt-vc-portal-1.25.2-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.2/jt-vc-portal-1.25.2-docker-amd64.tar.gz.sha256
 
 # 2) Verify integrity (should print OK)
-sha256sum -c jt-vc-portal-1.25.1-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.25.2-docker-amd64.tar.gz.sha256
 
-# 3) Load the image (creates the jt-vc-portal:1.25.1 and :latest tags)
-docker load < jt-vc-portal-1.25.1-docker-amd64.tar.gz
+# 3) Load the image (creates the jt-vc-portal:1.25.2 and :latest tags)
+docker load < jt-vc-portal-1.25.2-docker-amd64.tar.gz
 
 # 4) Prepare persistent directories on the host (www-data UID defaults to 33)
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data

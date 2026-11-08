@@ -321,4 +321,8 @@ return [
   '文字清晰（每秒 5 格，建議）' => 'Sharp text (5 frames per second, recommended)',
   '動態流暢（每秒 15–30 格，播影片用）' => 'Smooth motion (15–30 frames per second, for videos)',
   '簡報、文件、程式碼請用「文字清晰」：網路或電腦較慢時會降低每秒格數，文字維持清楚。「動態流暢」會優先保持動作順暢，分享的人上傳頻寬不夠時會降低解析度，文字可能糊掉，適合分享影片或動畫。設定在下次進入會議時生效。' => 'Use "Sharp text" for slides, documents and code: on a slow network or computer the frame rate drops but text stays sharp. "Smooth motion" keeps movement smooth first; if the presenter\'s upload bandwidth is short, the resolution drops and text may blur — use it for videos or animation. Takes effect the next time people join a meeting.',
+  'Docker 請加在 docker run 的參數後重新建立容器；直接安裝請設在 Apache 的環境變數（SetEnv）。可填多個，用逗號分隔，也可填網段（例如 10.0.0.0/8）。詳見 README。' => 'With Docker, add it to the docker run options and recreate the container; for a direct install, set it as an Apache environment variable (SetEnv). Separate multiple values with commas; networks are allowed (e.g. 10.0.0.0/8). See the README.',
+  '偵測到請求經過反向代理（這次連線來自 {ip}）。請把反向代理的位址設進去，例如：' => 'Requests appear to come through a reverse proxy (this connection came from {ip}). Set the reverse proxy\'s address, for example:',
+  '尚未設定可信任的反向代理（環境變數 JTVC_TRUSTED_PROXIES）。目前會直接採信請求帶來的來源 IP 標頭，登入失敗鎖定可能被繞過，稽核記錄的來源 IP 也可能不正確。' => 'No trusted reverse proxy is configured (environment variable JTVC_TRUSTED_PROXIES). Client IP headers sent with requests are currently trusted as-is, so the login lockout may be bypassed and the audit log may record incorrect client IPs.',
+  '沒有偵測到反向代理。若沒有使用反向代理，請設為 127.0.0.1（不採信任何轉送標頭）：' => 'No reverse proxy was detected. If you do not use one, set it to 127.0.0.1 (no forwarded headers are trusted):',
 ];
