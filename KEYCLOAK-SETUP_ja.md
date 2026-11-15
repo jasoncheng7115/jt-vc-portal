@@ -341,6 +341,7 @@ vi .env
 | `KC_VERSION` | `26.7.5` | Keycloak イメージのタグ（固定すること。[アップグレード](#アップグレード)参照） |
 | `KC_PUBLIC_URL` | `https://sso.example.com` | 利用者のブラウザーから見える URL（プロキシ経由）。issuer のベースになります。 |
 | `KC_ADMIN_URL` | `https://10.0.0.20:8443` | 管理コンソールの URL（内部ネットワークのみ）。**必ず `https://…:8443`**（上記参照）。 |
+| `KC_PROXY_TRUSTED_ADDRESSES` | `10.0.0.5` | **必須**。リバースプロキシの IP（カンマ区切り、ネットワーク指定可）。Keycloak はこれらの送信元からの `X-Forwarded-*` だけを信頼し、それ以外からのものは無視するため、ログインイベントとブルートフォース検知に実際の利用者 IP が記録されます。空だと Keycloak が起動しないため、テンプレートの compose は未設定時にエラーで停止します。 |
 | `KC_BIND_ADDR` | `0.0.0.0`（または `10.0.0.20`） | 8080 / 8443 番を公開するアドレス |
 | `KC_DB_PASSWORD` | （乱数） | PostgreSQL のパスワード（データベース初回起動時に適用） |
 | `KC_BOOTSTRAP_ADMIN_USERNAME` | `temp-admin` | 初回起動専用の一時管理者 |
@@ -710,6 +711,8 @@ until curl -sf http://127.0.0.1:9000/health/ready >/dev/null; do sleep 5; done; 
 
 ### アップグレード
 
+> **2026-11 以降、テンプレートの compose は `KC_PROXY_TRUSTED_ADDRESSES` を必須とします**：新しいテンプレートに切り替える前に `.env` に `KC_PROXY_TRUSTED_ADDRESSES=<リバースプロキシの IP>` を追加してください。追加しないと `docker compose up` がエラーで停止します（Keycloak も空の値を受け付けません）。
+
 1. 現在のバージョンから目標バージョンまでの各バージョンの Keycloak リリースノート / 移行ガイドを読む。
 2. バックアップする（上記）。
 3. `.env` の `KC_VERSION` を変更する（常に固定バージョン）。
@@ -769,6 +772,7 @@ curl -sf http://127.0.0.1:9000/health/ready && echo OK     # Keycloak ホスト�
 - [ ] `svc-keycloak` は**読み取り専用**（管理グループに属さない）、**対話型ログオン拒否**、強力なパスワード。
 - [ ] realm 組み込みの `admin-cli` で**ユーザー名とパスワードを直接トークンに交換できない**こと（`directAccessGrantsEnabled=false`、`configure-realm.sh` が設定）：トークンエンドポイントは公開されており、有効のままだとブラウザのログインフローを迂回してパスワードの推測に使われる。
 - [ ] クライアントは **confidential**、標準フローのみ、**PKCE S256** 必須、**リダイレクト URI 完全一致**（`<PORTAL_URL>/sso-callback`）。
+- [ ] `.env` で `KC_PROXY_TRUSTED_ADDRESSES` にリバースプロキシの IP を設定済み（Keycloak はプロキシからの `X-Forwarded-*` だけを信頼し、ログインイベントにはプロキシではなく実際の利用者 IP が記録される）。
 - [ ] **TLS はプロキシでのみ終端し HSTS を有効化**。Keycloak の HTTP ポートは決して公開しない。
 - [ ] `.env`、`realm.env`、`client-secret.txt` は **chmod 600**、`/opt/keycloak` は 700。`realm.env` から `KC_ADMIN_PASSWORD` / `LDAP_BIND_CREDENTIAL` を消去済み。
 - [ ] portal：「**IdP は HTTPS 必須**」をチェック。「**SSO のみ**」を有効にする場合はローカルの緊急用管理者を最低 1 人残し、許可 CIDR はできるだけ狭くする。

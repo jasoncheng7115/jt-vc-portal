@@ -341,6 +341,7 @@ vi .env
 | `KC_VERSION` | `26.7.5` | Keycloak image tag (pin it; see [Upgrades](#upgrades)) |
 | `KC_PUBLIC_URL` | `https://sso.example.com` | URL users' browsers see (through the proxy). Becomes the issuer base. |
 | `KC_ADMIN_URL` | `https://10.0.0.20:8443` | Admin console URL, internal network only. **Must be `https://…:8443`** (see above). |
+| `KC_PROXY_TRUSTED_ADDRESSES` | `10.0.0.5` | **Required.** IP of the reverse proxy (comma-separated; networks allowed). Keycloak trusts `X-Forwarded-*` only from these sources and ignores them from anywhere else, so login events and brute-force detection record the real client IP. Keycloak fails to start if it is empty, so the template's compose stops with an error when it is missing. |
 | `KC_BIND_ADDR` | `0.0.0.0` (or `10.0.0.20`) | Address ports 8080 / 8443 are published on |
 | `KC_DB_PASSWORD` | *(random)* | PostgreSQL password (used at the database's first start) |
 | `KC_BOOTSTRAP_ADMIN_USERNAME` | `temp-admin` | Temporary admin for the first start only |
@@ -710,6 +711,8 @@ Test a restore on a throw-away host at least once.
 
 ### Upgrades
 
+> **Since 2026-11 the template compose requires `KC_PROXY_TRUSTED_ADDRESSES`**: before switching to the new template, add `KC_PROXY_TRUSTED_ADDRESSES=<reverse proxy IP>` to `.env`, otherwise `docker compose up` stops with an error (Keycloak does not accept an empty value either).
+
 1. Read the Keycloak release notes / migration guide for every version between the current and the target one.
 2. Back up (see above).
 3. Change `KC_VERSION` in `.env` (always a pinned version).
@@ -769,6 +772,7 @@ Check it from your monitoring agent on the host (port 9000 is bound to localhost
 - [ ] `svc-keycloak` is **read-only** (no admin groups), **denied interactive logon**, with a strong password.
 - [ ] The realm's built-in `admin-cli` **does not allow exchanging a username and password directly for a token** (`directAccessGrantsEnabled=false`, set by `configure-realm.sh`): the token endpoint is public, and leaving it on bypasses the browser login flow and can be used to guess passwords.
 - [ ] Client is **confidential**, standard flow only, **PKCE S256** required, **exact redirect URI** (`<PORTAL_URL>/sso-callback`).
+- [ ] `.env` sets `KC_PROXY_TRUSTED_ADDRESSES` to the reverse proxy's IP (Keycloak trusts `X-Forwarded-*` only from the proxy; login events record the real client IP, not the proxy's).
 - [ ] **TLS only at the proxy with HSTS**; Keycloak's HTTP port never exposed publicly.
 - [ ] `.env`, `realm.env`, `client-secret.txt` are **chmod 600**, `/opt/keycloak` is 700; `KC_ADMIN_PASSWORD` / `LDAP_BIND_CREDENTIAL` cleared from `realm.env`.
 - [ ] Portal: **The IdP must use HTTPS** checked; if **SSO only** is on, at least one local emergency admin exists and the allowed CIDRs are as narrow as possible.

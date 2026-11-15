@@ -341,6 +341,7 @@ vi .env
 | `KC_VERSION` | `26.7.5` | Keycloak 映像檔 tag（請固定版本，見[升級](#升級)） |
 | `KC_PUBLIC_URL` | `https://sso.example.com` | 使用者瀏覽器看到的網址（經反向代理），也是 issuer 的前綴 |
 | `KC_ADMIN_URL` | `https://10.0.0.20:8443` | 管理介面網址，只在內網使用。**必須是 `https://…:8443`**（見上方說明）。 |
+| `KC_PROXY_TRUSTED_ADDRESSES` | `10.0.0.5` | **必填**。反向代理的 IP（多個用逗號，可填網段）。Keycloak 只採信這些來源送來的 `X-Forwarded-*`，其他來源帶的一律忽略，登入事件與暴力破解偵測才會記到真實的使用者 IP。留空 Keycloak 會無法啟動，所以範本的 compose 在沒填時直接報錯。 |
 | `KC_BIND_ADDR` | `0.0.0.0`（或 `10.0.0.20`） | 8080 / 8443 埠發佈在哪個位址 |
 | `KC_DB_PASSWORD` | （隨機） | PostgreSQL 密碼（資料庫首次啟動時套用） |
 | `KC_BOOTSTRAP_ADMIN_USERNAME` | `temp-admin` | 只在首次啟動使用的暫時管理員 |
@@ -710,6 +711,8 @@ until curl -sf http://127.0.0.1:9000/health/ready >/dev/null; do sleep 5; done; 
 
 ### 升級
 
+> **2026-11 起範本的 compose 要求 `KC_PROXY_TRUSTED_ADDRESSES`**：換成新版範本前，先在 `.env` 加上 `KC_PROXY_TRUSTED_ADDRESSES=<反向代理 IP>`，否則 `docker compose up` 會直接報錯（Keycloak 也不接受空值）。
+
 1. 閱讀目前版本到目標版本之間每一版的 Keycloak release notes / migration guide。
 2. 備份（見上）。
 3. 修改 `.env` 的 `KC_VERSION`（一律固定版本）。
@@ -769,6 +772,7 @@ curl -sf http://127.0.0.1:9000/health/ready && echo OK     # 只能在 Keycloak 
 - [ ] `svc-keycloak` 為**唯讀**（不在任何管理群組）、**禁止互動式登入**、使用強密碼。
 - [ ] realm 內建的 `admin-cli` **不允許帳號密碼直接換 token**（`directAccessGrantsEnabled=false`，`configure-realm.sh` 會設定）：token 端點對外開放，開著會繞過瀏覽器登入流程、被拿來試密碼。
 - [ ] client 為 **confidential**、只允許標準流程、強制 **PKCE S256**、**redirect URI 完全相符**（`<PORTAL_URL>/sso-callback`）。
+- [ ] `.env` 已設定 `KC_PROXY_TRUSTED_ADDRESSES`＝反向代理的 IP（Keycloak 只採信反向代理送來的 `X-Forwarded-*`；登入事件記到的是真實使用者 IP，不是反向代理）。
 - [ ] **TLS 只在反向代理終結並啟用 HSTS**；Keycloak 的 HTTP 埠從不對外公開。
 - [ ] `.env`、`realm.env`、`client-secret.txt` 權限 **600**，`/opt/keycloak` 為 700；`realm.env` 已清除 `KC_ADMIN_PASSWORD` / `LDAP_BIND_CREDENTIAL`。
 - [ ] portal：已勾選「**IdP 必須使用 HTTPS**」；若啟用「**僅限單一登入**」，至少保留一位本地緊急管理員，允許的 CIDR 越窄越好。

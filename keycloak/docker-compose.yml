@@ -39,6 +39,8 @@ services:
       KC_HTTPS_CERTIFICATE_FILE: /opt/keycloak/conf/certs/tls.crt
       KC_HTTPS_CERTIFICATE_KEY_FILE: /opt/keycloak/conf/certs/tls.key
       KC_PROXY_HEADERS: xforwarded
+      # 只採信反向代理送來的 X-Forwarded-*（其他來源帶的一律忽略）。必填：留空 Keycloak 會啟動失敗，所以沒填時 compose 直接報錯
+      KC_PROXY_TRUSTED_ADDRESSES: ${KC_PROXY_TRUSTED_ADDRESSES:?set KC_PROXY_TRUSTED_ADDRESSES (reverse proxy IP) in .env}
       KC_HEALTH_ENABLED: "true"
       # 信任 AD 的 LDAPS 憑證（UCS / AD CA）
       KC_TRUSTSTORE_PATHS: /opt/keycloak/conf/truststores
