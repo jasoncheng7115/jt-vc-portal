@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.25.2 — 會議管理系統
+# jt-vc-portal v1.25.3 — 會議管理系統
 
 > English: [README.md](README.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -213,14 +213,16 @@ server {
 
 ```bash
 # 1) 從 Release 頁下載映像與校驗檔（請改用最新版本號）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.2/jt-vc-portal-1.25.2-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.2/jt-vc-portal-1.25.2-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.3/jt-vc-portal-1.25.3-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.3/jt-vc-portal-1.25.3-docker-amd64.tar.gz.sha256
+
+#    選用：SBOM 檔 jt-vc-portal-1.25.3-sbom.cdx.json / -image-sbom.cdx.json（給弱點掃描工具用的元件清單）
 
 # 2) 驗證完整性（應顯示 OK）
-sha256sum -c jt-vc-portal-1.25.2-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.25.3-docker-amd64.tar.gz.sha256
 
-# 3) 載入映像（會建立 jt-vc-portal:1.25.2 與 :latest 標籤）
-docker load < jt-vc-portal-1.25.2-docker-amd64.tar.gz
+# 3) 載入映像（會建立 jt-vc-portal:1.25.3 與 :latest 標籤）
+docker load < jt-vc-portal-1.25.3-docker-amd64.tar.gz
 
 # 4) 主機端準備持久化目錄（www-data UID 預設 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -488,7 +490,7 @@ sudo -u www-data php login-path.php reset
 
 - **A01 權限控制失效**：未授權頁面一律回 404（不暴露入口）；會議室、錄影、逐字稿依擁有者隔離，主持人只看得到自己主持的場次；逐字稿另有帳號權限（不可使用 / 手動 / 自動）與單場開關；單一登入使用者的角色只由 IdP 群組決定，不在指定群組者一律拒絕；所有狀態變更皆為 POST + CSRF token。
 - **A02 安全設定錯誤**：關閉錯誤顯示與版本洩漏；每個回應都帶內容安全政策（預設最嚴格，頁面再換成 nonce 版）與安全標頭；敏感路徑（`lib/`、`keys/`、`*.json`）拒絕存取；只採信白名單反向代理帶來的 `X-Real-IP`；設定頁不回填任何密鑰；系統設定頁會列出缺少的元件與沒有在執行的背景排程。
-- **A03 軟體供應鏈失效**：零外部 PHP 套件：OIDC、PDF / DOCX / ODT 產生與 ZIP 都自行實作，不需 LibreOffice 等大型套件；前端 CDN 資源加 SRI 完整性驗證；Jitsi IFrame API（`external_api.js`）內附釘版並加 SRI，不即時從第三方載入；PDF 字型隨附（SIL OFL）；映像建置時套用最新 OS 安全更新；Release 映像由 CI 從 tag 原始碼建置並附 sha256。
+- **A03 軟體供應鏈失效**：零外部 PHP 套件：OIDC、PDF / DOCX / ODT 產生與 ZIP 都自行實作，不需 LibreOffice 等大型套件；前端 CDN 資源加 SRI 完整性驗證；Jitsi IFrame API（`external_api.js`）內附釘版並加 SRI，不即時從第三方載入；PDF 字型隨附（SIL OFL）；映像建置時套用最新 OS 安全更新；Release 映像由 CI 從 tag 原始碼建置並附 sha256 與 CycloneDX 格式 SBOM（軟體元件清單：程式用到的第三方元件與映像內套件，見 [SECURITY.md](SECURITY.md)）。
 - **A04 加密機制失效**：密碼以 bcrypt 雜湊；JWT 以 RS256 / HS256 簽章並設效期；單一登入的 id_token 以 IdP 公開金鑰（JWKS）驗簽，只接受 RS256 / RS384 / RS512，拒絕 `none` 與演算法混淆；連語音服務一律驗證 TLS 憑證（自簽憑證以貼上的 PEM 信任，從不關閉驗證）；webhook 以 HMAC 簽章；session cookie 為 HttpOnly、SameSite、Secure。
 - **A05 注入攻擊**：輸出一律跳脫、輸入清洗；Email header injection、CSV 公式注入防護；外拋 syslog 剝除換行防偽造；匯出的 DOCX / ODT / HTML 內容全部跳脫並去除控制字元；全站（含會議頁）以 nonce 為基礎的內容安全政策，不允許 inline script。
 - **A06 不安全設計**：閘道式架構、預設安全（來賓須具名、主持人在線上才放行）、角色最小權限；portal 從不經手 AD 密碼——企業帳號一律經 OIDC 身分提供者，MFA 與暴力破解防護在那一層；portal 也不直接連語言模型，逐字稿與摘要交給自架的語音服務，結果存回本系統後即通知對方刪除。
@@ -511,7 +513,7 @@ sudo -u www-data php login-path.php reset
 
 ## 資安通報
 
-資安問題請依 [SECURITY.md](SECURITY.md) 通報（請勿開公開 issue）。已發布的安全公告：[Security advisories](https://github.com/jasoncheng7115/jt-vc-portal/security/advisories)。
+資安問題請依 [SECURITY.md](SECURITY.md) 通報（請勿開公開 issue）。已發布的安全公告：[Security advisories](https://github.com/jasoncheng7115/jt-vc-portal/security/advisories)。每個 Release 都附 CycloneDX 格式 SBOM（程式與 Docker 映像各一份），可交給弱點掃描工具比對。
 
 ## 授權
 

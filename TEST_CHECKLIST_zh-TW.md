@@ -53,7 +53,8 @@
 - [ ] 逐字稿與摘要整合：`tests/run-transcribe.sh` 全綠（JTLW 官方模擬服務＋假錄影服務＋真瀏覽器；含波形、匯出、改名、下拉選單與清單標籤）。
 - [ ] 單一登入：`tests/run-sso.sh` 全綠（拋棄式 Keycloak＋真瀏覽器）。
 - [ ] 錄影服務：`tests/test-jibri-api.sh` 全綠（真的 `server.py`；本機要有 ffmpeg 才測得到波形，沒有會標示 SKIP）。
-- [ ] 發版預演：`git archive <tag> | tar -x -C <暫存>` 後 `tools/ci-build-release.sh <版本> <暫存> <暫存>/out` 成功（映像內沒有金鑰 / 文件 / 測試等多餘檔案）。
+- [ ] 發版預演：`git archive <tag> | tar -x -C <暫存>` 後 `tools/ci-build-release.sh <版本> <暫存> <暫存>/out` 成功（映像內沒有金鑰 / 文件 / 測試等多餘檔案），並產生兩份 SBOM（`jt-vc-portal-X.Y.Z-sbom.cdx.json`、`-image-sbom.cdx.json`）、顯示 `SBOM ok`。
+- [ ] SBOM（T93）：`IMAGE=<建好的映像> tests/test-sbom.sh` 全綠。
 - [ ] **正式環境（維護者，部署後必跑；Jitsi / Jibri 升級、反向代理設定變更後也要跑）**：
   - [ ] 進入方式與關卡（T64–T66、T77）：`tests/prod-entry-gates.sh`——唯一用瀏覽器真的要鏡頭與麥克風的測試，不可改成模擬。
   - [ ] 模擬會議（T42、T70、T80–T82 實機）：`tests/prod-meeting-sim.sh`——真的錄影、真的語音服務產生逐字稿與摘要、錄影主機用 Jibri 容器算波形、改名後的匯出。
@@ -119,6 +120,7 @@ CodeQL 掃描本 repo 的 Python（`jibri-recordings-api/`）、JavaScript（`te
 - [ ] T90 建立會議室的稽核記錄：有排程 / 大廳模式 / 自動錄影時，說明不會出現「Array」，附註存代碼、依看的人語言顯示；舊版壞掉的記錄顯示成「會議室（舊版記錄未存名稱）」（`tests/unit/test_ical_audit.php`、`tests/run-integration.sh`）。
 - [ ] T91 寄信失敗看得到原因：收件伺服器 550 拒收 / 連不上 SMTP 主機時，邀請按鈕、建立會議室、刪除會議室（取消通知）的畫面都說明原因；稽核記錄「邀請郵件寄送失敗」記下收件者、代碼與原始回應，依看的人語言顯示白話原因；「寄送邀請郵件」只列成功的人；容器 log 有 `invite mail failed` 一行；原始回應去掉換行、不含密碼（`tests/run-integration.sh`、`tests/unit/test_ical_audit.php`）。
 - [ ] T92 `JTVC_TRUSTED_PROXIES` 未設定時，系統設定頁顯示警告並給建議值（有轉送標頭 → 反代位址、沒有 → 127.0.0.1；建議值不拿用戶端送來的 IP）；已設定時不顯示（`tests/unit/test_security.php`、`tests/run-integration.sh`）。
+- [ ] T93 每一版都有 CycloneDX 1.5 格式 SBOM：程式 SBOM（`tools/make-sbom.py`）列出所有內附與 CDN 第三方元件及授權，版本＝`APP_VERSION`，CDN 雜湊＝頁面 SRI，Jitsi IFrame API 雜湊＝`Jaas::EXTERNAL_API_SRI`；映像 SBOM（syft，以 digest 釘版）有映像實際的 PHP 版本、Apache 與 Debian，且不含逐檔清單；兩份都不含機密或內網位址（`tests/test-sbom.sh`）。
 
 ### 3.4 來賓
 - [ ] 邀請連結 `/room/<名稱>` 與舊式 `/invite?room=` 皆可用。
@@ -417,9 +419,9 @@ CodeQL 掃描本 repo 的 Python（`jibri-recordings-api/`）、JavaScript（`te
 - [ ] 部署正式機：lint → build（`--pull`）→ 換容器 → 健康檢查（首頁 200、登入頁、進入會議）。
 - [ ] 同步 `github/`（只複製變動檔，勿用 `rsync --delete`），再跑一次第 0 節機密檢查。
 - [ ] commit / push；建立並推送 `vX.Y.Z` tag。
-- [ ] 推送 `vX.Y.Z` tag 後，**GitHub Actions（`.github/workflows/release.yml`）自動**建立該版 Docker image（驗證 image 內無機密）、打包 `jt-vc-portal-X.Y.Z-docker-amd64.tar.gz` + `.sha256`，並建立 Release（說明取自 CHANGELOG）。確認 Actions 執行成功。
+- [ ] 推送 `vX.Y.Z` tag 後，**GitHub Actions（`.github/workflows/release.yml`）自動**建立該版 Docker image（驗證 image 內無機密）、打包 `jt-vc-portal-X.Y.Z-docker-amd64.tar.gz` + `.sha256` 與兩份 SBOM，並建立 Release（說明取自 CHANGELOG）。確認 Actions 執行成功。
 - [ ] README 與 Pages 的版本號、下載連結同步更新。
-- [ ] 以公開連結下載 Release 的 image 與 `.sha256`，`sha256sum -c` 驗證並 `docker load` 可啟動。
+- [ ] 以公開連結下載 Release 的 image 與 `.sha256`，`sha256sum -c` 驗證並 `docker load` 可啟動；Release 另有 `jt-vc-portal-X.Y.Z-sbom.cdx.json` 與 `jt-vc-portal-X.Y.Z-image-sbom.cdx.json`，兩份都是有效的 JSON。
 
 ## 10. 自動化測試對照表
 
@@ -471,6 +473,7 @@ CodeQL 掃描本 repo 的 Python（`jibri-recordings-api/`）、JavaScript（`te
 | 建立會議室稽核附註 T90 | `tests/unit/test_ical_audit.php`、`tests/run-integration.sh` |
 | 寄信失敗原因 T91 | `tests/run-integration.sh`（`tests/stub/smtp-sink.php` 模擬 550 拒收）、`tests/unit/test_ical_audit.php` |
 | 未設定可信任反代的警告 T92 | `tests/unit/test_security.php`、`tests/run-integration.sh` |
+| 發版 SBOM（程式與映像）T93 | `tests/test-sbom.sh`、`tools/ci-build-release.sh`（建立 Release 前檢查兩份檔案） |
 | 已建立的會議室補寄邀請 T87 | `tests/run-integration.sh`（測試用 SMTP 收信器 `tests/stub/smtp-sink.php`）、`tests/unit/test_rooms.php`、`tests/e2e/meeting.cjs` |
 | PHP 安全設定 T86 | `tests/run-integration.sh` |
 | 錄影開始 / 停止 / 兩間同時 T70 | `tests/prod-entry-gates.sh`、`tests/prod-meeting-sim.sh`（維護者，正式環境） |

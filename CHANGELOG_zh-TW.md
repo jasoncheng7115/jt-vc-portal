@@ -2,6 +2,12 @@
 
 > English: [CHANGELOG.md](CHANGELOG.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.25.3 — 每一版都附 SBOM
+
+- 每個 Release 都附兩份 CycloneDX 1.5 格式的 SBOM（軟體元件清單）：`jt-vc-portal-X.Y.Z-sbom.cdx.json` 列出本系統用到的第三方元件（內附的 Jitsi IFrame API 與 PDF 字型，以及從 CDN 載入的 Chart.js / flatpickr / qrcodejs）的版本、雜湊與授權；`jt-vc-portal-X.Y.Z-image-sbom.cdx.json` 列出 Docker 映像內的 PHP、Apache 與 Debian 套件。可匯入 Dependency-Track、Trivy、Grype 等工具，比對有沒有新公布的弱點。
+- 兩份都由 GitHub Actions 建置 Release 時產生，發布前先檢查（版本一致、雜湊與頁面 SRI 相同）。說明見 SECURITY.md 的「Software Bill of Materials」。
+- 程式本身沒有變動。測試 T93。
+
 ## v1.25.2 — 未設定可信任反向代理時提醒
 
 - 系統設定頁在環境變數 `JTVC_TRUSTED_PROXIES` 沒有設定時顯示警告：留空會直接採信請求帶來的來源 IP 標頭，登入失敗鎖定可能被繞過、稽核記錄的來源 IP 也可能不正確。警告會給建議值：偵測到經過反向代理時建議填反向代理的位址，沒有反向代理時建議填 `127.0.0.1`。

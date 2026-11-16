@@ -1,5 +1,5 @@
 #!/bin/bash
-# 打包 Release 用 docker image：jt-vc-portal-X.Y.Z-docker-amd64.tar.gz + .sha256 → github/release/
+# 打包 Release 用 docker image：jt-vc-portal-X.Y.Z-docker-amd64.tar.gz + .sha256 + 兩份 SBOM → github/release/
 # 來源 = github/（公開內容），在 dev1 本機建置（不佔用正式機）。建完驗證 image 內無機密。
 # 用法：tools/build-release-image.sh 1.6.3
 set -euo pipefail
@@ -20,5 +20,11 @@ mkdir -p "$ROOT/github/release"
 OUT="$ROOT/github/release/jt-vc-portal-$VER-docker-amd64.tar.gz"
 docker save jt-vc-portal:$VER jt-vc-portal:latest | gzip -9 > "$OUT"
 ( cd "$ROOT/github/release" && sha256sum "$(basename "$OUT")" > "$(basename "$OUT").sha256" )
+# SBOM（CycloneDX 1.5）：應用程式層＋映像層，與 CI（tools/ci-build-release.sh）相同做法
+python3 "$ROOT/github/tools/make-sbom.py" "$SRC" > "$ROOT/github/release/jt-vc-portal-$VER-sbom.cdx.json"
+docker run --rm -e SYFT_FILE_METADATA_SELECTION=none -v /var/run/docker.sock:/var/run/docker.sock \
+  anchore/syft:v1.57.1@sha256:03215d0e98b661d0ecbc8575dbc14d65be1743b5de5df6410aecb7e80f95b060 \
+  "jt-vc-portal:$VER" -o cyclonedx-json@1.5 --source-name jt-vc-portal --source-version "$VER" -q \
+  > "$ROOT/github/release/jt-vc-portal-$VER-image-sbom.cdx.json"
 docker rmi jt-vc-portal:$VER jt-vc-portal:latest >/dev/null
-ls -la "$OUT" "$OUT.sha256"; cat "$OUT.sha256"
+ls -la "$ROOT/github/release/jt-vc-portal-$VER"*; cat "$OUT.sha256"

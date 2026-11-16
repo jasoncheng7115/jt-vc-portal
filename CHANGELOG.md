@@ -2,6 +2,12 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.25.3 — SBOM with every release
+
+- Every Release now includes two CycloneDX 1.5 SBOM (software bill of materials) files: `jt-vc-portal-X.Y.Z-sbom.cdx.json` lists the third-party parts the portal uses (the bundled Jitsi IFrame API and PDF font, and Chart.js / flatpickr / qrcodejs loaded from a CDN) with versions, hashes and licences; `jt-vc-portal-X.Y.Z-image-sbom.cdx.json` lists what is inside the Docker image (PHP, Apache, Debian packages). Load them into Dependency-Track, Trivy, Grype or similar tools to check for newly reported vulnerabilities.
+- Both are produced by GitHub Actions while building the Release and are checked before it is published (versions match, hashes match the page SRI). See "Software Bill of Materials" in SECURITY.md.
+- No change to the program itself. Test T93.
+
 ## v1.25.2 — Warning when no trusted reverse proxy is configured
 
 - The System settings page now shows a warning when the `JTVC_TRUSTED_PROXIES` environment variable is not set: leaving it empty trusts client IP headers as-is, so the login lockout may be bypassed and the audit log may record incorrect client IPs. The warning suggests a value: the reverse proxy's address when requests appear to come through one, otherwise `127.0.0.1`.

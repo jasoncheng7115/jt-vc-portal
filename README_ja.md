@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.25.2 — 会議管理システム
+# jt-vc-portal v1.25.3 — 会議管理システム
 
 > English: [README.md](README.md) · 繁體中文: [README_zh-TW.md](README_zh-TW.md)
 
@@ -213,14 +213,16 @@ server {
 
 ```bash
 # 1) Release ページからイメージとチェックサムファイルをダウンロード（最新のバージョン番号を使用）
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.2/jt-vc-portal-1.25.2-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.2/jt-vc-portal-1.25.2-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.3/jt-vc-portal-1.25.3-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.3/jt-vc-portal-1.25.3-docker-amd64.tar.gz.sha256
+
+#    任意：SBOM ファイル jt-vc-portal-1.25.3-sbom.cdx.json / -image-sbom.cdx.json（脆弱性スキャナー向けの部品一覧）
 
 # 2) 完全性を検証（OK と表示されるはず）
-sha256sum -c jt-vc-portal-1.25.2-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.25.3-docker-amd64.tar.gz.sha256
 
-# 3) イメージを読み込む（jt-vc-portal:1.25.2 と :latest のタグが作成される）
-docker load < jt-vc-portal-1.25.2-docker-amd64.tar.gz
+# 3) イメージを読み込む（jt-vc-portal:1.25.3 と :latest のタグが作成される）
+docker load < jt-vc-portal-1.25.3-docker-amd64.tar.gz
 
 # 4) ホスト側で永続ディレクトリを準備（www-data の UID は既定で 33）
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -488,7 +490,7 @@ OWASP Top 10:2025 に項目ごとに準拠しています。
 
 - **A01 アクセス制御の不備**：未認可のページは常に 404（入口を明かさない）。会議室・録画・文字起こしは所有者ごとに分離され、ホストは自分が主催した会議だけを閲覧できます。文字起こしにはアカウント単位の権限（利用不可 / 手動 / 自動）と会議ごとのスイッチがあります。シングルサインオンのユーザーのロールは IdP のグループだけで決まり、指定グループ外のユーザーは拒否します。状態を変更する操作はすべて POST + CSRF トークン。
 - **A02 セキュリティ設定のミス**：エラー表示とバージョン情報の露出は無効。すべての応答にコンテンツセキュリティポリシー（既定は最も厳格、ページでは nonce 版に置き換え）とセキュリティヘッダーを付与。機密パス（`lib/`、`keys/`、`*.json`）へのアクセスは拒否。`X-Real-IP` は許可リストのリバースプロキシからのものだけを信頼。設定画面にシークレットを再表示しません。システム設定画面で不足コンポーネントと停止中のバックグラウンドジョブを表示します。
-- **A03 ソフトウェアサプライチェーンの不備**：外部 PHP パッケージはゼロ：OIDC、PDF / DOCX / ODT の生成、ZIP はすべて自前で実装し、LibreOffice などの大きなパッケージは不要。フロントエンドの CDN リソースには SRI。Jitsi IFrame API（`external_api.js`）はバージョンを固定して同梱し SRI を付与、第三者から都度読み込みません。PDF 用フォントを同梱（SIL OFL）。イメージのビルド時に最新の OS セキュリティ更新を適用。Release イメージは CI がタグのソースからビルドし sha256 を添付。
+- **A03 ソフトウェアサプライチェーンの不備**：外部 PHP パッケージはゼロ：OIDC、PDF / DOCX / ODT の生成、ZIP はすべて自前で実装し、LibreOffice などの大きなパッケージは不要。フロントエンドの CDN リソースには SRI。Jitsi IFrame API（`external_api.js`）はバージョンを固定して同梱し SRI を付与、第三者から都度読み込みません。PDF 用フォントを同梱（SIL OFL）。イメージのビルド時に最新の OS セキュリティ更新を適用。Release イメージは CI がタグのソースからビルドし sha256 と CycloneDX 形式の SBOM（使用しているサードパーティ部品とイメージ内パッケージの一覧、[SECURITY.md](SECURITY.md) を参照）を添付。
 - **A04 暗号化の失敗**：パスワードは bcrypt でハッシュ化。JWT は RS256 / HS256 で署名し有効期限を設定。シングルサインオンの id_token は IdP の公開鍵（JWKS）で署名を検証し、RS256 / RS384 / RS512 のみ受け付け、`none` やアルゴリズム混同を拒否。音声サービスへの接続は常に TLS 証明書を検証（自己署名証明書は貼り付けた PEM で信頼し、検証を無効にすることはありません）。webhook は HMAC 署名。セッション Cookie は HttpOnly・SameSite・Secure。
 - **A05 インジェクション**：出力はすべてエスケープし、入力はサニタイズ。メールヘッダーインジェクションと CSV 数式インジェクションを防止。転送する syslog から改行を除去して偽装を防止。エクスポートする DOCX / ODT / HTML の内容はすべてエスケープし制御文字を除去。全ページ（会議画面を含む）で nonce ベースのコンテンツセキュリティポリシーを適用し、インラインスクリプトを禁止。
 - **A06 安全でない設計**：ゲートウェイ型の構成、安全な既定値（ゲストは名前が必須、主催者がオンラインの間だけ入室可能）、最小権限のロール。ポータルは AD のパスワードを一切扱いません。会社アカウントは必ず OIDC の ID プロバイダーを経由し、MFA と総当たり対策はそこで行います。ポータルは言語モデルにも直接接続せず、文字起こしと要約はセルフホストの音声サービスに任せ、結果を保存した後に相手側のコピーを削除させます。
@@ -511,7 +513,7 @@ OWASP Top 10:2025 に項目ごとに準拠しています。
 
 ## セキュリティ報告
 
-セキュリティ上の問題は [SECURITY.md](SECURITY.md) に従って報告してください（公開 issue は作成しないでください）。公開済みのセキュリティアドバイザリ：[Security advisories](https://github.com/jasoncheng7115/jt-vc-portal/security/advisories)。
+セキュリティ上の問題は [SECURITY.md](SECURITY.md) に従って報告してください（公開 issue は作成しないでください）。公開済みのセキュリティアドバイザリ：[Security advisories](https://github.com/jasoncheng7115/jt-vc-portal/security/advisories)。各 Release には CycloneDX 形式の SBOM（アプリケーションと Docker イメージの 2 種類）が付属し、脆弱性スキャナーで照合できます。
 
 ## ライセンス
 

@@ -76,6 +76,10 @@ jobs:
               echo "繁體中文：[CHANGELOG_zh-TW.md](https://github.com/${GITHUB_REPOSITORY}/blob/${TAG}/CHANGELOG_zh-TW.md)"
               echo
               echo "**Docker image (amd64):** \`jt-vc-portal-$VER-docker-amd64.tar.gz\` — verify with \`sha256sum -c jt-vc-portal-$VER-docker-amd64.tar.gz.sha256\`, then \`docker load < jt-vc-portal-$VER-docker-amd64.tar.gz\`."
+              if [ -f "$OUT/jt-vc-portal-$VER-sbom.cdx.json" ]; then
+                echo
+                echo "**SBOM (CycloneDX 1.5):** \`jt-vc-portal-$VER-sbom.cdx.json\` (application: bundled and CDN third-party parts) and \`jt-vc-portal-$VER-image-sbom.cdx.json\` (Docker image: PHP, Apache and Debian packages)."
+              fi
             } >> "$NOTES"
             if gh release view "$TAG" >/dev/null 2>&1; then
               gh release upload "$TAG" "$OUT"/* --clobber

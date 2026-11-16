@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.25.2 — Meeting Management System
+# jt-vc-portal v1.25.3 — Meeting Management System
 
 > 繁體中文: [README_zh-TW.md](README_zh-TW.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -213,14 +213,16 @@ Don't want to build it yourself? Download the packaged image (`linux/amd64`) att
 
 ```bash
 # 1) Download the image and checksum file from the Release page (use the latest version number)
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.2/jt-vc-portal-1.25.2-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.2/jt-vc-portal-1.25.2-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.3/jt-vc-portal-1.25.3-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.3/jt-vc-portal-1.25.3-docker-amd64.tar.gz.sha256
+
+#    Optional: the SBOM files jt-vc-portal-1.25.3-sbom.cdx.json / -image-sbom.cdx.json (component lists for vulnerability scanners)
 
 # 2) Verify integrity (should print OK)
-sha256sum -c jt-vc-portal-1.25.2-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.25.3-docker-amd64.tar.gz.sha256
 
-# 3) Load the image (creates the jt-vc-portal:1.25.2 and :latest tags)
-docker load < jt-vc-portal-1.25.2-docker-amd64.tar.gz
+# 3) Load the image (creates the jt-vc-portal:1.25.3 and :latest tags)
+docker load < jt-vc-portal-1.25.3-docker-amd64.tar.gz
 
 # 4) Prepare persistent directories on the host (www-data UID defaults to 33)
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -488,7 +490,7 @@ Follows OWASP Top 10:2025, item by item:
 
 - **A01 Broken Access Control**: Unauthorized pages always return 404 (no entry points revealed); rooms, recordings and transcripts are isolated by owner, so hosts only see meetings they hosted; transcripts also have a per-account permission (off / manual / automatic) and a per-meeting switch; single sign-on users get their role only from IdP groups, and anyone outside the configured groups is refused; every state change is POST + CSRF token.
 - **A02 Security Misconfiguration**: Error display and version disclosure are off; every response carries a Content Security Policy (strictest by default, replaced by a nonce-based one on pages) and security headers; sensitive paths (`lib/`, `keys/`, `*.json`) are denied; `X-Real-IP` is trusted only from allow-listed reverse proxies; secrets are never shown back in the settings page; System settings lists missing components and a background job that is not running.
-- **A03 Software Supply Chain Failures**: Zero external PHP packages: OIDC, PDF / DOCX / ODT generation and ZIP are implemented in-house, with no LibreOffice or other large packages; front-end CDN resources use SRI; the Jitsi IFrame API (`external_api.js`) is bundled at a pinned version with SRI instead of being loaded live from a third party; the PDF font is bundled (SIL OFL); the image build applies the latest OS security updates; Release images are built by CI from the tagged source and published with a sha256.
+- **A03 Software Supply Chain Failures**: Zero external PHP packages: OIDC, PDF / DOCX / ODT generation and ZIP are implemented in-house, with no LibreOffice or other large packages; front-end CDN resources use SRI; the Jitsi IFrame API (`external_api.js`) is bundled at a pinned version with SRI instead of being loaded live from a third party; the PDF font is bundled (SIL OFL); the image build applies the latest OS security updates; Release images are built by CI from the tagged source and published with a sha256 and a CycloneDX SBOM (application components and image packages, see [SECURITY.md](SECURITY.md)).
 - **A04 Cryptographic Failures**: Passwords are bcrypt-hashed; JWTs are signed (RS256 / HS256) with lifetimes; single sign-on id_tokens are verified against the IdP public keys (JWKS), accepting only RS256 / RS384 / RS512 and rejecting `none` and algorithm confusion; the TLS certificate of the speech service is always verified (a self-signed certificate is trusted through its pasted PEM — verification is never turned off); webhooks are HMAC-signed; session cookies are HttpOnly, SameSite and Secure.
 - **A05 Injection**: All output escaped and input sanitized; protection against email header injection and CSV formula injection; line breaks stripped from forwarded syslog to prevent forged entries; exported DOCX / ODT / HTML content is fully escaped with control characters removed; a nonce-based Content Security Policy on every page (including the meeting page) forbids inline script.
 - **A06 Insecure Design**: Gateway architecture, secure by default (guests must give a name, entry only while the host is online), least-privilege roles; the portal never handles AD passwords — company accounts always go through an OIDC identity provider, which provides MFA and brute-force protection; nor does the portal talk to a language model — transcripts and summaries come from a self-hosted speech service, which is told to delete its copy once the results are stored here.
@@ -511,7 +513,7 @@ Follows OWASP Top 10:2025, item by item:
 
 ## Security
 
-To report a security issue, please follow [SECURITY.md](SECURITY.md) (do not open a public issue). Published advisories: [Security advisories](https://github.com/jasoncheng7115/jt-vc-portal/security/advisories).
+To report a security issue, please follow [SECURITY.md](SECURITY.md) (do not open a public issue). Published advisories: [Security advisories](https://github.com/jasoncheng7115/jt-vc-portal/security/advisories). Every Release includes CycloneDX SBOM files (application and Docker image) for vulnerability scanners.
 
 ## License
 

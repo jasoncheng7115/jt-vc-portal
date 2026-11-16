@@ -279,7 +279,7 @@
     <div class="sec">
       <div class="row"><span class="tag">A01</span><div><b><span class="zh">權限控制失效</span><span class="en">Broken Access Control</span><span class="ja">アクセス制御の不備</span></b><span><span class="zh">未授權回 404；會議室、錄影、逐字稿依擁有者隔離；逐字稿有帳號權限與單場開關；SSO 角色只由 IdP 群組決定；POST + CSRF token。</span><span class="en">Unauthorized pages return 404; rooms, recordings and transcripts isolated by owner; per-account transcript permission and per-meeting switch; SSO roles come only from IdP groups; POST + CSRF tokens.</span><span class="ja">未認可は 404。会議室・録画・文字起こしは所有者ごとに分離。文字起こしはアカウント権限と会議ごとのスイッチ。SSO のロールは IdP グループのみで決定。POST + CSRF トークン。</span></span></div></div>
       <div class="row"><span class="tag">A02</span><div><b><span class="zh">安全設定錯誤</span><span class="en">Security Misconfiguration</span><span class="ja">セキュリティ設定のミス</span></b><span><span class="zh">不顯示錯誤與版本；每個回應都有 CSP 與安全標頭；敏感路徑拒絕；只信任白名單代理的來源 IP；設定頁不回填密鑰。</span><span class="en">No error or version disclosure; CSP and security headers on every response; sensitive paths denied; client IP trusted only from allow-listed proxies; secrets never shown back.</span><span class="ja">エラーとバージョンを表示しない。すべての応答に CSP とセキュリティヘッダー。機密パスは拒否。送信元 IP は許可リストのプロキシからのみ信頼。シークレットは再表示しない。</span></span></div></div>
-      <div class="row"><span class="tag">A03</span><div><b><span class="zh">軟體供應鏈失效</span><span class="en">Software Supply Chain Failures</span><span class="ja">ソフトウェアサプライチェーンの不備</span></b><span><span class="zh">零外部 PHP 套件（OIDC、PDF / DOCX / ODT 都自行實作）；CDN 加 SRI；Jitsi API 內附釘版；Release 映像由 CI 建置並附 sha256。</span><span class="en">Zero external PHP packages (OIDC and PDF / DOCX / ODT built in-house); SRI on CDN assets; Jitsi API bundled and pinned; Release images built by CI with sha256.</span><span class="ja">外部 PHP パッケージはゼロ（OIDC、PDF / DOCX / ODT も自前実装）。CDN に SRI。Jitsi API は固定版を同梱。Release イメージは CI でビルドし sha256 を添付。</span></span></div></div>
+      <div class="row"><span class="tag">A03</span><div><b><span class="zh">軟體供應鏈失效</span><span class="en">Software Supply Chain Failures</span><span class="ja">ソフトウェアサプライチェーンの不備</span></b><span><span class="zh">零外部 PHP 套件（OIDC、PDF / DOCX / ODT 都自行實作）；CDN 加 SRI；Jitsi API 內附釘版；Release 映像由 CI 建置並附 sha256 與 SBOM。</span><span class="en">Zero external PHP packages (OIDC and PDF / DOCX / ODT built in-house); SRI on CDN assets; Jitsi API bundled and pinned; Release images built by CI with sha256 and an SBOM.</span><span class="ja">外部 PHP パッケージはゼロ（OIDC、PDF / DOCX / ODT も自前実装）。CDN に SRI。Jitsi API は固定版を同梱。Release イメージは CI でビルドし sha256 と SBOM を添付。</span></span></div></div>
       <div class="row"><span class="tag">A04</span><div><b><span class="zh">加密機制失效</span><span class="en">Cryptographic Failures</span><span class="ja">暗号化の失敗</span></b><span><span class="zh">bcrypt 密碼；JWT 簽章；SSO id_token 以 JWKS 驗簽並拒絕 none；語音服務一律驗證 TLS；webhook HMAC；安全 cookie。</span><span class="en">bcrypt passwords; signed JWTs; SSO id_tokens verified against JWKS (no none); speech-service TLS always verified; HMAC webhooks; secure cookies.</span><span class="ja">bcrypt パスワード。JWT 署名。SSO の id_token は JWKS で検証（none は拒否）。音声サービスの TLS は常に検証。HMAC 付き webhook。安全な Cookie。</span></span></div></div>
       <div class="row"><span class="tag">A05</span><div><b><span class="zh">注入攻擊</span><span class="en">Injection</span><span class="ja">インジェクション</span></b><span><span class="zh">輸出跳脫、輸入清洗；Email / CSV / syslog 注入防護；匯出檔內容全部跳脫；全站 nonce CSP。</span><span class="en">Output escaping and input sanitization; email / CSV / syslog injection protection; exported files fully escaped; nonce CSP everywhere.</span><span class="ja">出力のエスケープと入力のサニタイズ。メール / CSV / syslog のインジェクション対策。エクスポートファイルはすべてエスケープ。全ページで nonce CSP。</span></span></div></div>
       <div class="row"><span class="tag">A06</span><div><b><span class="zh">不安全設計</span><span class="en">Insecure Design</span><span class="ja">安全でない設計</span></b><span><span class="zh">閘道式架構、預設安全、最小權限；portal 不經手 AD 密碼（經 OIDC IdP）、不直接連語言模型（自架語音服務，取回後刪除）。</span><span class="en">Gateway design, secure defaults, least privilege; the portal never handles AD passwords (OIDC IdP) or talks to a language model (self-hosted speech service, deleted after retrieval).</span><span class="ja">ゲートウェイ型、安全な既定値、最小権限。ポータルは AD パスワードを扱わず（OIDC IdP 経由）、言語モデルにも直接接続しない（セルフホスト音声サービス、取得後に削除）。</span></span></div></div>
@@ -479,9 +479,9 @@ docker run -d --restart unless-stopped -p 127.0.0.1:58189:58189 \
 
     <h3 style="margin-top:24px"><span class="zh">方法三：從 Release 載入預建映像</span><span class="en">Option 3: Load the prebuilt image from a Release</span><span class="ja">方法 3：Release からビルド済みイメージを読み込む</span></h3>
 <pre class="zh"><span class="c"># 不想自己 build，直接下載 Release 打包映像（linux/amd64）</span>
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.2/jt-vc-portal-1.25.2-docker-amd64.tar.gz
-sha256sum -c jt-vc-portal-1.25.2-docker-amd64.tar.gz.sha256   <span class="c"># 驗證完整性</span>
-docker load &lt; jt-vc-portal-1.25.2-docker-amd64.tar.gz        <span class="c"># 載入為 jt-vc-portal:latest</span>
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.3/jt-vc-portal-1.25.3-docker-amd64.tar.gz
+sha256sum -c jt-vc-portal-1.25.3-docker-amd64.tar.gz.sha256   <span class="c"># 驗證完整性</span>
+docker load &lt; jt-vc-portal-1.25.3-docker-amd64.tar.gz        <span class="c"># 載入為 jt-vc-portal:latest</span>
 
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
 chown 33:33 /opt/jt-vc-portal/data
@@ -495,9 +495,9 @@ docker run -d --restart unless-stopped -p 127.0.0.1:58189:58189 \
   -v /opt/jt-vc-portal/data/:/var/jaas-data \
   --name jt-vc-portal jt-vc-portal:latest</pre>
 <pre class="en"><span class="c"># Skip building: download the packaged image from the Release (linux/amd64)</span>
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.2/jt-vc-portal-1.25.2-docker-amd64.tar.gz
-sha256sum -c jt-vc-portal-1.25.2-docker-amd64.tar.gz.sha256   <span class="c"># verify integrity</span>
-docker load &lt; jt-vc-portal-1.25.2-docker-amd64.tar.gz        <span class="c"># loads as jt-vc-portal:latest</span>
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.3/jt-vc-portal-1.25.3-docker-amd64.tar.gz
+sha256sum -c jt-vc-portal-1.25.3-docker-amd64.tar.gz.sha256   <span class="c"># verify integrity</span>
+docker load &lt; jt-vc-portal-1.25.3-docker-amd64.tar.gz        <span class="c"># loads as jt-vc-portal:latest</span>
 
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
 chown 33:33 /opt/jt-vc-portal/data
@@ -511,9 +511,9 @@ docker run -d --restart unless-stopped -p 127.0.0.1:58189:58189 \
   -v /opt/jt-vc-portal/data/:/var/jaas-data \
   --name jt-vc-portal jt-vc-portal:latest</pre>
 <pre class="ja"><span class="c"># 自分でビルドしない場合：Release のパッケージ済みイメージを直接ダウンロード（linux/amd64）</span>
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.2/jt-vc-portal-1.25.2-docker-amd64.tar.gz
-sha256sum -c jt-vc-portal-1.25.2-docker-amd64.tar.gz.sha256   <span class="c"># 完全性を検証</span>
-docker load &lt; jt-vc-portal-1.25.2-docker-amd64.tar.gz        <span class="c"># jt-vc-portal:latest として読み込まれる</span>
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.3/jt-vc-portal-1.25.3-docker-amd64.tar.gz
+sha256sum -c jt-vc-portal-1.25.3-docker-amd64.tar.gz.sha256   <span class="c"># 完全性を検証</span>
+docker load &lt; jt-vc-portal-1.25.3-docker-amd64.tar.gz        <span class="c"># jt-vc-portal:latest として読み込まれる</span>
 
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
 chown 33:33 /opt/jt-vc-portal/data

@@ -53,7 +53,8 @@
 - [ ] 文字起こしと要約：`tests/run-transcribe.sh` がすべて合格（JTLW 公式モック＋偽の録画サービス＋実ブラウザー。波形、書き出し、名前の変更、言語のドロップダウン、会議室のラベルを含む）。
 - [ ] シングルサインオン：`tests/run-sso.sh` がすべて合格（使い捨ての Keycloak＋実ブラウザー）。
 - [ ] 録画サービス：`tests/test-jibri-api.sh` がすべて合格（実際の `server.py`。波形のテストにはテスト機の ffmpeg が必要で、ない場合は SKIP と表示）。
-- [ ] リリースのリハーサル：`git archive <tag> | tar -x -C <一時>` のあと `tools/ci-build-release.sh <バージョン> <一時> <一時>/out` が成功（イメージに鍵 / ドキュメント / テストなど余分なファイルがない）。
+- [ ] リリースのリハーサル：`git archive <tag> | tar -x -C <一時>` のあと `tools/ci-build-release.sh <バージョン> <一時> <一時>/out` が成功（イメージに鍵 / ドキュメント / テストなど余分なファイルがない）し、2 つの SBOM（`jt-vc-portal-X.Y.Z-sbom.cdx.json`、`-image-sbom.cdx.json`）を出力して `SBOM ok` と表示する。
+- [ ] SBOM（T93）：`IMAGE=<ビルドしたイメージ> tests/test-sbom.sh` がすべて成功。
 - [ ] **本番環境（メンテナー、デプロイ後に必須。Jitsi / Jibri のアップグレード後、リバースプロキシの設定変更後も実行）**：
   - [ ] 入室方法と関門（T64–T66、T77）：`tests/prod-entry-gates.sh`——ブラウザーが実際にカメラとマイクを要求する唯一のテスト。シミュレーションに置き換えないこと。
   - [ ] 会議のシミュレーション（T42、T70、T80～T82 の実機確認）：`tests/prod-meeting-sim.sh`——実際の録画、実際の音声サービスによる文字起こしと要約、録画ホストが Jibri コンテナーで波形を計算、名前の変更後の書き出し。
@@ -119,6 +120,7 @@ CodeQL は本リポジトリの Python（`jibri-recordings-api/`）、JavaScript
 - [ ] T90 会議室作成の監査ログ：スケジュール / ロビーモード / 自動録画があっても説明に「Array」が出ない。注記はコードで保存し閲覧者の言語で表示する。旧バージョンの壊れた記録は「会議室（旧バージョンでは名前を記録していません）」と表示（`tests/unit/test_ical_audit.php`、`tests/run-integration.sh`）。
 - [ ] T91 メール送信失敗の原因が見える：受信サーバーの 550 拒否 / SMTP ホスト接続不可のとき、招待ボタン、会議室作成、会議室削除（取消通知）の画面に原因が表示される。監査ログ「招待メール送信失敗」に宛先、コード、生の応答が記録され、閲覧者の言語でわかりやすい原因を表示。「招待メール送信」は成功した宛先のみ。コンテナログに `invite mail failed` の行がある。生の応答は改行が除去されパスワードを含まない（`tests/run-integration.sh`、`tests/unit/test_ical_audit.php`）。
 - [ ] T92 `JTVC_TRUSTED_PROXIES` が未設定のとき、システム設定ページに警告と推奨値を表示する（転送ヘッダーあり → プロキシのアドレス、なし → 127.0.0.1。推奨値にクライアントが送った IP は使わない）。設定済みなら表示しない（`tests/unit/test_security.php`、`tests/run-integration.sh`）。
+- [ ] T93 各リリースに CycloneDX 1.5 形式の SBOM がある：アプリケーション SBOM（`tools/make-sbom.py`）は同梱および CDN のサードパーティ部品をすべてライセンス付きで列挙し、バージョン＝`APP_VERSION`、CDN のハッシュ＝ページの SRI、Jitsi IFrame API のハッシュ＝`Jaas::EXTERNAL_API_SRI`。イメージ SBOM（syft、digest で固定）はイメージ実際の PHP バージョン、Apache、Debian を含み、ファイルごとの一覧は含まない。どちらにも機密情報や内部アドレスを含まない（`tests/test-sbom.sh`）。
 
 ### 3.4 ゲスト
 - [ ] 招待リンク `/room/<name>` と旧形式の `/invite?room=` のどちらも機能する。
@@ -417,9 +419,9 @@ CodeQL は本リポジトリの Python（`jibri-recordings-api/`）、JavaScript
 - [ ] 本番にデプロイ：lint → build（`--pull`）→ コンテナを入れ替え → ヘルスチェック（トップページ 200、ログインページ、会議への入室）。
 - [ ] `github/` を同期（変更したファイルのみをコピーし、`rsync --delete` は使わない）してから、第 0 節の機密情報チェックを再度実行する。
 - [ ] commit / push。`vX.Y.Z` tag を作成して push する。
-- [ ] `vX.Y.Z` tag を push すると、**GitHub Actions（`.github/workflows/release.yml`）が自動で**このバージョンの Docker イメージをビルドし（内部に機密情報がないことを検証）、`jt-vc-portal-X.Y.Z-docker-amd64.tar.gz` + `.sha256` をパッケージ化して Release を作成する（リリースノートは CHANGELOG から取得）。Actions の実行が成功したことを確認する。
+- [ ] `vX.Y.Z` tag を push すると、**GitHub Actions（`.github/workflows/release.yml`）が自動で**このバージョンの Docker イメージをビルドし（内部に機密情報がないことを検証）、`jt-vc-portal-X.Y.Z-docker-amd64.tar.gz` + `.sha256` と 2 つの SBOM をパッケージ化して Release を作成する（リリースノートは CHANGELOG から取得）。Actions の実行が成功したことを確認する。
 - [ ] README と Pages のバージョン番号とダウンロードリンクが更新されている。
-- [ ] 公開リンクから Release のイメージと `.sha256` をダウンロードし、`sha256sum -c` で検証し、`docker load` + 起動が機能することを確認する。
+- [ ] 公開リンクから Release のイメージと `.sha256` をダウンロードし、`sha256sum -c` で検証し、`docker load` + 起動が機能することを確認する。Release には `jt-vc-portal-X.Y.Z-sbom.cdx.json` と `jt-vc-portal-X.Y.Z-image-sbom.cdx.json` もあり、どちらも有効な JSON である。
 
 ## 10. 自動テスト対応表
 
@@ -471,6 +473,7 @@ CodeQL は本リポジトリの Python（`jibri-recordings-api/`）、JavaScript
 | 会議室作成の監査注記 T90 | `tests/unit/test_ical_audit.php`、`tests/run-integration.sh` |
 | メール送信失敗の原因 T91 | `tests/run-integration.sh`（`tests/stub/smtp-sink.php` で 550 拒否を再現）、`tests/unit/test_ical_audit.php` |
 | 信頼するプロキシ未設定の警告 T92 | `tests/unit/test_security.php`、`tests/run-integration.sh` |
+| リリースの SBOM（アプリケーションとイメージ）T93 | `tests/test-sbom.sh`、`tools/ci-build-release.sh`（Release 作成前に 2 つのファイルを検査） |
 | 作成済みの会議室への追加招待 T87 | `tests/run-integration.sh`（テスト用 SMTP 受信 `tests/stub/smtp-sink.php`）、`tests/unit/test_rooms.php`、`tests/e2e/meeting.cjs` |
 | PHP のセキュリティ設定 T86 | `tests/run-integration.sh` |
 | 録画の開始 / 停止 / 2 部屋同時 T70 | `tests/prod-entry-gates.sh`、`tests/prod-meeting-sim.sh`（メンテナー、本番環境） |

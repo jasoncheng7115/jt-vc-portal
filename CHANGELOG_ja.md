@@ -2,6 +2,12 @@
 
 > English: [CHANGELOG.md](CHANGELOG.md) · 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md)
 
+## v1.25.3 — 各リリースに SBOM を添付
+
+- 各 Release に CycloneDX 1.5 形式の SBOM（ソフトウェア部品表）を 2 つ添付します。`jt-vc-portal-X.Y.Z-sbom.cdx.json` は本システムが使うサードパーティ部品（同梱の Jitsi IFrame API と PDF フォント、CDN から読み込む Chart.js / flatpickr / qrcodejs）のバージョン、ハッシュ、ライセンス、`jt-vc-portal-X.Y.Z-image-sbom.cdx.json` は Docker イメージ内の PHP、Apache、Debian パッケージの一覧です。Dependency-Track、Trivy、Grype などに読み込むと、新たに公表された脆弱性の有無を照合できます。
+- どちらも GitHub Actions が Release のビルド時に生成し、公開前に検査します（バージョンの一致、ハッシュがページの SRI と同じ）。SECURITY.md の「Software Bill of Materials」を参照してください。
+- プログラム自体の変更はありません。テスト T93。
+
 ## v1.25.2 — 信頼するリバースプロキシが未設定のときに警告
 
 - 環境変数 `JTVC_TRUSTED_PROXIES` が設定されていない場合、システム設定ページに警告を表示するようにした。空のままだとリクエストの送信元 IP ヘッダーをそのまま信頼するため、ログイン失敗時のロックアウトが回避されたり、監査ログの送信元 IP が正しくなかったりする可能性がある。警告には推奨値を表示する（リバースプロキシ経由と判断した場合はそのアドレス、そうでない場合は `127.0.0.1`）。

@@ -53,7 +53,8 @@
 - [ ] Transcripts and summaries: `tests/run-transcribe.sh` is all green (official JTLW mock + fake recording service + real browser; covers waveform, exports, renaming, the language dropdown and room badges).
 - [ ] Single sign-on: `tests/run-sso.sh` is all green (disposable Keycloak + real browser).
 - [ ] Recording service: `tests/test-jibri-api.sh` is all green (the real `server.py`; the waveform checks need ffmpeg on the test machine and are marked SKIP otherwise).
-- [ ] Release rehearsal: `git archive <tag> | tar -x -C <tmp>` then `tools/ci-build-release.sh <version> <tmp> <tmp>/out` succeeds (no keys / docs / tests or other extra files in the image).
+- [ ] Release rehearsal: `git archive <tag> | tar -x -C <tmp>` then `tools/ci-build-release.sh <version> <tmp> <tmp>/out` succeeds (no keys / docs / tests or other extra files in the image) and also writes the two SBOM files (`jt-vc-portal-X.Y.Z-sbom.cdx.json`, `-image-sbom.cdx.json`) and prints `SBOM ok`.
+- [ ] SBOM (T93): `IMAGE=<built image> tests/test-sbom.sh` is all green.
 - [ ] **Production (maintainer, required after deployment; also after Jitsi / Jibri upgrades and reverse-proxy changes)**:
   - [ ] Entry paths and gates (T64–T66, T77): `tests/prod-entry-gates.sh` — the only test that makes the browser really request the camera and microphone; never switch it to a simulation.
   - [ ] Simulated meeting (T42, T70, T80–T82 on the real system): `tests/prod-meeting-sim.sh` — real recording, real speech service producing the transcript and summary, the recording host computing the waveform with the Jibri container, exports after renaming.
@@ -119,6 +120,7 @@ CodeQL scans the Python (`jibri-recordings-api/`), JavaScript (`tests/`, Pages) 
 - [ ] T90 Room-creation audit entry: with a schedule / lobby mode / auto-record the description never contains "Array"; the notes are stored as codes and shown in the viewer's language; old broken entries show as "Room (name not recorded by the old version)" (`tests/unit/test_ical_audit.php`, `tests/run-integration.sh`).
 - [ ] T91 Email failure reasons are visible: with a 550 rejection / unreachable SMTP host, the invite button, room creation and room deletion (cancellation) pages all show the reason; the audit entry "Invitation email failed" records the recipient, code and raw reply and shows a plain-language reason in the viewer's language; "Sent invitation email" lists only successful recipients; the container log has an `invite mail failed` line; the raw reply has line breaks removed and never contains the password (`tests/run-integration.sh`, `tests/unit/test_ical_audit.php`).
 - [ ] T92 When `JTVC_TRUSTED_PROXIES` is not set, the System settings page shows a warning with a suggested value (forwarded headers present → the proxy's address, none → 127.0.0.1; the suggestion never uses a client-supplied IP); no warning once it is set (`tests/unit/test_security.php`, `tests/run-integration.sh`).
+- [ ] T93 Every release has a CycloneDX 1.5 SBOM: the application SBOM (`tools/make-sbom.py`) lists every bundled and CDN third-party part with its licence, its version equals `APP_VERSION`, CDN hashes equal the page SRI and the Jitsi IFrame API hash equals `Jaas::EXTERNAL_API_SRI`; the image SBOM (syft, pinned by digest) has the image's real PHP version, Apache and Debian, without a per-file list; neither contains secrets or internal addresses (`tests/test-sbom.sh`).
 
 ### 3.4 Guests
 - [ ] Both the invite link `/room/<name>` and the legacy `/invite?room=` work.
@@ -417,9 +419,9 @@ Spot-check on every release; test everything for major changes:
 - [ ] Deploy to production: lint → build (`--pull`) → replace the container → health check (home page 200, login page, entering a meeting).
 - [ ] Sync `github/` (copy only changed files; do not use `rsync --delete`), then run the section 0 secret checks again.
 - [ ] commit / push; create and push the `vX.Y.Z` tag.
-- [ ] After pushing the `vX.Y.Z` tag, **GitHub Actions (`.github/workflows/release.yml`) automatically** builds this version's Docker image (verifying no secrets are inside), packages `jt-vc-portal-X.Y.Z-docker-amd64.tar.gz` + `.sha256`, and creates the Release (notes taken from the CHANGELOG). Confirm the Actions run succeeded.
+- [ ] After pushing the `vX.Y.Z` tag, **GitHub Actions (`.github/workflows/release.yml`) automatically** builds this version's Docker image (verifying no secrets are inside), packages `jt-vc-portal-X.Y.Z-docker-amd64.tar.gz` + `.sha256` and the two SBOM files, and creates the Release (notes taken from the CHANGELOG). Confirm the Actions run succeeded.
 - [ ] Version numbers and download links in the README and Pages are updated.
-- [ ] Download the Release image and `.sha256` from the public links, verify with `sha256sum -c`, and confirm `docker load` + start work.
+- [ ] Download the Release image and `.sha256` from the public links, verify with `sha256sum -c`, and confirm `docker load` + start work; the Release also has `jt-vc-portal-X.Y.Z-sbom.cdx.json` and `jt-vc-portal-X.Y.Z-image-sbom.cdx.json` and both open as valid JSON.
 
 ## 10. Automated test mapping
 
@@ -471,6 +473,7 @@ Spot-check on every release; test everything for major changes:
 | Room-creation audit notes T90 | `tests/unit/test_ical_audit.php`, `tests/run-integration.sh` |
 | Email failure reasons T91 | `tests/run-integration.sh` (`tests/stub/smtp-sink.php` simulates a 550 rejection), `tests/unit/test_ical_audit.php` |
 | Warning for missing trusted proxy T92 | `tests/unit/test_security.php`, `tests/run-integration.sh` |
+| Release SBOM (application and image) T93 | `tests/test-sbom.sh`, `tools/ci-build-release.sh` (checks both files before the Release is created) |
 | Invite people to an existing room T87 | `tests/run-integration.sh` (test SMTP receiver `tests/stub/smtp-sink.php`), `tests/unit/test_rooms.php`, `tests/e2e/meeting.cjs` |
 | PHP security settings T86 | `tests/run-integration.sh` |
 | Recording start / stop / two at once T70 | `tests/prod-entry-gates.sh`, `tests/prod-meeting-sim.sh` (maintainer, production) |
