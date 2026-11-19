@@ -2,6 +2,12 @@
 
 > English: [CHANGELOG.md](CHANGELOG.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.25.4 — PHP 安全更新（8.4.28）
+
+- Docker 映像改用 **PHP 8.4.28**（2026-11-19 發布）。這版 PHP 修正許多資安問題，其中數個可能導致遠端執行程式碼，包含 CVE-2026-129496, CVE-2026-126714, CVE-2026-115560, CVE-2026-129501, CVE-2026-128090, CVE-2026-15353, CVE-2026-129506, CVE-2026-128064, CVE-2026-127960，以及先前沒有修補版的 CVE-2026-115560。請儘快升級。
+- Docker 安裝：改用 v1.25.4 映像或 `docker build --pull` 重建，再重新建立容器。直接安裝：PHP 更新到 8.4.28 / 8.3.37 以上，並重新啟動執行 PHP 的服務；`session.upload_progress.enabled=Off` 請維持。
+- 程式本身沒有變動。測試 T86 改為要求 8.4.28 / 8.3.37。
+
 ## v1.25.3 — 每一版都附 SBOM
 
 - 每個 Release 都附兩份 CycloneDX 1.5 格式的 SBOM（軟體元件清單）：`jt-vc-portal-X.Y.Z-sbom.cdx.json` 列出本系統用到的第三方元件（內附的 Jitsi IFrame API 與 PDF 字型，以及從 CDN 載入的 Chart.js / flatpickr / qrcodejs）的版本、雜湊與授權；`jt-vc-portal-X.Y.Z-image-sbom.cdx.json` 列出 Docker 映像內的 PHP、Apache 與 Debian 套件。可匯入 Dependency-Track、Trivy、Grype 等工具，比對有沒有新公布的弱點。

@@ -2,6 +2,12 @@
 
 > 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md) · 日本語: [CHANGELOG_ja.md](CHANGELOG_ja.md)
 
+## v1.25.4 — PHP security update (8.4.28)
+
+- The Docker image now uses **PHP 8.4.28** (released 2026-11-19). This PHP release fixes many security issues, several of which can lead to remote code execution, including CVE-2026-129496, CVE-2026-126714, CVE-2026-115560, CVE-2026-129501, CVE-2026-128090, CVE-2026-15353, CVE-2026-129506, CVE-2026-128064, CVE-2026-127960 and the CVE-2026-115560 issue that previously had no fix. Please upgrade as soon as possible.
+- Docker installs: use the v1.25.4 image or rebuild with `docker build --pull`, then recreate the container. Direct installs: update PHP to 8.4.28 / 8.3.37 or later and restart the service that runs PHP; keep `session.upload_progress.enabled=Off`.
+- No change to the program itself. Test T86 now requires 8.4.28 / 8.3.37.
+
 ## v1.25.3 — SBOM with every release
 
 - Every Release now includes two CycloneDX 1.5 SBOM (software bill of materials) files: `jt-vc-portal-X.Y.Z-sbom.cdx.json` lists the third-party parts the portal uses (the bundled Jitsi IFrame API and PDF font, and Chart.js / flatpickr / qrcodejs loaded from a CDN) with versions, hashes and licences; `jt-vc-portal-X.Y.Z-image-sbom.cdx.json` lists what is inside the Docker image (PHP, Apache, Debian packages). Load them into Dependency-Track, Trivy, Grype or similar tools to check for newly reported vulnerabilities.

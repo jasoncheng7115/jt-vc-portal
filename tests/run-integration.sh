@@ -41,9 +41,9 @@ chk "首頁 200" "$(code $B/)" 200
 H=$(curl -sI $B/)
 has "X-Frame-Options" "$H" "X-Frame-Options: SAMEORIGIN"
 has "nosniff" "$H" "X-Content-Type-Options: nosniff"
-# T86：PHP 2026-10 安全公告緩解——關閉 session.upload_progress（本系統用不到）
+# T86：PHP 安全公告（2026-10 / 2026-11）緩解——關閉 session.upload_progress（本系統用不到）
 chk "T86 session.upload_progress 已關閉" "$(docker exec $NAME php -r 'echo ini_get("session.upload_progress.enabled") ? "on" : "off";')" off
-chk "T86 PHP 為 2026-10 安全修補版以上（8.4.27 / 8.3.36）" "$(docker exec $NAME php -r 'echo (PHP_VERSION_ID >= 80427 || (PHP_VERSION_ID >= 80336 && PHP_VERSION_ID < 80400)) ? "ok" : PHP_VERSION;')" ok
+chk "T86 PHP 為 2026-11-19 安全修補版以上（8.4.28 / 8.3.37）" "$(docker exec $NAME php -r 'echo (PHP_VERSION_ID >= 80428 || (PHP_VERSION_ID >= 80337 && PHP_VERSION_ID < 80400)) ? "ok" : PHP_VERSION;')" ok
 has "CSP" "$H" "Content-Security-Policy"
 CSP=$(printf '%s' "$H" | grep -i '^Content-Security-Policy' )
 has "CSP script-src 用 nonce" "$CSP" "script-src 'self' 'nonce-"

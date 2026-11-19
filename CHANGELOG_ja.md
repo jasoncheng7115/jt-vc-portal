@@ -2,6 +2,12 @@
 
 > English: [CHANGELOG.md](CHANGELOG.md) · 繁體中文: [CHANGELOG_zh-TW.md](CHANGELOG_zh-TW.md)
 
+## v1.25.4 — PHP セキュリティ更新（8.4.28）
+
+- Docker イメージは **PHP 8.4.28**（2026-11-19 公開）を使用します。この PHP は多数のセキュリティ問題を修正しており、そのうち複数はリモートでのコード実行につながるおそれがあります（CVE-2026-129496, CVE-2026-126714, CVE-2026-115560, CVE-2026-129501, CVE-2026-128090, CVE-2026-15353, CVE-2026-129506, CVE-2026-128064, CVE-2026-127960、およびこれまで修正版がなかった CVE-2026-115560 を含む）。できるだけ早く更新してください。
+- Docker の場合：v1.25.4 のイメージを使うか `docker build --pull` で再ビルドし、コンテナを作り直してください。直接インストールの場合：PHP を 8.4.28 / 8.3.37 以降に更新し、PHP を実行しているサービスを再起動してください。`session.upload_progress.enabled=Off` はそのまま維持してください。
+- プログラム自体の変更はありません。テスト T86 は 8.4.28 / 8.3.37 を要求するようになりました。
+
 ## v1.25.3 — 各リリースに SBOM を添付
 
 - 各 Release に CycloneDX 1.5 形式の SBOM（ソフトウェア部品表）を 2 つ添付します。`jt-vc-portal-X.Y.Z-sbom.cdx.json` は本システムが使うサードパーティ部品（同梱の Jitsi IFrame API と PDF フォント、CDN から読み込む Chart.js / flatpickr / qrcodejs）のバージョン、ハッシュ、ライセンス、`jt-vc-portal-X.Y.Z-image-sbom.cdx.json` は Docker イメージ内の PHP、Apache、Debian パッケージの一覧です。Dependency-Track、Trivy、Grype などに読み込むと、新たに公表された脆弱性の有無を照合できます。

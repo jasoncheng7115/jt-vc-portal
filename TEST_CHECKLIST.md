@@ -147,7 +147,7 @@ CodeQL scans the Python (`jibri-recordings-api/`), JavaScript (`tests/`, Pages) 
 - [ ] T83 Recording-related audit messages show no UUID: new entries read "room "…", the MM/DD HH:MM recording (N min)" (three languages), recordings in progress read "the recording started …"; old entries ("recording {id}") are shown in the new form, deleted recordings as "recording (ID first 8 characters)", missing room as "—"; the full ID is still stored, searchable, and included in the SIEM text.
 - [ ] T84 Meeting room customization "Screen sharing": default "Sharp text" = `desktopSharingFrameRate: { min: 5, max: 5 }`; "Smooth motion" = `{ min: 15, max: 30 }`; same on the host and guest pages; unknown values fall back to sharp text.
 - [ ] T85 Production screen-share quality (maintainer): `tests/prod-screenshare.sh` limits upload to the Jitsi media port to 1 Mbps with tc; the host shares a 1920×1080 slide with small text and two guests watch; with sharp text Jitsi marks it detail and guests receive 1080p, with smooth motion it is marked motion and the resolution is clearly lower; with `RATE=none` both are full size. The throttle is always removed afterwards.
-- [ ] T86 PHP security settings: `session.upload_progress.enabled` is off in the container (`tests/run-integration.sh`); PHP is on the latest patch release (`php -v`; from 2026-10, 8.4.27 / 8.3.36 or later).
+- [ ] T86 PHP security settings: `session.upload_progress.enabled` is off in the container (`tests/run-integration.sh`); PHP is on the latest patch release (`php -v`; from 2026-11-19, 8.4.28 / 8.3.37 or later).
 
 ### 3.5 Meeting records and statistics
 - [ ] When the host leaves, `meetings.jsonl` is written (duration, peak concurrent participants, participant join / leave times).

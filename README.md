@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/images/icon.svg" alt="jt-vc-portal" width="96" height="96"></p>
 
-# jt-vc-portal v1.25.3 — Meeting Management System
+# jt-vc-portal v1.25.4 — Meeting Management System
 
 > 繁體中文: [README_zh-TW.md](README_zh-TW.md) · 日本語: [README_ja.md](README_ja.md)
 
@@ -11,7 +11,7 @@
 [^8x8]: **8x8** has been the company developing and maintaining Jitsi / Jitsi Meet since 2018; **8x8 JaaS (Jitsi as a Service)** is its official cloud-hosted Jitsi service.
 
 > [!IMPORTANT]
-> **Security update (2026-10-21): please upgrade to v1.22.1 or later as soon as possible.** PHP has released security fixes (8.4.27 / 8.3.36). Docker installs: use the v1.22.1 or later image or rebuild with `docker build --pull`. Direct installs: update PHP to 8.4.27 / 8.3.36 or later and set `session.upload_progress.enabled=Off` in `php.ini`. This setting also blocks CVE-2026-115560, disclosed on 10/23 and **not yet patched**, so be sure to set it. See [CHANGELOG.md](CHANGELOG.md).
+> **Security update (2026-11-19): please upgrade to v1.25.4 or later as soon as possible.** PHP has released security fixes (8.4.28 / 8.3.37) for several serious issues, including ones that can lead to remote code execution; they also fix CVE-2026-115560. Docker installs: use the v1.25.4 or later image or rebuild with `docker build --pull`. Direct installs: update PHP to 8.4.28 / 8.3.37 or later and keep `session.upload_progress.enabled=Off` in `php.ini`. See [CHANGELOG.md](CHANGELOG.md).
 
 **Project page / Demo:** <https://jasoncheng7115.github.io/jt-vc-portal/>
 
@@ -213,16 +213,16 @@ Don't want to build it yourself? Download the packaged image (`linux/amd64`) att
 
 ```bash
 # 1) Download the image and checksum file from the Release page (use the latest version number)
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.3/jt-vc-portal-1.25.3-docker-amd64.tar.gz
-curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.3/jt-vc-portal-1.25.3-docker-amd64.tar.gz.sha256
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.4/jt-vc-portal-1.25.4-docker-amd64.tar.gz
+curl -LO https://github.com/jasoncheng7115/jt-vc-portal/releases/download/v1.25.4/jt-vc-portal-1.25.4-docker-amd64.tar.gz.sha256
 
-#    Optional: the SBOM files jt-vc-portal-1.25.3-sbom.cdx.json / -image-sbom.cdx.json (component lists for vulnerability scanners)
+#    Optional: the SBOM files jt-vc-portal-1.25.4-sbom.cdx.json / -image-sbom.cdx.json (component lists for vulnerability scanners)
 
 # 2) Verify integrity (should print OK)
-sha256sum -c jt-vc-portal-1.25.3-docker-amd64.tar.gz.sha256
+sha256sum -c jt-vc-portal-1.25.4-docker-amd64.tar.gz.sha256
 
-# 3) Load the image (creates the jt-vc-portal:1.25.3 and :latest tags)
-docker load < jt-vc-portal-1.25.3-docker-amd64.tar.gz
+# 3) Load the image (creates the jt-vc-portal:1.25.4 and :latest tags)
+docker load < jt-vc-portal-1.25.4-docker-amd64.tar.gz
 
 # 4) Prepare persistent directories on the host (www-data UID defaults to 33)
 mkdir -p /opt/jt-vc-portal/keys /opt/jt-vc-portal/data
@@ -271,6 +271,7 @@ The Docker image and the Release image already contain everything — nothing to
 | before v1.14.0 | Exporting meeting minutes as PDF / DOCX / ODT needs the PHP `zlib` extension (built into the Debian / Ubuntu PHP packages) and the bundled font `lib/fonts/NotoSansTC-Regular.ttf`, which comes with `git pull`. |
 | before v1.19.0 | Direct installs: the minimum PHP version is now **8.3** (PHP 8.2 only gets security fixes until 2026-12-31). The Docker and Release images already use 8.4; nothing to do there. |
 | before v1.24.0 | Invitation templates gain `{title}` (meeting topic, or the room name if empty). Sites with default templates get it automatically; **if you customized the templates, replace `{room}` with `{title}`** so invitations show the topic. |
+| before v1.25.4 | Direct installs: update PHP to 8.4.28 / 8.3.37 or later (security update of 2026-11-19). Docker installs: just rebuild the image (`docker build --pull`) or use the v1.25.4 image. |
 | before v1.22.1 | Direct installs: update PHP to 8.4.27 / 8.3.36 or later (security update of 2026-10-21) and set `session.upload_progress.enabled=Off` in `php.ini`. Docker installs: just rebuild the image (`docker build --pull`). |
 | before v1.20.0 | With a self-hosted Jibri, update `jibri-recordings-api/server.py` on the Jibri host and run `systemctl restart jibri-recordings-api` so long recordings get a waveform on the transcript page (it works without the update; recordings over 60 MB just have no waveform). Decoding uses the host's ffmpeg or, if missing, the one inside the Jibri containers — nothing to install. |
 
