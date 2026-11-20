@@ -4,7 +4,7 @@
 
 ## v1.25.4 — PHP security update (8.4.28)
 
-- The Docker image now uses **PHP 8.4.28** (released 2026-11-19). This PHP release fixes many security issues, several of which can lead to remote code execution, including CVE-2026-129496, CVE-2026-126714, CVE-2026-115560, CVE-2026-129501, CVE-2026-128090, CVE-2026-15353, CVE-2026-129506, CVE-2026-128064, CVE-2026-127960 and the CVE-2026-115560 issue that previously had no fix. Please upgrade as soon as possible.
+- The Docker image now uses **PHP 8.4.28** (released 2026-11-19). This PHP release fixes many security issues, several of which can lead to remote code execution, including CVE-2026-129496, CVE-2026-126714, CVE-2026-129501, CVE-2026-128090, CVE-2026-15353, CVE-2026-129506, CVE-2026-128064, CVE-2026-127960 and the CVE-2026-115560 issue that previously had no fix. Our review of the default v1.25.3 image found no evidence that the prerequisites for remote code execution in CVE-2026-129496, CVE-2026-126714 or CVE-2026-115560 were met; please still upgrade to v1.25.4 as soon as possible for the upstream security fixes.
 - Docker installs: use the v1.25.4 image or rebuild with `docker build --pull`, then recreate the container. Direct installs: update PHP to 8.4.28 / 8.3.37 or later and restart the service that runs PHP; keep `session.upload_progress.enabled=Off`.
 - No change to the program itself. Test T86 now requires 8.4.28 / 8.3.37.
 
